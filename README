@@ -1,0 +1,28 @@
+
+LibU in a few words
+
+    LibU is a multiplatform (UNIXes, Mac, Windows) C library which comes under 
+    a BSD-style license.  It includes many interdependent modules for doing 
+    different things: memory allocation, networking and URI parsing (rfc2396), 
+    string manipulation, debugging and logging in a very compact way, plus many
+    other miscellaneous tasks.  Its small footprint (about 70KB) and 
+    multiplatform nature, makes it an ideal candidate for integration in bigger
+    projects.  KLone - http://www.koanlogic.com/products/klone - is an example 
+    of such a combination.
+
+Installation
+
+    LibU comes with MaKL (KoanLogic's autoconfiguration and building framework) 
+    and should need no user's intervention for compilation and installation,
+    except the classic steps:
+
+    $ ./configure && make
+    # sudo make install
+
+    If you are installing LibU on a platform which is not yet supported by
+    MaKL, the only files you need to touch are Makefile.conf and conf.h.
+
+Contribute to LibU
+
+    If you need support or you want to submit a patch or an enhancement,
+    use the libu-dev@koanlogic.com mailing list.

@@ -1,0 +1,331 @@
+/* $Id: kl-doxy.css,v 1.1 2005/09/23 13:04:37 tho Exp $*/
+
+body {
+  background:#fff;
+/*  background:white url(../images/kl_bg.png) no-repeat top left; */
+/*  background-position:80px 30px; */
+/*  width:720px; */
+  margin:0;
+  padding:40px 20px;
+  font:x-small Georgia,Serif;
+  /*text-align:center;*/
+  color:#333;
+  font-size:medium;
+  }
+
+/* Links
+----------------------------------------------- */
+a:link {
+  color:#58a;
+  text-decoration:none;
+  }
+a:visited {
+  color:#58a;
+  text-decoration:none;
+  }
+a:hover {
+  color:#444499;
+  }
+a img {
+  border-width:0;
+  }
+
+
+/* Splash
+----------------------------------------------- */
+#splash {
+  width:660px;
+  border-width:2px;
+  padding-top:130px;
+  margin:0 auto;
+  }
+
+#images {
+  width:200px;
+  text-align:center;
+  }
+
+
+/* Shadow Border
+----------------------------------------------- */
+
+.s1 { border: solid 2px #FDFDFE;
+       border-top:none;
+       border-bottom:none;
+.s2 {  border: solid 1px #F4F6F9;
+       border-top:none;
+       border-bottom:none;
+       }
+.s3 {  border: solid 2px #F0F3F7;
+       border-top:none;
+       border-bottom:none;
+       }
+.s4 {  border: solid 1px #EBEFF4;
+       border-top:none;
+       border-bottom:none;
+       }
+.s5 {  border: solid 2px #E5EBF0;
+       border-top:none;
+       border-bottom:none;
+       }
+.s6 {  border: solid 1px #E0E7ED;
+       border-top:none;
+       border-bottom:none;
+       }
+.s7 {  border: solid 2px #DCE4EB;
+       border-top:none;
+       border-bottom:none;
+       }
+.s8 {  border: solid 1px #D5DEE7;
+       border-top:none;
+       border-bottom: solid 1px #ccc;
+       }
+
+/* Header
+----------------------------------------------- */
+#header {
+  vertical-align:middle;
+  width:695px;
+  margin:0 auto 10px;
+  border-top:1px solid #ccc;
+  border-bottom:1px solid #ccc;
+  }
+
+#title {
+  text-align: right;
+  margin:5px 5px 0;
+  padding:10px 10px .25em;
+  border:0px solid #eee;
+  border-width:0px 0px 0;
+  font-size:200%;
+  line-height:1.2em;
+  font-weight:normal;
+  color:#119;
+  text-transform:uppercase;
+  letter-spacing:.2em;
+  }
+
+#description {
+  text-align: right;
+  margin:0 5px 30px;
+  padding:0 14px 10px;
+  border:0px solid #eee;
+  border-width:0 0px 0px;
+  max-width:700px;
+  font:78%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
+  text-transform:uppercase;
+  letter-spacing:.2em;
+  color:#999;
+  }
+
+#private {
+  text-align: left;
+  padding:20px 20px 0;
+  width:100px;
+  height:20px;
+  font:78%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
+  text-transform:uppercase;
+  letter-spacing:.1em;
+  color:#999;
+  }
+
+#msg {
+  text-align: left;
+  padding:5px 0 0;
+  max-width:700px;
+  height:10px;
+  font:78%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
+  letter-spacing:.1em;
+  color:#944;
+  }
+
+
+/* Layout
+----------------------------------------------- */
+#content {
+  width:660px;
+  margin:0 auto;
+  padding-top:10px;
+  text-align:left;
+  }
+#main {
+  width:410px;
+  padding: 5px;
+  float:left;
+  }
+#sidebar {
+  width:180px;
+  float:right;
+  margin:20px;
+  }
+
+
+/* Headings
+----------------------------------------------- */
+h2 {
+  margin:1.5em 0 .75em;
+  font:78%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
+  text-transform:uppercase;
+  letter-spacing:.2em;
+  color:#999;
+  }
+
+h1 {
+  margin:1.5em 0 .75em;
+  font:150%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
+  text-transform:uppercase;
+  letter-spacing:.2em;
+  color:#999;
+  }
+
+
+
+/* Posts (from blogger.com layout)
+----------------------------------------------- */
+.date-header {
+  margin:1.5em 0 .5em;
+  }
+.post {
+  margin:.5em 0 1.5em;
+  border-bottom:1px dotted #ccc;
+  padding-bottom:1.5em;
+  color:#777;
+  }
+.post-title {
+  margin:.25em 0 0;
+  padding:0 0 4px;
+  font-size:140%;
+  font-weight:normal;
+  line-height:1.4em;
+  color:#444499;
+  }
+.post-title a, .post-title a:visited, .post-title strong {
+  display:block;
+  text-decoration:none;
+  color:#009966;
+  font-weight:normal;
+  }
+.post-title strong, .post-title a:hover {
+  color:#333;
+  }
+.post div {
+  margin:0 0 .75em;
+  line-height:1.6em;
+  }
+p.post-footer {
+  margin:-.25em 0 0;
+  color:#ccc;
+  }
+.post-footer em, .comment-link {
+  font:78%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
+  text-transform:uppercase;
+  letter-spacing:.1em;
+  }
+.post-footer em {
+  font-style:normal;
+  color:#999;
+  margin-right:.6em;
+  }
+.comment-link {
+  margin-left:.6em;
+  }
+.post img {
+  padding:4px;
+  border:1px solid #ddd;
+  }
+.post blockquote {
+  margin:1em 20px;
+  }
+.post blockquote p {
+  margin:.75em 0;
+  }
+
+
+/* Sidebar
+----------------------------------------------- */
+#sidebar ul {
+  margin:0 0 1.5em;
+  padding:0 0 1.5em;
+  border-bottom:1px dotted #ccc;
+  list-style:none;
+  }
+#sidebar li {
+  margin:0;
+  padding:0 0 .25em 15px;
+  text-indent:-15px;
+  line-height:1.5em;
+  }
+#sidebar p {
+  color:#666;
+  line-height:1.5em;
+  }
+
+
+
+/* Footer
+----------------------------------------------- */
+#footer {
+  width:660px;
+  clear:both;
+  margin:0 auto;
+  }
+#footer hr {
+  display:none;
+  }
+#footer p {
+  margin:0;
+  padding-top:30px;
+  font:78%/1.6em "Trebuchet MS",Trebuchet,Verdana,Sans-serif;
+  text-transform:uppercase;
+  letter-spacing:.1em;
+  }
+
+
+/* Various things
+----------------------------------------------- */
+div.center {
+  text-align:center;
+  }
+
+div.center table {
+  margin-left:auto;
+  margin-right:auto;
+  text-align:left;
+  }
+
+pre.screen { 
+  background-color: #E0E0E0; 
+  }
+.mdTable {
+	border: 1px solid #868686;
+	background-color: #f2f2ff;
+}
+.mdRow {
+	padding: 8px 20px;
+}
+.mdescLeft {
+	font-size: small;
+	font-family: x-small Georgia,Serif;
+	background-color: #FAFAFA;
+	padding-left: 8px;
+	border-top: 1px none #E0E0E0;
+	border-right: 1px none #E0E0E0;
+	border-bottom: 1px none #E0E0E0;
+	border-left: 1px none #E0E0E0;
+	margin: 0px;
+}
+.mdescRight {
+	font-size: small;
+	font-family: x-small Georgia,Serif;
+	font-style: italic;
+	background-color: #FAFAFA;
+	padding-left: 4px;
+	border-top: 1px none #E0E0E0;
+	border-right: 1px none #E0E0E0;
+	border-bottom: 1px none #E0E0E0;
+	border-left: 1px none #E0E0E0;
+	margin: 0px;
+	padding-bottom: 0px;
+	padding-right: 8px;
+}
+

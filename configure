@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+# $Id: configure,v 1.1 2005/09/23 13:04:37 tho Exp $
+
+# Be sure MAKL_DIR is there
+[ -z "${MAKL_DIR}" ] && export MAKL_DIR=`pwd`/makl
+
+export makl_conf_h=`pwd`/conf.h
+
+# MaKL preamble
+. ${MAKL_DIR}/cf/makl.init
+
+# Source custom routines
+. helpers.cf
+os_detect
+
+# Custom arguments
+makl_args_def "enable_debug"   "" "" "enables debugging"
+makl_args_def "enable_profile" "" "" "enables profiling"
+
+# C Flags
+makl_add_var_mk "CFLAGS" "-DHAVE_CONF_H"
+makl_add_var_mk "CFLAGS" "-I`pwd`/u"
+makl_add_var_mk "CFLAGS" "-W -Wall -Wstrict-prototypes -Wmissing-prototypes"
+makl_add_var_mk "CFLAGS" "-Wpointer-arith -Wno-uninitialized -Wcast-qual"
+makl_add_var_mk "CFLAGS" "-Wreturn-type -Wwrite-strings -Wswitch -Wshadow"
+
+# Place headers in a private subdir
+makl_add_var_mk "INCDIR" "\${DESTDIR}/include/u"
+
+# Binary dependencies
+makl_feature_x  "doxygen"
+
+# Function dependencies
+makl_checktype  "pid_t"     "<sys/types.h>"
+makl_checkfunc  "getpid"
+makl_checkfunc  "unlink"
+makl_checkfunc  "syslog"
+makl_checkfunc  "strtok_r"
+makl_func_strerror_r
+
+# Handle command-line arguments
+makl_args_handle "$@"
+
+# MaKL closing
+. ${MAKL_DIR}/cf/makl.term
