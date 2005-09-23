@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.1 2005/09/23 13:04:37 tho Exp $
+# $Id: configure,v 1.2 2005/09/23 19:07:14 tho Exp $
 
 # Be sure MAKL_DIR is there
 [ -z "${MAKL_DIR}" ] && export MAKL_DIR=`pwd`/makl
@@ -10,13 +10,38 @@ export makl_conf_h=`pwd`/conf.h
 # MaKL preamble
 . ${MAKL_DIR}/cf/makl.init
 
-# Source custom routines
-. helpers.cf
+# custom - shall be replaced by builtin makl_os_detect
+os_detect () 
+{
+    rsname=`uname -rs | tr [A-Z] [a-z] | sed -e 's/ //'`
+
+    case ${rsname} in
+        *-*-mingw*)
+            makl_set_var_h      "OS_WIN"
+        ;;
+
+        *)
+            makl_set_var_h      "OS_UNIX"
+        ;;
+    esac
+}
+
 os_detect
 
 # Custom arguments
 makl_args_def "enable_debug"   "" "" "enables debugging"
 makl_args_def "enable_profile" "" "" "enables profiling"
+
+# Handlers for custom arguments
+_makl_enable_debug () 
+{
+    makl_add_var_mk     "CFLAGS"    "-g"
+}
+
+_makl_enable_profile () 
+{
+    makl_add_var_mk     "CFLAGS"    "-pg"
+}
 
 # C Flags
 makl_add_var_mk "CFLAGS" "-DHAVE_CONF_H"
