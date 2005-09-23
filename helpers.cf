@@ -1,4 +1,4 @@
-# $Id: helpers.cf,v 1.1 2005/09/23 13:04:37 tho Exp $
+# $Id: helpers.cf,v 1.1.1.1 2005/09/23 13:04:37 tho Exp $
 
 export makl_conf_h=`pwd`/conf.h
 

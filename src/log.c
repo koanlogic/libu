@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: log.c,v 1.1 2005/09/23 13:04:38 tho Exp $";
+    "$Id: log.c,v 1.1.1.1 2005/09/23 13:04:38 tho Exp $";
 
 #include <sys/types.h>
 #include <errno.h>
