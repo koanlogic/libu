@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.1 2005/09/23 13:04:38 tho Exp $";
+    "$Id: misc.c,v 1.2 2005/09/23 16:04:53 tho Exp $";
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -23,7 +23,7 @@ static const char rcsid[] =
 #include <u/alloc.h>
 
 /**
- *  \defgroup misc Misc Utility Functions
+ *  \defgroup misc Miscellaneous
  *  \{
  */
 

@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: uri.c,v 1.1 2005/09/23 13:04:38 tho Exp $";
+    "$Id: uri.c,v 1.2 2005/09/23 16:04:53 tho Exp $";
 
 #include <stdlib.h>
 #include <string.h>
@@ -14,7 +14,7 @@ static const char rcsid[] =
 #include <u/alloc.h>
 
 /**
- *  \defgroup uri URI (rfc2396) Manipulation
+ *  \defgroup uri URI
  *  \{
  */
 

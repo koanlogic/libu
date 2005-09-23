@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.1 2005/09/23 13:04:38 tho Exp $";
+    "$Id: config.c,v 1.2 2005/09/23 16:04:53 tho Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -19,7 +19,7 @@ static const char rcsid[] =
 #include <u/str.h>
 
 /**
- *  \defgroup config Configuration File Parser
+ *  \defgroup config Configuration
  *  \{
  *      \par Intro
  *          The u_config_t object is used to store, load and parse 

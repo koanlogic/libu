@@ -12,7 +12,7 @@
 #include <u/logcfg.h>
 
 /**
- *  \defgroup log Logging 
+ *  \defgroup log Logging
  *  \{
  *      \par Logging levels
  * 

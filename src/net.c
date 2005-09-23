@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: net.c,v 1.1 2005/09/23 13:04:38 tho Exp $";
+    "$Id: net.c,v 1.2 2005/09/23 16:04:53 tho Exp $";
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -24,10 +24,36 @@ static const char rcsid[] =
 #include <u/alloc.h>
 
 /**
- *  \defgroup net Inter Process/Machine Communication
+ *  \defgroup net Networking
  *  \{
  */
 
+/** \brief Top level socket creation routine
+ *
+ * This routine creates a socket and returns its file descriptor. 
+ * A \a client socket (\c U_NET_CSOCK) is identified by its connection 
+ * endpoint, a \a server socket (\c U_NET_SSOCK) by its local address.
+ *
+ * The identification is done via a family of private URIs:
+ * - {tc,ud}p[46]://&lt;host&gt;:&lt;port&gt; for TCP/UDP over IPv[46] 
+ *   addresses,
+ * - unix://&lt;abs_path&gt; for UNIX IPC pathnames.
+ *
+ * After resolving the supplied URI, the control is passed to the appropriate
+ * handler which carries out the real job (i.e. \c connect(2) or \c bind(2)).  
+ * Per-protocol handlers can be used in combination with the URI resolver and
+ * translation functions for greater flexibility.  
+ *
+ * \sa u_net_tcp4_ssock, u_net_tcp6_ssock, u_net_tcp4_csock, u_net_tcp6_csock,
+ *     u_net_uri2addr, u_net_uri2sin, u_net_uri2sun. 
+ *
+ * \param uri   the URI at which the socket shall be connected/bounded
+ * \param mode  \c U_NET_SSOCK for server sockets, \c U_NET_CSOCK for clients.
+ * 
+ * \return
+ *  - the socket descriptor on success
+ *  - \c -1 on failure
+ */
 int u_net_sock (const char *uri, int mode)
 {
     int sd = -1;
@@ -97,7 +123,7 @@ int u_net_sock_udp (u_net_addr_t *a,  int mode)
 {
     dbg_return_if (a == NULL, -1);
     dbg_return_if (a->type != U_NET_UDP4 || a->type != U_NET_UDP6, -1);
-    switch (mode) { default: break; } 
+    switch (mode) { default: break; }  /* TODO */
     return -1;
 }
 
@@ -291,45 +317,23 @@ err:
     return ~0;    
 }
 
-/**
- * \brief   Wrapper function around write(2) for stream sockets
+/** \brief  Top level I/O routine 
  *
- * Try to write a chunk of \a nbytes bytes starting from \a buf to the 
- * object referenced by the descriptor \a sd.
+ * Try to read/write - atomically - a chunk of \p l bytes from/to the object 
+ * referenced by the descriptor \p sd.  The data chunk is written to/ read from
+ * the buffer starting at \p buf.  The I/O driver function \p f is used to 
+ * carry out the job.  Its interface and behaviour has to conform to those of 
+ * \c POSIX.1 \c read() or \c write().
+ *
+ * \param f         the I/O function, i.e. \c read(2) or \c write(2)
+ * \param sd        the file descriptor on which the I/O operation is performed
+ * \param buf       the data chunk to be read or written
+ * \param l         the length in bytes of \p buf
  * 
- * \param sd        the file descriptor on which write(2) is performed
- * \param buf       the data chunk starts from this position
- * \param nbytes    the number of bytes for this chunk
- *  
- * \return  A \c ~0 is returned if a write(2) error other than \c EINTR or
- *          \c EAGAIN has occurred, or if the requested amount of data could 
- *          not be entirely written.  A \c 0 is returned on success.
- */ 
-int u_net_write (int sd, void *buf, size_t nbytes)
-{
-    return u_net_io(write, sd, buf, nbytes);
-}
-
-/**
- * \brief   Wrapper function around read(2) for stream sockets
- *
- * Try to read - atomically - a chunk of \a nbytes bytes from the object 
- * referenced by the descriptor \p sd and place it into the buffer starting 
- * at \p buf.
- *
- * \param sd        the file descriptor on which read(2) is performed
- * \param buf       the data chunk is placed starting from this position
- * \param nbytes    the number of bytes for this chunk
- * 
- * \return  A \c ~0 is returned if a read(2) error other than \c EINTR or 
- *          \c EAGAIN has occurred, or if the requested amount of data could 
- *          not be entirely read.  A \c 0 is returned on success.
+ * \return  A \c ~0 is returned if an error other than \c EINTR or \c EAGAIN 
+ *          has occurred, or if the requested amount of data could 
+ *          not be entirely read/written.  A \c 0 is returned on success.
  */
-int u_net_read (int sd, void *buf, size_t nbytes)
-{
-    return u_net_io(read, sd, buf, nbytes);
-}
-
 int u_net_io (ssize_t (*f) (int, void *, size_t), int sd, void *buf, size_t l)
 {
     char *p = buf;
@@ -358,6 +362,22 @@ int u_net_io (ssize_t (*f) (int, void *, size_t), int sd, void *buf, size_t l)
 
 end:
     return nleft ? ~0 : 0;
+}
+
+/**
+ * \brief   Wrapper function around write(2) for stream sockets
+ */ 
+int u_net_write (int sd, void *buf, size_t nbytes)
+{
+    return u_net_io(write, sd, buf, nbytes);
+}
+
+/**
+ * \brief   Wrapper function around read(2) for stream sockets
+ */
+int u_net_read (int sd, void *buf, size_t nbytes)
+{
+    return u_net_io(read, sd, buf, nbytes);
 }
 
 /**

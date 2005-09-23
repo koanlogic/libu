@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: env.c,v 1.1 2005/09/23 13:04:38 tho Exp $";
+    "$Id: env.c,v 1.2 2005/09/23 16:04:53 tho Exp $";
 
 #include <string.h>
 #include <stdlib.h>
@@ -14,7 +14,7 @@ static const char rcsid[] =
 #include <u/misc.h>
 
 /**
- *  \defgroup env Configuration Through Environment 
+ *  \defgroup env Environment
  *  \{
  */
 
