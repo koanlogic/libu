@@ -3,11 +3,11 @@
  */
 
 static const char rcsid[] =
-    "$Id: alloc.c,v 1.2 2005/09/23 16:04:53 tho Exp $";
+    "$Id: memory.c,v 1.1 2005/09/23 16:10:32 tho Exp $";
 
 #include <stdlib.h>
 
-#include <u/alloc.h>
+#include <u/memory.h>
 
 /**
  *  \defgroup alloc Memory

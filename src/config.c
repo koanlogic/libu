@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.2 2005/09/23 16:04:53 tho Exp $";
+    "$Id: config.c,v 1.3 2005/09/23 16:10:32 tho Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -15,7 +15,7 @@ static const char rcsid[] =
 #include <u/config.h>
 #include <u/debug.h>
 #include <u/misc.h>
-#include <u/alloc.h>
+#include <u/memory.h>
 #include <u/str.h>
 
 /**
