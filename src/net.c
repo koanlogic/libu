@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: net.c,v 1.3 2005/09/23 16:10:32 tho Exp $";
+    "$Id: net.c,v 1.4 2005/09/24 18:33:36 tho Exp $";
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -94,7 +94,7 @@ err:
 int u_net_sock_tcp (u_net_addr_t *a,  int mode)
 {
     dbg_return_if (a == NULL, -1);
-    dbg_return_if (a->type != U_NET_TCP4 || a->type != U_NET_TCP6, -1);
+    dbg_return_if (a->type != U_NET_TCP4 && a->type != U_NET_TCP6, -1);
 
     switch (mode)
     {
@@ -122,7 +122,7 @@ int u_net_sock_unix (u_net_addr_t *a, int mode)
 int u_net_sock_udp (u_net_addr_t *a,  int mode)
 {
     dbg_return_if (a == NULL, -1);
-    dbg_return_if (a->type != U_NET_UDP4 || a->type != U_NET_UDP6, -1);
+    dbg_return_if (a->type != U_NET_UDP4 && a->type != U_NET_UDP6, -1);
     switch (mode) { default: break; }  /* TODO */
     return -1;
 }
@@ -279,6 +279,8 @@ int u_net_addr_new (int type, u_net_addr_t **pa)
     a->type = type;
     *pa = a;
 
+    return 0;
+
 err:
     if (a) u_net_addr_free(a);
     return ~0;
@@ -320,29 +322,32 @@ err:
 /** \brief  Top level I/O routine 
  *
  * Try to read/write - atomically - a chunk of \p l bytes from/to the object 
- * referenced by the descriptor \p sd.  The data chunk is written to/ read from
+ * referenced by the descriptor \p sd.  The data chunk is written to/read from
  * the buffer starting at \p buf.  The I/O driver function \p f is used to 
- * carry out the job.  Its interface and behaviour has to conform to those of 
- * \c POSIX.1 \c read() or \c write().
+ * carry out the job.  Its interface and behaviour must conform to those of 
+ * \c POSIX.1 \c read() or \c write().  If \p n is not \c NULL, it will store
+ * the number of bytes actually read/written: this information is significant
+ * only when u_net_io has failed.
  *
  * \param f         the I/O function, i.e. \c read(2) or \c write(2)
  * \param sd        the file descriptor on which the I/O operation is performed
  * \param buf       the data chunk to be read or written
  * \param l         the length in bytes of \p buf
+ * \param n         the number of bytes read/written as a value-result arg
  * 
  * \return  A \c ~0 is returned if an error other than \c EINTR or \c EAGAIN 
  *          has occurred, or if the requested amount of data could 
  *          not be entirely read/written.  A \c 0 is returned on success.
  */
-int u_net_io (ssize_t (*f) (int, void *, size_t), int sd, void *buf, size_t l)
+int u_net_io (iof_t f, int sd, void *buf, size_t l, ssize_t *n)
 {
-    char *p = buf;
     ssize_t nret;
-    size_t nleft = 0;
+    size_t nleft = l;
+    char *p = buf;
 
-    while (l > nleft) 
+    while (nleft > 0) 
     {
-        if ((nret = (f) (sd, p + nleft, l - nleft)) == -1)
+        if ((nret = (f) (sd, p, nleft)) == -1)
         {
             if (errno == EINTR || errno == EAGAIN)
                 continue;
@@ -357,27 +362,30 @@ int u_net_io (ssize_t (*f) (int, void *, size_t), int sd, void *buf, size_t l)
         if (nret == 0)
             goto end;
         
-        nleft += nret;
+        nleft -= nret;
+        p += nret;
     }
 
 end:
+    if (n)
+        *n = l - nleft;
     return nleft ? ~0 : 0;
 }
 
 /**
  * \brief   Wrapper function around write(2) for stream sockets
  */ 
-int u_net_write (int sd, void *buf, size_t nbytes)
+int u_net_write (int sd, void *buf, size_t nbytes, ssize_t *nw)
 {
-    return u_net_io(write, sd, buf, nbytes);
+    return u_net_io(write, sd, buf, nbytes, nw);
 }
 
 /**
  * \brief   Wrapper function around read(2) for stream sockets
  */
-int u_net_read (int sd, void *buf, size_t nbytes)
+int u_net_read (int sd, void *buf, size_t nbytes, ssize_t *nr)
 {
-    return u_net_io(read, sd, buf, nbytes);
+    return u_net_io(read, sd, buf, nbytes, nr);
 }
 
 /**

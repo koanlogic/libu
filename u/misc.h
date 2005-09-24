@@ -5,6 +5,10 @@
 #ifndef _U_MISC_H_
 #define _U_MISC_H_
 
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+
 #define U_ONCE if (({ static int __x = 0; int __y; __y = __x; __x = 1; !__y;}))
 #define U_SSTRCPY(to, from) u_sstrncpy((to), (from), sizeof(to) - 1)
 #define U_FREE(ptr) do {if (ptr) { free(ptr); ptr = NULL; }} while (0)

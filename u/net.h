@@ -6,7 +6,14 @@
 #define _U_NET_H_
 
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <sys/uio.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/un.h>
 #include <stdio.h>
+
 #include <u/uri.h>
 
 #ifdef HAVE_CONF_H
@@ -48,9 +55,10 @@ typedef struct u_net_addr_s u_net_addr_t;
 enum { U_NET_SSOCK, U_NET_CSOCK };
 
 /* I/O */
-int u_net_io (ssize_t (*f) (int, void *, size_t), int sd, void *buf, size_t l);
-int u_net_write (int sd, void *buf, size_t nbytes);
-int u_net_read (int sd, void *buf, size_t nbytes);
+typedef ssize_t (*iof_t) (int, void *, size_t);
+int u_net_io (iof_t f, int sd, void *buf, size_t l, ssize_t *n);
+int u_net_write (int sd, void *buf, size_t nbytes, ssize_t *nw);
+int u_net_read (int sd, void *buf, size_t nbytes, ssize_t *nr);
 
 /* hi-level */
 int u_net_sock (const char *uri, int mode);
