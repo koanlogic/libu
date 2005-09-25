@@ -56,23 +56,47 @@ enum { U_NET_SSOCK, U_NET_CSOCK };
 
 /* I/O */
 typedef ssize_t (*iof_t) (int, void *, size_t);
-int u_net_io (iof_t f, int sd, void *buf, size_t l, ssize_t *n);
-int u_net_write (int sd, void *buf, size_t nbytes, ssize_t *nw);
-int u_net_read (int sd, void *buf, size_t nbytes, ssize_t *nr);
 
-/* hi-level */
+int u_net_io (iof_t f, int sd, void *buf, size_t l, ssize_t *n, int *eof);
+
+/**
+ * \ingroup net
+ *  \{
+ */
+
+/** \brief u_net_io specialisation for output ops */
+#define u_net_write(sd, buf, nbytes, nw, eof) \
+    u_net_io((iof_t) write, sd, buf, nbytes, nw, eof)
+
+/** \brief u_net_io specialisation for input ops */
+#define u_net_read(sd, buf, nbytes, nw, eof) \
+    u_net_io(read, sd, buf, nbytes, nw, eof)
+
+/** \brief  Try to write a chunk of \p nbytes data to descriptor \p sd */
+#define u_net_writen(sd, buf, nbytes) \
+    u_net_io((iof_t) write, sd, buf, nbytes, 0, 0)
+
+/** \brief  Try to read a chunk of \p nbytes data from descriptor \p sd */
+#define u_net_readn(sd, buf, nbytes) \
+    u_net_io(read, sd, buf, nbytes, 0, 0)
+
+/**
+ *  \}
+ */ 
+
+/* hi-level socket creation */
 int u_net_sock (const char *uri, int mode);
 int u_net_sock_tcp (u_net_addr_t *addr, int mode);
 int u_net_sock_udp (u_net_addr_t *addr, int mode);
 int u_net_sock_unix (u_net_addr_t *addr, int mode);
 
-/* low-level */
+/* low-level socket creation */
 int u_net_tcp4_ssock (struct sockaddr_in *sad, int reuse, int backlog);
 int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int reuse, int backlog);
 int u_net_tcp4_csock (struct sockaddr_in *sad);
 int u_net_tcp6_csock (struct sockaddr_in6 *sad);
 
-/* uri string -> u_uri -> u_net_addr -> struct sockaddr */
+/* address translation: uri string -> u_uri -> u_net_addr -> struct sockaddr */
 int u_net_uri2addr (const char *uri, u_net_addr_t **pa);
 int u_net_uri2sin (u_uri_t *uri, struct sockaddr_in *sad);
 #ifdef OS_UNIX

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.3 2005/09/24 18:51:25 tho Exp $
+# $Id: configure,v 1.4 2005/09/25 10:07:10 tho Exp $
 
 # Be sure MAKL_DIR is there
 [ -z "${MAKL_DIR}" ] && export MAKL_DIR=`pwd`/makl
@@ -12,23 +12,7 @@ export makl_conf_h=`pwd`/conf.h
 
 makl_args_init "$@"
 
-# custom - shall be replaced by builtin makl_os_detect
-os_detect () 
-{
-    rsname=`uname -rs | tr [A-Z] [a-z] | sed -e 's/ //'`
-
-    case ${rsname} in
-        *-*-mingw*)
-            makl_set_var_h      "OS_WIN"
-        ;;
-
-        *)
-            makl_set_var_h      "OS_UNIX"
-        ;;
-    esac
-}
-
-os_detect
+makl_os_detect
 
 # Custom arguments
 makl_args_def "enable_debug"   "" "" "enables debugging"
