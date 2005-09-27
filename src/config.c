@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.3 2005/09/23 16:10:32 tho Exp $";
+    "$Id: config.c,v 1.4 2005/09/27 12:45:44 tho Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -235,7 +235,7 @@ static int u_config_do_set_key(u_config_t *c, const char *key, const char *val,
         if((child = u_config_get_child(c, child_key)) == NULL)
             dbg_err_if(u_config_add_child(c, child_key, &child));
         U_FREE(child_key);
-        return u_config_set_key(child, ++p, val);
+        return u_config_do_set_key(child, ++p, val, overwrite);
     }
     return 0;
 err:
@@ -277,41 +277,19 @@ err:
     return ~0;
 }
 
-/**
- * \brief  Load a configuration file.
- *
- *  Fill a config object with key/value pairs loaded from the configuration
- *  file linked to the descriptor \c fd. If \c overwrite is not zero 
- *  values of keys with the same name will overwrite previous values otherwise
- *  new keys with the same name will be added.
- *
- * \param c             configuration object
- * \param fd            file descriptor 
- * \param overwrite     if 1 overwrite keys with the same name otherwise new
- *                      key with the same name will be added
- *
- * \return \c 0 on success, not-zero on error.
- */
-int u_config_load(u_config_t *c, int fd, int overwrite)
+static int u_config_do_load(u_config_t *c, FILE *file, int overwrite)
 {
     enum { MAX_NEST_LEV = 20 };
-    u_string_t *line = NULL, *key = NULL, *lastkey = NULL, 
-             *sticky = NULL, *value = NULL;;
+    u_string_t *line = NULL, *key = NULL, *lastkey = NULL, *value = NULL;;
     const char *ln, *p;
     size_t len;
-    int level = 0, lineno = 1;
-    short sticky_len[MAX_NEST_LEV];
-    FILE *file;
-
-    /* must dup because fclose() calls close(2) on fd */
-    file = fdopen(dup(fd), "r");
-    dbg_err_if(file == NULL);
+    int lineno = 1;
+    u_config_t *child = NULL;
 
     dbg_err_if(u_string_create(NULL, 0, &line));
     dbg_err_if(u_string_create(NULL, 0, &key));
     dbg_err_if(u_string_create(NULL, 0, &value));
     dbg_err_if(u_string_create(NULL, 0, &lastkey));
-    dbg_err_if(u_string_create(NULL, 0, &sticky));
 
     for(; cs_getline(file, line) == 0; u_string_clear(line), ++lineno)
     {
@@ -340,44 +318,27 @@ int u_config_load(u_config_t *c, int fd, int overwrite)
             if(u_string_len(lastkey) == 0)
                 warn_err("config error [line %d]: { not after a no-value key", 
                          lineno);
-            warn_err_ifm(++level == MAX_NEST_LEV, 
-                "config error: too much nesting levels");
-            sticky_len[level] = u_string_len(lastkey);
-            if(u_string_len(sticky))
-                dbg_err_if(u_string_append(sticky, ".", 1));
-            dbg_err_if(u_string_append(sticky, u_string_c(lastkey), 
-                u_string_len(lastkey)));
+            if(!u_isblank_str(++ln))
+                warn_err("config error [line %d]: { or } must be the "
+                         "only not-blank char in a line", lineno);
+
+            dbg_err_if(u_config_add_child(c, u_string_c(lastkey), &child));
+            dbg_err_if(u_config_do_load(child, file, overwrite));
             dbg_err_if(u_string_clear(lastkey));
-            if(!u_isblank_str(++ln))
-                warn_err("config error [line %d]: { or } must be the "
-                         "only not-blank char in a line", lineno);
-            continue;       /* EOL */
-        } else if(ln[0] == '}') {
-            warn_err_ifm(level == 0,"config error: unmatched '}'");
-            dbg_err_if(u_string_set_length(sticky, 
-                u_string_len(sticky)-sticky_len[level]));
-            /* remove the dot if not empty */
-            if(u_string_len(sticky))
-                dbg_err_if(u_string_set_length(sticky, u_string_len(sticky)-1));
-            level--;
-            if(!u_isblank_str(++ln))
-                warn_err("config error [line %d]: { or } must be the "
-                         "only not-blank char in a line", lineno);
             continue;
+        } else if(ln[0] == '}') {
+            warn_err_ifm(c->parent == NULL,"config error: unmatched '}'");
+            if(!u_isblank_str(++ln))
+                warn_err("config error [line %d]: { or } must be the "
+                         "only not-blank char in a line", lineno);
+            return 0;
         }
 
         /* find the end of the key string */
         for(p = ln; *p && !u_isblank(*p); ++p);
 
         /* set the key */
-        if(u_string_len(sticky))
-        {
-            dbg_err_if(u_string_set(key, u_string_c(sticky),
-                       u_string_len(sticky)));
-            dbg_err_if(u_string_append(key, ".", 1));
-        } else
-            dbg_err_if(u_string_clear(key));
-        dbg_err_if(u_string_append(key, ln, p-ln));
+        dbg_err_if(u_string_set(key, ln, p-ln));
 
         /* set the value */
         dbg_err_if(u_string_set(value, p, strlen(p)));
@@ -385,7 +346,10 @@ int u_config_load(u_config_t *c, int fd, int overwrite)
 
         /* if the valus is empty an open bracket will follow, save the key */
         if(u_string_len(value) == 0)
+        {
             dbg_err_if(u_string_set(lastkey, ln, p-ln));
+            continue;
+        }
 
         /* add to the var list */
         dbg_err_if(u_config_do_set_key(c, 
@@ -394,22 +358,13 @@ int u_config_load(u_config_t *c, int fd, int overwrite)
                         overwrite));
     }
     
-    warn_err_ifm(u_string_len(sticky), 
-        "config error: missing '{'");
-
-    u_string_free(sticky);
     u_string_free(lastkey);
     u_string_free(value);
     u_string_free(key);
     u_string_free(line);
 
-    U_FCLOSE(file);
-
     return 0;
 err:
-    U_FCLOSE(file);
-    if(sticky)
-        u_string_free(sticky);
     if(lastkey)
         u_string_free(lastkey);
     if(key)
@@ -420,6 +375,40 @@ err:
         u_string_free(line);
     return ~0;
 }
+
+/**
+ * \brief  Load a configuration file.
+ *
+ *  Fill a config object with key/value pairs loaded from the configuration
+ *  file linked to the descriptor \c fd. If \c overwrite is not zero 
+ *  values of keys with the same name will overwrite previous values otherwise
+ *  new keys with the same name will be added.
+ *
+ * \param c             configuration object
+ * \param fd            file descriptor 
+ * \param overwrite     if 1 overwrite keys with the same name otherwise new
+ *                      key with the same name will be added
+ *
+ * \return \c 0 on success, not-zero on error.
+ */
+int u_config_load(u_config_t *c, int fd, int overwrite)
+{
+    FILE *file;
+
+    /* must dup because fclose() calls close(2) on fd */
+    file = fdopen(dup(fd), "r");
+    dbg_err_if(file == NULL);
+
+    dbg_err_if(u_config_do_load(c, file, overwrite));
+
+    fclose(file);
+
+    return 0;
+err:
+    U_FCLOSE(file);
+    return ~0;
+}
+
 
 /**
  * \brief  Create a config object.
