@@ -1,6 +1,8 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.4 2005/09/25 10:07:10 tho Exp $
+# $Id: configure,v 1.5 2005/09/27 11:53:31 tho Exp $
+
+#export makl_debug=1
 
 # Be sure MAKL_DIR is there
 [ -z "${MAKL_DIR}" ] && export MAKL_DIR=`pwd`/makl
@@ -37,7 +39,7 @@ makl_add_var_mk "CFLAGS" "-Wpointer-arith -Wno-uninitialized -Wcast-qual"
 makl_add_var_mk "CFLAGS" "-Wreturn-type -Wwrite-strings -Wswitch -Wshadow"
 
 # Place headers in a private subdir
-makl_add_var_mk "INCDIR" "\${DESTDIR}/include/u"
+makl_add_var_mk "INCDIR" \${DESTDIR}/include/u
 
 # Binary dependencies
 makl_feature_x  "doxygen"
