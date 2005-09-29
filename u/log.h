@@ -57,8 +57,11 @@ char *u_log_build_message(const char *fmt, va_list ap, int maxsz);
  * \param ctx       set to zero if you don't want context, 1 otherwise
  * \param args      printf-style variable length arguments list
  */
-#define u_log_err(ecode, facility, ctx, args...) \
-    do { u_log_write(facility, LOG_ERR, ctx, args); exit(ecode); } while(0)
+#define u_log_err(ecode, facility, ctx, ...) \
+    do {                                                    \
+        u_log_write(facility, LOG_ERR, ctx, __VA_ARGS__);   \
+        exit(ecode);                                        \
+    } while(0)
 
 /** \brief log a warning message
  *
@@ -68,8 +71,8 @@ char *u_log_build_message(const char *fmt, va_list ap, int maxsz);
  * \param ctx       set to zero if you don't want context, 1 otherwise
  * \param args      printf-style variable length arguments list
  */
-#define u_log_warning(facility, ctx, args...) \
-    u_log_write(facility, LOG_WARNING, ctx, args)
+#define u_log_warning(facility, ctx, ...) \
+    u_log_write(facility, LOG_WARNING, ctx, __VA_ARGS__)
 
 /** \brief log an informational message
  *
@@ -79,8 +82,8 @@ char *u_log_build_message(const char *fmt, va_list ap, int maxsz);
  * \param ctx       set to zero if you don't want context, 1 otherwise
  * \param args      printf-style variable length arguments list
  */
-#define u_log_info(facility, ctx, args...) \
-    u_log_write(facility, LOG_INFO, ctx, args)
+#define u_log_info(facility, ctx, ...) \
+    u_log_write(facility, LOG_INFO, ctx, __VA_ARGS__)
 
 /** \brief log a debug message
  *
@@ -90,23 +93,23 @@ char *u_log_build_message(const char *fmt, va_list ap, int maxsz);
  * \param ctx       set to zero if you don't want context, 1 otherwise
  * \param args      printf-style variable length arguments list
  */
-#define u_log_debug(facility, ctx, args...) \
-    u_log_write(facility, LOG_DEBUG, ctx, args)
+#define u_log_debug(facility, ctx, ...) \
+    u_log_write(facility, LOG_DEBUG, ctx, __VA_ARGS__)
 
 /** \brief same as u_log_err but using the \e facility global variable */
-#define die(ecode, args...) u_log_err(ecode, facility, 1, args)
+#define die(ecode, ...) u_log_err(ecode, facility, 1, __VA_ARGS__)
 
 /** \brief calls die() if \e expr is true */
 #define die_if(expr) if(expr) die(EXIT_FAILURE, #expr)
 
 /** \brief same as u_log_warning but using the facility global variable */
-#define warning(args...) u_log_warning(facility, 1, args)
+#define warning(...) u_log_warning(facility, 1, __VA_ARGS__)
 
 /** \brief same as u_log_info but using the facility global variable */
-#define info(args...) u_log_info(facility, 0, args)
+#define info(...) u_log_info(facility, 0, __VA_ARGS__)
 
 /** \brief same as u_log_debug but using the facility global variable */
-#define debug(args...) u_log_debug(facility, 1, args)
+#define debug(...) u_log_debug(facility, 1, __VA_ARGS__)
 
 /**
  *  \}

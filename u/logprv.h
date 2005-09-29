@@ -7,8 +7,8 @@
 
 #include <stdarg.h>
 
-#define u_log_write(fac, lev, ctx, args...) \
-    u_log_write_ex(fac, lev, ctx, __FILE__, __LINE__,__FUNCTION__, args) 
+#define u_log_write(fac, lev, ctx, ...) \
+    u_log_write_ex(fac, lev, ctx, __FILE__, __LINE__,__FUNCTION__, __VA_ARGS__)
 
 /** pack context information (if [ctx] is > 0) and the priority label and 
     send both to the log system followed by the user message string 
