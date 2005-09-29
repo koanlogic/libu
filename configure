@@ -1,45 +1,58 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.5 2005/09/27 11:53:31 tho Exp $
+# $Id: configure,v 1.6 2005/09/29 16:02:14 tho Exp $
 
 #export makl_debug=1
 
-# Be sure MAKL_DIR is there
-[ -z "${MAKL_DIR}" ] && export MAKL_DIR=`pwd`/makl
-
-export makl_conf_h=`pwd`/conf.h
+# Be sure MAKL_DIR is there.
+# If not found assume MaKL has been embedded in the package.
+if [ -z "${MAKL_DIR}" ] 
+then
+    if [ -d `pwd`/makl ]
+    then
+        export MAKL_DIR=`pwd`/makl
+    else
+        echo "MaKL MUST be installed and MAKL_DIR set in the environment"
+        exit 1
+    fi
+fi
 
 # MaKL preamble
 . ${MAKL_DIR}/cf/makl.init
 
 makl_args_init "$@"
 
-makl_os_detect
+# Custom arguments ...
+makl_args_def "enable_debug"    "" "" "enables debugging"
+makl_args_def "enable_profile"  "" "" "enables profiling"
+# ... and their handlers
+_makl_enable_debug ()   { makl_add_var_mk "CFLAGS" "-g" ; }
+_makl_enable_profile () { makl_add_var_mk "CFLAGS" "-pg" ; }
 
-# Custom arguments
-makl_args_def "enable_debug"   "" "" "enables debugging"
-makl_args_def "enable_profile" "" "" "enables profiling"
+# General settings (version is read from the VERSION file)
+makl_pkg_name "libu"
+makl_pkg_version
 
-# Handlers for custom arguments
-_makl_enable_debug () 
-{
-    makl_add_var_mk     "CFLAGS"    "-g"
-}
-
-_makl_enable_profile () 
-{
-    makl_add_var_mk     "CFLAGS"    "-pg"
-}
+# Set variables depending on host OS
+case `makl_os_name` in
+    *-*-mingw*)
+        makl_set_var_h "OS_WIN"
+        ;;
+    *)
+        makl_set_var_h "OS_UNIX"
+        ;;
+esac
 
 # C Flags
 makl_add_var_mk "CFLAGS" "-DHAVE_CONF_H"
 makl_add_var_mk "CFLAGS" "-I`pwd`/u"
+makl_add_var_mk "CFLAGS" "-std=c99 -pedantic"
 makl_add_var_mk "CFLAGS" "-W -Wall -Wstrict-prototypes -Wmissing-prototypes"
 makl_add_var_mk "CFLAGS" "-Wpointer-arith -Wno-uninitialized -Wcast-qual"
 makl_add_var_mk "CFLAGS" "-Wreturn-type -Wwrite-strings -Wswitch -Wshadow"
 
-# Place headers in a private subdir
-makl_add_var_mk "INCDIR" \${DESTDIR}/include/u
+# Install headers in a private subdir
+makl_add_var_mk "INCDIR" "\${DESTDIR}/include/u"
 
 # Binary dependencies
 makl_feature_x  "doxygen"
