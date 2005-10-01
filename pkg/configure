@@ -1,0 +1,67 @@
+#!/bin/sh
+#
+# $Id: configure,v 1.1 2005/10/01 19:20:34 tho Exp $
+
+# Be sure MAKL_DIR is there.
+# If not found assume MaKL has been embedded in the package.
+if [ -z "${MAKL_DIR}" ] 
+then
+    if [ -d `pwd`/makl ]
+    then
+        export MAKL_DIR=`pwd`/makl
+    else
+        echo "MaKL MUST be installed and MAKL_DIR set in the environment"
+        exit 1
+    fi
+fi
+
+# MaKL preamble
+. ${MAKL_DIR}/cf/makl.init
+
+makl_args_init "$@"
+
+# Custom arguments ...
+makl_args_def "enable_debug"    "" "" "enables debugging"
+makl_args_def "enable_profile"  "" "" "enables profiling"
+# ... and their handlers
+_makl_enable_debug ()   { makl_add_var_mk "CFLAGS" "-g" ; }
+_makl_enable_profile () { makl_add_var_mk "CFLAGS" "-pg" ; }
+
+# General settings (version is read from the VERSION file)
+makl_pkg_name "libu"
+makl_pkg_version
+
+# Set variables depending on host OS
+case `makl_os_name` in
+    *-*-mingw*)
+        makl_set_var_h "OS_WIN"
+        ;;
+    *)
+        makl_set_var_h "OS_UNIX"
+        ;;
+esac
+
+# C Flags
+makl_add_var_mk "CFLAGS" "-DHAVE_CONF_H"
+makl_add_var_mk "CFLAGS" "-I`pwd`/u"
+makl_add_var_mk "CFLAGS" "-pipe -O"
+
+# Install headers in a private subdir
+makl_add_var_mk "INCDIR" "\${DESTDIR}/include/u"
+
+# Binary dependencies
+makl_feature_x  "doxygen"
+
+# Function dependencies
+makl_checktype  "pid_t"     "<sys/types.h>"
+makl_checkfunc  "getpid"
+makl_checkfunc  "unlink"
+makl_checkfunc  "syslog"
+makl_checkfunc  "strtok_r"
+makl_func_strerror_r
+
+# Handle command-line arguments
+makl_args_handle "$@"
+
+# MaKL closing
+. ${MAKL_DIR}/cf/makl.term
