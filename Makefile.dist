@@ -1,0 +1,17 @@
+# $Id: Makefile.dist,v 1.1 2005/10/01 11:03:14 tho Exp $
+
+PKG_NAME = libu
+PKG_VERSION = $(shell cat VERSION)
+
+DISTFILES =  configure Makefile LICENSE CHANGES README VERSION
+DISTFILES += $(wildcard u/*.h) u/Makefile
+DISTFILES += $(wildcard src/*.c) src/Makefile
+
+DISTREMAP = doc/doxy/kl-doxy.css doc/html/kl-doxy.css
+DISTREMAP += $(foreach f, $(notdir $(wildcard doc/doxy/html/*.html)), \
+                       doc/doxy/html/$f doc/html/$f)
+
+dist-hook-pre:
+	@echo "Processing HTML documentation..." && cd doc/doxy && make
+
+include dist.mk
