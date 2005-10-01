@@ -1,0 +1,5 @@
+# $Id: Makefile.pkg,v 1.1 2005/10/01 17:04:51 tho Exp $
+
+SUBDIR = man html
+
+include subdir.mk
