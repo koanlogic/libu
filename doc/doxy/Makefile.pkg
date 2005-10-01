@@ -1,13 +1,14 @@
-# $Id: Makefile.pkg,v 1.1 2005/10/01 17:04:51 tho Exp $
+# $Id: Makefile.pkg,v 1.2 2005/10/01 17:10:43 tho Exp $
 
 include ../../Makefile.conf
 
 all clean depend cleandepend:
 
 install:
-	${MKINSTALLDIRS} ${DESTDIR}/doc/html && cp -r html/ ${DESTDIR}/doc/
+	${MKINSTALLDIRS} ${DESTDIR}/share/html && \
+		cp -r *.html *.css ${DESTDIR}/share/html/
 
 uninstall:
-	rm -rf ${DESTDIR}/doc/html
+	rm -rf ${DESTDIR}/share/html
 
 include toolchain.mk
