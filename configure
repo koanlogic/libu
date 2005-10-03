@@ -1,8 +1,8 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.6 2005/09/29 16:02:14 tho Exp $
+# $Id: configure,v 1.7 2005/10/03 19:27:04 stewy Exp $
 
-#export makl_debug=1
+export makl_debug=1
 
 # Be sure MAKL_DIR is there.
 # If not found assume MaKL has been embedded in the package.
@@ -44,26 +44,26 @@ case `makl_os_name` in
 esac
 
 # C Flags
-makl_add_var_mk "CFLAGS" "-DHAVE_CONF_H"
-makl_add_var_mk "CFLAGS" "-I`pwd`/u"
-makl_add_var_mk "CFLAGS" "-std=c99 -pedantic"
-makl_add_var_mk "CFLAGS" "-W -Wall -Wstrict-prototypes -Wmissing-prototypes"
-makl_add_var_mk "CFLAGS" "-Wpointer-arith -Wno-uninitialized -Wcast-qual"
-makl_add_var_mk "CFLAGS" "-Wreturn-type -Wwrite-strings -Wswitch -Wshadow"
+makl_add_var_mk "CFLAGS" "-DHAVE_CONF_H" \
+                         "-I`pwd`/u" \
+                         "-std=c99 -pedantic" \
+                         "-W -Wall -Wstrict-prototypes -Wmissing-prototypes" \
+                         "-Wpointer-arith -Wno-uninitialized -Wcast-qual" \
+                         "-Wreturn-type -Wwrite-strings -Wswitch -Wshadow"
 
 # Install headers in a private subdir
 makl_add_var_mk "INCDIR" "\${DESTDIR}/include/u"
 
 # Binary dependencies
-makl_feature_x  "doxygen"
+makl_optional           1    "featx"   "doxygen"    "PATH_DOXYGEN"
 
-# Function dependencies
-makl_checktype  "pid_t"     "<sys/types.h>"
-makl_checkfunc  "getpid"
-makl_checkfunc  "unlink"
-makl_checkfunc  "syslog"
-makl_checkfunc  "strtok_r"
-makl_func_strerror_r
+## Function dependencies
+makl_checktype          1   "pid_t"     "<sys/types.h>"
+makl_checkfunc          1   "getpid"
+makl_checkfunc          1   "unlink"
+makl_checkfunc          1   "syslog"
+makl_checkfunc          1   "strtok_r"
+makl_func_strerror_r    1
 
 # Handle command-line arguments
 makl_args_handle "$@"
