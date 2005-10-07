@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.3 2005/09/23 16:10:32 tho Exp $";
+    "$Id: misc.c,v 1.4 2005/10/07 12:32:59 tho Exp $";
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -135,6 +135,46 @@ void* u_memdup(void *src, size_t size)
     if(p)
         memcpy(p, src, size);
     return p;
+}
+
+/**
+ * \brief   tokenize the supplied \p wlist string
+ *
+ * Tokenize the \p delim separated string \p wlist and place its
+ * pieces (at most \p tokv_sz - 1) into \p tokv.
+ *
+ * \param wlist     list of strings possibily separated by chars in \p delim 
+ * \param delim     set of token separators
+ * \param tokv      pre-allocated string array
+ * \param tokv_sz   number of cells in \p tokv array
+ *
+ */
+int u_tokenize (char *wlist, const char *delim, char **tokv, size_t tokv_sz)
+{
+    char **ap;
+
+    dbg_return_if (wlist == NULL, ~0);
+    dbg_return_if (delim == NULL, ~0);
+    dbg_return_if (tokv == NULL, ~0);
+    dbg_return_if (tokv_sz == 0, ~0);
+
+    ap = tokv;
+
+    for ( ; (*ap = strsep(&wlist, delim)) != NULL; )
+    {
+        /* skip empty field */
+        if (**ap == '\0')
+            continue;
+
+        /* check bounds */
+        if (++ap >= &tokv[tokv_sz - 1])
+            break;
+    }
+
+    /* put an explicit stopper to tokv */
+    *ap = NULL;
+
+    return 0;
 }
 
 /**
