@@ -15,7 +15,7 @@
 #define U_CLOSE(fd) do {if (fd != -1) { close(fd); fd = -1; }} while (0)
 #define U_FCLOSE(fp) do {if (fp) { fclose(fp); fp = NULL; }} while (0)
 #define U_PCLOSE(pp) do {if (pp) { pclose(pp); pp = NULL; }} while (0)
-#define u_unused_args(...) u_use_unused_args("", __VA_ARGS__)
+#define u_unused_args(...) u_use_unused_args(NULL, __VA_ARGS__)
 
 int u_isnl(int c);
 void u_trim(char *s);
