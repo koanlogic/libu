@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.4 2005/09/27 12:45:44 tho Exp $";
+    "$Id: config.c,v 1.5 2005/10/11 14:58:43 tat Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -252,15 +252,15 @@ int u_config_set_key(u_config_t *c, const char *key, const char *val)
     return u_config_do_set_key(c, key, val, 1 /* overwrite */);
 }
 
-static int cs_getline(FILE *f, u_string_t *ln)
+static int cs_getline(u_config_gets_t cb, void *arg, u_string_t *ln)
 {
     enum { BUFSZ = 1024 };
-    char buf[BUFSZ];
+    char buf[BUFSZ], *p = NULL;
     ssize_t len;
 
     u_string_clear(ln);
 
-    while(fgets(buf, BUFSZ, f))
+    while((p = cb(arg, buf, BUFSZ)) != NULL)
     {
         len = strlen(buf);
         dbg_err_if(u_string_append(ln, buf, --len));
@@ -270,14 +270,15 @@ static int cs_getline(FILE *f, u_string_t *ln)
             break;
     }
 
-    dbg_err_if(feof(f) || ferror(f));
+    dbg_err_if(p == NULL);
 
     return 0;
 err:
     return ~0;
 }
 
-static int u_config_do_load(u_config_t *c, FILE *file, int overwrite)
+static int u_config_do_load(u_config_t *c, u_config_gets_t cb, void *arg, 
+    int overwrite)
 {
     enum { MAX_NEST_LEV = 20 };
     u_string_t *line = NULL, *key = NULL, *lastkey = NULL, *value = NULL;;
@@ -291,7 +292,7 @@ static int u_config_do_load(u_config_t *c, FILE *file, int overwrite)
     dbg_err_if(u_string_create(NULL, 0, &value));
     dbg_err_if(u_string_create(NULL, 0, &lastkey));
 
-    for(; cs_getline(file, line) == 0; u_string_clear(line), ++lineno)
+    for(; cs_getline(cb, arg, line) == 0; u_string_clear(line), ++lineno)
     {
         /* remove comments if any */
         if((p = strchr(u_string_c(line), '#')) != NULL)
@@ -323,7 +324,7 @@ static int u_config_do_load(u_config_t *c, FILE *file, int overwrite)
                          "only not-blank char in a line", lineno);
 
             dbg_err_if(u_config_add_child(c, u_string_c(lastkey), &child));
-            dbg_err_if(u_config_do_load(child, file, overwrite));
+            dbg_err_if(u_config_do_load(child, cb, arg, overwrite));
             dbg_err_if(u_string_clear(lastkey));
             continue;
         } else if(ln[0] == '}') {
@@ -376,6 +377,23 @@ err:
     return ~0;
 }
 
+int u_config_load_from(u_config_t *c, u_config_gets_t cb, 
+    void *arg, int overwrite)
+{
+    dbg_err_if(u_config_do_load(c, cb, arg, overwrite));
+
+    return 0;
+err:
+    return ~0;
+}
+
+static char *u_config_fgetline(void* arg, char * buf, size_t size)
+{
+    FILE *f = (FILE*)arg;
+
+    return fgets(buf, size, f);
+}
+
 /**
  * \brief  Load a configuration file.
  *
@@ -399,7 +417,7 @@ int u_config_load(u_config_t *c, int fd, int overwrite)
     file = fdopen(dup(fd), "r");
     dbg_err_if(file == NULL);
 
-    dbg_err_if(u_config_do_load(c, file, overwrite));
+    dbg_err_if(u_config_do_load(c, u_config_fgetline, file, overwrite));
 
     fclose(file);
 

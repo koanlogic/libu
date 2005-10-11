@@ -12,6 +12,10 @@ int u_config_create(u_config_t **pc);
 int u_config_free(u_config_t *c);
 int u_config_load(u_config_t *c, int fd, int overwrite);
 
+typedef char* (*u_config_gets_t)(void *arg, char *buf, size_t size);
+int u_config_load_from(u_config_t *c, u_config_gets_t cb, 
+    void *arg, int overwrite);
+
 const char* u_config_get_key(u_config_t *c);
 const char* u_config_get_value(u_config_t *c);
 
