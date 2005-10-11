@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.7 2005/10/03 19:27:04 stewy Exp $
+# $Id: configure,v 1.8 2005/10/11 11:51:35 tat Exp $
 
 export makl_debug=1
 
@@ -37,9 +37,11 @@ makl_pkg_version
 case `makl_os_name` in
     *-*-mingw*)
         makl_set_var_h "OS_WIN"
+        makl_set_var_h "U_PATH_SEPARATOR" "'\\'"
         ;;
     *)
         makl_set_var_h "OS_UNIX"
+        makl_set_var_h "U_PATH_SEPARATOR" "'/'"
         ;;
 esac
 

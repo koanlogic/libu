@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.5 2005/10/11 08:56:30 tho Exp $";
+    "$Id: misc.c,v 1.6 2005/10/11 11:51:35 tat Exp $";
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -175,6 +175,70 @@ int u_tokenize (char *wlist, const char *delim, char **tokv, size_t tokv_sz)
     *ap = NULL;
 
     return 0;
+}
+
+/**
+ * \brief   snprintf-like function that returns 0 on success and ~0 on error
+ *
+ * snprintf-like function that returns 0 on success and ~0 on error
+ *
+ * \param str       destination buffer
+ * \param size      size of \p str
+ * \param fmt       snprintf format string
+ *
+ *   Returns \c 0 on success, not-zero on error.
+ */
+int u_snprintf(char *str, size_t size, const char *fmt, ...)
+{
+    va_list ap;
+    int wr;
+
+    va_start(ap, fmt);
+
+    wr = vsnprintf(str, size, fmt, ap);
+
+    va_end(ap);
+
+    dbg_err_if(wr < 0 || wr >= (int)size);
+
+    return 0;
+err:
+    return ~0;
+}
+
+/**
+ * \brief   snprintf-like function that handle path separator issues
+ *
+ * Calls snprintf with the provided arguments and remove consecutive
+ * U_PATH_SEPARATOR from the resulting string.
+ *
+ * \param str       destination buffer
+ * \param size      size of \p str
+ * \param fmt       snprintf format string
+ *
+ *   Returns \c 0 on success, not-zero on error.
+ */
+int u_path_snprintf(char *buf, size_t sz, const char *fmt, ...)
+{
+    va_list ap;
+    int wr, i, len;
+
+    va_start(ap, fmt);
+
+    wr = vsnprintf(buf, sz, fmt, ap);
+
+    va_end(ap);
+
+    dbg_err_if(wr < 0 || wr >= (int)sz);
+
+    /* remove multiple consecutive '/' */
+    for(len = i = strlen(buf); i > 0; --i)
+        if(buf[i] == U_PATH_SEPARATOR && buf[i-1] == U_PATH_SEPARATOR)
+            memmove(buf + i, buf + i + 1, len--);
+
+    return 0;
+err:
+    return ~0;
 }
 
 /**
