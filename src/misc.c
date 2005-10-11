@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.4 2005/10/07 12:32:59 tho Exp $";
+    "$Id: misc.c,v 1.5 2005/10/11 08:56:30 tho Exp $";
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -127,7 +127,7 @@ char *u_sstrncpy (char *dst, const char *src, size_t size)
 /** \brief Dups the memory block \c src of size \c size.
      Returns the pointer of the dup'd block on success, \c NULL on error.
  */
-void* u_memdup(void *src, size_t size)
+void* u_memdup(const void *src, size_t size)
 {
     void *p;
 
