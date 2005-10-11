@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.6 2005/10/11 11:51:35 tat Exp $";
+    "$Id: misc.c,v 1.7 2005/10/11 11:56:45 tat Exp $";
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -212,8 +212,8 @@ err:
  * Calls snprintf with the provided arguments and remove consecutive
  * U_PATH_SEPARATOR from the resulting string.
  *
- * \param str       destination buffer
- * \param size      size of \p str
+ * \param buf       destination buffer
+ * \param sz        size of \p str
  * \param fmt       snprintf format string
  *
  *   Returns \c 0 on success, not-zero on error.
