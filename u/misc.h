@@ -15,6 +15,7 @@
 #define U_CLOSE(fd) do {if (fd != -1) { close(fd); fd = -1; }} while (0)
 #define U_FCLOSE(fp) do {if (fp) { fclose(fp); fp = NULL; }} while (0)
 #define U_PCLOSE(pp) do {if (pp) { pclose(pp); pp = NULL; }} while (0)
+#define u_unused_args(...) u_use_unused_args("", __VA_ARGS__)
 
 int u_isnl(int c);
 void u_trim(char *s);
@@ -28,6 +29,6 @@ void* u_memdup(const void *src, size_t size);
 int u_tokenize (char *wlist, const char *delim, char **tokv, size_t tokv_sz);
 int u_snprintf(char *str, size_t size, const char *fmt, ...);
 int u_path_snprintf(char *str, size_t size, const char *fmt, ...);
-
+void u_use_unused_args(char *dummy, ...);
 
 #endif /* !_U_MISC_H_ */

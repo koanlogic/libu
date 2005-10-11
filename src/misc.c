@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.7 2005/10/11 11:56:45 tat Exp $";
+    "$Id: misc.c,v 1.8 2005/10/11 12:55:23 tat Exp $";
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -239,6 +239,12 @@ int u_path_snprintf(char *buf, size_t sz, const char *fmt, ...)
     return 0;
 err:
     return ~0;
+}
+
+inline void u_use_unused_args(char *dummy, ...)
+{
+    dummy = 0;
+    return;
 }
 
 /**
