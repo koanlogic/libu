@@ -3,14 +3,14 @@
  */
 
 static const char rcsid[] =
-    "$Id: str.c,v 1.3 2005/09/23 16:10:32 tho Exp $";
+    "$Id: str.c,v 1.4 2005/10/17 18:21:59 tat Exp $";
 
 #include <stdlib.h>
 #include <errno.h>
 
 #include <u/str.h>
 #include <u/misc.h>
-#include <u/debug.h>
+#include <u/carpal.h>
 #include <u/memory.h>
 
 /**

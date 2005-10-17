@@ -1,9 +1,9 @@
-/* $Id: main.c,v 1.2 2005/09/25 10:07:10 tho Exp $ */
+/* $Id: main.c,v 1.3 2005/10/17 18:21:59 tat Exp $ */
 
 #include <stdlib.h>
 #include <err.h>
 #include <u/net.h>
-#include <u/debug.h>
+#include <u/carpal.h>
 #include <u/misc.h>
 
 int main (int argc, char *argv[])

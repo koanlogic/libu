@@ -7,9 +7,10 @@
 
 #include <stdlib.h>
 #include <stdarg.h>
+#include <stdio.h>
 
+#include <u/os.h>
 #include <u/logprv.h>
-#include <u/logcfg.h>
 
 /**
  *  \defgroup log Logging
@@ -45,8 +46,35 @@
  *                  process exit code
  */
 
-const char* u_log_label(int lev);
-char *u_log_build_message(const char *fmt, va_list ap, int maxsz);
+/** \brief per-process facility variable.
+ *
+ * all processes that use the libu must define a "facility" variable somewhere
+ * to satisfy this external linkage reference.
+ * 
+ * Such variable will be used as the syslog(3) facility argument.
+ *
+ */
+extern int facility;
+
+/** \brief log hook typedef */
+typedef int (*u_log_hook_t)(const char *buf, size_t size); 
+
+/** \brief set a log hook to redirect log messages
+ *
+ * Force the log subsystem to use user-provided function to write log messages.
+ *
+ * The provided function will be called for each dbg_, warn_ or info_ calls.
+ *
+ * \param hook      function that will be called to write log messages 
+ *                  set this param to NULL to set the default syslog-logging
+ * \param old       [out] will get the previously set hook or NULL if no hook
+ *                  has been set
+ *
+ * \return 
+ *   0 on success, not zero on error
+ *
+ */
+int u_set_log_hook(u_log_hook_t hook, u_log_hook_t *old);
 
 /** \brief log an error message and die 
  *
@@ -55,7 +83,7 @@ char *u_log_build_message(const char *fmt, va_list ap, int maxsz);
  * \param ecode     exit code
  * \param facility  facility
  * \param ctx       set to zero if you don't want context, 1 otherwise
- * \param args      printf-style variable length arguments list
+ * \param ...       printf-style variable length arguments list
  */
 #define u_log_err(ecode, facility, ctx, ...) \
     do {                                                    \
@@ -69,7 +97,7 @@ char *u_log_build_message(const char *fmt, va_list ap, int maxsz);
  *
  * \param facility  facility
  * \param ctx       set to zero if you don't want context, 1 otherwise
- * \param args      printf-style variable length arguments list
+ * \param ...       printf-style variable length arguments list
  */
 #define u_log_warning(facility, ctx, ...) \
     u_log_write(facility, LOG_WARNING, ctx, __VA_ARGS__)
@@ -80,7 +108,7 @@ char *u_log_build_message(const char *fmt, va_list ap, int maxsz);
  *
  * \param facility  facility
  * \param ctx       set to zero if you don't want context, 1 otherwise
- * \param args      printf-style variable length arguments list
+ * \param ...       printf-style variable length arguments list
  */
 #define u_log_info(facility, ctx, ...) \
     u_log_write(facility, LOG_INFO, ctx, __VA_ARGS__)
@@ -91,7 +119,7 @@ char *u_log_build_message(const char *fmt, va_list ap, int maxsz);
  *
  * \param facility  facility
  * \param ctx       set to zero if you don't want context, 1 otherwise
- * \param args      printf-style variable length arguments list
+ * \param ...       printf-style variable length arguments list
  */
 #define u_log_debug(facility, ctx, ...) \
     u_log_write(facility, LOG_DEBUG, ctx, __VA_ARGS__)
@@ -110,6 +138,10 @@ char *u_log_build_message(const char *fmt, va_list ap, int maxsz);
 
 /** \brief same as u_log_debug but using the facility global variable */
 #define debug(...) u_log_debug(facility, 1, __VA_ARGS__)
+
+/** \brief write a log message to stderr */
+#define console(...) \
+    do { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); } while(0)
 
 /**
  *  \}

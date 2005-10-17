@@ -2,8 +2,8 @@
  * Copyright (c) 2005, KoanLogic s.r.l. - All rights reserved.  
  */
 
-#ifndef _U_DEBUG_H_
-#define _U_DEBUG_H_
+#ifndef _U_CARPAL_H_
+#define _U_CARPAL_H_
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -14,38 +14,38 @@
 #ifdef HAVE_CONF_H
 #include "conf.h"
 #endif /* HAVE_CONF_H */
+#include <u/log.h>
 
-extern const char *DEBUG_LABEL;
-extern const char *WARN_LABEL;
 
-int u_write_debug_message(const char *label, const char *file, int line, 
-    const char *func, const char *fmt, ...);
+#define msg(label, ...) label( __VA_ARGS__)
+#define msg_noargs(label, literal) label("%s", literal)
 
-/** \brief output a debug message
+/** \brief log a message and goto "err" label
  *
- * This macro will be called for each msg_* function to output 
- * debug text. 
+ *   log a message of type \e label if \e expr not zero.
  *
- * You can redefine this macro to redirect debug output.
  */
-#define output_message(label, ...) \
-    u_write_debug_message(label, __FILE__, __LINE__,__FUNCTION__, __VA_ARGS__) 
-
-
-/** \brief output a debug message */
-#define msg(label, ...) output_message(label, __VA_ARGS__)
-
-/** \brief output a debug message */
-#define msg_noargs(label, literal) output_message(label, "%s", literal)
-
 #define msg_err(label, ...) do { msg(label, __VA_ARGS__); goto err; } while(0)
 
-/** \brief write a debug message if \e expr not zero and enter the if-block
+/** \brief log a message if \e expr not zero.
  *
- *   generate a debug message if \e expr not zero.
- *   \e expr text statement will be written to the log.
+ *   log a message of type \e label if \e expr is not zero 
  *
- *   A C-style code block should follow:
+ *   \e expr text statement will be written to the log file.
+ *
+ *   For ex.:
+ *       warn_if(check(abc) < 0);
+ */
+#define msg_if(label, expr) do { if( expr ) msg_noargs(label, #expr); } while(0)
+
+/** \brief log a message if \e expr not zero and enter the if-block
+ *
+ *   log a message of type \e label if \e expr is not zero and enter the
+ *   following if-block.
+ *
+ *   \e expr text statement will be written to the log file.
+ *
+ *   A C-style dbg_ code block should follow. For ex.:
  *       dbg_ifb(i == 0)
  *       {
  *           do_something();
@@ -54,34 +54,60 @@ int u_write_debug_message(const char *label, const char *file, int line,
  */
 #define msg_ifb(label, expr) if( (expr) && (msg_noargs(label, #expr) ? 1 : 1) ) 
 
-/** \brief write a debug message if \e expr not zero.
-  *
-  *  gen a debug message if \e expr not zero.
-  *  \e expr statement will be written . 
-  *
-  */
-#define msg_if(label, expr) do { if( expr ) msg_noargs(label, #expr); } while(0)
-
-/** \brief write a debug message and return \e err if \e expr not zero.  */
+/** \brief log a message if \e expr not zero and return \e err.
+ *
+ *   log a message of type \e label if \e expr is not zero and return
+ *   \e err to the caller.
+ *
+ *   \e expr text statement will be written to the log file.
+ *
+ *   Example:
+ *      dbg_return_if(param == NULL, FUNC_ERROR);
+ */
 #define msg_return_if(label, expr, err) msg_ifb(label, expr) return err
 
+/** \brief log a message if \e expr not zero and return \e err. (Log the strerror also)
+ *
+ *   log a message of type \e label if \e expr is not zero and return
+ *   \e err to the caller. Log also the strerror(errno).
+ *
+ *   \e expr text statement will be written to the log file.
+ */
 #define msg_return_sif(label, expr, err) \
     do { msg_ifb(label, expr) { msg_strerror(label, errno); goto err; } } while(0)
 
-/** \brief write a debug message and goto to \e gt if \e expr not zero. */ 
+/** \brief log a message if \e expr not zero and goto \e gt.
+ *
+ *   log a message of type \e label if \e expr is not zero and goto
+ *   to the label \e gt (that must be in-scope).
+ *
+ *   \e expr text statement will be written to the log file.
+ */
 #define msg_goto_if(label, expr, gt) msg_ifb(label, expr) goto gt
 
-/** \brief write a debug message and goto to \e err label if \e expr not zero. 
+/** \brief log a message if \e expr not zero and goto to the label "err"
  *
- *   write a debug message and goto to \e err label if \e expr not zero. 
+ *   log a message of type \e label if \e expr is not zero and goto
+ *   to the label "err" (that must be defined).
  *
- *   \e err label must be in scope.
+ *   \e expr text statement will be written to the log file.
  */
 #define msg_err_if(label, expr) do { msg_ifb(label, expr) goto err; } while(0)
 
+/** \brief log a message if \e expr not zero and goto to the label "err". 
+ *
+ *   log a message of type \e label if \e expr is not zero and goto
+ *   to the label "err" (that must be defined). also logs arguments provided
+ *   by the caller.
+ */
 #define msg_err_ifm(label, expr, ...) \
     do { if( (expr) ) { msg(label, __VA_ARGS__); goto err; } } while(0)
 
+/** \brief log a message if \e expr not zero and goto to the label "err". 
+ *
+ *   log a message of type \e label if \e expr is not zero and goto
+ *   to the label "err" (that must be defined). also logs strerror(errno).
+ */
 #define msg_err_sif(label, expr) \
     do { msg_ifb(label, expr) { msg_strerror(label, errno); goto err; } } while(0)
 
@@ -120,42 +146,56 @@ int u_write_debug_message(const char *label, const char *file, int line,
         } while(0)                  
 #endif  
 
-/* cmsg_ macros 
-   (console: print to stderr) */
-#define cmsg(...)                   \
-    do { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); } while(0)
-#define cmsg_err(...)               do { cmsg(__VA_ARGS__); goto err; } while(0)
-#define cmsg_err_if(expr)     \
-    do { if( (expr) ) { cmsg("%s", #expr); goto err; } } while(0)
-#define cmsg_err_ifm(expr, ...)     \
-    do { if( (expr) ) { cmsg(__VA_ARGS__); goto err; } } while(0)
+/* con_ macros */
+#define con(...)                       msg(console, __VA_ARGS__)
+#define con_err(...)                   msg_err(console, __VA_ARGS__)
+#define con_ifb(expr)                  msg_ifb(console, expr)
+#define con_if(expr)                   msg_if(console, expr) 
+#define con_return_if(expr, err)       msg_return_if(console, expr, err)
+#define con_err_if(expr)               msg_err_if(console, expr)
+#define con_err_ifm(expr, ...)         \
+    msg_err_ifm(console, expr, __VA_ARGS__)
+#define con_goto_if(expr, gt)          msg_goto_if(console, expr, gt)
+#define con_strerror(errno)            msg_strerror(console, errno)
+
+/* info_ macros */
+/* #define info(...)                    msg(info, __VA_ARGS__) */
+#define info_err(...)                   msg_err(info, __VA_ARGS__)
+#define info_ifb(expr)                  msg_ifb(info, expr)
+#define info_if(expr)                   msg_if(info, expr) 
+#define info_return_if(expr, err)       msg_return_if(info, expr, err)
+#define info_err_if(expr)               msg_err_if(info, expr)
+#define info_err_ifm(expr, ...)         \
+    msg_err_ifm(info, expr, __VA_ARGS__)
+#define info_goto_if(expr, gt)          msg_goto_if(info, expr, gt)
+#define info_strerror(errno)            msg_strerror(info, errno)
 
 /* warn_ macros */
-#define warn(...)                       msg(WARN_LABEL, __VA_ARGS__)
-#define warn_err(...)                   msg_err(WARN_LABEL, __VA_ARGS__)
-#define warn_ifb(expr)                  msg_ifb(WARN_LABEL, expr)
-#define warn_if(expr)                   msg_if(WARN_LABEL, expr) 
-#define warn_return_if(expr, err)       msg_return_if(WARN_LABEL, expr, err)
-#define warn_err_if(expr)               msg_err_if(WARN_LABEL, expr)
+#define warn(...)                       msg(warning, __VA_ARGS__)
+#define warn_err(...)                   msg_err(warning, __VA_ARGS__)
+#define warn_ifb(expr)                  msg_ifb(warning, expr)
+#define warn_if(expr)                   msg_if(warning, expr) 
+#define warn_return_if(expr, err)       msg_return_if(warning, expr, err)
+#define warn_err_if(expr)               msg_err_if(warning, expr)
 #define warn_err_ifm(expr, ...)         \
-    msg_err_ifm(WARN_LABEL, expr, __VA_ARGS__)
-#define warn_goto_if(expr, gt)          msg_goto_if(WARN_LABEL, expr, gt)
-#define warn_strerror(errno)            msg_strerror(WARN_LABEL, errno)
+    msg_err_ifm(warning, expr, __VA_ARGS__)
+#define warn_goto_if(expr, gt)          msg_goto_if(warning, expr, gt)
+#define warn_strerror(errno)            msg_strerror(warning, errno)
 
 /* dbg_ macros */
 #ifndef NDEBUG
-    #define dbg(...)                    msg(DEBUG_LABEL, __VA_ARGS__)
-    #define dbg_err(...)                msg_err(DEBUG_LABEL, __VA_ARGS__)
-    #define dbg_ifb(expr)               msg_ifb(DEBUG_LABEL, expr)
-    #define dbg_if(expr)                msg_if(DEBUG_LABEL, expr) 
-    #define dbg_return_if(expr, err)    msg_return_if(DEBUG_LABEL, expr, err)
-    #define dbg_return_sif(expr, err)   msg_return_sif(DEBUG_LABEL, expr, err)
-    #define dbg_err_if(expr)            msg_err_if(DEBUG_LABEL, expr)
-    #define dbg_err_sif(expr)           msg_err_sif(DEBUG_LABEL, expr)
+    #define dbg(...)                    msg(debug, __VA_ARGS__)
+    #define dbg_err(...)                msg_err(debug, __VA_ARGS__)
+    #define dbg_ifb(expr)               msg_ifb(debug, expr)
+    #define dbg_if(expr)                msg_if(debug, expr) 
+    #define dbg_return_if(expr, err)    msg_return_if(debug, expr, err)
+    #define dbg_return_sif(expr, err)   msg_return_sif(debug, expr, err)
+    #define dbg_err_if(expr)            msg_err_if(debug, expr)
+    #define dbg_err_sif(expr)           msg_err_sif(debug, expr)
     #define dbg_err_ifm(expr, ...)      \
-        msg_err_ifm(DEBUG_LABEL, expr, __VA_ARGS__)
-    #define dbg_goto_if(expr, gt)       msg_goto_if(DEBUG_LABEL, expr, gt)
-    #define dbg_strerror(errno)         msg_strerror(DEBUG_LABEL, errno)
+        msg_err_ifm(debug, expr, __VA_ARGS__)
+    #define dbg_goto_if(expr, gt)       msg_goto_if(debug, expr, gt)
+    #define dbg_strerror(errno)         msg_strerror(debug, errno)
     /* simple debugging timing macros */
     #define TIMER_ON \
         time_t _t_beg = time(0), _t_prev = _t_beg, _t_now; int _t_step = 0
@@ -186,5 +226,5 @@ int u_write_debug_message(const char *label, const char *file, int line,
     #define TIMER_OFF
 #endif /* ifndef NDEBUG */
 
-#endif /* _DEBUG_H_ */
+#endif /* _U_CARPAL_H_ */
 

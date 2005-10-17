@@ -3,14 +3,14 @@
  */
 
 static const char rcsid[] =
-    "$Id: env.c,v 1.2 2005/09/23 16:04:53 tho Exp $";
+    "$Id: env.c,v 1.3 2005/10/17 18:21:59 tat Exp $";
 
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 #include <u/env.h>
-#include <u/debug.h>
+#include <u/carpal.h>
 #include <u/misc.h>
 
 /**

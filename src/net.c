@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: net.c,v 1.5 2005/09/25 10:07:10 tho Exp $";
+    "$Id: net.c,v 1.6 2005/10/17 18:21:59 tat Exp $";
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -19,7 +19,7 @@ static const char rcsid[] =
 
 #include <u/net.h>
 #include <u/uri.h>
-#include <u/debug.h>
+#include <u/carpal.h>
 #include <u/misc.h>
 #include <u/memory.h>
 

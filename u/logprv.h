@@ -26,4 +26,4 @@
 int u_log_write_ex(int fac, int lev, int ctx, const char* file, int line, 
     const char *func, const char* fmt, ...);
 
-#endif /* !_U_LOGCFG_H_ */
+#endif /* !_U_LOGPRV_H_ */
