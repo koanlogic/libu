@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.8 2005/10/11 11:51:35 tat Exp $
+# $Id: configure,v 1.9 2005/10/17 18:36:55 tho Exp $
 
 export makl_debug=1
 
@@ -26,8 +26,8 @@ makl_args_init "$@"
 makl_args_def "enable_debug"    "" "" "enables debugging"
 makl_args_def "enable_profile"  "" "" "enables profiling"
 # ... and their handlers
-_makl_enable_debug ()   { makl_add_var_mk "CFLAGS" "-g" ; }
-_makl_enable_profile () { makl_add_var_mk "CFLAGS" "-pg" ; }
+__makl_enable_debug ()   { makl_add_var_mk "CFLAGS" "-g" ; }
+__makl_enable_profile () { makl_add_var_mk "CFLAGS" "-pg" ; }
 
 # General settings (version is read from the VERSION file)
 makl_pkg_name "libu"
