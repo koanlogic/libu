@@ -75,7 +75,7 @@ typedef int (*u_log_hook_t)(void *arg, const char *buf, size_t size);
  *   0 on success, not zero on error
  *
  */
-int u_set_log_hook(u_log_hook_t hook, void *arg, u_log_hook_t *old);
+int u_log_set_hook(u_log_hook_t hook, void *arg, u_log_hook_t *old);
 
 /** \brief log an error message and die 
  *

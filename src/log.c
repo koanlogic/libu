@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: log.c,v 1.3 2005/10/18 13:29:42 tat Exp $";
+    "$Id: log.c,v 1.4 2005/10/18 13:31:54 tat Exp $";
 
 #include <sys/types.h>
 #include <errno.h>
@@ -76,7 +76,7 @@ static int u_log(int priority, const char *fmt, ...)
     return 0;
 }
 
-int u_set_log_hook(u_log_hook_t func, void *arg, u_log_hook_t *old)
+int u_log_set_hook(u_log_hook_t func, void *arg, u_log_hook_t *old)
 {
     dbg_return_if(func == NULL, ~0);
 
