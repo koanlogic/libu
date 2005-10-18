@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: log.c,v 1.4 2005/10/18 13:31:54 tat Exp $";
+    "$Id: log.c,v 1.5 2005/10/18 15:41:01 tat Exp $";
 
 #include <sys/types.h>
 #include <errno.h>
@@ -24,9 +24,6 @@ extern int facility;
 /* log hook. if not-zero use this function to write log messages */
 static u_log_hook_t hook = NULL;
 static void *hook_arg = NULL;
-
-/* messages longer then MAX_LINE_LENGTH will be silently discarded */
-enum { MAX_LINE_LENGTH  = 2048 };
 
 static inline const char* u_log_label(int lev)
 {
@@ -52,36 +49,37 @@ static inline const char* u_log_label(int lev)
 }
 
 
-static int u_log(int priority, const char *fmt, ...)
+static int u_log(int fac, int level, const char *fmt, ...)
 {
     va_list ap;
-    char buf[MAX_LINE_LENGTH];
+    char buf[U_MAX_LOG_LENGTH];
 
     va_start(ap, fmt); 
 
     if(hook)
     {
-        if(vsnprintf(buf, MAX_LINE_LENGTH, fmt, ap) > MAX_LINE_LENGTH)
+        if(vsnprintf(buf, U_MAX_LOG_LENGTH, fmt, ap) > U_MAX_LOG_LENGTH)
         {
             va_end(ap);
             return ~0; /* buffer too small */
         }
-        buf[MAX_LINE_LENGTH] = 0; 
-        hook(hook_arg, buf, strlen(buf));
+        buf[U_MAX_LOG_LENGTH] = 0; 
+        hook(hook_arg, level, buf);
     } else 
-        vsyslog(priority, fmt, ap);
+        vsyslog(fac | level, fmt, ap);
 
     va_end(ap);
 
     return 0;
 }
 
-int u_log_set_hook(u_log_hook_t func, void *arg, u_log_hook_t *old)
+int u_log_set_hook(u_log_hook_t func, void *arg, u_log_hook_t *old, void **parg)
 {
-    dbg_return_if(func == NULL, ~0);
-
     if(old)
         *old = hook;
+    if(parg)
+        *parg = hook_arg;
+
     hook = func;
     hook_arg = arg;
 
@@ -92,23 +90,23 @@ int u_log_write_ex(int fac, int lev, int ctx, const char* file, int line,
     const char *func, const char* fmt, ...)
 {
     va_list ap;
-    char msg[MAX_LINE_LENGTH];
+    char msg[U_MAX_LOG_LENGTH];
     int rc;
 
     /* build the message to send to the log system */
     va_start(ap, fmt); 
-    rc = vsnprintf(msg, MAX_LINE_LENGTH, fmt, ap);
+    rc = vsnprintf(msg, U_MAX_LOG_LENGTH, fmt, ap);
     va_end(ap);
 
-    if(rc > MAX_LINE_LENGTH)
+    if(rc > U_MAX_LOG_LENGTH)
         return ~0; /* message too long */
 
     /* ok, send the msg to the logger */
     if(ctx)
-        u_log(fac | lev, "[%s][%d:%s:%d:%s] %s", 
+        u_log(fac, lev, "[%s][%d:%s:%d:%s] %s", 
                u_log_label(lev), getpid(), file, line, func, msg);
     else
-        u_log(fac | lev, "[%s][%d:::] %s", 
+        u_log(fac, lev, "[%s][%d:::] %s", 
                u_log_label(lev), getpid(), msg);
 
     return 0;

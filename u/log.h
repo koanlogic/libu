@@ -46,6 +46,9 @@
  *                  process exit code
  */
 
+/* messages longer then U_MAX_LOG_LENGTH will be silently discarded */
+enum { U_MAX_LOG_LENGTH  = 2048 };
+
 /** \brief per-process facility variable.
  *
  * all processes that use the libu must define a "facility" variable somewhere
@@ -57,7 +60,7 @@
 extern int facility;
 
 /** \brief log hook typedef */
-typedef int (*u_log_hook_t)(void *arg, const char *buf, size_t size); 
+typedef int (*u_log_hook_t)(void *arg, int level, const char *str); 
 
 /** \brief set a log hook to redirect log messages
  *
@@ -70,12 +73,13 @@ typedef int (*u_log_hook_t)(void *arg, const char *buf, size_t size);
  * \param arg       an opaque argument that will be passed to the hook function
  * \param old       [out] will get the previously set hook or NULL if no hook
  *                  has been set
+ * \param parg      [out] will get the previously set hook argument
  *
  * \return 
  *   0 on success, not zero on error
  *
  */
-int u_log_set_hook(u_log_hook_t hook, void *arg, u_log_hook_t *old);
+int u_log_set_hook(u_log_hook_t hook, void *arg, u_log_hook_t *old, void**parg);
 
 /** \brief log an error message and die 
  *

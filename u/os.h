@@ -24,7 +24,7 @@ pid_t getpid();
 
 #ifndef HAVE_SYSLOG
 
-/* priority codes */
+/* level codes */
 #define	LOG_EMERG	    0	
 #define	LOG_ALERT	    1
 #define	LOG_CRIT	    2
