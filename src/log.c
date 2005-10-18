@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: log.c,v 1.2 2005/10/17 18:21:59 tat Exp $";
+    "$Id: log.c,v 1.3 2005/10/18 13:29:42 tat Exp $";
 
 #include <sys/types.h>
 #include <errno.h>
@@ -23,6 +23,7 @@ extern int facility;
 
 /* log hook. if not-zero use this function to write log messages */
 static u_log_hook_t hook = NULL;
+static void *hook_arg = NULL;
 
 /* messages longer then MAX_LINE_LENGTH will be silently discarded */
 enum { MAX_LINE_LENGTH  = 2048 };
@@ -66,7 +67,7 @@ static int u_log(int priority, const char *fmt, ...)
             return ~0; /* buffer too small */
         }
         buf[MAX_LINE_LENGTH] = 0; 
-        hook(buf, strlen(buf));
+        hook(hook_arg, buf, strlen(buf));
     } else 
         vsyslog(priority, fmt, ap);
 
@@ -75,13 +76,14 @@ static int u_log(int priority, const char *fmt, ...)
     return 0;
 }
 
-int u_set_log_hook(u_log_hook_t func, u_log_hook_t *old)
+int u_set_log_hook(u_log_hook_t func, void *arg, u_log_hook_t *old)
 {
     dbg_return_if(func == NULL, ~0);
 
     if(old)
         *old = hook;
     hook = func;
+    hook_arg = arg;
 
     return 0;
 }
