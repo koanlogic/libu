@@ -1,16 +1,16 @@
-/* $Id: kl-doxy.css,v 1.1 2005/09/23 13:04:37 tho Exp $*/
+/* $Id: kl.css,v 1.1 2005/10/19 15:54:49 stewy Exp $*/
+
+  /*text-align:center;*/
 
 body {
   background:#fff;
-/*  background:white url(../images/kl_bg.png) no-repeat top left; */
-/*  background-position:80px 30px; */
-/*  width:720px; */
+  background:white url(images/kl_bg.png) repeat-y top center; 
+  background-position:20px 0px;
   margin:0;
   padding:40px 20px;
   font:x-small Georgia,Serif;
-  /*text-align:center;*/
   color:#333;
-  font-size:medium;
+  font-size:small;
   }
 
 /* Links
@@ -52,6 +52,7 @@ a img {
 .s1 { border: solid 2px #FDFDFE;
        border-top:none;
        border-bottom:none;
+       }
 .s2 {  border: solid 1px #F4F6F9;
        border-top:none;
        border-bottom:none;
@@ -162,17 +163,34 @@ a img {
 
 /* Headings
 ----------------------------------------------- */
-h2 {
+
+h4 {
   margin:1.5em 0 .75em;
-  font:78%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
+  font:60%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
   text-transform:uppercase;
   letter-spacing:.2em;
-  color:#999;
+  color:#111;
+  }
+
+h3 {
+  margin:1.5em 0 .75em;
+  font:80%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
+  text-transform:uppercase;
+  letter-spacing:.2em;
+  color:#333;
+  }
+
+h2 {
+  margin:1.5em 0 .75em;
+  font:120%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
+  text-transform:uppercase;
+  letter-spacing:.2em;
+  color:#777;
   }
 
 h1 {
   margin:1.5em 0 .75em;
-  font:150%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
+  font:180%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
   text-transform:uppercase;
   letter-spacing:.2em;
   color:#999;
@@ -296,36 +314,3 @@ div.center table {
 pre.screen { 
   background-color: #E0E0E0; 
   }
-.mdTable {
-	border: 1px solid #868686;
-	background-color: #f2f2ff;
-}
-.mdRow {
-	padding: 8px 20px;
-}
-.mdescLeft {
-	font-size: small;
-	font-family: x-small Georgia,Serif;
-	background-color: #FAFAFA;
-	padding-left: 8px;
-	border-top: 1px none #E0E0E0;
-	border-right: 1px none #E0E0E0;
-	border-bottom: 1px none #E0E0E0;
-	border-left: 1px none #E0E0E0;
-	margin: 0px;
-}
-.mdescRight {
-	font-size: small;
-	font-family: x-small Georgia,Serif;
-	font-style: italic;
-	background-color: #FAFAFA;
-	padding-left: 4px;
-	border-top: 1px none #E0E0E0;
-	border-right: 1px none #E0E0E0;
-	border-bottom: 1px none #E0E0E0;
-	border-left: 1px none #E0E0E0;
-	margin: 0px;
-	padding-bottom: 0px;
-	padding-right: 8px;
-}
-
