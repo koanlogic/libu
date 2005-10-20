@@ -47,7 +47,7 @@
  */
 
 /* messages longer then U_MAX_LOG_LENGTH will be silently discarded */
-enum { U_MAX_LOG_LENGTH  = 2048 };
+enum { U_MAX_LOG_LENGTH  = 1024 };
 
 /** \brief per-process facility variable.
  *

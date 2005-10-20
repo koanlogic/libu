@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: uri.c,v 1.4 2005/10/17 18:21:59 tat Exp $";
+    "$Id: uri.c,v 1.5 2005/10/20 07:35:18 tat Exp $";
 
 #include <stdlib.h>
 #include <string.h>
@@ -26,19 +26,16 @@ static int split(const char *s, size_t len, char c, char **left, char **right)
     char *l = 0, *r = 0;
     
     buf = u_strndup(s, len);
-    if(!buf)
-        goto err;
+    nop_err_if(!buf);
 
     if((p = strchr(buf, c)) != NULL)
     {
         l = u_strndup(s, p - buf);
         r = u_strndup(1 + p, len - (p - buf) - 1);
-        if(!l || !r)
-            goto err;
+        nop_err_if(!l || !r);
     } else {
         r = NULL;
-        if((l = u_strndup(buf, len)) == NULL)
-            goto err;
+        nop_err_if((l = u_strndup(buf, len)) == NULL);
     }
 
     /* return result strings */

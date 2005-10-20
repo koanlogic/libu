@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.6 2005/10/17 18:21:59 tat Exp $";
+    "$Id: config.c,v 1.7 2005/10/20 07:35:18 tat Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -552,11 +552,10 @@ const char* u_config_get_subkey_value(u_config_t *c, const char *subkey)
 {
     u_config_t *skey;
 
-    dbg_err_if(u_config_get_subkey(c, subkey, &skey));
+    nop_err_if(u_config_get_subkey(c, subkey, &skey));
 
     return u_config_get_value(skey);
 err:
-    dbg("subkey: %s", subkey);
     return NULL;
 }
 

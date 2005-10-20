@@ -146,6 +146,11 @@
         } while(0)                  
 #endif  
 
+/* nop_ macros */
+#define nop_return_if(expr, err)       do { if(expr) return err; } while(0)
+#define nop_err_if(expr)               do { if(expr) goto err;   } while(0)
+#define nop_goto_if(expr, gt)          do { if(expr) goto gt;    } while(0)
+
 /* con_ macros */
 #define con(...)                       msg(console, __VA_ARGS__)
 #define con_err(...)                   msg_err(console, __VA_ARGS__)
