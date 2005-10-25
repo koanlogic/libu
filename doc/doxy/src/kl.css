@@ -1,4 +1,4 @@
-/* $Id: kl.css,v 1.1 2005/10/19 15:54:49 stewy Exp $*/
+/* $Id: kl.css,v 1.2 2005/10/25 08:45:54 stewy Exp $*/
 
   /*text-align:center;*/
 
@@ -309,6 +309,10 @@ div.center table {
   margin-left:auto;
   margin-right:auto;
   text-align:left;
+  }
+
+div.fragment {
+  background-color: #E0E0E0; 
   }
 
 pre.screen { 
