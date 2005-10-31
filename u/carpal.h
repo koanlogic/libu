@@ -11,9 +11,12 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdarg.h>
+
 #ifdef HAVE_CONF_H
 #include "conf.h"
 #endif /* HAVE_CONF_H */
+
+#include <u/syslog.h>
 #include <u/log.h>
 
 

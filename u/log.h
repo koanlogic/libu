@@ -9,6 +9,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#include "conf.h"
 #include <u/os.h>
 #include <u/logprv.h>
 

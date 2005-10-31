@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.9 2005/10/17 18:36:55 tho Exp $
+# $Id: configure,v 1.10 2005/10/31 11:05:12 tat Exp $
 
 export makl_debug=1
 
@@ -47,7 +47,6 @@ esac
 
 # C Flags
 makl_add_var_mk "CFLAGS" "-DHAVE_CONF_H" \
-                         "-I`pwd`/u" \
                          "-std=c99 -pedantic" \
                          "-W -Wall -Wstrict-prototypes -Wmissing-prototypes" \
                          "-Wpointer-arith -Wno-uninitialized -Wcast-qual" \
@@ -65,6 +64,7 @@ makl_checkfunc          1   "getpid"
 makl_checkfunc          1   "unlink"
 makl_checkfunc          1   "syslog"
 makl_checkfunc          1   "strtok_r"
+makl_checkfunc          1   "fnmatch"
 makl_func_strerror_r    1
 
 # Handle command-line arguments
