@@ -1,18 +1,16 @@
-/* $Id: kl.css,v 1.2 2005/10/25 08:45:54 stewy Exp $*/
-
-  /*text-align:center;*/
+/* Yadda Stylesheet 2005 - Joe[y]
+----------------------------------------------- */
 
 body {
-  background:#fff;
-  background:white url(images/kl_bg.png) repeat-y top center; 
-  background-position:20px 0px;
-  margin:0;
-  padding:40px 20px;
-  font:x-small Georgia,Serif;
+  background:white url(images/kl_bg.png) repeat-y top left;
+  background-position:95px 30px;
+  margin:10px 5px;
+  width:750px;
+  font:Georgia,Serif;
   color:#333;
-  font-size:small;
+  font-size:medium;
   }
-
+  
 /* Links
 ----------------------------------------------- */
 a:link {
@@ -31,70 +29,55 @@ a img {
   }
 
 
-/* Splash
------------------------------------------------ */
-#splash {
-  width:660px;
-  border-width:2px;
-  padding-top:130px;
-  margin:0 auto;
-  }
-
-#images {
-  width:200px;
-  text-align:center;
-  }
-
-
 /* Shadow Border
 ----------------------------------------------- */
 
 .s1 { border: solid 2px #FDFDFE;
        border-top:none;
-       border-bottom:none;
-       }
+	   border-bottom:none;
+	   }
 .s2 {  border: solid 1px #F4F6F9;
        border-top:none;
-       border-bottom:none;
-       }
+	   border-bottom:none;
+	   }
 .s3 {  border: solid 2px #F0F3F7;
        border-top:none;
-       border-bottom:none;
-       }
+	   border-bottom:none;
+	   }
 .s4 {  border: solid 1px #EBEFF4;
        border-top:none;
-       border-bottom:none;
-       }
+	   border-bottom:none;
+	   }
 .s5 {  border: solid 2px #E5EBF0;
        border-top:none;
-       border-bottom:none;
-       }
+	   border-bottom:none;
+	   }
 .s6 {  border: solid 1px #E0E7ED;
        border-top:none;
-       border-bottom:none;
-       }
+	   border-bottom:none;
+	   }
 .s7 {  border: solid 2px #DCE4EB;
        border-top:none;
-       border-bottom:none;
-       }
+	   border-bottom:none;
+	   }
 .s8 {  border: solid 1px #D5DEE7;
        border-top:none;
-       border-bottom: solid 1px #ccc;
-       }
+	   border-bottom: solid 1px #ccc;
+	   }
 
 /* Header
 ----------------------------------------------- */
 #header {
+  margin:20px 0;
   vertical-align:middle;
-  width:695px;
-  margin:0 auto 10px;
+  width:756px;
   border-top:1px solid #ccc;
   border-bottom:1px solid #ccc;
   }
-
+  
 #title {
   text-align: right;
-  margin:5px 5px 0;
+  margin:25px 5px 0;
   padding:10px 10px .25em;
   border:0px solid #eee;
   border-width:0px 0px 0;
@@ -106,25 +89,31 @@ a img {
   letter-spacing:.2em;
   }
 
+#news {
+  padding:25px 20px;
+  height:20px;
+  font:78%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
+  float:left;
+  color:#555;
+  }
+
 #description {
   text-align: right;
-  margin:0 5px 30px;
-  padding:0 14px 10px;
+  margin:0 10px 30px;
+  padding:0 10px 0px;
   border:0px solid #eee;
-  border-width:0 0px 0px;
-  max-width:700px;
+  max-width:750;
   font:78%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
   text-transform:uppercase;
   letter-spacing:.2em;
-  color:#999;
+  color:#555;
   }
 
 #private {
-  text-align: left;
-  padding:20px 20px 0;
-  width:100px;
-  height:20px;
-  font:78%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
+  text-align: center;
+  padding:10px 0 0;
+  height:10px;
+  font:88%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
   text-transform:uppercase;
   letter-spacing:.1em;
   color:#999;
@@ -140,152 +129,43 @@ a img {
   color:#944;
   }
 
-
-/* Layout
------------------------------------------------ */
-#content {
+#splash {
   width:660px;
-  margin:0 auto;
-  padding-top:10px;
-  text-align:left;
-  }
-#main {
-  width:410px;
-  padding: 5px;
-  float:left;
-  }
-#sidebar {
-  width:180px;
-  float:right;
-  margin:20px;
-  }
-
+  padding-top:160px;
+  margin:0 50px;
+}
 
 /* Headings
 ----------------------------------------------- */
-
-h4 {
-  margin:1.5em 0 .75em;
-  font:60%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
-  text-transform:uppercase;
-  letter-spacing:.2em;
-  color:#111;
-  }
-
 h3 {
   margin:1.5em 0 .75em;
-  font:80%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
+  font:88%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
   text-transform:uppercase;
   letter-spacing:.2em;
-  color:#333;
+  color:#119;
   }
 
 h2 {
   margin:1.5em 0 .75em;
-  font:120%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
+  font:110%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
   text-transform:uppercase;
   letter-spacing:.2em;
-  color:#777;
+  color:#119;
   }
 
 h1 {
   margin:1.5em 0 .75em;
-  font:180%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
+  font:150%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
   text-transform:uppercase;
   letter-spacing:.2em;
-  color:#999;
+  color:#119;
   }
-
-
-
-/* Posts (from blogger.com layout)
------------------------------------------------ */
-.date-header {
-  margin:1.5em 0 .5em;
-  }
-.post {
-  margin:.5em 0 1.5em;
-  border-bottom:1px dotted #ccc;
-  padding-bottom:1.5em;
-  color:#777;
-  }
-.post-title {
-  margin:.25em 0 0;
-  padding:0 0 4px;
-  font-size:140%;
-  font-weight:normal;
-  line-height:1.4em;
-  color:#444499;
-  }
-.post-title a, .post-title a:visited, .post-title strong {
-  display:block;
-  text-decoration:none;
-  color:#009966;
-  font-weight:normal;
-  }
-.post-title strong, .post-title a:hover {
-  color:#333;
-  }
-.post div {
-  margin:0 0 .75em;
-  line-height:1.6em;
-  }
-p.post-footer {
-  margin:-.25em 0 0;
-  color:#ccc;
-  }
-.post-footer em, .comment-link {
-  font:78%/1.4em "Trebuchet MS",Trebuchet,Arial,Verdana,Sans-serif;
-  text-transform:uppercase;
-  letter-spacing:.1em;
-  }
-.post-footer em {
-  font-style:normal;
-  color:#999;
-  margin-right:.6em;
-  }
-.comment-link {
-  margin-left:.6em;
-  }
-.post img {
-  padding:4px;
-  border:1px solid #ddd;
-  }
-.post blockquote {
-  margin:1em 20px;
-  }
-.post blockquote p {
-  margin:.75em 0;
-  }
-
-
-/* Sidebar
------------------------------------------------ */
-#sidebar ul {
-  margin:0 0 1.5em;
-  padding:0 0 1.5em;
-  border-bottom:1px dotted #ccc;
-  list-style:none;
-  }
-#sidebar li {
-  margin:0;
-  padding:0 0 .25em 15px;
-  text-indent:-15px;
-  line-height:1.5em;
-  }
-#sidebar p {
-  color:#666;
-  line-height:1.5em;
-  }
-
 
 
 /* Footer
 ----------------------------------------------- */
 #footer {
-  width:660px;
-  clear:both;
-  margin:0 auto;
+  text-align:center;
   }
 #footer hr {
   display:none;
@@ -297,7 +177,17 @@ p.post-footer {
   text-transform:uppercase;
   letter-spacing:.1em;
   }
+  
 
+div.webpage {
+  width:750px;
+}
+
+p.navtoc {
+  font-size:small; 
+  font-family:Arial;
+  font-weight:bold;
+}
 
 /* Various things
 ----------------------------------------------- */
@@ -306,8 +196,8 @@ div.center {
   }
 
 div.center table {
-  margin-left:auto;
-  margin-right:auto;
+  margin-left:auto; 
+  margin-right:auto; 
   text-align:left;
   }
 
