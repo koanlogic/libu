@@ -11,7 +11,7 @@
 
 #define U_ONCE if (({ static int __x = 0; int __y; __y = __x; __x = 1; !__y;}))
 #define U_SSTRCPY(to, from) u_sstrncpy((to), (from), sizeof(to) - 1)
-#define U_FREE(ptr) do {if (ptr) { free(ptr); ptr = NULL; }} while (0)
+#define U_FREE(ptr) do {if (ptr) { u_free(ptr); ptr = NULL; }} while (0)
 #define U_CLOSE(fd) do {if (fd != -1) { close(fd); fd = -1; }} while (0)
 #define U_FCLOSE(fp) do {if (fp) { fclose(fp); fp = NULL; }} while (0)
 #define U_PCLOSE(pp) do {if (pp) { pclose(pp); pp = NULL; }} while (0)
