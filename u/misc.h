@@ -8,6 +8,28 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <limits.h>
+
+/* define U_PATH_MAX */
+#ifndef PATH_MAX
+#define U_PATH_MAX 4096
+#else
+#define U_PATH_MAX PATH_MAX
+#endif
+
+/* define U_NAME_MAX */
+#ifdef NAME_MAX
+#define U_NAME_MAX NAME_MAX
+#else
+#ifdef FILENAME_MAX
+#define U_NAME_MAX FILENAME_MAX
+#else
+#define U_NAME_MAX 512
+#endif 
+#endif
+
+/* define U_FILENAME_MAX (path + name) */
+#define U_FILENAME_MAX (U_PATH_MAX + U_NAME_MAX)
 
 #define U_ONCE if (({ static int __x = 0; int __y; __y = __x; __x = 1; !__y;}))
 #define U_SSTRCPY(to, from) u_sstrncpy((to), (from), sizeof(to) - 1)
