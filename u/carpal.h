@@ -77,7 +77,7 @@
  *   \e expr text statement will be written to the log file.
  */
 #define msg_return_sif(label, expr, err) \
-    do { msg_ifb(label, expr) { msg_strerror(label, errno); goto err; } } while(0)
+    do { msg_ifb(label, expr) { msg_strerror(label, errno); return err; } } while(0)
 
 /** \brief log a message if \e expr not zero and goto \e gt.
  *
