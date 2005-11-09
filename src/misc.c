@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.9 2005/10/17 18:21:59 tat Exp $";
+    "$Id: misc.c,v 1.10 2005/11/09 14:54:22 tho Exp $";
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -245,6 +245,20 @@ inline void u_use_unused_args(char *dummy, ...)
 {
     dummy = 0;
     return;
+}
+
+/** \brief  Return \c 1 if the supplied buffer \p data has non-ascii bytes */
+int u_data_is_bin (char *data, size_t sz)
+{
+    size_t i;
+
+    for (i = 0; i < sz; i++)
+    {
+        if (!isascii(data[i]))
+            return 1;
+    }
+
+    return 0;
 }
 
 /**
