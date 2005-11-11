@@ -1,14 +1,15 @@
-# $Id: Makefile.doxy.doc,v 1.1 2005/10/01 18:14:05 tho Exp $
+# $Id: Makefile.doxy.doc,v 1.2 2005/11/11 05:32:58 tho Exp $
 
 include ../../Makefile.conf
+
+HTMLDOCDIR = ${DOCDIR}/libu/html/
 
 all clean depend cleandepend:
 
 install:
-	${MKINSTALLDIRS} ${DESTDIR}/share/html && \
-		cp -r *.html *.css ${DESTDIR}/share/html/
+	${MKINSTALLDIRS} ${HTMLDOCDIR} && cp -r *.html *.css ${HTMLDOCDIR}
 
 uninstall:
-	rm -rf ${DESTDIR}/share/html
+	rm -rf ${HTMLDOCDIR}
 
 include toolchain.mk
