@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.7 2005/10/20 07:35:18 tat Exp $";
+    "$Id: config.c,v 1.8 2005/11/13 19:29:13 tat Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -557,6 +557,92 @@ const char* u_config_get_subkey_value(u_config_t *c, const char *subkey)
     return u_config_get_value(skey);
 err:
     return NULL;
+}
+
+/**
+ * \brief  Return the value of an integer subkey.
+ *
+ *  Return the integer value (atoi is used for conversion) of the child config 
+ *  object whose key is \c subkey.
+ *
+ * \param c         configuration object
+ * \param subkey    the key value of the child config object
+ * \param def       the value to return if the key is missing
+ * \param out       on exit will get the integer value of the key
+ *
+ * \return 0 on success, not zero if the key value is not an int
+ */
+int u_config_get_subkey_value_i(u_config_t *c, const char *subkey, int def, 
+    int *out)
+{
+    const char *v;
+    char *ep = NULL;
+    long l;
+
+    if((v = u_config_get_subkey_value(c, subkey)) == NULL)
+    {
+        *out = def; 
+        return 0;
+    }
+
+    l = strtol(v, &ep, 0);
+    dbg_err_if(*ep != '\0'); /* dirty int value (for ex. 123text) */
+
+    /* same cast used by atoi */
+    *out = (int)l;
+
+    return 0;
+err:
+    return ~0;
+}
+
+/**
+ * \brief  Return the value of an bool subkey.
+ *
+ *  Return the bool value of the child config object whose key is \c subkey.
+ *
+ *  Recognized bool values are (case insensitive) yes/no, 1/0, enable/disable.
+ *
+ * \param c         configuration object
+ * \param subkey    the key value of the child config object
+ * \param def       the value to return if the key is missing 
+ * \param out       on exit will get the bool value of the key
+ *
+ * \return 0 on success, not zero if the key value is not a bool keyword
+ */
+int u_config_get_subkey_value_b(u_config_t *c, const char *subkey, int def,  
+    int *out)
+{
+    const char *true_words[]  = { "yes", "enable", "1", "on", NULL };
+    const char *false_words[] = { "no", "disable", "0", "off", NULL };
+    const char *v, *w;
+
+    if((v = u_config_get_subkey_value(c, subkey)) == NULL)
+    {
+        *out = def;
+        return 0;
+    }
+
+    for(w = *true_words; *w; ++w)
+    {
+        if(!strcasecmp(v, w))
+        {
+            *out = 1;
+            return 0; /* ok */
+        }
+    }
+
+    for(w = *false_words; *w; ++w)
+    {
+        if(!strcasecmp(v, w))
+        {
+            *out = 0;
+            return 0; /* ok */
+        }
+    }
+
+err:
+    return ~0; /* not-bool value */
 }
 
 /**

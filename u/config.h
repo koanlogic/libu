@@ -25,6 +25,11 @@ int u_config_get_subkey_nth(u_config_t *c,const char *subkey, int n,
 
 const char* u_config_get_subkey_value(u_config_t *c, const char *subkey);
 
+int u_config_get_subkey_value_b(u_config_t *c, const char *subkey, int def, 
+    int *out);
+int u_config_get_subkey_value_i(u_config_t *c, const char *subkey, int def, 
+    int *out);
+
 int u_config_add_key(u_config_t *c, const char *key, const char *val);
 int u_config_set_key(u_config_t *c, const char *key, const char *val);
 
