@@ -1,8 +1,9 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.11 2005/11/22 16:27:16 tat Exp $
+# $Id: configure,v 1.12 2005/11/22 19:44:54 tat Exp $
 
 export makl_debug=1
+export makl_conf_h=libu_conf.h
 
 # Be sure MAKL_DIR is there.
 # If not found assume MaKL has been embedded in the package.
@@ -47,6 +48,7 @@ esac
 
 # C Flags
 makl_add_var_mk "CFLAGS" "-DHAVE_CONF_H" \
+                         "-I`pwd`" \
                          "-std=c99 -pedantic" \
                          "-W -Wall -Wstrict-prototypes -Wmissing-prototypes" \
                          "-Wpointer-arith -Wno-uninitialized -Wcast-qual" \

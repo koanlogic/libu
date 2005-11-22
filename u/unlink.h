@@ -3,7 +3,7 @@
  */
 #ifndef _LIBU_UNLINK_H_
 #define _LIBU_UNLINK_H_
-#include "conf.h"
+#include "libu_conf.h"
 
 #ifdef HAVE_UNLINK
 #include <unistd.h>

@@ -1,4 +1,4 @@
-#include "conf.h"
+#include "libu_conf.h"
 
 #ifndef HAVE_UNLINK
 

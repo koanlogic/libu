@@ -41,7 +41,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "conf.h"
+#include "libu_conf.h"
+
 #ifndef HAVE_STRTOK_R
 #include <stddef.h>
 #include <string.h>

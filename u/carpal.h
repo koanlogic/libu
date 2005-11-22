@@ -4,17 +4,13 @@
 
 #ifndef _U_CARPAL_H_
 #define _U_CARPAL_H_
-
+#include "libu_conf.h"
 #include <sys/types.h>
 #include <sys/time.h>
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
 #include <stdarg.h>
-
-#ifdef HAVE_CONF_H
-#include "conf.h"
-#endif /* HAVE_CONF_H */
 
 #include <u/syslog.h>
 #include <u/log.h>

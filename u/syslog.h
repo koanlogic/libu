@@ -3,7 +3,7 @@
  */
 #ifndef _LIBU_SYSLOG_H_
 #define _LIBU_SYSLOG_H_
-#include "conf.h"
+#include "libu_conf.h"
 #include <stdarg.h>
 
 #ifdef HAVE_SYSLOG

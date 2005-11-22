@@ -4,6 +4,7 @@
 
 #ifndef _U_CONFIG_H_
 #define _U_CONFIG_H_
+#include "libu_conf.h"
 
 struct u_config_s;
 typedef struct u_config_s u_config_t;

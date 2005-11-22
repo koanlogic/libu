@@ -3,6 +3,7 @@
  */
 #ifndef _U_LIBU_H_
 #define _U_LIBU_H_
+#include "libu_conf.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <u/config.h>

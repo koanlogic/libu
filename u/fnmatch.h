@@ -33,7 +33,7 @@
 
 #ifndef	_LIBU_FNMATCH_H_
 #define	_LIBU_FNMATCH_H_
-#include "conf.h"
+#include "libu_conf.h"
 
 #ifdef HAVE_FNMATCH
 #include <fnmatch.h>

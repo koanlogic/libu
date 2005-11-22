@@ -4,6 +4,7 @@
 
 #ifndef _U_STRING_H_
 #define _U_STRING_H_
+#include "libu_conf.h"
 
 #include <sys/types.h>
 

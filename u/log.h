@@ -4,12 +4,12 @@
 
 #ifndef _U_LOG_H_
 #define _U_LOG_H_
+#include "libu_conf.h"
 
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "conf.h"
 #include <u/os.h>
 #include <u/logprv.h>
 

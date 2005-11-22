@@ -4,6 +4,7 @@
 
 #ifndef _U_MISC_H_
 #define _U_MISC_H_
+#include "libu_conf.h"
 
 #include <unistd.h>
 #include <stdlib.h>

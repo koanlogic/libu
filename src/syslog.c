@@ -1,4 +1,4 @@
-#include "conf.h"
+#include "libu_conf.h"
 #include <u/os.h>
 #ifndef HAVE_SYSLOG
 

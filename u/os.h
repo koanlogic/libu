@@ -3,7 +3,7 @@
  */
 #ifndef _LIBU_OS_H_
 #define _LIBU_OS_H_
-#include "conf.h"
+#include "libu_conf.h"
 #include <u/syslog.h>
 #include <u/strtok_r.h>
 #include <u/unlink.h>

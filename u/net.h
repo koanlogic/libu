@@ -4,10 +4,7 @@
 
 #ifndef _U_NET_H_
 #define _U_NET_H_
-
-#ifdef HAVE_CONF_H
-#include "conf.h"
-#endif /* HAVE_CONF_H */
+#include "libu_conf.h"
 
 #ifdef OS_UNIX
 #include <sys/types.h>
