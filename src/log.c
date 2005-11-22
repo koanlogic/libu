@@ -3,12 +3,11 @@
  */
 
 static const char rcsid[] =
-    "$Id: log.c,v 1.5 2005/10/18 15:41:01 tat Exp $";
+    "$Id: log.c,v 1.6 2005/11/22 16:27:16 tat Exp $";
 
 #include <sys/types.h>
 #include <errno.h>
 #include <stdio.h>
-#include <syslog.h>
 #include <string.h>
 #include <stdarg.h>
 #include <signal.h>
@@ -17,6 +16,7 @@ static const char rcsid[] =
 #include <u/carpal.h>
 #include <u/misc.h>
 #include <u/os.h>
+#include <u/syslog.h>
 
 /* applications that use libu will defined their own "int facility" variable */
 extern int facility;

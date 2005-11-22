@@ -3,25 +3,20 @@
  */
 
 static const char rcsid[] =
-    "$Id: net.c,v 1.6 2005/10/17 18:21:59 tat Exp $";
+    "$Id: net.c,v 1.7 2005/11/22 16:27:16 tat Exp $";
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <sys/uio.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
-#include <netdb.h>
 #include <unistd.h>
+#include <string.h>
 
 #include <u/net.h>
 #include <u/uri.h>
 #include <u/carpal.h>
 #include <u/misc.h>
 #include <u/memory.h>
+#include <u/os.h>
 
 /**
  *  \defgroup net Networking

@@ -5,6 +5,11 @@
 #ifndef _U_NET_H_
 #define _U_NET_H_
 
+#ifdef HAVE_CONF_H
+#include "conf.h"
+#endif /* HAVE_CONF_H */
+
+#ifdef OS_UNIX
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -12,13 +17,20 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/un.h>
+#include <netdb.h>
+#endif
+
+#ifdef OS_WIN
+#include <windows.h>
+#include <winsock.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+typedef unsigned long in_addr_t;
+#endif
+
 #include <stdio.h>
-
+#include <u/os.h>
 #include <u/uri.h>
-
-#ifdef HAVE_CONF_H
-#include "conf.h"
-#endif /* HAVE_CONF_H */
 
 #define U_NET_BACKLOG 300
 

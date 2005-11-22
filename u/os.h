@@ -9,4 +9,8 @@
 #include <u/unlink.h>
 #include <u/getpid.h>
 #include <u/fnmatch.h>
+#ifdef OS_WIN
+#include <windows.h>
+#define strcasecmp _stricmp
+#endif
 #endif 

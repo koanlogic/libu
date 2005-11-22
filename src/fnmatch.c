@@ -41,7 +41,6 @@
 
 #include <assert.h>
 #include <ctype.h>
-#include <fnmatch.h>
 #include <string.h>
 
 #define	EOS	'\0'

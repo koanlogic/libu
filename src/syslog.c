@@ -7,6 +7,8 @@
 #include <io.h>
 #include <sys/locking.h>
 #include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 void syslog(int priority, const char *fmt, ...)
 {

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.10 2005/10/31 11:05:12 tat Exp $
+# $Id: configure,v 1.11 2005/11/22 16:27:16 tat Exp $
 
 export makl_debug=1
 
@@ -35,13 +35,13 @@ makl_pkg_version
 
 # Set variables depending on host OS
 case `makl_os_name` in
-    *-*-mingw*)
+    *mingw* | *MINGW*)
         makl_set_var_h "OS_WIN"
-        makl_set_var_h "U_PATH_SEPARATOR" "'\\'"
+        makl_set_var_h "U_PATH_SEPARATOR" '"\\\\"'
         ;;
     *)
         makl_set_var_h "OS_UNIX"
-        makl_set_var_h "U_PATH_SEPARATOR" "'/'"
+        makl_set_var_h "U_PATH_SEPARATOR" '"/"'
         ;;
 esac
 
@@ -59,13 +59,12 @@ makl_add_var_mk "INCDIR" "\${DESTDIR}/include/u"
 makl_optional           1    "featx"   "doxygen"    "PATH_DOXYGEN"
 
 ## Function dependencies
-makl_checktype          1   "pid_t"     "<sys/types.h>"
-makl_checkfunc          1   "getpid"
-makl_checkfunc          1   "unlink"
-makl_checkfunc          1   "syslog"
-makl_checkfunc          1   "strtok_r"
-makl_checkfunc          1   "fnmatch"
-makl_func_strerror_r    1
+makl_checkfunc          0   "getpid"
+makl_checkfunc          0   "unlink"
+makl_checkfunc          0   "syslog"
+makl_checkfunc          0   "strtok_r"
+makl_checkfunc          0   "fnmatch"
+makl_func_strerror_r    0
 
 # Handle command-line arguments
 makl_args_handle "$@"

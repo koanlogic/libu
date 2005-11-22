@@ -4,13 +4,13 @@
 #ifndef _LIBU_SYSLOG_H_
 #define _LIBU_SYSLOG_H_
 #include "conf.h"
+#include <stdarg.h>
 
 #ifdef HAVE_SYSLOG
 
 #include <syslog.h>
-#include <stdarg.h>
 
-#else /* !HAVE_SYSLOG */
+#else
 
 /* level codes */
 #define	LOG_EMERG	    0	
