@@ -11,8 +11,11 @@
 #include <u/fnmatch.h>
 #include <u/timegm.h>
 #include <u/strsep.h>
+#include <u/gettimeofday.h>
+
 #ifdef OS_WIN
 #include <windows.h>
 #define strcasecmp _stricmp
 #endif
+
 #endif 

@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.6 2005/11/23 16:46:52 tat Exp $
+# $Id: Makefile,v 1.7 2005/11/23 18:55:21 tat Exp $
 
 include ../Makefile.conf
 
@@ -31,6 +31,10 @@ endif
 
 ifndef HAVE_STRSEP
 SRCS += strsep.c
+endif
+
+ifndef HAVE_GETTIMEOFDAY
+SRCS += gettimeofday.c
 endif
 
 include lib.mk

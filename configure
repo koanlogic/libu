@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.15 2005/11/23 16:46:52 tat Exp $
+# $Id: configure,v 1.16 2005/11/23 18:55:21 tat Exp $
 
 export makl_debug=1
 export makl_conf_h=libu_conf.h
@@ -62,6 +62,7 @@ makl_optional           1    "featx"   "doxygen"    "PATH_DOXYGEN"
 
 ## Function dependencies
 makl_checktype          0   "pid_t"     "<sys/types.h>" 
+makl_checktype          0   "pid_t"     "<sys/types.h>" 
 makl_checkfunc          0   "getpid"
 makl_checkfunc          0   "unlink"
 makl_checkfunc          0   "syslog"
@@ -69,6 +70,7 @@ makl_checkfunc          0   "strtok_r"
 makl_checkfunc          0   "fnmatch"
 makl_checkfunc          0   "timegm"
 makl_checkfunc          0   "strsep"
+makl_checkfunc          0   "gettimeofday"
 makl_func_strerror_r    0
 
 # Handle command-line arguments
