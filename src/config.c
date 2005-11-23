@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.8 2005/11/13 19:29:13 tat Exp $";
+    "$Id: config.c,v 1.9 2005/11/23 10:39:28 tho Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -641,7 +641,6 @@ int u_config_get_subkey_value_b(u_config_t *c, const char *subkey, int def,
         }
     }
 
-err:
     return ~0; /* not-bool value */
 }
 
