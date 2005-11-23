@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.14 2005/11/23 14:25:16 tat Exp $
+# $Id: configure,v 1.15 2005/11/23 16:46:52 tat Exp $
 
 export makl_debug=1
 export makl_conf_h=libu_conf.h
@@ -68,6 +68,7 @@ makl_checkfunc          0   "syslog"
 makl_checkfunc          0   "strtok_r"
 makl_checkfunc          0   "fnmatch"
 makl_checkfunc          0   "timegm"
+makl_checkfunc          0   "strsep"
 makl_func_strerror_r    0
 
 # Handle command-line arguments
