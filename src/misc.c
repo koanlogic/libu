@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.11 2005/11/23 10:39:28 tho Exp $";
+    "$Id: misc.c,v 1.12 2005/11/23 16:59:16 tat Exp $";
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -27,6 +27,13 @@ static const char rcsid[] =
  *  \{
  */
 
+/** \brief Returns \c 0 if \p c is neither a space or a tab, not-zero otherwise.
+ */
+inline int u_isblank(int c)
+{
+    return c == ' ' || c == '\t';
+}
+
 /** \brief Removes leading and trailing blanks (spaces and tabs) from \p s
  */
 void u_trim(char *s)
@@ -38,24 +45,17 @@ void u_trim(char *s)
 
     /* trim trailing blanks */
     p = s + strlen(s) -1;
-    while(s < p && isblank(*p))
+    while(s < p && u_isblank(*p))
         --p;
     p[1] = 0;
 
     /* trim leading blanks */
     p = s;
-    while(*p && isblank(*p))
+    while(*p && u_isblank(*p))
         ++p;
 
     if(p > s)
         memmove(s, p, 1 + strlen(p));
-}
-
-/** \brief Returns \c 0 if \p c is neither a space or a tab, not-zero otherwise.
- */
-inline int u_isblank(int c)
-{
-    return c == ' ' || c == '\t';
 }
 
 /** \brief Returns \c 1 if \p ln is a blank string i.e. a string formed by 

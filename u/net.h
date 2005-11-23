@@ -66,7 +66,7 @@ enum { U_NET_SSOCK, U_NET_CSOCK };
 /* I/O */
 typedef ssize_t (*iof_t) (int, void *, size_t);
 
-int u_net_io (iof_t f, int sd, void *buf, size_t l, ssize_t *n, int *eof);
+int u_net_io (iof_t f, int sd, void *buf, size_t l, ssize_t *n, int *iseof);
 
 /**
  * \ingroup net
@@ -74,12 +74,12 @@ int u_net_io (iof_t f, int sd, void *buf, size_t l, ssize_t *n, int *eof);
  */
 
 /** \brief u_net_io specialisation for output ops */
-#define u_net_write(sd, buf, nbytes, nw, eof) \
-    u_net_io((iof_t) write, sd, buf, nbytes, nw, eof)
+#define u_net_write(sd, buf, nbytes, nw, iseof) \
+    u_net_io((iof_t) write, sd, buf, nbytes, nw, iseof)
 
 /** \brief u_net_io specialisation for input ops */
-#define u_net_read(sd, buf, nbytes, nw, eof) \
-    u_net_io(read, sd, buf, nbytes, nw, eof)
+#define u_net_read(sd, buf, nbytes, nw, iseof) \
+    u_net_io(read, sd, buf, nbytes, nw, iseof)
 
 /** \brief  Try to write a chunk of \p nbytes data to descriptor \p sd */
 #define u_net_writen(sd, buf, nbytes) \

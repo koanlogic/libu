@@ -48,6 +48,7 @@
 #define	LOG_LOCAL7	    (23<<3)
 
 void syslog(int priority, const char *msg, ...);
+void vsyslog(int priority, const char *msg, va_list args);
 
 #endif
 

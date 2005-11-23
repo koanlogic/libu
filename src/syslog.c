@@ -10,13 +10,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void syslog(int priority, const char *fmt, ...)
+void vsyslog(int priority, const char *fmt, va_list ap)
 {
     #define KLONED_WIN_LOGFILE "kloned.log"
     enum { BUFSZ = 1024 };
     static FILE *df = NULL, *lock = NULL;
     char buf[BUFSZ];
-    va_list ap;
     int i;
 
     /* first time open the log file and the lock file */
@@ -28,12 +27,7 @@ void syslog(int priority, const char *fmt, ...)
             exit(1);
     }
 
-    /* build the message to send to the log system */
-    va_start(ap, fmt); /* init variable list arguments */
-
     vsnprintf(buf, BUFSZ, fmt, ap);
-
-    va_end(ap);
 
     /* get the lock (i.e. lock the first byte of the lock file) */
     for(i = 0; 
@@ -54,10 +48,22 @@ void syslog(int priority, const char *fmt, ...)
     return;
 }
 
+void syslog(int priority, const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt); /* init variable list arguments */
+
+    vsyslog(priority, fmt, ap);
+
+    va_end(ap);
+}
+
 #endif /* ifdef OS_WIN */
 
 #else /* ifndef HAVE_SYSLOG */
 #include <syslog.h>
 #include <stdarg.h>
 void syslog(int priority, const char *fmt, ...);
+void vsyslog(int priority, const char *fmt, va_list args);
 #endif 
