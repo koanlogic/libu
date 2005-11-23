@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.13 2005/11/23 14:21:51 tat Exp $
+# $Id: configure,v 1.14 2005/11/23 14:25:16 tat Exp $
 
 export makl_debug=1
 export makl_conf_h=libu_conf.h
@@ -61,6 +61,7 @@ makl_add_var_mk "INCDIR" "\${DESTDIR}/include/u"
 makl_optional           1    "featx"   "doxygen"    "PATH_DOXYGEN"
 
 ## Function dependencies
+makl_checktype          0   "pid_t"     "<sys/types.h>" 
 makl_checkfunc          0   "getpid"
 makl_checkfunc          0   "unlink"
 makl_checkfunc          0   "syslog"
