@@ -5,7 +5,7 @@ body {
   background:white url(images/kl_bg.png) repeat-y top left;
   background-position:95px 30px;
   margin:10px 5px;
-  width:750px;
+  width:700px;
   font:Georgia,Serif;
   color:#333;
   font-size:medium;
@@ -300,7 +300,7 @@ TD.mdPrefix {
 	font-size: 80%;
 }
 TD.mdname1 { background-color: #F4F4FB; font-weight: bold; color: #602020; }
-TD.mdname { background-color: #F4F4FB; font-weight: bold; color: #602020; width: 600px; }
+TD.mdname { background-color: #F4F4FB; font-weight: bold; color: #602020; }
 DIV.groupHeader {
        margin-left: 16px;
        margin-top: 12px;
@@ -348,6 +348,7 @@ SPAN.preprocessor  { color: #806020 }
 SPAN.stringliteral { color: #002080 }
 SPAN.charliteral   { color: #008080 }
 .mdTable {
+  width: 700px;
 	border: 1px solid #868686;
 	background-color: #F4F4FB;
 }
