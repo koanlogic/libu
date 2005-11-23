@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.13 2005/11/23 20:15:59 tat Exp $";
+    "$Id: misc.c,v 1.14 2005/11/23 22:43:30 tat Exp $";
 
 #include "libu_conf.h"
 #include <sys/types.h>
@@ -211,15 +211,16 @@ err:
  * \brief   snprintf-like function that handle path separator issues
  *
  * Calls snprintf with the provided arguments and remove consecutive
- * U_PATH_SEPARATOR from the resulting string.
+ * path separators from the resulting string.
  *
  * \param buf       destination buffer
  * \param sz        size of \p str
+ * \param sep       path separator to use ('/' or '\')
  * \param fmt       snprintf format string
  *
  *   Returns \c 0 on success, not-zero on error.
  */
-int u_path_snprintf(char *buf, size_t sz, const char *fmt, ...)
+int u_path_snprintf(char *buf, size_t sz, char sep, const char *fmt, ...)
 {
     va_list ap;
     int wr, i, len;
@@ -234,8 +235,7 @@ int u_path_snprintf(char *buf, size_t sz, const char *fmt, ...)
 
     /* remove multiple consecutive '/' */
     for(len = i = strlen(buf); i > 0; --i)
-        if(buf[i] == (char) U_PATH_SEPARATOR &&
-           buf[i-1] == (char) U_PATH_SEPARATOR)
+        if(buf[i] == sep && buf[i-1] == sep)
             memmove(buf + i, buf + i + 1, len--);
 
     return 0;

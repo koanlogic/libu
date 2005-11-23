@@ -51,7 +51,7 @@ char *u_sstrncpy (char *dst, const char *src, size_t size);
 void* u_memdup(const void *src, size_t size);
 int u_tokenize (char *wlist, const char *delim, char **tokv, size_t tokv_sz);
 int u_snprintf(char *str, size_t size, const char *fmt, ...);
-int u_path_snprintf(char *str, size_t size, const char *fmt, ...);
+int u_path_snprintf(char *str, size_t size, char sep, const char *fmt, ...);
 void u_use_unused_args(char *dummy, ...);
 int u_data_is_bin (char *data, size_t sz);
 
