@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.4 2005/10/31 11:05:12 tat Exp $
+# $Id: Makefile,v 1.5 2005/11/23 14:21:51 tat Exp $
 
 include ../Makefile.conf
 
@@ -23,6 +23,10 @@ endif
 
 ifndef HAVE_FNMATCH
 SRCS += fnmatch.c
+endif
+
+ifndef HAVE_TIMEGM
+SRCS += timegm.c
 endif
 
 include lib.mk
