@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.16 2005/11/23 18:55:21 tat Exp $
+# $Id: configure,v 1.17 2005/11/23 20:15:59 tat Exp $
 
 export makl_debug=1
 export makl_conf_h=libu_conf.h
@@ -38,11 +38,11 @@ makl_pkg_version
 case `makl_os_name` in
     *mingw* | *MINGW*)
         makl_set_var_h "OS_WIN"
-        makl_set_var_h "U_PATH_SEPARATOR" '"\\\\"'
+        makl_set_var_h "U_PATH_SEPARATOR" "'\\\\\\\\'"
         ;;
     *)
         makl_set_var_h "OS_UNIX"
-        makl_set_var_h "U_PATH_SEPARATOR" '"/"'
+        makl_set_var_h "U_PATH_SEPARATOR" "'/'"
         ;;
 esac
 

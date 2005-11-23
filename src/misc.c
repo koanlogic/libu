@@ -3,8 +3,9 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.12 2005/11/23 16:59:16 tat Exp $";
+    "$Id: misc.c,v 1.13 2005/11/23 20:15:59 tat Exp $";
 
+#include "libu_conf.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdlib.h>
