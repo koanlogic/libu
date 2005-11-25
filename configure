@@ -1,21 +1,13 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.17 2005/11/23 20:15:59 tat Exp $
+# $Id: configure,v 1.18 2005/11/25 09:05:01 stewy Exp $
 
-export makl_debug=1
 export makl_conf_h=libu_conf.h
 
 # Be sure MAKL_DIR is there.
-# If not found assume MaKL has been embedded in the package.
-if [ -z "${MAKL_DIR}" ] 
-then
-    if [ -d `pwd`/makl ]
-    then
-        export MAKL_DIR=`pwd`/makl
-    else
-        echo "MaKL MUST be installed and MAKL_DIR set in the environment"
-        exit 1
-    fi
+if [ -z "${MAKL_DIR}" ]; then
+  echo "Could not find MaKL (MAKL_DIR)! Type: '. libu.env' to source the environment."
+  exit 1
 fi
 
 # MaKL preamble
