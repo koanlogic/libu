@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.2 2005/11/25 15:13:48 tho Exp $
+# $Id: configure,v 1.3 2005/11/25 15:31:26 tho Exp $
 
 export makl_debug=1
 export makl_conf_h=libu_conf.h
@@ -53,9 +53,6 @@ makl_add_var_mk "CFLAGS" "-DHAVE_CONF_H" \
 
 # Install headers in a private subdir
 makl_add_var_mk "INCDIR" "\${DESTDIR}/include/u"
-
-# Binary dependencies
-makl_optional           1    "featx"   "doxygen"    "PATH_DOXYGEN"
 
 ## Function dependencies
 makl_checktype          0   "pid_t"     "<sys/types.h>" 
