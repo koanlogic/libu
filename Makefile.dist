@@ -1,4 +1,4 @@
-# $Id: Makefile.dist,v 1.4 2005/10/01 19:20:34 tho Exp $
+# $Id: Makefile.dist,v 1.5 2005/11/25 15:13:48 tho Exp $
 
 PKG_NAME = libu
 PKG_VERSION = $(shell cat VERSION)
@@ -9,7 +9,7 @@ DISTFILES += $(wildcard src/*.c) src/Makefile
 DISTFILES += $(wildcard doc/man/*.3) doc/man/Makefile
 
 DISTREMAP = pkg/configure configure
-DISTREMAP += doc/doxy/kl-doxy.css doc/html/kl-doxy.css
+DISTREMAP += doc/doxy/src/kl.css doc/html/kl.css
 DISTREMAP += pkg/Makefile.doc doc/Makefile
 DISTREMAP += pkg/Makefile.doxy.doc doc/html/Makefile
 DISTREMAP += $(foreach f, $(notdir $(wildcard doc/doxy/html/*.html)), \

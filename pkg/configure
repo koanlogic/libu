@@ -1,6 +1,9 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.1 2005/10/01 19:20:34 tho Exp $
+# $Id: configure,v 1.2 2005/11/25 15:13:48 tho Exp $
+
+export makl_debug=1
+export makl_conf_h=libu_conf.h
 
 # Be sure MAKL_DIR is there.
 # If not found assume MaKL has been embedded in the package.
@@ -24,8 +27,8 @@ makl_args_init "$@"
 makl_args_def "enable_debug"    "" "" "enables debugging"
 makl_args_def "enable_profile"  "" "" "enables profiling"
 # ... and their handlers
-_makl_enable_debug ()   { makl_add_var_mk "CFLAGS" "-g" ; }
-_makl_enable_profile () { makl_add_var_mk "CFLAGS" "-pg" ; }
+__makl_enable_debug ()   { makl_add_var_mk "CFLAGS" "-g" ; }
+__makl_enable_profile () { makl_add_var_mk "CFLAGS" "-pg" ; }
 
 # General settings (version is read from the VERSION file)
 makl_pkg_name "libu"
@@ -33,32 +36,39 @@ makl_pkg_version
 
 # Set variables depending on host OS
 case `makl_os_name` in
-    *-*-mingw*)
+    *mingw* | *MINGW*)
         makl_set_var_h "OS_WIN"
+        makl_set_var_h "U_PATH_SEPARATOR" "'\\\\\\\\'"
         ;;
     *)
         makl_set_var_h "OS_UNIX"
+        makl_set_var_h "U_PATH_SEPARATOR" "'/'"
         ;;
 esac
 
 # C Flags
-makl_add_var_mk "CFLAGS" "-DHAVE_CONF_H"
-makl_add_var_mk "CFLAGS" "-I`pwd`/u"
-makl_add_var_mk "CFLAGS" "-pipe -O"
+makl_add_var_mk "CFLAGS" "-DHAVE_CONF_H" \
+                         "-I`pwd`" \
+                         "-O -std=c99 -pedantic"
 
 # Install headers in a private subdir
 makl_add_var_mk "INCDIR" "\${DESTDIR}/include/u"
 
 # Binary dependencies
-makl_feature_x  "doxygen"
+makl_optional           1    "featx"   "doxygen"    "PATH_DOXYGEN"
 
-# Function dependencies
-makl_checktype  "pid_t"     "<sys/types.h>"
-makl_checkfunc  "getpid"
-makl_checkfunc  "unlink"
-makl_checkfunc  "syslog"
-makl_checkfunc  "strtok_r"
-makl_func_strerror_r
+## Function dependencies
+makl_checktype          0   "pid_t"     "<sys/types.h>" 
+makl_checktype          0   "pid_t"     "<sys/types.h>" 
+makl_checkfunc          0   "getpid"
+makl_checkfunc          0   "unlink"
+makl_checkfunc          0   "syslog"
+makl_checkfunc          0   "strtok_r"
+makl_checkfunc          0   "fnmatch"
+makl_checkfunc          0   "timegm"
+makl_checkfunc          0   "strsep"
+makl_checkfunc          0   "gettimeofday"
+makl_func_strerror_r    0
 
 # Handle command-line arguments
 makl_args_handle "$@"
