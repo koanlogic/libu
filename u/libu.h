@@ -1,8 +1,10 @@
 /* 
  * Copyright (c) 2005, KoanLogic s.r.l. - All rights reserved.  
  */
+
 #ifndef _U_LIBU_H_
 #define _U_LIBU_H_
+
 #include "libu_conf.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,5 +21,5 @@
 #include <u/str.h>
 #include <u/uri.h>
 #include <u/os.h>
-#endif
 
+#endif /* !_U_LIBU_H_ */

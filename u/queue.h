@@ -1,4 +1,4 @@
-/*  $Id: queue.h,v 1.1 2005/09/23 13:04:38 tho Exp $ */
+/*  $Id: queue.h,v 1.2 2005/12/04 20:41:15 tho Exp $ */
 /*  $OpenBSD: queue.h,v 1.22 2001/06/23 04:39:35 angelos Exp $  */
 /*  $NetBSD: queue.h,v 1.11 1996/05/16 05:17:14 mycroft Exp $   */
 
@@ -216,7 +216,7 @@ struct {                                                                    \
         (head)->cqh_last = (elm);                                           \
 }
 
-#define        CIRCLEQ_REMOVE(head, elm, field) {                           \
+#define CIRCLEQ_REMOVE(head, elm, field) {                                  \
         if ((elm)->field.cqe_next == (void *)(head))                        \
                 (head)->cqh_last = (elm)->field.cqe_prev;                   \
         else                                                                \
