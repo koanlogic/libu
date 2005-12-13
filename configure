@@ -1,13 +1,17 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.18 2005/11/25 09:05:01 stewy Exp $
+# $Id: configure,v 1.19 2005/12/13 16:16:52 tho Exp $
 
 export makl_conf_h=libu_conf.h
 
 # Be sure MAKL_DIR is there.
 if [ -z "${MAKL_DIR}" ]; then
-  echo "Could not find MaKL (MAKL_DIR)! Type: '. libu.env' to source the environment."
-  exit 1
+    echo "====================================================================="
+    echo "  WARNING: it seems that MaKL is not installed/configured in your    "
+    echo "           environment.  See http://www.koanlogic.com/products/makl  "
+    echo "           for download, installation and configuration information. "
+    echo "====================================================================="
+    exit 1
 fi
 
 # MaKL preamble
@@ -18,9 +22,17 @@ makl_args_init "$@"
 # Custom arguments ...
 makl_args_def "enable_debug"    "" "" "enables debugging"
 makl_args_def "enable_profile"  "" "" "enables profiling"
+makl_args_def "enable_warns"    "" "" "set CFLAGS for extra warnings"
 # ... and their handlers
 __makl_enable_debug ()   { makl_add_var_mk "CFLAGS" "-g" ; }
 __makl_enable_profile () { makl_add_var_mk "CFLAGS" "-pg" ; }
+__makl_enable_warns ()
+{
+    makl_add_var_mk "CFLAGS" "-W -Wall -Wstrict-prototypes -Wmissing-prototypes"
+    makl_add_var_mk "CFLAGS" "-Wpointer-arith -Wno-uninitialized -Wreturn-type"
+    makl_add_var_mk "CFLAGS" "-Wwrite-strings -Wswitch -Wshadow -Wwrite-strings"
+    makl_add_var_mk "CFLAGS" "-Wunreachable-code -Wunused -Wcast-qual"
+}
 
 # General settings (version is read from the VERSION file)
 makl_pkg_name "libu"
@@ -39,12 +51,7 @@ case `makl_os_name` in
 esac
 
 # C Flags
-makl_add_var_mk "CFLAGS" "-DHAVE_CONF_H" \
-                         "-I`pwd`" \
-                         "-std=c99 -pedantic" \
-                         "-W -Wall -Wstrict-prototypes -Wmissing-prototypes" \
-                         "-Wpointer-arith -Wno-uninitialized -Wcast-qual" \
-                         "-Wreturn-type -Wwrite-strings -Wswitch -Wshadow"
+makl_add_var_mk "CFLAGS" "-DHAVE_CONF_H -I`pwd` -O2 -std=c99 -pedantic"
 
 # Install headers in a private subdir
 makl_add_var_mk "INCDIR" "\${DESTDIR}/include/u"

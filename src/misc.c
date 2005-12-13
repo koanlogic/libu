@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.14 2005/11/23 22:43:30 tat Exp $";
+    "$Id: misc.c,v 1.15 2005/12/13 16:16:52 tho Exp $";
 
 #include "libu_conf.h"
 #include <sys/types.h>
@@ -114,7 +114,7 @@ int u_savepid (const char *pf)
     return 0;
 }
 
-/** \brief  Safe string copy, see also the SSTRNCPY define 
+/** \brief  Safe string copy, see also the U_SSTRNCPY define 
   Safe string copy which null-terminates the destination string \a dst before
   copying the source string \a src for no more than \a size bytes.
   Returns a pointer to the destination string \a dst.
