@@ -6,6 +6,10 @@
 #define _U_CONFIG_H_
 #include "libu_conf.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct u_config_s;
 typedef struct u_config_s u_config_t;
 
@@ -39,5 +43,9 @@ u_config_t* u_config_get_child_n(u_config_t *c, const char *key, int n);
 u_config_t* u_config_get_child(u_config_t *c, const char *key);
 
 void u_config_print(u_config_t *c, int lev);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* !_U_CONFIG_H_ */

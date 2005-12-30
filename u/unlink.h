@@ -8,7 +8,17 @@
 #ifdef HAVE_UNLINK
 #include <unistd.h>
 #else
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int unlink(const char *pathname);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif
 
 #endif

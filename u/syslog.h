@@ -12,6 +12,10 @@
 
 #else
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* level codes */
 #define	LOG_EMERG	    0	
 #define	LOG_ALERT	    1
@@ -50,6 +54,10 @@
 void syslog(int priority, const char *msg, ...);
 void vsyslog(int priority, const char *msg, va_list args);
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif /* !HAVE_SYSLOG */
 
 #endif /* !_LIBU_SYSLOG_H_ */

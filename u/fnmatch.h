@@ -39,6 +39,10 @@
 #include <fnmatch.h>
 #else 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define	FNM_NOMATCH	1	/* Match failed. */
 #define	FNM_NOSYS	2	/* Function not implemented. */
 
@@ -50,6 +54,10 @@
 #define	FNM_LEADING_DIR	0x10	/* Ignore /<tail> after Imatch. */
 
 int	 fnmatch(const char *, const char *, int);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ! HAVE_FNMATCH */
 

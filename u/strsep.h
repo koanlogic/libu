@@ -8,7 +8,17 @@
 #ifdef HAVE_STRSEP
 #include <string.h>
 #else
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 char * strsep(char **, const char *);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif
 
 #endif

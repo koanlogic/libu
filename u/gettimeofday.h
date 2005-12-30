@@ -9,6 +9,10 @@
 
 #ifndef HAVE_GETTIMEOFDAY
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct timezone
 {
     int tz_minuteswest;
@@ -16,6 +20,11 @@ struct timezone
 };
 
 int gettimeofday(struct timeval *tp, struct timezone *tzp);
+
+#ifdef __cplusplus
+}
 #endif
+
+#endif /* HAVE_GETTIMEOFDAY */
 
 #endif

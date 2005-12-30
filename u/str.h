@@ -8,6 +8,10 @@
 
 #include <sys/types.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum { BLOCK_SIZE = 64 };
 
 struct u_string_s;
@@ -34,5 +38,9 @@ int u_string_html_decode(u_string_t *s);
 
 int u_string_sql_encode(u_string_t *s);
 int u_string_sql_decode(u_string_t *s);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* !_U_STRING_H_ */

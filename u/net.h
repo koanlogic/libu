@@ -29,6 +29,10 @@ typedef unsigned long in_addr_t;
 #include <u/os.h>
 #include <u/uri.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define U_NET_BACKLOG 300
 
 /* The Net module defines the following (private) URI types: 
@@ -115,5 +119,9 @@ int u_net_uri2sun (u_uri_t *uri, struct sockaddr_un *sad);
 /* u_net_addr */
 int u_net_addr_new (int type, u_net_addr_t **pa);
 void u_net_addr_free (u_net_addr_t *addr);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* !_U_NET_H_ */

@@ -8,7 +8,17 @@
 #ifdef HAVE_STRTOK_R
 #include <string.h>
 #else
-char * strtok_r(char *s, const char *delim, char **last);
+
+#ifdef __cplusplus
+extern "C" {
 #endif
+
+char *strtok_r(char *s, const char *delim, char **last);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* HAVE_STRTOK_R */
 
 #endif

@@ -6,8 +6,16 @@
 #include "libu_conf.h"
 #include <time.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef HAVE_TIMEGM
 time_t timegm(struct tm *tm);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif

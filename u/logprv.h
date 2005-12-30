@@ -8,6 +8,10 @@
 
 #include <stdarg.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define u_log_write(fac, lev, ctx, ...) \
     u_log_write_ex(fac, lev, ctx, __FILE__, __LINE__,__FUNCTION__, __VA_ARGS__)
 
@@ -26,5 +30,9 @@
   */
 int u_log_write_ex(int fac, int lev, int ctx, const char* file, int line, 
     const char *func, const char* fmt, ...);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* !_U_LOGPRV_H_ */

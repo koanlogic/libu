@@ -13,6 +13,10 @@
 #include <u/os.h>
 #include <u/logprv.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  *  \defgroup log Logging
  *  \{
@@ -152,5 +156,9 @@ int u_log_set_hook(u_log_hook_t hook, void *arg, u_log_hook_t *old, void**parg);
 /**
  *  \}
  */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* !_U_LOG_H_ */

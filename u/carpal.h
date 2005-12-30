@@ -15,6 +15,9 @@
 #include <u/syslog.h>
 #include <u/log.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define msg(label, ...) label( __VA_ARGS__)
 #define msg_noargs(label, literal) label("%s", literal)
@@ -229,6 +232,10 @@
     #define TIMER_STEP
     #define TIMER_OFF
 #endif /* ifndef NDEBUG */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _U_CARPAL_H_ */
 

@@ -11,6 +11,10 @@
 #include <stdio.h>
 #include <limits.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* define U_PATH_MAX */
 #ifndef PATH_MAX
 #define U_PATH_MAX 4096
@@ -54,5 +58,9 @@ int u_snprintf(char *str, size_t size, const char *fmt, ...);
 int u_path_snprintf(char *str, size_t size, char sep, const char *fmt, ...);
 void u_use_unused_args(char *dummy, ...);
 int u_data_is_bin (char *data, size_t sz);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* !_U_MISC_H_ */

@@ -17,7 +17,16 @@
     typedef unsigned int pid_t;
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 pid_t getpid(void);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif
 
 #endif
