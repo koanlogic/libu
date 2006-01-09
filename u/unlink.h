@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2005, KoanLogic s.r.l. - All rights reserved.  
+ * Copyright (c) 2005, 2006 by KoanLogic s.r.l. - All rights reserved.  
  */
 #ifndef _LIBU_UNLINK_H_
 #define _LIBU_UNLINK_H_
