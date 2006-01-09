@@ -190,7 +190,7 @@ extern "C" {
 #define warn_strerror(errno)            msg_strerror(warning, errno)
 
 /* dbg_ macros */
-#ifndef NDEBUG
+#ifdef DEBUG
     #define dbg(...)                    msg(debug, __VA_ARGS__)
     #define dbg_err(...)                msg_err(debug, __VA_ARGS__)
     #define dbg_ifb(expr)               msg_ifb(debug, expr)
@@ -231,7 +231,7 @@ extern "C" {
     #define TIMER_ON
     #define TIMER_STEP
     #define TIMER_OFF
-#endif /* ifndef NDEBUG */
+#endif /* ifdef DEBUG */
 
 #ifdef __cplusplus
 }
