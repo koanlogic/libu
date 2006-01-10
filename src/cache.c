@@ -1,4 +1,4 @@
-/* $Id: cache.c,v 1.1 2006/01/04 15:32:45 stewy Exp $ */
+/* $Id: cache.c,v 1.2 2006/01/10 21:50:54 tat Exp $ */
 
 #include <u/cache.h>
 #include <u/libu.h>
@@ -111,7 +111,7 @@ static int _u_cache_f_comp (const char *k1, const char *k2)
 
 static void _u_cache_f_free (void *val)
 {
-    dbg_return_if (val == NULL, );
+    dbg_ifb (val == NULL) return;
 
     u_free(val); 
 }
@@ -223,11 +223,11 @@ void u_cache_dbg (u_cache_t *cache)
     struct u_cache_o_s *obj;
     int i;
 
-    dbg_return_if (cache == NULL, );
+    dbg_ifb (cache == NULL) return;
 
     dbg ("<cache>");
     for (i = 0; i < cache->opts->max_size; i++) {
-        dbg_return_if ((u_string_create("", 1, &s)), );
+        dbg_ifb (u_string_create("", 1, &s)) return;
         dbg_err_if (u_string_clear(s));
         dbg_err_if (u_string_append(s, "|", 1));
         LIST_FOREACH(obj, &cache->map[i], next) {
@@ -245,7 +245,7 @@ void u_cache_dbg (u_cache_t *cache)
         } 
         dbg_err_if (u_string_append(s, "|", 1));
         dbg(u_string_c(s));
-        dbg_return_if (u_string_free(s), );
+        dbg_ifb (u_string_free(s)) return;
     }
     dbg("</cache>");
     return;
@@ -316,9 +316,9 @@ void u_cache_pcy_dbg (u_cache_t *cache)
     struct u_cache_queue_o_s *data;
     u_string_t *s = NULL;
 
-    dbg_return_if (cache == NULL, );
+    dbg_ifb (cache == NULL) return;
 
-    dbg_return_if ((u_string_create("", 1, &s)), );
+    dbg_ifb (u_string_create("", 1, &s)) return;
     dbg_err_if (u_string_clear(s));
     dbg_err_if (u_string_append(s, "Policy: [", strlen("Policy: [")));
     TAILQ_FOREACH(data, &cache->pcy.queue, next) {
@@ -638,7 +638,7 @@ err:
 
 void u_cache_opts_dbg (u_cache_opts_t *opts)
 {
-    dbg_return_if (opts == NULL, );
+    dbg_ifb (opts == NULL) return;
 
     dbg("[%u - %d,%d,%d,%x,%x,%x,%x]",
         sizeof(u_cache_opts_t),
@@ -674,8 +674,8 @@ err:
 
 static void _u_cache_o_free (u_cache_t *cache, struct u_cache_o_s *obj)
 {
-    dbg_return_if (cache == NULL, );
-    dbg_return_if (obj == NULL, );
+    dbg_ifb (cache == NULL) return;
+    dbg_ifb (obj == NULL) return;
     
     cache->opts->f_free(obj->val);  /* custom object deletion */
     u_free(obj->key);  /* strdup()ed key */
@@ -703,7 +703,7 @@ err:
 
 static void _u_cache_data_o_free (struct u_cache_queue_o_s *data)
 {
-    dbg_return_if (data == NULL, );
+    dbg_ifb (data == NULL) return;
 
     u_free(data->o);
     u_free(data->key);
