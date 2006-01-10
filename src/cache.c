@@ -1,4 +1,4 @@
-/* $Id: cache.c,v 1.2 2006/01/10 21:50:54 tat Exp $ */
+/* $Id: cache.c,v 1.3 2006/01/10 22:18:22 stewy Exp $ */
 
 #include <u/cache.h>
 #include <u/libu.h>
@@ -71,7 +71,7 @@ static void _u_cache_o_free (u_cache_t *cache, struct u_cache_o_s *obj);
 static struct u_cache_queue_o_s *_u_cache_data_o_new();
 static void _u_cache_data_o_free (struct u_cache_queue_o_s *s);
 
-static size_t _u_cache_f_hash (const const char *key, size_t buckets);
+static size_t _u_cache_f_hash (const char *key, size_t buckets);
 static int _u_cache_f_comp (const char *k1, const char *k2);
 static void _u_cache_f_free (void *val);
 
@@ -83,7 +83,7 @@ static int _u_cache_queue_pop_front (u_cache_t *cache);
 static int _u_cache_queue_pop_back (u_cache_t *cache);
 
 
-static size_t _u_cache_f_hash (const const char *key, size_t buckets)
+static size_t _u_cache_f_hash (const char *key, size_t buckets)
 {
     size_t h = 0;
 
