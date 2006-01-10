@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.2 2005/10/19 15:54:49 stewy Exp $
+# $Id: Makefile,v 1.3 2006/01/10 14:50:09 tat Exp $
 
 include ../../Makefile.conf
 
@@ -13,10 +13,10 @@ img:
 	cp -r images html
 
 install: all
-	mkdir -p ${DESTDIR}/doc/html && cp -r html/ ${DESTDIR}/doc/
+	mkdir -p ${DESTDIR}/doc/libu/ && cp -r html ${DESTDIR}/doc/libu/
 
 uninstall:
-	rm -rf ${DESTDIR}/doc/html
+	rm -rf ${DESTDIR}/doc/libu/
 
 clean:
 	rm -rf html/
