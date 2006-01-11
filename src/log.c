@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: log.c,v 1.7 2006/01/09 12:38:38 tat Exp $";
+    "$Id: log.c,v 1.8 2006/01/11 14:07:10 tat Exp $";
 
 #include <sys/types.h>
 #include <errno.h>
@@ -63,7 +63,7 @@ static int u_log(int fac, int level, const char *fmt, ...)
             va_end(ap);
             return ~0; /* buffer too small */
         }
-        buf[U_MAX_LOG_LENGTH] = 0; 
+        buf[U_MAX_LOG_LENGTH - 1] = 0; 
         hook(hook_arg, level, buf);
     } else 
         vsyslog(fac | level, fmt, ap);

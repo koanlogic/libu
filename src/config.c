@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.10 2006/01/09 12:38:38 tat Exp $";
+    "$Id: config.c,v 1.11 2006/01/11 14:07:10 tat Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -281,7 +281,7 @@ static int u_config_do_load(u_config_t *c, u_config_gets_t cb, void *arg,
     int overwrite)
 {
     enum { MAX_NEST_LEV = 20 };
-    u_string_t *line = NULL, *key = NULL, *lastkey = NULL, *value = NULL;;
+    u_string_t *line = NULL, *key = NULL, *lastkey = NULL, *value = NULL;
     const char *ln, *p;
     size_t len;
     int lineno = 1;

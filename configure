@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.21 2006/01/11 12:03:12 tho Exp $
+# $Id: configure,v 1.22 2006/01/11 14:07:10 tat Exp $
 
 export makl_conf_h=libu_conf.h
 
@@ -51,7 +51,7 @@ case `makl_os_name` in
 esac
 
 # C Flags
-makl_add_var_mk "CFLAGS" "-DHAVE_CONF_H -I`pwd` -O2 -std=c99 -pedantic"
+makl_add_var_mk "CFLAGS" "-DHAVE_CONF_H -I`pwd` -O2 -pedantic"
 
 # Install headers in a private subdir
 makl_add_var_mk "INCDIR" "\${DESTDIR}/include/u"
