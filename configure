@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.20 2006/01/09 15:38:33 tho Exp $
+# $Id: configure,v 1.21 2006/01/11 12:03:12 tho Exp $
 
 export makl_conf_h=libu_conf.h
 
@@ -60,7 +60,6 @@ makl_add_var_mk "INCDIR" "\${DESTDIR}/include/u"
 makl_optional           1    "featx"   "doxygen"    "PATH_DOXYGEN"
 
 ## Function dependencies
-makl_checktype          0   "pid_t"     "<sys/types.h>" 
 makl_checktype          0   "pid_t"     "<sys/types.h>" 
 makl_checkfunc          0   "getpid"
 makl_checkfunc          0   "unlink"
