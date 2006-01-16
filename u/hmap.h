@@ -12,9 +12,11 @@
 extern "C" {
 #endif
 
+
 /** \brief Policies to discard hmap elements */
 typedef enum {
-    U_HMAP_PCY_NONE,    /**< never discard old elements - for bounded inserts only */
+    U_HMAP_PCY_NONE,    /**< never discard old elements - 
+                          for bounded inserts only */
     U_HMAP_PCY_FIFO,    /**< discard entry inserted longest ago */
     U_HMAP_PCY_LRU,     /**< discard least recently used */
     U_HMAP_PCY_LFU      /**< discard least frequently used */     
@@ -25,7 +27,7 @@ typedef struct u_hmap_opts_s {
 
     size_t max_size;        /**< maximum size of hashhmap array */
     size_t max_elems;       /**< maximum number of elements in hmap */
-    u_hmap_pcy_t policy;     /**< caching policy */
+    u_hmap_pcy_t policy;    /**< caching policy */
 
     /** hash function to be used in hashhmap */
     size_t (*f_hash)(const char *key, size_t buckets);   
@@ -39,6 +41,7 @@ typedef struct u_hmap_opts_s {
 
 /* internal pre-declarations */
 typedef struct u_hmap_s u_hmap_t;     
+
 
 /* u_hmap_t */
 int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **hmap);
@@ -55,6 +58,7 @@ int u_hmap_opts_new (u_hmap_opts_t **opts);
 void u_hmap_dbg (u_hmap_t *hmap);
 void u_hmap_opts_dbg (u_hmap_opts_t *opts);
 void u_hmap_pcy_dbg (u_hmap_t *hmap);
+
 
 #ifdef __cplusplus
 }
