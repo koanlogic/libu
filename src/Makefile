@@ -1,9 +1,9 @@
-# $Id: Makefile,v 1.8 2006/01/04 15:32:45 stewy Exp $
+# $Id: Makefile,v 1.9 2006/01/16 21:38:14 stewy Exp $
 
 include ../Makefile.conf
 
 LIB = u
-SRCS = cache.c config.c env.c log.c memory.c misc.c net.c str.c uri.c
+SRCS = config.c env.c hmap.c log.c memory.c misc.c net.c str.c uri.c
 
 ifndef HAVE_SYSLOG
 SRCS += syslog.c
