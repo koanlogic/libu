@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.22 2006/01/11 14:07:10 tat Exp $
+# $Id: configure,v 1.23 2006/01/17 15:01:13 tho Exp $
 
 export makl_conf_h=libu_conf.h
 
@@ -31,7 +31,7 @@ __makl_enable_warns ()
     makl_add_var_mk "CFLAGS" "-W -Wall -Wstrict-prototypes -Wmissing-prototypes"
     makl_add_var_mk "CFLAGS" "-Wpointer-arith -Wno-uninitialized -Wreturn-type"
     makl_add_var_mk "CFLAGS" "-Wwrite-strings -Wswitch -Wshadow -Wwrite-strings"
-    makl_add_var_mk "CFLAGS" "-Wunreachable-code -Wunused -Wcast-qual"
+    makl_add_var_mk "CFLAGS" "-Wunreachable-code -Wunused -Wcast-qual -pedantic"
 }
 
 # General settings (version is read from the VERSION file)
@@ -51,7 +51,7 @@ case `makl_os_name` in
 esac
 
 # C Flags
-makl_add_var_mk "CFLAGS" "-DHAVE_CONF_H -I`pwd` -O2 -pedantic"
+makl_add_var_mk "CFLAGS" "-DHAVE_CONF_H -I`pwd` -O2"
 
 # Install headers in a private subdir
 makl_add_var_mk "INCDIR" "\${DESTDIR}/include/u"
