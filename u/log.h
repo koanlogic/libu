@@ -151,7 +151,7 @@ int u_log_set_hook(u_log_hook_t hook, void *arg, u_log_hook_t *old, void**parg);
 
 /** \brief write a log message to stderr */
 #define console(...) \
-    do { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); } while(0)
+    (fprintf(stderr, __VA_ARGS__) && fprintf(stderr, "\n"))
 
 /**
  *  \}
