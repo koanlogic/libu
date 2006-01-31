@@ -15,8 +15,8 @@ extern "C" {
 
 /** \brief Policies to discard hmap elements */
 typedef enum {
-    U_HMAP_PCY_NONE,    /**< never discard old elements - 
-                          for bounded inserts only */
+    U_HMAP_PCY_NONE = 1,    /**< never discard old elements - 
+                                 for bounded inserts only */
     U_HMAP_PCY_FIFO,    /**< discard entry inserted longest ago */
     U_HMAP_PCY_LRU,     /**< discard least recently used */
     U_HMAP_PCY_LFU      /**< discard least frequently used */     

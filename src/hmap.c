@@ -1,4 +1,4 @@
-/* $Id: hmap.c,v 1.2 2006/01/16 23:20:02 stewy Exp $ */
+/* $Id: hmap.c,v 1.3 2006/01/31 13:15:57 stewy Exp $ */
 
 #include <u/hmap.h>
 #include <u/libu.h>
@@ -62,7 +62,7 @@ static int _pcy_setup (u_hmap_t *hmap);
 static struct u_hmap_o_s *_o_new (const char *key, void *val);
 static void _o_free (u_hmap_t *hmap, struct u_hmap_o_s *obj);
 
-static struct u_hmap_queue_o_s *_data_o_new();
+static struct u_hmap_queue_o_s *_data_o_new(const char *key);
 static void _data_o_free (struct u_hmap_queue_o_s *s);
 
 static size_t _f_hash (const char *key, size_t size);
@@ -131,8 +131,8 @@ static int _pcy_setup (u_hmap_t *hmap)
     switch (hmap->opts->policy) 
     {
         case U_HMAP_PCY_NONE:
-            hmap->pcy.pop = NULL;
             hmap->pcy.push = NULL;
+            hmap->pcy.pop = NULL;
             hmap->pcy.ops = 0;
             break;
         case U_HMAP_PCY_LRU:
@@ -171,10 +171,9 @@ static int _pcy_setup (u_hmap_t *hmap)
  */
 int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **hmap)
 {
-    int i;
+    size_t i;
     u_hmap_t *c = NULL;
 
-    dbg_return_if (opts == NULL, ~0);
     dbg_return_if (hmap == NULL, ~0);
    
     dbg_return_if ((c = (u_hmap_t *) u_zalloc(sizeof(u_hmap_t))) == NULL, ~0);
@@ -214,7 +213,7 @@ void u_hmap_dbg (u_hmap_t *hmap)
     enum { MAX_LINE = 255 };
     u_string_t *s = NULL, *st = NULL;
     struct u_hmap_o_s *obj;
-    int i;
+    size_t i;
 
     dbg_ifb (hmap == NULL) return;
 
@@ -330,12 +329,12 @@ void u_hmap_pcy_dbg (u_hmap_t *hmap)
     }
     dbg_err_if (u_string_append(s, "]", 1));
     dbg(u_string_c(s));
-    dbg_ifb (u_string_free(s));
+    dbg_if (u_string_free(s));
 
     return;
     
  err:
-    u_string_free(s);
+    dbg_if (u_string_free(s));
     return;
 }
 
@@ -401,8 +400,8 @@ err:
 static int _queue_push_count (u_hmap_t *hmap, struct u_hmap_o_s *obj, 
         struct u_hmap_queue_o_s **counts)
 {
-    struct u_hmap_queue_o_s *new, *t, *tn;
-    int *count, *c;
+    struct u_hmap_queue_o_s *new, *t;
+    int *count;
 
     dbg_err_if (hmap == NULL);
     dbg_err_if (obj == NULL);
@@ -420,7 +419,7 @@ static int _queue_push_count (u_hmap_t *hmap, struct u_hmap_o_s *obj,
         count = (int *) (*counts)->o;
         memset((void *) count, (*count)++, sizeof(int));
 
-        if (t = TAILQ_NEXT(*counts, next)) 
+        if ((t = TAILQ_NEXT(*counts, next))) 
         {
             for (; t && ((*count) > *((int *) t->o)); t = TAILQ_NEXT(t, next))
                 ;
@@ -561,7 +560,7 @@ err:
 int u_hmap_foreach (u_hmap_t *hmap, int f(void *val))
 {
     struct u_hmap_o_s *obj;
-    int i;
+    size_t i;
 
     dbg_err_if (hmap == NULL);
     dbg_err_if (f == NULL);
@@ -593,7 +592,7 @@ int u_hmap_free (u_hmap_t *hmap)
 {
     struct u_hmap_o_s *obj;
     struct u_hmap_queue_o_s *data;
-    int i;
+    size_t i;
 
     dbg_return_if (hmap == NULL, ~0);
 
