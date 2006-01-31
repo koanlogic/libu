@@ -1,5 +1,6 @@
-# $Id: Makefile,v 1.3 2006/01/10 14:50:09 tat Exp $
+# $Id: Makefile,v 1.4 2006/01/31 17:08:13 tho Exp $
 
+include common.mk
 include ../../Makefile.conf
 
 ifdef HAVE_DOXYGEN 

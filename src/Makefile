@@ -1,5 +1,6 @@
-# $Id: Makefile,v 1.9 2006/01/16 21:38:14 stewy Exp $
+# $Id: Makefile,v 1.10 2006/01/31 17:08:13 tho Exp $
 
+include common.mk
 include ../Makefile.conf
 
 LIB = u

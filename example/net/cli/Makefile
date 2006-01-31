@@ -1,3 +1,4 @@
+include common.mk
 include ../../../Makefile.conf
 
 PROG = cli

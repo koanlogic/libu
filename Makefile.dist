@@ -1,4 +1,6 @@
-# $Id: Makefile.dist,v 1.6 2005/12/13 16:16:52 tho Exp $
+# $Id: Makefile.dist,v 1.7 2006/01/31 17:08:13 tho Exp $
+
+include common.mk
 
 PKG_NAME = libu
 PKG_VERSION = $(shell cat VERSION)
