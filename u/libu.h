@@ -11,7 +11,7 @@
 #include <u/config.h>
 #include <u/carpal.h>
 #include <u/env.h>
-#include <u/libu.h>
+#include <u/hmap.h>
 #include <u/log.h>
 #include <u/logprv.h>
 #include <u/memory.h>
