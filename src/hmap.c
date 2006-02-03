@@ -1,4 +1,4 @@
-/* $Id: hmap.c,v 1.3 2006/01/31 13:15:57 stewy Exp $ */
+/* $Id: hmap.c,v 1.4 2006/02/03 15:14:36 stewy Exp $ */
 
 #include <u/hmap.h>
 #include <u/libu.h>
@@ -273,8 +273,8 @@ int u_hmap_del (u_hmap_t *hmap, const char *key)
         return ~0;
 
     dbg_err_if (obj == NULL);
-    _o_free(hmap, obj);
     LIST_REMOVE(obj, next);
+    _o_free(hmap, obj);
     return 0;
     
 err:
@@ -346,8 +346,8 @@ static int _queue_pop_front (u_hmap_t *hmap)
 
     dbg_err_if ((first = TAILQ_FIRST(&hmap->pcy.queue)) == NULL);
     dbg_err_if (u_hmap_del(hmap, first->key));
-    _data_o_free(first);
     TAILQ_REMOVE(&hmap->pcy.queue, first, next);
+    _data_o_free(first);
 
     return 0;
 
@@ -364,8 +364,8 @@ static int _queue_pop_back (u_hmap_t *hmap)
     dbg_err_if ((last = TAILQ_LAST(&hmap->pcy.queue, u_hmap_queue_h_s))
             == NULL);
     dbg_err_if (u_hmap_del(hmap, last->key));
-    _data_o_free(last);
     TAILQ_REMOVE(&hmap->pcy.queue, last, next);
+    _data_o_free(last);
     
     return 0;
 
@@ -601,17 +601,18 @@ int u_hmap_free (u_hmap_t *hmap)
     {
         while ((obj = LIST_FIRST(&hmap->hmap[i])) != NULL) 
         {
-            _o_free(hmap, obj);
             LIST_REMOVE(obj, next);
+            _o_free(hmap, obj);
         }
     }
+
     u_free(hmap->hmap);
 
     /* free the policy queue */
     while ((data = TAILQ_FIRST(&hmap->pcy.queue)) != NULL) 
     {
-        _data_o_free(data);
         TAILQ_REMOVE(&hmap->pcy.queue, data, next);
+        _data_o_free(data);
     }
 
     u_free(hmap->opts);
