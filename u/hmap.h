@@ -5,13 +5,12 @@
 #ifndef _U_HMAP_H_
 #define _U_HMAP_H_
 
-#include <u/queue.h>
+#include <sys/types.h>
 #include <u/str.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 /** \brief Policies to discard hmap elements */
 typedef enum {
@@ -58,7 +57,6 @@ int u_hmap_opts_new (u_hmap_opts_t **opts);
 void u_hmap_dbg (u_hmap_t *hmap);
 void u_hmap_opts_dbg (u_hmap_opts_t *opts);
 void u_hmap_pcy_dbg (u_hmap_t *hmap);
-
 
 #ifdef __cplusplus
 }

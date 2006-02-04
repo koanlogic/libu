@@ -1,10 +1,30 @@
-# $Id: Makefile,v 1.10 2006/01/31 17:08:13 tho Exp $
+# $Id: Makefile,v 1.11 2006/02/04 21:32:55 tho Exp $
 
 include common.mk
 include ../Makefile.conf
 
 LIB = u
-SRCS = config.c env.c hmap.c log.c memory.c misc.c net.c str.c uri.c
+SRCS = memory.c misc.c str.c
+
+ifndef NO_HMAP
+SRCS += hmap.c
+endif
+
+ifndef NO_CONFIG
+SRCS += config.c
+endif
+
+ifndef NO_ENV
+SRCS += env.c
+endif
+
+ifndef NO_LOG
+SRCS += log.c
+endif
+
+ifndef NO_NET
+SRCS += net.c uri.c
+endif
 
 ifndef HAVE_SYSLOG
 SRCS += syslog.c

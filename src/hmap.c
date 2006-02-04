@@ -1,7 +1,15 @@
-/* $Id: hmap.c,v 1.4 2006/02/03 15:14:36 stewy Exp $ */
+/* $Id: hmap.c,v 1.5 2006/02/04 21:32:55 tho Exp $ */
 
+#include <sys/types.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
+
+#include <u/carpal.h>
+#include <u/queue.h>
+#include <u/str.h>
 #include <u/hmap.h>
-#include <u/libu.h>
 
 /**
  *  \defgroup hmap Map 
