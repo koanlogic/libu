@@ -1,4 +1,4 @@
-/* $Id: hmap.c,v 1.5 2006/02/04 21:32:55 tho Exp $ */
+/* $Id: hmap.c,v 1.6 2006/02/08 17:20:42 stewy Exp $ */
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#include <u/memory.h>
 #include <u/carpal.h>
 #include <u/queue.h>
 #include <u/str.h>
