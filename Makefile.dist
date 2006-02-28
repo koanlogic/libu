@@ -1,11 +1,12 @@
-# $Id: Makefile.dist,v 1.7 2006/01/31 17:08:13 tho Exp $
+# $Id: Makefile.dist,v 1.8 2006/02/28 17:48:35 stewy Exp $
 
 include common.mk
 
 PKG_NAME = libu
 PKG_VERSION = $(shell cat VERSION)
 
-DISTFILES =  Makefile LICENSE CHANGES README VERSION configure
+DISTFILES =  Makefile LICENSE CHANGES README VERSION configure \
+             configure.help
 DISTFILES += $(wildcard u/*.h) u/Makefile
 DISTFILES += $(wildcard src/*.c) src/Makefile
 DISTFILES += $(wildcard doc/man/*.3) doc/man/Makefile
