@@ -5,40 +5,40 @@ Usage: ./CONFIGURE_SCRIPT [OPTION] ...
 
 OPTION can be defined as follows:
 
---help       [-h] display this help
---verbose       [-v] show verbose debugging output
---version       [-V] display MaKL version
---cross_compile       configure for cross-compilation (no execution tests)
---noclean       do not clean cache at end of execution (testing only)
+--help              [-h] display this help
+--verbose           [-v] show verbose debugging output
+--version           [-V] display MaKL version
+--cross_compile     configure for cross-compilation (no execution tests)
+--noclean           do not clean cache at end of execution (testing only)
 --prefix=BASE       set BASE directory for installation [BASE=/usr/local]
---dir-bin=BASE    set BASE directory for binaries [BASE=/usr/local/bin]
---dir-sbin=BASE    set BASE directory for system [BASE=/usr/local/sbin]
---dir-inc=BASE    set BASE directory for includes [BASE=/usr/local/include]
---dir-lib=BASE    set BASE directory for libraries [BASE=/usr/local/lib]
+--dir-bin=BASE      set BASE directory for binaries [BASE=/usr/local/bin]
+--dir-sbin=BASE     set BASE directory for system [BASE=/usr/local/sbin]
+--dir-inc=BASE      set BASE directory for includes [BASE=/usr/local/include]
+--dir-lib=BASE      set BASE directory for libraries [BASE=/usr/local/lib]
 --dir-share=BASE    set BASE directory for shared [BASE=/usr/local/share]
---dir-man=BASE    set BASE directory for man [BASE=/usr/local/man]
---dir-doc=BASE    set BASE directory for documentation [BASE=/usr/local/doc]
+--dir-man=BASE      set BASE directory for man [BASE=/usr/local/man]
+--dir-doc=BASE      set BASE directory for documentation [BASE=/usr/local/doc]
 
---defown=USERID       set default file owner id
---defgrp=GROUPID       set default file group id
---defmode=MODE       set default mode for regular files
---defbinmode=MODE       set default mode for binary files
---lib-X=BASE       set libX to have BASE dir [BASE=/usr/local:/usr]
---libs=BASE       set all libs to have BASE dir
+--defown=USERID     set default file owner id
+--defgrp=GROUPID    set default file group id
+--defmode=MODE      set default mode for regular files
+--defbinmode=MODE   set default mode for binary files
+--lib-X=BASE        set libX to have BASE dir [BASE=/usr/local:/usr]
+--libs=BASE         set all libs to have BASE dir
+
 <?> --featx-doxygen=BASE    set file for execution feature []
 
 --enable-X=ID       enable feature of type X and id ID
---disable-X=ID       disable feature of type X and id ID
---enable_debug       enables debugging
---enable_profile       enables profiling
---enable_warns       set CFLAGS for extra warnings
---no_hmap       disable hmap module
---no_config       disable config module
---no_log       disable log module
---no_net       disable net module
---no_env       disable env module
+--disable-X=ID      disable feature of type X and id ID
+--enable_debug      enables debugging
+--enable_profile    enables profiling
+--enable_warns      set CFLAGS for extra warnings
+--no_hmap           disable hmap module
+--no_config         disable config module
+--no_log            disable log module
+--no_net            disable net module
+--no_env            disable env module
 
 Legend:
   <*>: required dependency
   <?>: optional dependency
-
