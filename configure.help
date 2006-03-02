@@ -6,8 +6,10 @@ Usage: ./CONFIGURE_SCRIPT [OPTION] ...
 OPTION can be defined as follows:
 
 --help              [-h] display this help
+--help_gen          [-g] generate new configure.help based on configuration
 --verbose           [-v] show verbose debugging output
 --version           [-V] display MaKL version
+
 --cross_compile     configure for cross-compilation (no execution tests)
 --noclean           do not clean cache at end of execution (testing only)
 --prefix=BASE       set BASE directory for installation [BASE=/usr/local]
