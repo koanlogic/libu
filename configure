@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.25 2006/02/24 20:24:31 stewy Exp $
+# $Id: configure,v 1.26 2006/03/03 09:37:36 tho Exp $
 
 export makl_conf_h=libu_conf.h
 
@@ -8,8 +8,9 @@ export makl_conf_h=libu_conf.h
 if [ -z "${MAKL_DIR}" ]; then
     echo "====================================================================="
     echo "  WARNING: it seems that MaKL is not installed/configured in your    "
-    echo "           environment.  See http://www.koanlogic.com/products/makl  "
-    echo "           for download, installation and configuration information. "
+    echo "           environment.                                              "
+    echo "           See http://www.koanlogic.com/kl/cont/gb/html/makl.html    "
+    echo "           for download, installation and configuratioN information. "
     echo "====================================================================="
     exit 1
 fi
@@ -33,10 +34,12 @@ __makl_enable_debug ()   { makl_append_var_mk "CFLAGS" "-g -DDEBUG" ; }
 __makl_enable_profile () { makl_append_var_mk "CFLAGS" "-pg" ; }
 __makl_enable_warns ()
 {
-    makl_append_var_mk "CFLAGS" "-W -Wall -Wstrict-prototypes -Wmissing-prototypes" \
-                                "-Wpointer-arith -Wno-uninitialized -Wreturn-type" \
-                                "-Wwrite-strings -Wswitch -Wshadow -Wwrite-strings" \
-                                "-Wunreachable-code -Wunused -Wcast-qual -pedantic"
+    makl_append_var_mk "CFLAGS" "-std=c99 -W -Wall -Wstrict-prototypes "    \
+                                "-Wmissing-prototypes -Wpointer-arith "     \
+                                "-Wno-uninitialized -Wreturn-type "         \
+                                "-Wwrite-strings -Wswitch -Wshadow "        \
+                                "-Wwrite-strings -Wunreachable-code "       \
+                                "-Wunused -Wcast-qual -pedantic "
 }
 __makl_no_hmap ()   { makl_set_var_mk "NO_HMAP" ; }
 __makl_no_config () { makl_set_var_mk "NO_CONFIG" ; }
@@ -64,7 +67,7 @@ esac
 makl_append_var_mk "CFLAGS" "-DHAVE_CONF_H -I`pwd` -O2"
 
 # Install headers in a private subdir
-makl_append_var_mk "INCDIR" "\${DESTDIR}/include/u"
+makl_set_var_mk "INCDIR" "\${DESTDIR}/include/u"
 
 # Binary dependencies
 makl_optional           1    "featx"   "doxygen"    "PATH_DOXYGEN"
