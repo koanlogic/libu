@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.26 2006/03/03 09:37:36 tho Exp $
+# $Id: configure,v 1.27 2006/03/05 14:23:21 tat Exp $
 
 export makl_conf_h=libu_conf.h
 
@@ -82,7 +82,10 @@ makl_checkfunc          0   "fnmatch"
 makl_checkfunc          0   "timegm"
 makl_checkfunc          0   "strsep"
 makl_checkfunc          0   "gettimeofday"
+makl_checkfunc          0   "daemon"
 makl_func_strerror_r    0
+makl_checkheader        0   "unistd"    "<unistd.h>"
+makl_checkheader        0   "stdlib"    "<stdlib.h>"
 
 # Handle command-line arguments
 makl_args_handle "$@"

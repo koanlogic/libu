@@ -12,6 +12,7 @@
 #include <u/timegm.h>
 #include <u/strsep.h>
 #include <u/gettimeofday.h>
+#include <u/daemon.h>
 
 #ifdef OS_WIN
 #include <windows.h>
