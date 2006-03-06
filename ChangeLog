@@ -1,8 +1,9 @@
-$Id: ChangeLog,v 1.2 2006/03/02 17:16:10 tho Exp $
+$Id: ChangeLog,v 1.3 2006/03/06 18:13:49 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/kl/cont/gb/html/libu.html
 
 LibU 0.3.1:
+    - added daemon(3) function from NetBSD
     - fixed a missing include in hmap.c
     - configure
         - support new MaKL function makl_append_var_mk
