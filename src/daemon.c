@@ -31,6 +31,8 @@
 
 #include <u/daemon.h>
 
+#ifndef OS_WIN
+
 #include <fcntl.h>
 #include <paths.h>
 #include <stdlib.h>
@@ -65,3 +67,5 @@ int daemon(int nochdir, int noclose)
 	}
 	return (0);
 }
+
+#endif
