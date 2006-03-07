@@ -17,6 +17,7 @@
 #ifdef OS_WIN
 #include <windows.h>
 #define strcasecmp _stricmp
+#define sleep(secs) Sleep( (secs) * 1000 )
 #endif
 
 #endif 

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.27 2006/03/05 14:23:21 tat Exp $
+# $Id: configure,v 1.28 2006/03/07 10:19:44 tat Exp $
 
 export makl_conf_h=libu_conf.h
 
@@ -55,7 +55,8 @@ makl_pkg_version
 case `makl_os_name` in
     *mingw* | *MINGW*)
         makl_set_var_h "OS_WIN"
-        makl_set_var_h "U_PATH_SEPARATOR" "'\\\\\\\\'"
+        # use the hex value to avoid backspace escaping madness
+        makl_set_var_h "U_PATH_SEPARATOR" "0x5c"
         ;;
     *)
         makl_set_var_h "OS_UNIX"
@@ -77,6 +78,7 @@ makl_checktype          0   "pid_t"     "<sys/types.h>"
 makl_checkfunc          0   "getpid"
 makl_checkfunc          0   "unlink"
 makl_checkfunc          0   "syslog"
+makl_checkfunc          0   "sleep"
 makl_checkfunc          0   "strtok_r"
 makl_checkfunc          0   "fnmatch"
 makl_checkfunc          0   "timegm"
