@@ -123,7 +123,7 @@ extern "C" {
             FORMAT_MESSAGE_FROM_SYSTEM, NULL, dw,                   \
             MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),              \
             (LPTSTR) &lpMsgBuf, 0, NULL ) && lpMsgBuf)              \
-        {                                                           \ 
+        {                                                           \
             msg(label, "%s", lpMsgBuf);                             \
             LocalFree(lpMsgBuf);                                    \
         }                                                           \
