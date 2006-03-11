@@ -94,7 +94,8 @@ extern "C" {
  *
  *   \e expr text statement will be written to the log file.
  */
-#define msg_err_if(label, expr) do { msg_ifb(label, expr) goto err; } while(0)
+//#define msg_err_if(label, expr) do { DWORD _ler = GetLastError(); msg_ifb(label, expr) {SetLastError(_ler); goto err;} } while(0)
+#define msg_err_if(label, expr) do { msg_ifb(label, expr) { goto err;} } while(0)
 
 /** \brief log a message if \e expr not zero and goto to the label "err". 
  *
@@ -114,6 +115,18 @@ extern "C" {
     do { msg_ifb(label, expr) { msg_strerror(label, errno); goto err; } } while(0)
 
 /** \brief write a debug message containing the message returned by strerror(errno) */
+#ifdef OS_WIN
+#define msg_strerror(label, en)                                 		\
+    do {																\
+        LPVOID lpMsgBuf; LPVOID lpDisplayBuf; DWORD dw = GetLastError(); 	\
+        FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | 					\
+        FORMAT_MESSAGE_FROM_SYSTEM, NULL, dw, 							\
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),						\
+        (LPTSTR) &lpMsgBuf, 0, NULL );									\
+        msg(label, "%s", lpMsgBuf);                                			\
+        LocalFree(lpMsgBuf);												\
+    } while(0)
+#else
 #ifdef HAVE_STRERROR_R
     #ifdef STRERROR_R_CHAR_P
         #define msg_strerror(label, en)                             \
@@ -147,6 +160,7 @@ extern "C" {
             msg(label, "strerror(%d) failed", en);                  \
         } while(0)                  
 #endif  
+#endif /* ! def OS_WIN */
 
 /* nop_ macros */
 #define nop_return_if(expr, err)       do { if(expr) return err; } while(0)
