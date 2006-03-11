@@ -116,15 +116,17 @@ extern "C" {
 
 /** \brief write a debug message containing the message returned by strerror(errno) */
 #ifdef OS_WIN
-#define msg_strerror(label, en)                                 		\
-    do {																\
-        LPVOID lpMsgBuf; LPVOID lpDisplayBuf; DWORD dw = GetLastError(); 	\
-        FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | 					\
-        FORMAT_MESSAGE_FROM_SYSTEM, NULL, dw, 							\
-        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),						\
-        (LPTSTR) &lpMsgBuf, 0, NULL );									\
-        msg(label, "%s", lpMsgBuf);                                			\
-        LocalFree(lpMsgBuf);												\
+#define msg_strerror(label, en)                                	\
+    do {														\
+        LPVOID lpMsgBuf = NULL;  DWORD dw = GetLastError(); 	\
+        if(FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | 		\
+            FORMAT_MESSAGE_FROM_SYSTEM, NULL, dw, 				\
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),			\
+            (LPTSTR) &lpMsgBuf, 0, NULL ) && lpMsgBuf)	 		\
+        {														\ 
+            msg(label, "%s", lpMsgBuf);                         \
+            LocalFree(lpMsgBuf);								\
+        }														\
     } while(0)
 #else
 #ifdef HAVE_STRERROR_R
