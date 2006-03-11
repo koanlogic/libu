@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: log.c,v 1.8 2006/01/11 14:07:10 tat Exp $";
+    "$Id: log.c,v 1.9 2006/03/11 14:41:16 tat Exp $";
 
 #include <sys/types.h>
 #include <errno.h>
@@ -24,6 +24,16 @@ extern int facility;
 /* log hook. if not-zero use this function to write log messages */
 static u_log_hook_t hook = NULL;
 static void *hook_arg = NULL;
+
+#ifdef OS_WIN
+#define err_type DWORD
+#define save_errno(var) var = GetLastError();
+#define restore_errno(var) SetLastError(var);
+#else
+#define err_type int
+#define save_errno(var) var = errno;
+#define restore_errno(var) errno = var;
+#endif
 
 static inline const char* u_log_label(int lev)
 {
@@ -92,6 +102,9 @@ int u_log_write_ex(int fac, int lev, int ctx, const char* file, int line,
     va_list ap;
     char msg[U_MAX_LOG_LENGTH];
     int rc;
+    err_type savederr;
+
+    save_errno(savederr);
 
     /* build the message to send to the log system */
     va_start(ap, fmt); 
@@ -99,7 +112,7 @@ int u_log_write_ex(int fac, int lev, int ctx, const char* file, int line,
     va_end(ap);
 
     if(rc > U_MAX_LOG_LENGTH)
-        return ~0; /* message too long */
+        goto err; /* message too long */
 
     /* ok, send the msg to the logger */
     if(ctx)
@@ -109,5 +122,9 @@ int u_log_write_ex(int fac, int lev, int ctx, const char* file, int line,
         u_log(fac, lev, "[%s][%d:::] %s", 
                u_log_label(lev), getpid(), msg);
 
+    restore_errno(savederr);
     return 0;
+err:
+    restore_errno(savederr);
+    return ~0;
 }
