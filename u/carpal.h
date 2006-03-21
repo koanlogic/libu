@@ -94,7 +94,6 @@ extern "C" {
  *
  *   \e expr text statement will be written to the log file.
  */
-//#define msg_err_if(label, expr) do { DWORD _ler = GetLastError(); msg_ifb(label, expr) {SetLastError(_ler); goto err;} } while(0)
 #define msg_err_if(label, expr) do { msg_ifb(label, expr) { goto err;} } while(0)
 
 /** \brief log a message if \e expr not zero and goto to the label "err". 
@@ -136,30 +135,33 @@ extern "C" {
             enum { _DBG_BUFSZ = 256 };                              \
             char *p, _eb[_DBG_BUFSZ] = { 0 };                       \
             p = strerror_r(en, _eb, _DBG_BUFSZ);                    \
-            if(p)                                                   \
+            if(p) {                                                 \
                 msg(label, "%s", p);                                \
-            else                                                    \
+            } else {                                                \
                 msg(label, "strerror_r(%d, ...) failed", en);       \
+            }                                                       \
         } while(0)                                        
     #else                                                     
         #define msg_strerror(label, en)                             \
         do {                                                        \
             enum { _DBG_BUFSZ = 256 };                              \
             char _eb[_DBG_BUFSZ] = { 0 };                           \
-            if(strerror_r(en, _eb, _DBG_BUFSZ) == 0)                \
+            if(strerror_r(en, _eb, _DBG_BUFSZ) == 0) {              \
                 msg(label, "%s", _eb);                              \
-            else                                                    \
+            } else {                                                \
                 msg(label, "strerror_r(%d, ...) failed", en);       \
+            }                                                       \
         } while(0)                                        
     #endif                                                    
 #else                                                         
     #define msg_strerror(label, en)                                 \
         do {                                                        \
-        char *p;                                                    \
-        if((p = strerror(en)) != NULL)                              \
-            msg(label, "%s", p);                                    \
-        else                                                        \
-            msg(label, "strerror(%d) failed", en);                  \
+            char *p;                                                \
+            if((p = strerror(en)) != NULL) {                        \
+                msg(label, "%s", p);                                \
+            } else {                                                \
+                msg(label, "strerror(%d) failed", en);              \
+            }                                                       \
         } while(0)                  
 #endif  
 #endif /* ! def OS_WIN */
