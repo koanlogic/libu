@@ -3,9 +3,8 @@
 
 body {
   background:white url(images/kl_bg.png) repeat-y top left;
-  background-position:95px 30px;
+  background-position:50% 30px;
   margin:10px 5px;
-  width:700px;
   font:Georgia,Serif;
   color:#333;
   font-size:medium;
@@ -70,7 +69,6 @@ a img {
 #header {
   margin:20px 0;
   vertical-align:middle;
-  width:756px;
   border-top:1px solid #ccc;
   border-bottom:1px solid #ccc;
   }
@@ -213,21 +211,17 @@ pre.screen {
 /* Doxygen settings 
 ----------------------------------------------- */
 DIV.qindex {
-	width: 100%;
 	background-color: #eeeeff;
 	border: 1px solid #b0b0b0;
 	text-align: center;
-	margin: 2px;
-	padding: 2px;
+	margin: 2px 2px 2px;
 	line-height: 140%;
 }
 DIV.nav {
-	width: 100%;
 	background-color: #eeeeff;
 	border: 1px solid #b0b0b0;
 	text-align: center;
-	margin: 2px;
-	padding: 2px;
+	margin: 5px 2px 2px;
 	line-height: 140%;
 }
 DIV.navtab {
