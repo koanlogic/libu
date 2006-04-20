@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.29 2006/04/20 08:51:40 tat Exp $
+# $Id: configure,v 1.30 2006/04/20 09:14:43 tat Exp $
 
 export makl_conf_h=libu_conf.h
 
@@ -89,6 +89,7 @@ makl_func_strerror_r    0
 makl_checkheader        0   "unistd"    "<unistd.h>"
 makl_checkheader        0   "stdlib"    "<stdlib.h>"
 makl_checkheader        0   "paths"    "<paths.h>"
+makl_checkinline        0
 
 # Handle command-line arguments
 makl_args_handle "$@"
