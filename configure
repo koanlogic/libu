@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.31 2006/04/20 09:53:53 tat Exp $
+# $Id: configure,v 1.32 2006/04/20 12:50:13 tat Exp $
 
 export makl_conf_h=libu_conf.h
 
@@ -41,11 +41,11 @@ __makl_enable_warns ()
                                 "-Wwrite-strings -Wunreachable-code "       \
                                 "-Wunused -Wcast-qual -pedantic "
 }
-__makl_no_hmap ()   { makl_set_var_mk "NO_HMAP" ; }
-__makl_no_config () { makl_set_var_mk "NO_CONFIG" ; }
-__makl_no_log ()    { makl_set_var_mk "NO_LOG" ; }
-__makl_no_net ()    { makl_set_var_mk "NO_NET" ; }
-__makl_no_env ()    { makl_set_var_mk "NO_ENV" ; }
+__makl_no_hmap ()   { makl_set_var "NO_HMAP" ; }
+__makl_no_config () { makl_set_var "NO_CONFIG" ; }
+__makl_no_log ()    { makl_set_var "NO_LOG" ; }
+__makl_no_net ()    { makl_set_var "NO_NET" ; }
+__makl_no_env ()    { makl_set_var "NO_ENV" ; }
 
 # General settings (version is read from the VERSION file)
 makl_pkg_name "libu"
