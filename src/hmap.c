@@ -1,4 +1,4 @@
-/* $Id: hmap.c,v 1.6 2006/02/08 17:20:42 stewy Exp $ */
+/* $Id: hmap.c,v 1.7 2006/04/20 09:53:53 tat Exp $ */
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -86,7 +86,7 @@ static int _queue_pop_front (u_hmap_t *hmap);
 static int _queue_pop_back (u_hmap_t *hmap);
 
 
-size_t _f_hash (const char *key, size_t size)
+static size_t _f_hash (const char *key, size_t size)
 {
     size_t h = 0;
     

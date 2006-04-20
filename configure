@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.30 2006/04/20 09:14:43 tat Exp $
+# $Id: configure,v 1.31 2006/04/20 09:53:53 tat Exp $
 
 export makl_conf_h=libu_conf.h
 
@@ -75,6 +75,7 @@ makl_optional           1    "featx"   "doxygen"    "PATH_DOXYGEN"
 
 ## Function dependencies
 makl_checktype          0   "pid_t"     "<sys/types.h>" 
+makl_checktype          0   "ssize_t"   "<sys/types.h>" 
 makl_checkfunc          0   "getpid"
 makl_checkfunc          0   "unlink"
 makl_checkfunc          0   "syslog"
@@ -90,6 +91,9 @@ makl_checkheader        0   "unistd"    "<unistd.h>"
 makl_checkheader        0   "stdlib"    "<stdlib.h>"
 makl_checkheader        0   "paths"    "<paths.h>"
 makl_checkinline        0
+if [ $? -ne 0 ]; then
+    makl_append_var_mk "CFLAGS" "-Dinline=\"\""
+fi
 
 # Handle command-line arguments
 makl_args_handle "$@"

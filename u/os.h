@@ -20,4 +20,8 @@
 #define sleep(secs) Sleep( (secs) * 1000 )
 #endif
 
+#ifndef HAVE_SSIZE_T
+typedef int ssize_t;
+#endif
+
 #endif 
