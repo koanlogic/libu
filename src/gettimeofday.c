@@ -29,7 +29,17 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
     return 0;
 }
 #else
-#error define gettimeofday() for this platform
+#warning missing gettimeofday,tv.tv_usec will be always set to zero
+int gettimeofday(struct timeval *tv, struct timezone *tzp)
+{
+	if(tzp)
+		tzp->tz_minuteswest = tzp->tz_dsttime = 0;
+
+	tv->tv_sec = time(0);
+	tv->tv_usec = 0;
+
+	return 0;
+}
 #endif
 
 #else

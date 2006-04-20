@@ -33,8 +33,14 @@
 
 #ifndef OS_WIN
 
+#ifndef _PATH_DEVNULL
+#define _PATH_DEVNULL "/dev/null"
+#endif
+
 #include <fcntl.h>
+#ifdef HAVE_PATHS
 #include <paths.h>
+#endif
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>

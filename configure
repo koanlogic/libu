@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.28 2006/03/07 10:19:44 tat Exp $
+# $Id: configure,v 1.29 2006/04/20 08:51:40 tat Exp $
 
 export makl_conf_h=libu_conf.h
 
@@ -52,7 +52,7 @@ makl_pkg_name "libu"
 makl_pkg_version
 
 # Set variables depending on host OS
-case `makl_os_name` in
+case `makl_target_name` in
     *mingw* | *MINGW*)
         makl_set_var_h "OS_WIN"
         # use the hex value to avoid backspace escaping madness
@@ -88,6 +88,7 @@ makl_checkfunc          0   "daemon"
 makl_func_strerror_r    0
 makl_checkheader        0   "unistd"    "<unistd.h>"
 makl_checkheader        0   "stdlib"    "<stdlib.h>"
+makl_checkheader        0   "paths"    "<paths.h>"
 
 # Handle command-line arguments
 makl_args_handle "$@"
