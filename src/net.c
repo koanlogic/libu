@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: net.c,v 1.9 2006/04/21 11:24:35 tat Exp $";
+    "$Id: net.c,v 1.10 2006/04/21 11:59:41 tat Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -220,7 +220,7 @@ int u_net_tcp4_ssock (struct sockaddr_in *sad, int reuse, int backlog)
     lsd = socket(AF_INET, SOCK_STREAM, 0);
     dbg_err_if (lsd == -1);
 
-    rv = setsockopt(lsd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on);
+    rv = setsockopt(lsd, SOL_SOCKET, SO_REUSEADDR, (const char*)&on, sizeof on);
     dbg_err_if (rv == -1);
 
     rv = bind(lsd, (struct sockaddr *) sad, sizeof *sad);

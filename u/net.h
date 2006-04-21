@@ -10,11 +10,14 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#ifdef HAVE_SYSUIO
 #include <sys/uio.h>
-#include <netinet/in.h>
+#endif
 #include <arpa/inet.h>
-#include <sys/un.h>
 #include <netdb.h>
+#ifndef NO_UNIXSOCK
+#include <sys/un.h>
+#endif
 #endif
 
 #ifdef OS_WIN
@@ -22,6 +25,9 @@
 #include <winsock.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#endif
+
+#ifndef HAVE_IN_ADDR_T
 typedef unsigned long in_addr_t;
 #endif
 
@@ -56,7 +62,7 @@ struct u_net_addr_s
 #ifndef NO_IPV6
         struct sockaddr_in6 sin6;
 #endif
-#ifndef NO_UINXSOCK
+#ifndef NO_UNIXSOCK
         struct sockaddr_un  sun;
 #endif /* OS_UNIX */
     } sa;
