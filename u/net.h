@@ -47,16 +47,16 @@ struct u_net_addr_s
         U_NET_TCP6,
         U_NET_UDP4,
         U_NET_UDP6,
-#ifdef OS_UNIX
         U_NET_UNIX,
-#endif /* OS_UNIX */
         U_NET_TYPE_MAX
     } type;
     union
     {
         struct sockaddr_in  sin;
+#ifndef NO_IPV6
         struct sockaddr_in6 sin6;
-#ifdef OS_UNIX
+#endif
+#ifndef NO_UINXSOCK
         struct sockaddr_un  sun;
 #endif /* OS_UNIX */
     } sa;
@@ -105,14 +105,16 @@ int u_net_sock_unix (u_net_addr_t *addr, int mode);
 
 /* low-level socket creation */
 int u_net_tcp4_ssock (struct sockaddr_in *sad, int reuse, int backlog);
-int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int reuse, int backlog);
 int u_net_tcp4_csock (struct sockaddr_in *sad);
+#ifndef NO_IPV6
+int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int reuse, int backlog);
 int u_net_tcp6_csock (struct sockaddr_in6 *sad);
+#endif
 
 /* address translation: uri string -> u_uri -> u_net_addr -> struct sockaddr */
 int u_net_uri2addr (const char *uri, u_net_addr_t **pa);
 int u_net_uri2sin (u_uri_t *uri, struct sockaddr_in *sad);
-#ifdef OS_UNIX
+#ifndef NO_UNIXSOCK
 int u_net_uri2sun (u_uri_t *uri, struct sockaddr_un *sad);
 #endif /* OS_UNIX */
 

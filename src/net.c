@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: net.c,v 1.8 2006/01/09 12:38:38 tat Exp $";
+    "$Id: net.c,v 1.9 2006/04/21 11:24:35 tat Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -62,14 +62,16 @@ int u_net_sock (const char *uri, int mode)
     switch (addr->type)
     {
         case U_NET_TCP4:
+#ifndef NO_IPV6
         case U_NET_TCP6:
+#endif
             sd = u_net_sock_tcp(addr, mode);
             break;
-#ifdef OS_UNIX
+#ifndef NO_UNIXSOCK
         case U_NET_UNIX:
             sd = u_net_sock_unix(addr, mode);
             break;
-#endif /* OS_UNIX */
+#endif /* NO_UNIXSOCK */
         case U_NET_UDP4:
         case U_NET_UDP6:
         default:
@@ -86,7 +88,7 @@ err:
     return -1;
 }
 
-int u_net_sock_tcp (u_net_addr_t *a,  int mode)
+static int u_net_sock_tcp4 (u_net_addr_t *a,  int mode)
 {
     dbg_return_if (a == NULL, -1);
     dbg_return_if (a->type != U_NET_TCP4 && a->type != U_NET_TCP6, -1);
@@ -94,19 +96,54 @@ int u_net_sock_tcp (u_net_addr_t *a,  int mode)
     switch (mode)
     {
         case U_NET_CSOCK:
-            return a->type == U_NET_TCP4 ?
-                u_net_tcp4_csock(&a->sa.sin) :
-                u_net_tcp6_csock(&a->sa.sin6);
+            return u_net_tcp4_csock(&a->sa.sin);
         case U_NET_SSOCK:
-            return a->type == U_NET_TCP4 ?
-                u_net_tcp4_ssock(&a->sa.sin, 0, U_NET_BACKLOG) :
-                u_net_tcp6_ssock(&a->sa.sin6, 0, U_NET_BACKLOG);
+            return u_net_tcp4_ssock(&a->sa.sin, 0, U_NET_BACKLOG);
         default:
             warn("unknown socket mode");
             return -1;
     }
 }
 
+#ifndef NO_IPV6
+static int u_net_sock_tcp6 (u_net_addr_t *a,  int mode)
+{
+    dbg_return_if (a == NULL, -1);
+    dbg_return_if (a->type != U_NET_TCP4 && a->type != U_NET_TCP6, -1);
+
+    switch (mode)
+    {
+        case U_NET_CSOCK:
+                return u_net_tcp6_csock(&a->sa.sin6);
+        case U_NET_SSOCK:
+                return u_net_tcp6_ssock(&a->sa.sin6, 0, U_NET_BACKLOG);
+        default:
+            warn("unknown socket mode");
+            return -1;
+    }
+}
+#endif
+
+int u_net_sock_tcp (u_net_addr_t *a,  int mode)
+{
+    dbg_return_if (a == NULL, -1);
+    dbg_return_if (a->type != U_NET_TCP4 && a->type != U_NET_TCP6, -1);
+
+    switch (a->type)
+    {
+        case U_NET_TCP4:
+            return u_net_sock_tcp4(a, mode);
+#ifndef NO_IPV6
+        case U_NET_TCP6:
+            return u_net_sock_tcp6(a, mode);
+#endif
+        default:
+            warn("unknown or unsupported socket type");
+            return -1;
+    }
+}
+
+#ifndef NO_UNIXSOCK
 int u_net_sock_unix (u_net_addr_t *a, int mode)
 {
     dbg_return_if (a == NULL, -1);
@@ -121,7 +158,9 @@ int u_net_sock_udp (u_net_addr_t *a,  int mode)
     switch (mode) { default: break; }  /* TODO */
     return -1;
 }
+#endif /* NO_UNIXSOCK */
 
+#ifndef NO_IPV6
 int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int reuse, int backlog)
 {
     int rv, lsd = -1;
@@ -148,6 +187,28 @@ err:
     U_CLOSE(lsd);
     return -1;
 }
+
+int u_net_tcp6_csock (struct sockaddr_in6 *sad)
+{
+    int csd = -1;
+    int rv;
+
+    dbg_return_if (sad == NULL, -1);
+
+    csd = socket(AF_INET6, SOCK_STREAM, 0);
+    dbg_err_if (csd == -1);
+
+    rv = connect(csd, (struct sockaddr *) sad, sizeof *sad);
+    dbg_err_if (rv == -1);
+
+    return csd;
+
+err:
+    dbg_strerror(errno);
+    U_CLOSE(csd);
+    return -1;
+}
+#endif /* NO_IPV6 */
 
 int u_net_tcp4_ssock (struct sockaddr_in *sad, int reuse, int backlog)
 {
@@ -195,27 +256,6 @@ err:
     return -1;
 }
 
-int u_net_tcp6_csock (struct sockaddr_in6 *sad)
-{
-    int csd = -1;
-    int rv;
-
-    dbg_return_if (sad == NULL, -1);
-
-    csd = socket(AF_INET6, SOCK_STREAM, 0);
-    dbg_err_if (csd == -1);
-
-    rv = connect(csd, (struct sockaddr *) sad, sizeof *sad);
-    dbg_err_if (rv == -1);
-
-    return csd;
-
-err:
-    dbg_strerror(errno);
-    U_CLOSE(csd);
-    return -1;
-}
-
 int u_net_uri2addr (const char *uri, u_net_addr_t **pa)
 {
     u_uri_t *u = NULL;
@@ -233,13 +273,13 @@ int u_net_uri2addr (const char *uri, u_net_addr_t **pa)
         dbg_err_if (u_net_addr_new(U_NET_TCP4, &a));
         dbg_err_if (u_net_uri2sin(u, &a->sa.sin));
     }
-#ifdef OS_UNIX
+#ifndef NO_UNIXSOCK
     else if (!strcasecmp(u->scheme, "unix"))
     {    
         dbg_err_if (u_net_addr_new(U_NET_UNIX, &a));
         dbg_err_if (u_net_uri2sun(u, &a->sa.sun));
     }
-#endif /* OS_UNIX */    
+#endif /* NO_UNIXSOCK */    
     else /* tcp6, udp[46] unsupported */
         warn_err("unsupported URI scheme: %s", u->scheme); 
     
@@ -252,7 +292,7 @@ err:
     return ~0;
 }
 
-#ifdef OS_UNIX
+#ifndef NO_UNIXSOCK
 int u_net_uri2sun (u_uri_t *uri, struct sockaddr_un *sad)
 {
     dbg_return_if (uri == NULL, ~0);
