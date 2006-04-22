@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #ifdef HAVE_SYSUIO
 #include <sys/uio.h>
 #endif

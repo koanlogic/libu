@@ -24,4 +24,12 @@
 typedef int ssize_t;
 #endif
 
+#ifndef HAVE_OPTARG
+extern char *optarg;
+#endif
+
+#ifndef HAVE_OPTIND
+extern int optind;
+#endif
+
 #endif 
