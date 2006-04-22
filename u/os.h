@@ -24,12 +24,9 @@
 typedef int ssize_t;
 #endif
 
-#ifndef HAVE_OPTARG
+/* on VxWorks/DCC there's not extern declaration (even if the var is available
+   into library files) */
 extern char *optarg;
-#endif
-
-#ifndef HAVE_OPTIND
 extern int optind;
-#endif
 
 #endif 
