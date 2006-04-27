@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.38 2006/04/22 13:55:34 tat Exp $
+# $Id: configure,v 1.39 2006/04/27 15:46:22 tat Exp $
 
 export makl_conf_h=libu_conf.h
 
@@ -80,8 +80,11 @@ makl_optional           1    "featx"   "doxygen"    "PATH_DOXYGEN"
 ## Function dependencies
 makl_checktype          0   "pid_t"     "<sys/types.h>" 
 makl_checktype          0   "ssize_t"   "<sys/types.h>" 
-makl_checktype          0   "in_addr_t" 	\
-	"<sys/types.h> <sys/socket.h> <netinet/in.h> <arpa/inet.h>"
+makl_checktype          0   "in_addr_t" 	    \
+	                        "<sys/types.h>"     \
+                            "<sys/socket.h>"    \
+                            "<netinet/in.h>"    \
+                            "<arpa/inet.h>"
 makl_checkfunc          0   "getpid"
 makl_checkfunc          0   "unlink"
 makl_checkfunc          0   "syslog"
@@ -96,7 +99,7 @@ makl_func_strerror_r    0
 makl_checkheader        0   "unistd"    "<unistd.h>"
 makl_checkheader        0   "stdlib"    "<stdlib.h>"
 makl_checkheader        0   "paths"     "<paths.h>"
-makl_checkheader        0   "sysuio"    "<sys/types.h> <sys/uio.h>"
+makl_checkheader        0   "sysuio"    "<sys/types.h>" "<sys/uio.h>"
 makl_checkheader        0   "strings"   "<strings.h>"
 makl_checktmzone        0
 makl_checkextvar        0   "optarg"
