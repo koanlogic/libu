@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.39 2006/04/27 15:46:22 tat Exp $
+# $Id: configure,v 1.40 2006/04/27 18:39:57 tat Exp $
 
 export makl_conf_h=libu_conf.h
 
@@ -81,7 +81,7 @@ makl_optional           1    "featx"   "doxygen"    "PATH_DOXYGEN"
 makl_checktype          0   "pid_t"     "<sys/types.h>" 
 makl_checktype          0   "ssize_t"   "<sys/types.h>" 
 makl_checktype          0   "in_addr_t" 	    \
-	                        "<sys/types.h>"     \
+                            "<sys/types.h>"     \
                             "<sys/socket.h>"    \
                             "<netinet/in.h>"    \
                             "<arpa/inet.h>"
