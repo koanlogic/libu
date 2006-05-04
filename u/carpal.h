@@ -190,6 +190,7 @@ extern "C" {
 #define info_if(expr)                   msg_if(info, expr) 
 #define info_return_if(expr, err)       msg_return_if(info, expr, err)
 #define info_err_if(expr)               msg_err_if(info, expr)
+#define info_err_sif(expr)              msg_err_sif(info, expr)
 #define info_err_ifm(expr, ...)         \
     msg_err_ifm(info, expr, __VA_ARGS__)
 #define info_goto_if(expr, gt)          msg_goto_if(info, expr, gt)
@@ -202,6 +203,7 @@ extern "C" {
 #define warn_if(expr)                   msg_if(warning, expr) 
 #define warn_return_if(expr, err)       msg_return_if(warning, expr, err)
 #define warn_err_if(expr)               msg_err_if(warning, expr)
+#define warn_err_sif(expr)              msg_err_sif(warning, expr)
 #define warn_err_ifm(expr, ...)         \
     msg_err_ifm(warning, expr, __VA_ARGS__)
 #define warn_goto_if(expr, gt)          msg_goto_if(warning, expr, gt)
