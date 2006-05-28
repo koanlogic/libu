@@ -1,10 +1,10 @@
-# $Id: Makefile,v 1.12 2006/03/05 14:23:21 tat Exp $
+# $Id: Makefile,v 1.13 2006/05/28 15:39:43 tat Exp $
 
 include common.mk
 include ../Makefile.conf
 
 LIB = u
-SRCS = memory.c misc.c str.c
+SRCS = memory.c misc.c str.c buf.c
 
 ifndef NO_HMAP
 SRCS += hmap.c

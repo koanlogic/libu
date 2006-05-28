@@ -13,6 +13,7 @@
 #include <u/logprv.h>
 #include <u/memory.h>
 #include <u/misc.h>
+#include <u/buf.h>
 #include <u/queue.h>
 #include <u/str.h>
 #include <u/uri.h>
