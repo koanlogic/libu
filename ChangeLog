@@ -1,6 +1,10 @@
-$Id: ChangeLog,v 1.6 2006/04/27 12:08:07 tho Exp $
+$Id: ChangeLog,v 1.7 2006/05/28 16:00:16 tat Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/kl/cont/gb/html/libu.html
+
+LibU 0.4.1:
+    - u_buf_t type and functions
+	- warn_err_sif and info_err_sif added
 
 LibU 0.4.0:
     - new configure options: --no_ipv6 and --no_unixsock
