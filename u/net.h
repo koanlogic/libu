@@ -128,7 +128,7 @@ int u_net_unix_csock (struct sockaddr_un *sad);
 int u_net_uri2addr (const char *uri, u_net_addr_t **pa);
 int u_net_uri2sin (u_uri_t *uri, struct sockaddr_in *sad);
 #ifndef NO_UNIXSOCK
-int u_net_uri2sun (u_uri_t *uri, struct sockaddr_un *sad);
+int u_net_uri2sun (const char *uri, struct sockaddr_un *sad);
 #endif /* OS_UNIX */
 
 /* u_net_addr */

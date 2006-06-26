@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: net.c,v 1.11 2006/06/26 12:32:41 tho Exp $";
+    "$Id: net.c,v 1.12 2006/06/26 13:09:12 tho Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -335,7 +335,7 @@ int u_net_uri2addr (const char *uri, u_net_addr_t **pa)
     else if (!strcasecmp(u->scheme, "unix"))
     {    
         dbg_err_if (u_net_addr_new(U_NET_UNIX, &a));
-        dbg_err_if (u_net_uri2sun(u, &a->sa.sun));
+        dbg_err_if (u_net_uri2sun(uri, &a->sa.sun));
     }
 #endif /* NO_UNIXSOCK */    
     else /* tcp6, udp[46] unsupported */
@@ -351,14 +351,17 @@ err:
 }
 
 #ifndef NO_UNIXSOCK
-int u_net_uri2sun (u_uri_t *uri, struct sockaddr_un *sad)
+int u_net_uri2sun (const char *uri, struct sockaddr_un *sad)
 {
     dbg_return_if (uri == NULL, ~0);
     dbg_return_if (sad == NULL, ~0);
-    /* TODO */
-    return ~0;
+
+    sad->sun_family = AF_UNIX;
+    strncpy(sad->sun_path, uri + strlen("unix://"), sizeof sad->sun_path);
+    
+    return 0;
 }
-#endif /* OS_UNIX */
+#endif /* !NO_UNIXSOCK */
 
 int u_net_addr_new (int type, u_net_addr_t **pa)
 {
