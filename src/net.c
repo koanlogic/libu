@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: net.c,v 1.10 2006/04/21 11:59:41 tat Exp $";
+    "$Id: net.c,v 1.11 2006/06/26 12:32:41 tho Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -17,6 +17,9 @@ static const char rcsid[] =
 #include <u/misc.h>
 #include <u/memory.h>
 #include <u/os.h>
+
+static int u_net_sock_tcp4 (u_net_addr_t *a,  int mode);
+static int u_net_sock_tcp6 (u_net_addr_t *a,  int mode);
 
 /**
  *  \defgroup net Networking
@@ -147,18 +150,73 @@ int u_net_sock_tcp (u_net_addr_t *a,  int mode)
 int u_net_sock_unix (u_net_addr_t *a, int mode)
 {
     dbg_return_if (a == NULL, -1);
-    switch (mode) { default: break; } /* TODO */
+    dbg_return_if (a->type != U_NET_UNIX, -1);
+
+    switch (mode)
+    {
+        case U_NET_CSOCK:
+            return u_net_unix_csock(&a->sa.sun);
+        case U_NET_SSOCK:
+            return u_net_unix_ssock(&a->sa.sun, U_NET_BACKLOG);
+        default:
+            warn("unknown socket mode");
+            return -1;
+    }
+}
+
+int u_net_unix_csock (struct sockaddr_un *sad)
+{
+    int rv, csd = -1;
+
+    dbg_return_if (sad == NULL, -1);
+
+    csd = socket(AF_UNIX, SOCK_STREAM, 0); 
+    dbg_err_if (csd == -1);
+
+    rv = connect(csd, (struct sockaddr *) sad, sizeof *sad);
+    dbg_err_if (rv == -1);
+
+    return csd;
+err:
+    dbg_strerror(errno);
+    U_CLOSE(csd);
     return -1;
 }
 
-int u_net_sock_udp (u_net_addr_t *a,  int mode)
+int u_net_unix_ssock (struct sockaddr_un *sad, int backlog)
+{
+    int rv, lsd = -1;
+
+    dbg_return_if (sad == NULL, -1);
+
+    rv = unlink(sad->sun_path);
+    dbg_err_if (rv == -1 && errno != ENOENT);
+
+    lsd = socket(AF_UNIX, SOCK_STREAM, 0);
+    dbg_err_if (lsd == -1);
+
+    rv = bind(lsd, (struct sockaddr *) sad, sizeof *sad);
+    dbg_err_if (rv == -1);
+
+    rv = listen(lsd, backlog);
+    dbg_err_if (rv == -1);
+
+    return lsd;
+err:
+    dbg_strerror(errno);
+    U_CLOSE(lsd);
+    return -1;    
+}
+
+#endif /* NO_UNIXSOCK */
+
+int u_net_sock_udp (u_net_addr_t *a, int mode)
 {
     dbg_return_if (a == NULL, -1);
     dbg_return_if (a->type != U_NET_UDP4 && a->type != U_NET_UDP6, -1);
     switch (mode) { default: break; }  /* TODO */
     return -1;
 }
-#endif /* NO_UNIXSOCK */
 
 #ifndef NO_IPV6
 int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int reuse, int backlog)
