@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.16 2006/01/09 12:38:38 tat Exp $";
+    "$Id: misc.c,v 1.17 2006/07/07 16:10:48 tho Exp $";
 
 #include "libu_conf.h"
 #include <sys/types.h>
@@ -261,6 +261,20 @@ int u_data_is_bin (char *data, size_t sz)
     }
 
     return 0;
+}
+
+int u_data_dump (char *data, size_t sz, const char *file)
+{
+    FILE *fp = NULL;
+
+    dbg_err_if ((fp = fopen(file, "w")) == NULL); 
+    dbg_err_if (fwrite(data, sz, 1, fp) < 1);
+    fclose(fp);
+
+    return 0;
+err:
+    U_FCLOSE(fp); 
+    return ~0;
 }
 
 /**

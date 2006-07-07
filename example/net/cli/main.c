@@ -1,10 +1,10 @@
-/* $Id: main.c,v 1.3 2005/10/17 18:21:59 tat Exp $ */
+/* $Id: main.c,v 1.4 2006/07/07 16:10:48 tho Exp $ */
 
 #include <stdlib.h>
 #include <err.h>
-#include <u/net.h>
-#include <u/carpal.h>
-#include <u/misc.h>
+#include <u/libu.h>
+
+int facility = LOG_LOCAL0;
 
 int main (int argc, char *argv[])
 {

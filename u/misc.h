@@ -58,6 +58,7 @@ int u_snprintf(char *str, size_t size, const char *fmt, ...);
 int u_path_snprintf(char *str, size_t size, char sep, const char *fmt, ...);
 void u_use_unused_args(char *dummy, ...);
 int u_data_is_bin (char *data, size_t sz);
+int u_data_dump (char *data, size_t sz, const char *file);
 
 #ifdef __cplusplus
 }
