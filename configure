@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.40 2006/04/27 18:39:57 tat Exp $
+# $Id: configure,v 1.41 2006/07/13 14:55:13 tho Exp $
 
 export makl_conf_h=libu_conf.h
 
@@ -32,7 +32,11 @@ makl_args_def "no_env"          "" "" "disable env module"
 makl_args_def "no_ipv6"         "" "" "disable IPv6 support"
 makl_args_def "no_unixsock"     "" "" "disable Unix socket support"
 # ... and their handlers
-__makl_enable_debug ()   { makl_append_var_mk "CFLAGS" "-g -DDEBUG" ; }
+__makl_enable_debug ()   
+{ 
+    makl_set_var_mk    "LIBU_DEBUG" ;
+    makl_append_var_mk "CFLAGS" "-g -DDEBUG" ; 
+}
 __makl_enable_profile () { makl_append_var_mk "CFLAGS" "-pg" ; }
 __makl_enable_warns ()
 {
@@ -69,7 +73,7 @@ case `makl_target_name` in
 esac
 
 # C Flags
-makl_append_var_mk "CFLAGS" "-DHAVE_CONF_H -I`pwd` -O2"
+makl_append_var_mk "CFLAGS" "-DHAVE_CONF_H -I`pwd`"
 
 # Install headers in a private subdir
 makl_set_var_mk "INCDIR" "\${DESTDIR}/include/u"
@@ -129,6 +133,10 @@ fi
 
 # Handle command-line arguments
 makl_args_handle "$@"
+
+if [ -z "`makl_get_var_mk "LIBU_DEBUG"`" ]; then
+    makl_append_var_mk "CFLAGS" "-O2"
+fi
 
 # MaKL closing
 . ${MAKL_DIR}/cf/makl.term
