@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.12 2006/07/13 12:09:30 tho Exp $";
+    "$Id: config.c,v 1.13 2006/07/13 15:51:27 tat Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -333,7 +333,7 @@ static int u_config_do_load(u_config_t *c, u_config_gets_t cb, void *arg,
             if(!u_isblank_str(++ln))
                 warn_err("config error [line %d]: { or } must be the "
                          "only not-blank char in a line", lineno);
-            return 0;
+            break; /* exit */
         }
 
         /* find the end of the key string */
