@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.11 2006/01/11 14:07:10 tat Exp $";
+    "$Id: config.c,v 1.12 2006/07/13 12:09:30 tho Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -60,7 +60,8 @@ void u_config_print(u_config_t *c, int lev)
 
     for(i = 0; i < lev; ++i)
         printf("  ");
-    printf("%s: %s\n", c->key, c->value);
+    if (c->key)
+        printf("%s: %s\n", c->key, c->value == NULL ? "" : c->value);
 
     ++lev;
     TAILQ_FOREACH(item, &c->children, np)
