@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: buf.c,v 1.1 2006/05/28 15:39:43 tat Exp $";
+    "$Id: buf.c,v 1.2 2006/07/17 09:59:19 tho Exp $";
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -18,7 +18,7 @@ struct u_buf_s
 };
 
 /**
- *  \defgroup string String
+ *  \defgroup buf Buf
  *  \{
  */
 
@@ -103,9 +103,7 @@ err:
  */
 int u_buf_load(u_buf_t *ubuf, char *filename)
 {
-    enum { BUFSZ = 4096 };
     struct stat st;
-    char buf[BUFSZ];
     FILE *fp = NULL;
 
     dbg_err_if(ubuf == NULL);

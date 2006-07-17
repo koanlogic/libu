@@ -1,4 +1,4 @@
-/* $Id: hmap.c,v 1.7 2006/04/20 09:53:53 tat Exp $ */
+/* $Id: hmap.c,v 1.8 2006/07/17 09:59:19 tho Exp $ */
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -744,8 +744,4 @@ static void _data_o_free (struct u_hmap_queue_o_s *data)
 
 /**
  *      \}
- */
-
-/**
- *  \}
  */
