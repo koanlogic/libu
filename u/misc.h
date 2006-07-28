@@ -52,6 +52,7 @@ char *u_strndup(const char *s, size_t len);
 char *u_strdup(const char *s);
 int u_savepid (const char *pf);
 char *u_sstrncpy (char *dst, const char *src, size_t size);
+size_t u_strlcat(char *s, char *append, size_t s_sz);
 void* u_memdup(const void *src, size_t size);
 int u_tokenize (char *wlist, const char *delim, char **tokv, size_t tokv_sz);
 int u_snprintf(char *str, size_t size, const char *fmt, ...);

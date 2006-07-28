@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.17 2006/07/07 16:10:48 tho Exp $";
+    "$Id: misc.c,v 1.18 2006/07/28 09:03:36 stewy Exp $";
 
 #include "libu_conf.h"
 #include <sys/types.h>
@@ -123,6 +123,31 @@ char *u_sstrncpy (char *dst, const char *src, size_t size)
 {
     dst[size] = '\0';
     return strncpy(dst, src, size);
+}
+
+/** \brief Safe string concatenation which checks for truncation 
+  Safe string concatentation which concatenates \a append at the end of \a s,
+  where \a s_sz is the maximum size of the destination buffer.
+  Returns \c 0 on success or \c ~0 if the string does not fit in \a s.
+*/
+size_t u_strlcat(char *s, char *append, size_t s_sz)
+{
+    size_t s_len;
+    size_t a_len;
+
+    dbg_return_if (s == NULL, ~0);
+    dbg_return_if (append == NULL, ~0);
+    dbg_return_if (s_sz == 0, ~0);
+
+    s_len = strlen(s);
+    a_len = strlen(append);
+
+    if (a_len + 1 > s_sz - s_len)
+        return ~0;
+
+    strncat(s, append, s_sz - s_len - 1);
+
+    return 0;
 }
 
 /** \brief Dups the memory block \c src of size \c size.
