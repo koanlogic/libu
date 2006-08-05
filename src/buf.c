@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: buf.c,v 1.2 2006/07/17 09:59:19 tho Exp $";
+    "$Id: buf.c,v 1.3 2006/08/05 18:44:06 tho Exp $";
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -23,7 +23,7 @@ struct u_buf_s
  */
 
 /**
- * \brief  Enlarge the underlaying memory block of the given buffer
+ * \brief  Enlarge the underlying memory block of the given buffer
  *
  * Enlarge the buffer data block to (at least) \a size bytes.
  *
@@ -133,9 +133,9 @@ err:
 }
 
 /**
- * \brief  Release buffer's underlaying memory block without freeing it
+ * \brief  Release buffer's underlying memory block without freeing it
  *
- * Release the underlaying memory block of the given buffer without 
+ * Release the underlying memory block of the given buffer without 
  * calling free() on it. The caller must free the buffer later on (probably
  * after using it somwhow). 
  *

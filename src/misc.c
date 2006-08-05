@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.18 2006/07/28 09:03:36 stewy Exp $";
+    "$Id: misc.c,v 1.19 2006/08/05 18:44:06 tho Exp $";
 
 #include "libu_conf.h"
 #include <sys/types.h>
@@ -301,6 +301,47 @@ err:
     U_FCLOSE(fp); 
     return ~0;
 }
+
+/**
+ *  \brief  Load file into memory from the supplied FS entry 
+ *
+ *  \param  path    the path name of the file 
+ *  \param  sz_max  if >0 impose this size limit (otherwise unlimited)
+ *  \param  pbuf    the pointer to the memory location holding the file's 
+ *                  contents as a value-result argument
+ *  \param  psz     size of the loaded file as a v-r argument
+ *
+ *  \return \c 0 on success, \c ~0 on error
+ */ 
+int u_load_file (const char *path, size_t sz_max, char **pbuf, size_t *psz)
+{   
+    char *buf = NULL;
+    size_t sz; 
+    int rc, fd = -1;
+    struct stat sb;
+    
+    dbg_return_if (path == NULL, ~0);
+    dbg_return_if (pbuf == NULL, ~0);
+    dbg_return_if (psz == NULL, ~0);
+    
+    warn_err_sif ((fd = open(path, O_RDONLY)) == -1);
+    warn_err_sif (fstat(fd, &sb) == -1);
+    warn_err_ifm (sz_max > 0 && (sz = sb.st_size) > sz_max, "file too big");
+    warn_err_sif ((buf = u_zalloc(sz)) == NULL);
+    warn_err_sif ((rc = read(fd, buf, sz)) == -1 || (size_t) rc != sz);
+    
+    U_CLOSE(fd);
+    
+    *pbuf = buf;
+    *psz = sz;
+    
+    return 0;
+err:
+    U_CLOSE(fd);
+    U_FREE(buf);
+    return ~0;
+}
+
 
 /**
  *      \}
