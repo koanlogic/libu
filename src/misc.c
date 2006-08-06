@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.20 2006/08/05 19:00:30 tho Exp $";
+    "$Id: misc.c,v 1.21 2006/08/06 07:03:00 tho Exp $";
 
 #include "libu_conf.h"
 #include <sys/types.h>
@@ -315,30 +315,30 @@ err:
  */ 
 int u_load_file (const char *path, size_t sz_max, char **pbuf, size_t *psz)
 {   
+    FILE *fp = NULL;
     char *buf = NULL;
     size_t sz; 
-    int rc, fd = -1;
     struct stat sb;
     
     dbg_return_if (path == NULL, ~0);
     dbg_return_if (pbuf == NULL, ~0);
     dbg_return_if (psz == NULL, ~0);
     
-    warn_err_sif ((fd = open(path, O_RDONLY)) == -1);
-    warn_err_sif (fstat(fd, &sb) == -1);
+    warn_err_sif ((fp = fopen(path, "r")) == NULL);
+    warn_err_sif (fstat(fileno(fp), &sb) == -1); 
     sz = sb.st_size;
     warn_err_ifm (sz_max > 0 && sz > sz_max, "file too big");
     warn_err_sif ((buf = u_zalloc(sz)) == NULL);
-    warn_err_sif ((rc = read(fd, buf, sz)) == -1 || (size_t) rc != sz);
+    warn_err_sif (fread(buf, sz, 1, fp) != 1);
     
-    U_CLOSE(fd);
+    U_FCLOSE(fp);
     
     *pbuf = buf;
     *psz = sz;
     
     return 0;
 err:
-    U_CLOSE(fd);
+    U_FCLOSE(fp);
     U_FREE(buf);
     return ~0;
 }
