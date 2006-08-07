@@ -17,6 +17,8 @@ int u_config_create(u_config_t **pc);
 int u_config_free(u_config_t *c);
 int u_config_load(u_config_t *c, int fd, int overwrite);
 
+int u_config_load_from_file (const char *file, u_config_t **pc);
+
 typedef char* (*u_config_gets_t)(void *arg, char *buf, size_t size);
 int u_config_load_from(u_config_t *c, u_config_gets_t cb, 
     void *arg, int overwrite);

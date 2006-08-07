@@ -3,13 +3,14 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.13 2006/07/13 15:51:27 tat Exp $";
+    "$Id: config.c,v 1.14 2006/08/07 10:31:21 tho Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
+#include <fcntl.h>
 
 #include <u/carpal.h>
 #include <u/queue.h>
@@ -428,6 +429,28 @@ err:
     return ~0;
 }
 
+int u_config_load_from_file (const char *file, u_config_t **pc)
+{
+    int fd = -1;
+    u_config_t *c = NULL;
+
+    dbg_return_if (file == NULL, ~0);
+    dbg_return_if (pc == NULL, ~0);
+
+    warn_err_if (u_config_create(&c));
+    warn_err_if ((fd = open(file, O_RDONLY)) == -1); 
+    warn_err_if (u_config_load(c, fd, 0));
+
+    (void) close(fd);
+
+    *pc = c;
+
+    return 0;
+err:
+    (void) u_config_free(c);
+    U_CLOSE(fd);
+    return ~0;
+}
 
 /**
  * \brief  Create a config object.
