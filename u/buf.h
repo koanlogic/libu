@@ -3,7 +3,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-struct u_buf_s;
+struct u_buf_s
+{
+    char *data;
+    size_t size, len;
+};
+
 typedef struct u_buf_s u_buf_t;
 
 int u_buf_append(u_buf_t *buf, void *data, size_t size);

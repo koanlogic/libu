@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: buf.c,v 1.3 2006/08/05 18:44:06 tho Exp $";
+    "$Id: buf.c,v 1.4 2006/08/09 14:14:34 tho Exp $";
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -11,11 +11,6 @@ static const char rcsid[] =
 #include <u/libu.h>
 #include <u/buf.h>
 
-struct u_buf_s
-{
-    char *data;
-    size_t size, len;
-};
 
 /**
  *  \defgroup buf Buf
