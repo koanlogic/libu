@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: buf.c,v 1.4 2006/08/09 14:14:34 tho Exp $";
+    "$Id: buf.c,v 1.5 2006/08/10 17:30:08 tho Exp $";
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -96,7 +96,7 @@ err:
  *
  * \return \c 0 on success, not zero on failure
  */
-int u_buf_load(u_buf_t *ubuf, char *filename)
+int u_buf_load(u_buf_t *ubuf, const char *filename)
 {
     struct stat st;
     FILE *fp = NULL;

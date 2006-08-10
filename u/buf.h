@@ -15,7 +15,7 @@ int u_buf_append(u_buf_t *buf, void *data, size_t size);
 int u_buf_clear(u_buf_t *buf);
 int u_buf_detach(u_buf_t *buf);
 int u_buf_set(u_buf_t *buf, void *data, size_t size);
-int u_buf_load(u_buf_t *buf, char *fqn);
+int u_buf_load(u_buf_t *buf, const char *fqn);
 int u_buf_free(u_buf_t *buf);
 int u_buf_create(u_buf_t **pbuf);
 int u_buf_reserve(u_buf_t *buf, size_t size);
