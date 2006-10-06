@@ -3,6 +3,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct u_buf_s
 {
     char *data;
@@ -22,5 +26,10 @@ int u_buf_reserve(u_buf_t *buf, size_t size);
 void* u_buf_ptr(u_buf_t *buf);
 size_t u_buf_len(u_buf_t *buf);
 size_t u_buf_size(u_buf_t *buf);
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif
