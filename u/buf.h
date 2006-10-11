@@ -2,6 +2,8 @@
 #define _U_LIBU_BUF_H_
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdio.h>
+#include <stdarg.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,6 +28,7 @@ int u_buf_reserve(u_buf_t *buf, size_t size);
 void* u_buf_ptr(u_buf_t *buf);
 size_t u_buf_len(u_buf_t *buf);
 size_t u_buf_size(u_buf_t *buf);
+int u_buf_printf(u_buf_t *ubuf, const char *fmt, ...);
 
 #ifdef __cplusplus
 }

@@ -3,14 +3,18 @@
  */
 
 static const char rcsid[] =
-    "$Id: buf.c,v 1.5 2006/08/10 17:30:08 tho Exp $";
+    "$Id: buf.c,v 1.6 2006/10/11 16:23:15 tat Exp $";
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stdio.h>
+#include <stdarg.h>
 #include <u/libu.h>
 #include <u/buf.h>
 
+#define UBUF_MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define UBUF_MIN(a, b) (((a) < (b)) ? (a) : (b))
 
 /**
  *  \defgroup buf Buf
@@ -272,9 +276,62 @@ int u_buf_free(u_buf_t *ubuf)
     if(ubuf->data)
         u_free(ubuf->data);
 
+    u_free(ubuf);
+
     return 0;
 err:
     return ~0;
+}
+
+/**
+ * \brief  Append a string to the given buffer
+ *
+ * Create a string from the printf-style arguments and append it to the 
+ * given u_buf_t object.
+ *
+ * The length of the appended string (NOT including the ending '\0') will 
+ * be added to the current length of the buffer (u_buf_len).
+ *
+ * \param ubuf  buffer object
+ * \param fmt   printf-style format
+ * \param ...   variable list of arguments
+ *
+ * \return \c 0 on success, not zero on failure
+ */
+int u_buf_printf(u_buf_t *ubuf, const char *fmt, ...)
+{
+    va_list ap;
+    size_t sz, avail;
+
+    dbg_return_if(ubuf == NULL, ~0);
+    dbg_return_if(fmt == NULL, ~0);
+
+    va_start(ap, fmt); 
+
+again:
+    avail = ubuf->size - ubuf->len; /* avail may be zero */
+
+    /* write to the internal buffer of ubuf */
+    dbg_err_if(( sz = vsnprintf(ubuf->data + ubuf->len, avail, fmt, ap)) <= 0);
+
+    if(sz >= avail)
+    {
+        /* enlarge the buffer (make it at least 128 bytes bigger) */
+        dbg_err_if(u_buf_reserve(ubuf, ubuf->len + UBUF_MAX(128, sz + 1)));
+
+        /* try again with a bigger buffer */
+        goto again;
+    }
+
+    /* update data length (don't include the '\0' in the size count) */
+    ubuf->len += sz; 
+
+    va_end(ap);
+
+    return 0;
+err:
+    va_end(ap);
+    return ~0; /* error */
 }
 
 /**
