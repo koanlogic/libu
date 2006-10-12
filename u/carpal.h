@@ -128,42 +128,18 @@ extern "C" {
         }                                                           \
     } while(0)
 #else
-#ifdef HAVE_STRERROR_R
-    #ifdef STRERROR_R_CHAR_P
-        #define msg_strerror(label, en)                             \
-            do {                                                    \
-            enum { _DBG_BUFSZ = 256 };                              \
-            char *p, _eb[_DBG_BUFSZ] = { 0 };                       \
-            p = strerror_r(en, _eb, _DBG_BUFSZ);                    \
-            if(p) {                                                 \
-                msg(label, "%s", p);                                \
-            } else {                                                \
-                msg(label, "strerror_r(%d, ...) failed", en);       \
-            }                                                       \
-        } while(0)                                        
-    #else                                                     
-        #define msg_strerror(label, en)                             \
-        do {                                                        \
-            enum { _DBG_BUFSZ = 256 };                              \
-            char _eb[_DBG_BUFSZ] = { 0 };                           \
-            if(strerror_r(en, _eb, _DBG_BUFSZ) == 0) {              \
-                msg(label, "%s", _eb);                              \
-            } else {                                                \
-                msg(label, "strerror_r(%d, ...) failed", en);       \
-            }                                                       \
-        } while(0)                                        
-    #endif                                                    
-#else                                                         
-    #define msg_strerror(label, en)                                 \
-        do {                                                        \
-            char *p;                                                \
-            if((p = strerror(en)) != NULL) {                        \
-                msg(label, "%s", p);                                \
-            } else {                                                \
-                msg(label, "strerror(%d) failed", en);              \
-            }                                                       \
-        } while(0)                  
-#endif  
+/** \brief write a debug message containing the message returned by strerror(errno) */
+#define msg_strerror(label, en)                                     \
+    do {                                                            \
+        enum { _DBG_BUFSZ = 256 };                                  \
+        char _eb[_DBG_BUFSZ] = { 0 };                               \
+        if(u_strerror_r(en, _eb, _DBG_BUFSZ)) {                     \
+            msg(label, "strerror_r(%d, ...) failed", en);           \
+        } else {                                                    \
+            msg(label, "%s", _eb);                                  \
+        }                                                           \
+    } while(0)  
+
 #endif /* ! def OS_WIN */
 
 /* nop_ macros */
