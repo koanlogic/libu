@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: buf.c,v 1.6 2006/10/11 16:23:15 tat Exp $";
+    "$Id: buf.c,v 1.7 2006/10/17 12:15:49 tat Exp $";
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -306,9 +306,9 @@ int u_buf_printf(u_buf_t *ubuf, const char *fmt, ...)
     dbg_return_if(ubuf == NULL, ~0);
     dbg_return_if(fmt == NULL, ~0);
 
+again:
     va_start(ap, fmt); 
 
-again:
     avail = ubuf->size - ubuf->len; /* avail may be zero */
 
     /* write to the internal buffer of ubuf */
@@ -318,6 +318,11 @@ again:
     {
         /* enlarge the buffer (make it at least 128 bytes bigger) */
         dbg_err_if(u_buf_reserve(ubuf, ubuf->len + UBUF_MAX(128, sz + 1)));
+
+        /* zero-term the buffer (vsnprintf has removed the last \0!) */
+        ubuf->data[ubuf->len] = 0;
+
+	va_end(ap);
 
         /* try again with a bigger buffer */
         goto again;
