@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.23 2006/10/12 09:54:38 tat Exp $";
+    "$Id: misc.c,v 1.24 2006/10/18 16:26:24 tho Exp $";
 
 #include "libu_conf.h"
 #include <sys/types.h>
@@ -130,7 +130,7 @@ char *u_sstrncpy (char *dst, const char *src, size_t size)
   where \a s_sz is the maximum size of the destination buffer.
   Returns \c 0 on success or \c ~0 if the string does not fit in \a s.
 */
-size_t u_strlcat(char *s, char *append, size_t s_sz)
+size_t u_strlcat(char *s, const char *append, size_t s_sz)
 {
     size_t s_len;
     size_t a_len;
