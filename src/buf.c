@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: buf.c,v 1.7 2006/10/17 12:15:49 tat Exp $";
+    "$Id: buf.c,v 1.8 2006/10/23 17:41:12 tho Exp $";
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -12,9 +12,6 @@ static const char rcsid[] =
 #include <stdarg.h>
 #include <u/libu.h>
 #include <u/buf.h>
-
-#define UBUF_MAX(a, b) (((a) > (b)) ? (a) : (b))
-#define UBUF_MIN(a, b) (((a) < (b)) ? (a) : (b))
 
 /**
  *  \defgroup buf Buf
@@ -68,7 +65,7 @@ err:
  *
  * \return \c 0 on success, not zero on failure
  */
-int u_buf_append(u_buf_t *ubuf, void *data, size_t size)
+int u_buf_append(u_buf_t *ubuf, const void *data, size_t size)
 {
     dbg_err_if(ubuf == NULL);
     dbg_err_if(data == NULL);
@@ -227,7 +224,7 @@ err:
  *
  * \return \c 0 on success, not zero on failure
  */
-int u_buf_set(u_buf_t *ubuf, void *data, size_t size)
+int u_buf_set(u_buf_t *ubuf, const void *data, size_t size)
 {
     dbg_err_if(ubuf == NULL);
     dbg_err_if(data == NULL);
@@ -317,7 +314,7 @@ again:
     if(sz >= avail)
     {
         /* enlarge the buffer (make it at least 128 bytes bigger) */
-        dbg_err_if(u_buf_reserve(ubuf, ubuf->len + UBUF_MAX(128, sz + 1)));
+        dbg_err_if(u_buf_reserve(ubuf, ubuf->len + U_MAX(128, sz + 1)));
 
         /* zero-term the buffer (vsnprintf has removed the last \0!) */
         ubuf->data[ubuf->len] = 0;

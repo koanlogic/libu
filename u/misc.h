@@ -43,6 +43,7 @@ extern "C" {
 #define U_FCLOSE(fp) do {if (fp) { fclose(fp); fp = NULL; }} while (0)
 #define U_PCLOSE(pp) do {if (pp) { pclose(pp); pp = NULL; }} while (0)
 #define U_MIN(a, b) ((a) < (b) ? (a) : (b))
+#define U_MAX(a, b) ((a) > (b) ? (a) : (b))
 #define u_unused_args(...) u_use_unused_args(NULL, __VA_ARGS__)
 
 int u_isnl(int c);

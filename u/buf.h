@@ -17,10 +17,10 @@ struct u_buf_s
 
 typedef struct u_buf_s u_buf_t;
 
-int u_buf_append(u_buf_t *buf, void *data, size_t size);
+int u_buf_append(u_buf_t *buf, const void *data, size_t size);
 int u_buf_clear(u_buf_t *buf);
 int u_buf_detach(u_buf_t *buf);
-int u_buf_set(u_buf_t *buf, void *data, size_t size);
+int u_buf_set(u_buf_t *buf, const void *data, size_t size);
 int u_buf_load(u_buf_t *buf, const char *fqn);
 int u_buf_free(u_buf_t *buf);
 int u_buf_create(u_buf_t **pbuf);
