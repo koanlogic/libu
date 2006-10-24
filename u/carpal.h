@@ -159,6 +159,19 @@ extern "C" {
 #define con_goto_if(expr, gt)          msg_goto_if(console, expr, gt)
 #define con_strerror(errno)            msg_strerror(console, errno)
 
+/* err_ macros */
+#define err(...)                       msg(error, __VA_ARGS__)
+#define err_err(...)                   msg_err(error, __VA_ARGS__)
+#define err_ifb(expr)                  msg_ifb(error, expr)
+#define err_if(expr)                   msg_if(error, expr) 
+#define err_return_if(expr, err)       msg_return_if(error, expr, err)
+#define err_err_if(expr)               msg_err_if(error, expr)
+#define err_err_sif(expr)              msg_err_sif(error, expr)
+#define err_err_ifm(expr, ...)         \
+    msg_err_ifm(error, expr, __VA_ARGS__)
+#define err_goto_if(expr, gt)          msg_goto_if(error, expr, gt)
+#define err_strerror(errno)            msg_strerror(error, errno)
+
 /* info_ macros */
 /* #define info(...)                    msg(info, __VA_ARGS__) */
 #define info_err(...)                   msg_err(info, __VA_ARGS__)

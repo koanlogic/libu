@@ -112,6 +112,17 @@ int u_log_set_hook(u_log_hook_t hook, void *arg, u_log_hook_t *old, void**parg);
 #define u_log_warning(facility, ctx, ...) \
     u_log_write(facility, LOG_WARNING, ctx, __VA_ARGS__)
 
+/** \brief log an error message
+ *
+ * Write an error log message.
+ *
+ * \param facility  facility
+ * \param ctx       set to zero if you don't want context, 1 otherwise
+ * \param ...       printf-style variable length arguments list
+ */
+#define u_log_error(facility, ctx, ...) \
+    u_log_write(facility, LOG_ERR, ctx, __VA_ARGS__)
+
 /** \brief log an informational message
  *
  * Write an informational log message.
@@ -142,6 +153,9 @@ int u_log_set_hook(u_log_hook_t hook, void *arg, u_log_hook_t *old, void**parg);
 
 /** \brief same as u_log_warning but using the facility global variable */
 #define warning(...) u_log_warning(facility, 1, __VA_ARGS__)
+
+/** \brief same as u_log_error but using the facility global variable */
+#define error(...) u_log_error(facility, 1, __VA_ARGS__)
 
 /** \brief same as u_log_info but using the facility global variable */
 #define info(...) u_log_info(facility, 0, __VA_ARGS__)
