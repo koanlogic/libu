@@ -163,6 +163,7 @@ extern "C" {
 #define con_if(expr)                   msg_if(console, expr) 
 #define con_ifm(expr, ...)             msg_ifm(console, expr, __VA_ARGS__) 
 #define con_return_if(expr, err)       msg_return_if(console, expr, err)
+#define con_return_sif(expr, err)      msg_return_sif(console, expr, err)
 #define con_err_if(expr)               msg_err_if(console, expr)
 #define con_err_sif(expr)              msg_err_sif(console, expr)
 #define con_err_ifm(expr, ...)         \
@@ -177,6 +178,7 @@ extern "C" {
 #define err_if(expr)                   msg_if(error, expr) 
 #define err_ifm(expr, ...)             msg_ifm(error, expr, __VA_ARGS__) 
 #define err_return_if(expr, err)       msg_return_if(error, expr, err)
+#define err_return_sif(expr, err)      msg_return_sif(error, expr, err)
 #define err_err_if(expr)               msg_err_if(error, expr)
 #define err_err_sif(expr)              msg_err_sif(error, expr)
 #define err_err_ifm(expr, ...)         \
@@ -191,6 +193,7 @@ extern "C" {
 #define info_if(expr)                   msg_if(info, expr) 
 #define info_ifm(expr, ...)             msg_ifm(info, expr, __VA_ARGS__) 
 #define info_return_if(expr, err)       msg_return_if(info, expr, err)
+#define info_return_sif(expr, err)      msg_return_sif(info, expr, err)
 #define info_err_if(expr)               msg_err_if(info, expr)
 #define info_err_sif(expr)              msg_err_sif(info, expr)
 #define info_err_ifm(expr, ...)         \
@@ -205,6 +208,7 @@ extern "C" {
 #define warn_if(expr)                   msg_if(warning, expr) 
 #define warn_ifm(expr, ...)             msg_ifm(warning, expr, __VA_ARGS__) 
 #define warn_return_if(expr, err)       msg_return_if(warning, expr, err)
+#define warn_return_sif(expr, err)      msg_return_sif(warning, expr, err)
 #define warn_err_if(expr)               msg_err_if(warning, expr)
 #define warn_err_sif(expr)              msg_err_sif(warning, expr)
 #define warn_err_ifm(expr, ...)         \
