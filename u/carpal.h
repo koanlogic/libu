@@ -40,6 +40,15 @@ extern "C" {
  */
 #define msg_if(label, expr) do { if( expr ) msg_noargs(label, #expr); } while(0)
 
+/** \brief log the given message if \e expr not zero.
+ *
+ *   log the given message of type \e label if \e expr is not zero 
+ *
+ *   For ex.:
+ *       warn_ifm(check(abc) < 0, "check failed on file %s", filename);
+ */
+#define msg_ifm(label, expr, ...) do { if(expr) { label(__VA_ARGS__); } } while(0);
+
 /** \brief log a message if \e expr not zero and enter the if-block
  *
  *   log a message of type \e label if \e expr is not zero and enter the
@@ -152,8 +161,10 @@ extern "C" {
 #define con_err(...)                   msg_err(console, __VA_ARGS__)
 #define con_ifb(expr)                  msg_ifb(console, expr)
 #define con_if(expr)                   msg_if(console, expr) 
+#define con_ifm(expr, ...)             msg_ifm(console, expr, __VA_ARGS__) 
 #define con_return_if(expr, err)       msg_return_if(console, expr, err)
 #define con_err_if(expr)               msg_err_if(console, expr)
+#define con_err_sif(expr)              msg_err_sif(console, expr)
 #define con_err_ifm(expr, ...)         \
     msg_err_ifm(console, expr, __VA_ARGS__)
 #define con_goto_if(expr, gt)          msg_goto_if(console, expr, gt)
@@ -164,6 +175,7 @@ extern "C" {
 #define err_err(...)                   msg_err(error, __VA_ARGS__)
 #define err_ifb(expr)                  msg_ifb(error, expr)
 #define err_if(expr)                   msg_if(error, expr) 
+#define err_ifm(expr, ...)             msg_ifm(error, expr, __VA_ARGS__) 
 #define err_return_if(expr, err)       msg_return_if(error, expr, err)
 #define err_err_if(expr)               msg_err_if(error, expr)
 #define err_err_sif(expr)              msg_err_sif(error, expr)
@@ -177,6 +189,7 @@ extern "C" {
 #define info_err(...)                   msg_err(info, __VA_ARGS__)
 #define info_ifb(expr)                  msg_ifb(info, expr)
 #define info_if(expr)                   msg_if(info, expr) 
+#define info_ifm(expr, ...)             msg_ifm(info, expr, __VA_ARGS__) 
 #define info_return_if(expr, err)       msg_return_if(info, expr, err)
 #define info_err_if(expr)               msg_err_if(info, expr)
 #define info_err_sif(expr)              msg_err_sif(info, expr)
@@ -190,6 +203,7 @@ extern "C" {
 #define warn_err(...)                   msg_err(warning, __VA_ARGS__)
 #define warn_ifb(expr)                  msg_ifb(warning, expr)
 #define warn_if(expr)                   msg_if(warning, expr) 
+#define warn_ifm(expr, ...)             msg_ifm(warning, expr, __VA_ARGS__) 
 #define warn_return_if(expr, err)       msg_return_if(warning, expr, err)
 #define warn_err_if(expr)               msg_err_if(warning, expr)
 #define warn_err_sif(expr)              msg_err_sif(warning, expr)
@@ -204,6 +218,7 @@ extern "C" {
     #define dbg_err(...)                msg_err(debug, __VA_ARGS__)
     #define dbg_ifb(expr)               msg_ifb(debug, expr)
     #define dbg_if(expr)                msg_if(debug, expr) 
+    #define dbg_ifm(expr, ...)          msg_ifm(debug, expr, __VA_ARGS__) 
     #define dbg_return_if(expr, err)    msg_return_if(debug, expr, err)
     #define dbg_return_sif(expr, err)   msg_return_sif(debug, expr, err)
     #define dbg_err_if(expr)            msg_err_if(debug, expr)
@@ -230,12 +245,13 @@ extern "C" {
     #define dbg(...)                    dbg_nop()
     #define dbg_err(...)                do { goto err; } while(0)
     #define dbg_ifb(expr)               if( (expr) )
-    #define dbg_if(expr)                expr
+    #define dbg_if(expr)                if( (expr) ) { ; }
+    #define dbg_ifm(expr, ...)          if( (expr) ) { ; }
     #define dbg_return_if(expr, err)    do { if( (expr) ) return err; } while(0)
-    #define dbg_err_if(expr)            do { if( (expr)) goto err; } while(0)
-    #define dbg_err_sif(expr)           do { if( (expr)) goto err; } while(0)
-    #define dbg_err_ifm(expr, ...)      do { if( (expr)) goto err; } while(0)
-    #define dbg_goto_if(expr, gt)       do { if((expr)) goto gt; } while(0)
+    #define dbg_err_if(expr)            do { if( (expr) ) goto err; } while(0)
+    #define dbg_err_sif(expr)           do { if( (expr) ) goto err; } while(0)
+    #define dbg_err_ifm(expr, ...)      do { if( (expr) ) goto err; } while(0)
+    #define dbg_goto_if(expr, gt)       do { if( (expr) ) goto gt; } while(0)
     #define dbg_strerror(errno)         dbg_nop()
     #define TIMER_ON
     #define TIMER_STEP
