@@ -2,10 +2,13 @@
  * Copyright (c) 2005, 2006 by KoanLogic s.r.l. - All rights reserved.  
  */
 
-#ifndef _U_STRING_H_
-#define _U_STRING_H_
+#ifndef _U_LIBU_STRING_H_
+#define _U_LIBU_STRING_H_
 #include "libu_conf.h"
-
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdarg.h>
 #include <sys/types.h>
 
 #ifdef __cplusplus
@@ -29,15 +32,8 @@ size_t u_string_len(u_string_t *s);
 int u_string_copy(u_string_t *dst, u_string_t *src);
 int u_string_set_length(u_string_t *s, size_t len); 
 int u_string_trim(u_string_t *s);
-
-int u_string_url_encode(u_string_t *s);
-int u_string_url_decode(u_string_t *s);
-
-int u_string_html_encode(u_string_t *s);
-int u_string_html_decode(u_string_t *s);
-
-int u_string_sql_encode(u_string_t *s);
-int u_string_sql_decode(u_string_t *s);
+int u_string_reserve(u_string_t *s, size_t size);
+int u_string_sprintf(u_string_t *s, const char *fmt, ...);
 
 #ifdef __cplusplus
 }

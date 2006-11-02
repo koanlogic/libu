@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: buf.c,v 1.8 2006/10/23 17:41:12 tho Exp $";
+    "$Id: buf.c,v 1.9 2006/11/02 21:16:22 tat Exp $";
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -319,7 +319,7 @@ again:
         /* zero-term the buffer (vsnprintf has removed the last \0!) */
         ubuf->data[ubuf->len] = 0;
 
-	va_end(ap);
+        va_end(ap);
 
         /* try again with a bigger buffer */
         goto again;
