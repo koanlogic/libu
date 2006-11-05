@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.14 2006/08/07 10:31:21 tho Exp $";
+    "$Id: config.c,v 1.15 2006/11/05 14:24:27 tat Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -265,6 +265,8 @@ static int cs_getline(u_config_gets_t cb, void *arg, u_string_t *ln)
     while((p = cb(arg, buf, BUFSZ)) != NULL)
     {
         len = strlen(buf);
+        if(len == 0)
+            break; /* empty line */
         dbg_err_if(u_string_append(ln, buf, --len));
         if(!u_isnl(buf[len]))
             continue; /* line's longer the bufsz (or eof);get next line chunk */
