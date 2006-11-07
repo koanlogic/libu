@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.45 2006/11/07 13:29:59 tho Exp $
+# $Id: configure,v 1.46 2006/11/07 14:33:12 tho Exp $
 
 export makl_conf_h=libu_conf.h
 
@@ -152,7 +152,7 @@ if [ -z "`makl_get_var_mk "LIBU_DEBUG"`" ]; then
 fi
 
 # Install headers in a private subdir
-makl_set_var_mk "INCDIR" "`makl_get_var_mk \"INCDIR\"`/u"
+makl_set_var "INCDIR" "\"`makl_get_var_mk \"INCDIR\"`/u\""
 
 
 # MaKL closing
