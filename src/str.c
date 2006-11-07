@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: str.c,v 1.6 2006/11/02 21:16:22 tat Exp $";
+    "$Id: str.c,v 1.7 2006/11/07 11:35:11 tho Exp $";
 
 #include <stdlib.h>
 #include <errno.h>
@@ -217,7 +217,7 @@ int u_string_set(u_string_t *s, const char *buf, size_t len)
  *
  * Enlarge the buffer data block to (at least) \a size bytes.
  *
- * \param ubuf  buffer object
+ * \param s     string object
  * \param size  requested size
  *
  * \return \c 0 on success, not zero on failure
