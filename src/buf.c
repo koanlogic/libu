@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: buf.c,v 1.9 2006/11/02 21:16:22 tat Exp $";
+    "$Id: buf.c,v 1.10 2006/11/07 11:47:33 tho Exp $";
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -286,7 +286,7 @@ err:
  * Create a string from the printf-style arguments and append it to the 
  * given u_buf_t object.
  *
- * The length of the appended string (NOT including the ending '\0') will 
+ * The length of the appended string (NOT including the ending '\\0') will 
  * be added to the current length of the buffer (u_buf_len).
  *
  * \param ubuf  buffer object
