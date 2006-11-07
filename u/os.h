@@ -11,6 +11,8 @@
 #include <u/fnmatch.h>
 #include <u/timegm.h>
 #include <u/strsep.h>
+#include <u/strlcpy.h>
+#include <u/strlcat.h>
 #include <u/gettimeofday.h>
 #include <u/daemon.h>
 

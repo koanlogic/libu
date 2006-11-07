@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.43 2006/11/07 09:15:31 tho Exp $
+# $Id: configure,v 1.44 2006/11/07 11:40:32 tat Exp $
 
 export makl_conf_h=libu_conf.h
 
@@ -111,6 +111,8 @@ makl_checkfunc          0   "strtok_r"
 makl_checkfunc          0   "fnmatch"
 makl_checkfunc          0   "timegm"
 makl_checkfunc          0   "strsep"
+makl_checkfunc          0   "strlcpy"
+makl_checkfunc          0   "strlcat"
 makl_checkfunc          0   "gettimeofday"
 makl_checkfunc          0   "daemon"
 makl_func_strerror_r    0
