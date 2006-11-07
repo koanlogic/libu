@@ -1,14 +1,11 @@
-# $Id: Makefile,v 1.4 2006/01/31 17:08:13 tho Exp $
+# $Id: Makefile,v 1.5 2006/11/07 09:15:31 tho Exp $
 
 include common.mk
 include ../../Makefile.conf
 
 ifdef HAVE_DOXYGEN 
 
-all: img
-	doxygen libu.doxy
-
-img:
+all:
 	doxygen libu.doxy
 	mkdir -p html/images
 	cp -r images html

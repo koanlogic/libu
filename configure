@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.42 2006/11/07 08:42:40 tho Exp $
+# $Id: configure,v 1.43 2006/11/07 09:15:31 tho Exp $
 
 export makl_conf_h=libu_conf.h
 
@@ -80,7 +80,7 @@ case ${target} in
         makl_set_var_h "OS_UNIX"
         makl_set_var_h "U_PATH_SEPARATOR" "'/'"
         if [ `echo $target | grep darwin` ]; then
-            makl_set_var_mk "__SHLIB_CC_FLAGS" \
+            makl_set_var_mk "SHLIB_CC_FLAGS" \
                 "-undefined suppress -flat_namespace"
         fi
         ;;
