@@ -1,4 +1,4 @@
-/*  $Id: queue.h,v 1.2 2005/12/04 20:41:15 tho Exp $ */
+/*  $Id: queue.h,v 1.3 2006/11/07 12:00:42 tat Exp $ */
 /*  $OpenBSD: queue.h,v 1.22 2001/06/23 04:39:35 angelos Exp $  */
 /*  $NetBSD: queue.h,v 1.11 1996/05/16 05:17:14 mycroft Exp $   */
 
@@ -233,9 +233,11 @@ struct {                                                                    \
 #define LIST_ENTRY_NULL { NULL, NULL }
 #endif
 
-#ifndef LIST_FOREACH
-#define LIST_FOREACH(var, head, entries)                                    \
-    for (var = (head)->lh_first; var != NULL; var = var->entries.le_next)
+#ifndef LIST_FOREACH_SAFE
+#define LIST_FOREACH_SAFE(var, head, field, tvar)                       \
+        for ((var) = LIST_FIRST((head));                                \
+            (var) && ((tvar) = LIST_NEXT((var), field), 1);             \
+            (var) = (tvar))
 #endif
 
 #ifndef LIST_FIRST
@@ -280,11 +282,26 @@ struct {                                                                    \
             (var) = TAILQ_NEXT(var, field))
 #endif
 
+#ifndef TAILQ_FOREACH_SAFE
+#define TAILQ_FOREACH_SAFE(var, head, field, tvar)                      \
+        for ((var) = TAILQ_FIRST((head));                               \
+            (var) && ((tvar) = TAILQ_NEXT((var), field), 1);            \
+            (var) = (tvar))
+          
+#endif
 #ifndef TAILQ_FOREACH_REVERSE
-#define TAILQ_FOREACH_REVERSE(var, head, field, headname)                   \
-        for((var) = TAILQ_LAST(head, headname);                             \
-            (var) != TAILQ_END(head);                                       \
-            (var) = TAILQ_PREV(var, headname, field))
+#define TAILQ_FOREACH_REVERSE(var, head, headname, field)               \
+        for ((var) = TAILQ_LAST((head), headname);                      \
+            (var);                                                      \
+            (var) = TAILQ_PREV((var), headname, field))
+
+#endif
+
+#ifndef TAILQ_FOREACH_REVERSE_SAFE
+#define TAILQ_FOREACH_REVERSE_SAFE(var, head, headname, field, tvar)    \
+        for ((var) = TAILQ_LAST((head), headname);                      \
+            (var) && ((tvar) = TAILQ_PREV((var), headname, field), 1);  \
+            (var) = (tvar))
 #endif
 
 #endif /* !_U_QUEUE_H_ */
