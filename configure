@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.41 2006/07/13 14:55:13 tho Exp $
+# $Id: configure,v 1.42 2006/11/07 08:42:40 tho Exp $
 
 export makl_conf_h=libu_conf.h
 
@@ -24,6 +24,7 @@ makl_args_init "$@"
 makl_args_def "enable_debug"    "" "" "enables debugging"
 makl_args_def "enable_profile"  "" "" "enables profiling"
 makl_args_def "enable_warns"    "" "" "set CFLAGS for extra warnings"
+makl_args_def "enable_shared"   "" "" "enable shared library build"
 makl_args_def "no_hmap"         "" "" "disable hmap module"
 makl_args_def "no_config"       "" "" "disable config module"
 makl_args_def "no_log"          "" "" "disable log module"
@@ -47,6 +48,14 @@ __makl_enable_warns ()
                                 "-Wwrite-strings -Wunreachable-code "       \
                                 "-Wunused -Wcast-qual -pedantic "
 }
+# don't forget to align major/minor/teeny with VERSION
+__makl_enable_shared ()
+{ 
+    makl_set_var_mk "SHLIB" "true";
+    makl_set_var_mk "SHLIB_MAJOR" "0" ;
+    makl_set_var_mk "SHLIB_MINOR" "4" ;
+    makl_set_var_mk "SHLIB_TEENY" "1" ;
+}
 __makl_no_hmap ()           { makl_set_var "NO_HMAP" ; }
 __makl_no_config ()         { makl_set_var "NO_CONFIG" ; }
 __makl_no_log ()            { makl_set_var "NO_LOG" ; }
@@ -60,7 +69,8 @@ makl_pkg_name "libu"
 makl_pkg_version
 
 # Set variables depending on host OS
-case `makl_target_name` in
+target=`makl_target_name`
+case ${target} in
     *mingw* | *MINGW*)
         makl_set_var_h "OS_WIN"
         # use the hex value to avoid backspace escaping madness
@@ -69,6 +79,10 @@ case `makl_target_name` in
     *)
         makl_set_var_h "OS_UNIX"
         makl_set_var_h "U_PATH_SEPARATOR" "'/'"
+        if [ `echo $target | grep darwin` ]; then
+            makl_set_var_mk "__SHLIB_CC_FLAGS" \
+                "-undefined suppress -flat_namespace"
+        fi
         ;;
 esac
 
