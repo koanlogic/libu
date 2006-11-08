@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.46 2006/11/07 14:33:12 tho Exp $
+# $Id: configure,v 1.47 2006/11/08 13:29:01 tho Exp $
 
 export makl_conf_h=libu_conf.h
 
@@ -24,7 +24,6 @@ makl_args_init "$@"
 makl_args_def "enable_debug"    "" "" "enables debugging"
 makl_args_def "enable_profile"  "" "" "enables profiling"
 makl_args_def "enable_warns"    "" "" "set CFLAGS for extra warnings"
-makl_args_def "enable_shared"   "" "" "enable shared library build"
 makl_args_def "no_hmap"         "" "" "disable hmap module"
 makl_args_def "no_config"       "" "" "disable config module"
 makl_args_def "no_log"          "" "" "disable log module"
@@ -47,14 +46,6 @@ __makl_enable_warns ()
                                 "-Wwrite-strings -Wswitch -Wshadow "        \
                                 "-Wwrite-strings -Wunreachable-code "       \
                                 "-Wunused -Wcast-qual -pedantic "
-}
-# don't forget to align major/minor/teeny with VERSION
-__makl_enable_shared ()
-{ 
-    makl_set_var_mk "SHLIB" "true";
-    makl_set_var_mk "SHLIB_MAJOR" "0" ;
-    makl_set_var_mk "SHLIB_MINOR" "4" ;
-    makl_set_var_mk "SHLIB_TEENY" "1" ;
 }
 __makl_no_hmap ()           { makl_set_var "NO_HMAP" ; }
 __makl_no_config ()         { makl_set_var "NO_CONFIG" ; }
@@ -80,7 +71,7 @@ case ${target} in
         makl_set_var_h "OS_UNIX"
         makl_set_var_h "U_PATH_SEPARATOR" "'/'"
         if [ `echo $target | grep darwin` ]; then
-            makl_set_var_mk "SHLIB_CC_FLAGS" \
+            makl_set_var_mk "SHLIB_LDFLAGS" \
                 "-undefined suppress -flat_namespace"
         fi
         ;;
