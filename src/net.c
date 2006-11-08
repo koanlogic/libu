@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: net.c,v 1.14 2006/10/12 09:42:31 tat Exp $";
+    "$Id: net.c,v 1.15 2006/11/08 18:59:31 tho Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -357,7 +357,7 @@ int u_net_uri2sun (const char *uri, struct sockaddr_un *sad)
     dbg_return_if (sad == NULL, ~0);
 
     sad->sun_family = AF_UNIX;
-    strncpy(sad->sun_path, uri + strlen("unix://"), sizeof sad->sun_path);
+    strlcpy(sad->sun_path, uri + strlen("unix://"), sizeof sad->sun_path);
     
     return 0;
 }

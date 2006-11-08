@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.25 2006/11/07 11:40:32 tat Exp $";
+    "$Id: misc.c,v 1.26 2006/11/08 18:59:31 tho Exp $";
 
 #include "libu_conf.h"
 #include <sys/types.h>
@@ -346,13 +346,13 @@ int u_strerror_r(int en, char *msg, size_t sz)
 
     if(rc == 0)
     {    /* posix version, success */
-        strncpy(msg, buf, sz);
+        strlcpy(msg, buf, sz);
     } else if(rc < 1024) {
          /* posix version, failed (returns -1 or an error number) */
          goto err;
     } else {
         /* glibc char*-returning version, always succeeds */
-        strncpy(msg, (char*)rc, sz);
+        strlcpy(msg, (char*)rc, sz);
     }
 #else
     /* there's not strerror_r, use strerror() instead */
@@ -360,10 +360,8 @@ int u_strerror_r(int en, char *msg, size_t sz)
 
     dbg_err_if((p = strerror(en)) == NULL);
 
-    strncpy(msg, p, sz);
+    strlcpy(msg, p, sz);
 #endif
-
-    msg[sz - 1] = 0;
 
     return 0;
 err:
