@@ -1,4 +1,4 @@
-$Id: ChangeLog,v 1.9 2006/11/08 18:16:18 tho Exp $
+$Id: ChangeLog,v 1.10 2006/11/09 08:35:20 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/kl/cont/gb/html/libu.html
 
@@ -22,7 +22,7 @@ LibU 0.5.0:
     - OpenBSD strlcpy() and strlcat() added to the portability layer
     - configure: debug and code optimisation compiler flags are mutually 
       exclusive; --enable_shared switch to build shared libraries (at least)
-      on Linux, FreeBSD, NetBSD and Darwin targets
+      on Linux, FreeBSD, NetBSD and Darwin targets (needs MaKL 1.3.0)
 
 LibU 0.4.1:
     - u_buf_t type and functions
