@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.15 2006/11/05 14:24:27 tat Exp $";
+    "$Id: config.c,v 1.16 2006/11/14 15:07:37 tat Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -431,6 +431,16 @@ err:
     return ~0;
 }
 
+/**
+ * \brief  Create a configuration object reading from a config file
+ *
+ * Create a configuration object reading from a config file
+ *
+ * \param file      file descriptor 
+ * \param pc        value-result that will get the new configuration object
+ *
+ * \return \c 0 on success, not-zero on error.
+ */
 int u_config_load_from_file (const char *file, u_config_t **pc)
 {
     int fd = -1;
