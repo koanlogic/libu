@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: log.c,v 1.9 2006/03/11 14:41:16 tat Exp $";
+    "$Id: log.c,v 1.10 2006/11/17 17:47:47 tat Exp $";
 
 #include <sys/types.h>
 #include <errno.h>
@@ -39,18 +39,22 @@ static inline const char* u_log_label(int lev)
 {
     switch(lev)
     {
-    case LOG_CRIT:   
-        return "crt";
-    case LOG_ERR:    
-        return "err";
-    case LOG_WARNING:
-        return "wrn";
-    case LOG_NOTICE: 
-        return "not"; 
-    case LOG_INFO:   
-        return "inf"; 
     case LOG_DEBUG:  
         return "dbg"; 
+    case LOG_INFO:   
+        return "inf"; 
+    case LOG_NOTICE: 
+        return "ntc"; 
+    case LOG_WARNING:
+        return "wrn";
+    case LOG_ERR:    
+        return "err";
+    case LOG_CRIT:   
+        return "crt";
+    case LOG_ALERT:   
+        return "alr";
+    case LOG_EMERG:   
+        return "emg";
     default: 
         syslog(LOG_WARNING, 
                "[wrn][%d:::] unknown log level: %d", getpid(), lev);

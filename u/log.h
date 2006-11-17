@@ -95,11 +95,55 @@ int u_log_set_hook(u_log_hook_t hook, void *arg, u_log_hook_t *old, void**parg);
  * \param ctx       set to zero if you don't want context, 1 otherwise
  * \param ...       printf-style variable length arguments list
  */
-#define u_log_err(ecode, facility, ctx, ...) \
+#define u_log_die(ecode, facility, ctx, ...)                \
     do {                                                    \
-        u_log_write(facility, LOG_ERR, ctx, __VA_ARGS__);   \
+        u_log_write(facility, LOG_CRIT, ctx, __VA_ARGS__); \
         exit(ecode);                                        \
     } while(0)
+
+/** \brief log an emerg message
+ *
+ * Write an emerg log message.
+ *
+ * \param facility  facility
+ * \param ctx       set to zero if you don't want context, 1 otherwise
+ * \param ...       printf-style variable length arguments list
+ */
+#define u_log_emerg(facility, ctx, ...) \
+    u_log_write(facility, LOG_EMERG, ctx, __VA_ARGS__)
+
+/** \brief log an alert message
+ *
+ * Write an alert log message.
+ *
+ * \param facility  facility
+ * \param ctx       set to zero if you don't want context, 1 otherwise
+ * \param ...       printf-style variable length arguments list
+ */
+#define u_log_alert(facility, ctx, ...) \
+    u_log_write(facility, LOG_ALERT, ctx, __VA_ARGS__)
+
+/** \brief log a critical message
+ *
+ * Write a critical log message.
+ *
+ * \param facility  facility
+ * \param ctx       set to zero if you don't want context, 1 otherwise
+ * \param ...       printf-style variable length arguments list
+ */
+#define u_log_critical(facility, ctx, ...) \
+    u_log_write(facility, LOG_CRIT, ctx, __VA_ARGS__)
+
+/** \brief log an error message
+ *
+ * Write an error log message.
+ *
+ * \param facility  facility
+ * \param ctx       set to zero if you don't want context, 1 otherwise
+ * \param ...       printf-style variable length arguments list
+ */
+#define u_log_error(facility, ctx, ...) \
+    u_log_write(facility, LOG_ERR, ctx, __VA_ARGS__)
 
 /** \brief log a warning message
  *
@@ -112,16 +156,16 @@ int u_log_set_hook(u_log_hook_t hook, void *arg, u_log_hook_t *old, void**parg);
 #define u_log_warning(facility, ctx, ...) \
     u_log_write(facility, LOG_WARNING, ctx, __VA_ARGS__)
 
-/** \brief log an error message
+/** \brief log a notice message
  *
- * Write an error log message.
+ * Write a noticer log message.
  *
  * \param facility  facility
  * \param ctx       set to zero if you don't want context, 1 otherwise
  * \param ...       printf-style variable length arguments list
  */
-#define u_log_error(facility, ctx, ...) \
-    u_log_write(facility, LOG_ERR, ctx, __VA_ARGS__)
+#define u_log_notice(facility, ctx, ...) \
+    u_log_write(facility, LOG_NOTICE, ctx, __VA_ARGS__)
 
 /** \brief log an informational message
  *
@@ -145,17 +189,29 @@ int u_log_set_hook(u_log_hook_t hook, void *arg, u_log_hook_t *old, void**parg);
 #define u_log_debug(facility, ctx, ...) \
     u_log_write(facility, LOG_DEBUG, ctx, __VA_ARGS__)
 
-/** \brief same as u_log_err but using the \e facility global variable */
-#define die(ecode, ...) u_log_err(ecode, facility, 1, __VA_ARGS__)
+/** \brief same as u_log_die but using the \e facility global variable */
+#define die(ecode, ...) u_log_die(ecode, facility, 1, __VA_ARGS__)
 
 /** \brief calls die() if \e expr is true */
 #define die_if(expr) if(expr) die(EXIT_FAILURE, #expr)
 
-/** \brief same as u_log_warning but using the facility global variable */
-#define warning(...) u_log_warning(facility, 1, __VA_ARGS__)
+/** \brief same as u_log_emerg but using the facility global variable */
+#define emerg(...) u_log_emerg(facility, 1, __VA_ARGS__)
+
+/** \brief same as u_log_alert but using the facility global variable */
+#define alert(...) u_log_alert(facility, 1, __VA_ARGS__)
+
+/** \brief same as u_log_critical but using the facility global variable */
+#define critical(...) u_log_critical(facility, 1, __VA_ARGS__)
 
 /** \brief same as u_log_error but using the facility global variable */
 #define error(...) u_log_error(facility, 1, __VA_ARGS__)
+
+/** \brief same as u_log_warning but using the facility global variable */
+#define warning(...) u_log_warning(facility, 1, __VA_ARGS__)
+
+/** \brief same as u_log_info but using the facility global variable */
+#define notice(...) u_log_notice(facility, 1, __VA_ARGS__)
 
 /** \brief same as u_log_info but using the facility global variable */
 #define info(...) u_log_info(facility, 0, __VA_ARGS__)
