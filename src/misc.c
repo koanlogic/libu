@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.26 2006/11/08 18:59:31 tho Exp $";
+    "$Id: misc.c,v 1.27 2006/11/17 00:13:08 tat Exp $";
 
 #include "libu_conf.h"
 #include <sys/types.h>
@@ -347,7 +347,7 @@ int u_strerror_r(int en, char *msg, size_t sz)
     if(rc == 0)
     {    /* posix version, success */
         strlcpy(msg, buf, sz);
-    } else if(rc < 1024) {
+    } else if(rc == -1 || (rc > 0 && rc < 1024)) {
          /* posix version, failed (returns -1 or an error number) */
          goto err;
     } else {
