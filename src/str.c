@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: str.c,v 1.7 2006/11/07 11:35:11 tho Exp $";
+    "$Id: str.c,v 1.8 2006/11/18 16:23:17 tat Exp $";
 
 #include <stdlib.h>
 #include <errno.h>
@@ -259,7 +259,6 @@ err:
  */
 int u_string_append(u_string_t *s, const char *buf, size_t len)
 {
-    char *ndata;
     size_t nsz, min;
 
     if(!len)

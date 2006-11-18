@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: net.c,v 1.15 2006/11/08 18:59:31 tho Exp $";
+    "$Id: net.c,v 1.16 2006/11/18 16:23:17 tat Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -103,7 +103,7 @@ static int u_net_sock_tcp4 (u_net_addr_t *a,  int mode)
         case U_NET_SSOCK:
             return u_net_tcp4_ssock(&a->sa.sin, 0, U_NET_BACKLOG);
         default:
-            warn("unknown socket mode");
+            //warn("unknown socket mode");
             return -1;
     }
 }

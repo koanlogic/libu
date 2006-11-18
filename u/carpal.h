@@ -19,15 +19,16 @@
 extern "C" {
 #endif
 
-#define msg(label, ...) label( __VA_ARGS__)
-#define msg_noargs(label, literal) label("%s", literal)
+#define msg(label, err, ...) label( err, __VA_ARGS__ )
+#define msg_noargs(label, err, literal) label( err, "%s", literal)
 
 /** \brief log a message and goto "err" label
  *
  *   log a message of type \e label if \e expr not zero.
  *
  */
-#define msg_err(label, ...) do { msg(label, __VA_ARGS__); goto err; } while(0)
+#define msg_err(label, ...) \
+    do { msg(label, 0, __VA_ARGS__); goto err; } while(0)
 
 /** \brief log a message if \e expr not zero.
  *
@@ -38,7 +39,8 @@ extern "C" {
  *   For ex.:
  *       warn_if(check(abc) < 0);
  */
-#define msg_if(label, expr) do { if( expr ) msg_noargs(label, #expr); } while(0)
+#define msg_if(label, expr) do { if( expr ) \
+    msg_noargs(label, 0, #expr); } while(0)
 
 /** \brief log the given message if \e expr not zero.
  *
@@ -47,7 +49,8 @@ extern "C" {
  *   For ex.:
  *       warn_ifm(check(abc) < 0, "check failed on file %s", filename);
  */
-#define msg_ifm(label, expr, ...) do { if(expr) { label(__VA_ARGS__); } } while(0);
+#define msg_ifm(label, expr, ...) \
+    do { if(expr) { msg(label, 0, __VA_ARGS__); } } while(0);
 
 /** \brief log a message if \e expr not zero and enter the if-block
  *
@@ -63,7 +66,8 @@ extern "C" {
  *           do_something();
  *       }
  */
-#define msg_ifb(label, expr) if( (expr) && (msg_noargs(label, #expr) ? 1 : 1) ) 
+#define msg_ifb(label, expr) \
+    if( (expr) && (msg_noargs(label, 0, #expr) ? 1 : 1) ) 
 
 /** \brief log a message if \e expr not zero and return \e err.
  *
@@ -75,7 +79,7 @@ extern "C" {
  *   Example:
  *      dbg_return_if(param == NULL, FUNC_ERROR);
  */
-#define msg_return_if(label, expr, err) msg_ifb(label, expr) return err
+#define msg_return_if(label, expr, err) msg_ifb(label, expr) { return err; }
 
 /** \brief log the given message if \e expr not zero and return \e err.
  *
@@ -86,7 +90,7 @@ extern "C" {
  *    dbg_return_ifm(param == NULL, FUNC_ERROR, "param %d must be not NULL", i);
  */
 #define msg_return_ifm(label, expr, err, ...) \
-    if(expr) { msg(label, __VA_ARGS__); return err; }
+    if(expr) { msg(label, 0, __VA_ARGS__); return err; }
 
 /** \brief log the given message and strerror(errno) if \e expr not zero and return \e err.
  *
@@ -97,8 +101,7 @@ extern "C" {
  *    dbg_return_sifm(stat(file, &st) < 0, -1, "file %s access error", file);
  */
 #define msg_return_sifm(label, expr, err, ...) \
-    if(expr) { msg(label, __VA_ARGS__); msg_strerror(label, errno); \
-               return err; }
+    if(expr) { msg(label, errno, __VA_ARGS__); return err; }
 
 /** \brief log a message if \e expr not zero and return \e err. (Log the strerror also)
  *
@@ -108,7 +111,7 @@ extern "C" {
  *   \e expr text statement will be written to the log file.
  */
 #define msg_return_sif(label, expr, err) \
-    do { msg_ifb(label, expr) { msg_strerror(label, errno); return err; } } while(0)
+    do { if(expr) { msg_noargs(label, errno, #expr); return err; } } while(0)
 
 /** \brief log a message if \e expr not zero and goto \e gt.
  *
@@ -135,7 +138,7 @@ extern "C" {
  *   by the caller.
  */
 #define msg_err_ifm(label, expr, ...) \
-    do { if( (expr) ) { msg(label, __VA_ARGS__); goto err; } } while(0)
+    do { if( (expr) ) { msg(label, 0, __VA_ARGS__); goto err; } } while(0)
 
 /** \brief log a message and strerror(errno) if \e expr not zero; \
  *      then goto to the label "err"
@@ -144,7 +147,7 @@ extern "C" {
  *   to the label "err" (that must be defined). also logs strerror(errno).
  */
 #define msg_err_sif(label, expr) \
-    do { msg_ifb(label, expr) { msg_strerror(label, errno); goto err; } } while(0)
+    do { if(expr) { msg_noargs(label, errno, #expr); goto err; } } while(0)
 
 /** \brief log the given message and strerror(errno) if \e expr not zero; \
  *      then goto to the label "err"
@@ -154,10 +157,7 @@ extern "C" {
  *   also logs strerror(errno).
  */
 #define msg_err_sifm(label, expr, ...) \
-    do { \
-        if((expr)) { \
-            msg(label, __VA_ARGS__); msg_strerror(label, errno); goto err; \
-        } } while(0)
+    do { if((expr)) { msg(label, errno, __VA_ARGS__);  goto err; } } while(0)
 
 
 /** \brief write a debug message containing the message returned by strerror(errno) */
@@ -170,7 +170,7 @@ extern "C" {
             MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),              \
             (LPTSTR) &lpMsgBuf, 0, NULL ) && lpMsgBuf)              \
         {                                                           \
-            msg(label, "%s", lpMsgBuf);                             \
+            msg(label, 0, "%s", lpMsgBuf);                          \
             LocalFree(lpMsgBuf);                                    \
         }                                                           \
     } while(0)
@@ -181,9 +181,9 @@ extern "C" {
         enum { _DBG_BUFSZ = 256 };                                  \
         char _eb[_DBG_BUFSZ] = { 0 };                               \
         if(u_strerror_r(en, _eb, _DBG_BUFSZ)) {                     \
-            msg(label, "strerror_r(%d, ...) failed", en);           \
+            msg(label, 0, "strerror_r(%d, ...) failed", en);        \
         } else {                                                    \
-            msg(label, "errno: %d (%s)", errno, _eb);               \
+            msg(label, 0, "errno: %d (%s)", errno, _eb);            \
         }                                                           \
     } while(0)  
 
@@ -195,223 +195,207 @@ extern "C" {
 #define nop_goto_if(expr, gt)          do { if(expr) goto gt;    } while(0)
 
 /* con_ macros */
-#define con(...)                       msg(console, __VA_ARGS__)
-#define con_err(...)                   msg_err(console, __VA_ARGS__)
-#define con_ifb(expr)                  msg_ifb(console, expr)
-#define con_if(expr)                   msg_if(console, expr) 
-#define con_ifm(expr, ...)             msg_ifm(console, expr, __VA_ARGS__) 
+#define con(...)                        msg(con_, 0, __VA_ARGS__)
+#define con_err(...)                    msg_err(con_, __VA_ARGS__)
+#define con_ifb(expr)                   msg_ifb(con_, expr)
+#define con_if(expr)                    msg_if(con_, expr) 
+#define con_ifm(expr, ...)              msg_ifm(con_, expr, __VA_ARGS__) 
 
-#define con_return_if(expr, err)       msg_return_if(console, expr, err)
-#define con_return_sif(expr, err)      msg_return_sif(console, expr, err)
-#define con_return_ifm(expr, err, ...) \
-    msg_return_ifm(console, expr, err, __VA_ARGS__)
+#define con_return_if(expr, err)        msg_return_if(con_, expr, err)
+#define con_return_sif(expr, err)       msg_return_sif(con_, expr, err)
+#define con_return_ifm(expr, err, ...)  \
+    msg_return_ifm(con_, expr, err, __VA_ARGS__)
 #define con_return_sifm(expr, err, ...) \
-    msg_return_sifm(console, expr, err, __VA_ARGS__)
+    msg_return_sifm(con_, expr, err, __VA_ARGS__)
 
-#define con_err_if(expr)               msg_err_if(console, expr)
-#define con_err_sif(expr)              msg_err_sif(console, expr)
-#define con_err_ifm(expr, ...)         \
-    msg_err_ifm(console, expr, __VA_ARGS__)
-#define con_err_sifm(expr, ...)         \
-    msg_err_sifm(console, expr, __VA_ARGS__)
+#define con_err_if(expr)                msg_err_if(con_, expr)
+#define con_err_sif(expr)               msg_err_sif(con_, expr)
+#define con_err_ifm(expr, ...)          msg_err_ifm(con_, expr, __VA_ARGS__)
+#define con_err_sifm(expr, ...)         msg_err_sifm(con_, expr, __VA_ARGS__)
 
-#define con_goto_if(expr, gt)          msg_goto_if(console, expr, gt)
-#define con_strerror(errno)            msg_strerror(console, errno)
+#define con_goto_if(expr, gt)           msg_goto_if(con_, expr, gt)
+#define con_strerror(err)               msg_strerror(con_, err)
 
 /* emerg_ macros */
-/* #define emerg(...)                    msg(emerg, __VA_ARGS__) */
-#define emerg_err(...)                   msg_err(emerg, __VA_ARGS__)
-#define emerg_ifb(expr)                  msg_ifb(emerg, expr)
-#define emerg_if(expr)                   msg_if(emerg, expr) 
-#define emerg_ifm(expr, ...)             msg_ifm(emerg, expr, __VA_ARGS__) 
+#define emerg(...)                      msg(emerg_, 0, __VA_ARGS__)
+#define emerg_err(...)                  msg_err(emerg_, __VA_ARGS__)
+#define emerg_ifb(expr)                 msg_ifb(emerg_, expr)
+#define emerg_if(expr)                  msg_if(emerg_, expr) 
+#define emerg_ifm(expr, ...)            msg_ifm(emerg_, expr, __VA_ARGS__) 
 
-#define emerg_return_if(expr, err)       msg_return_if(emerg, expr, err)
-#define emerg_return_sif(expr, err)      msg_return_sif(emerg, expr, err)
-#define emerg_return_ifm(expr, err, ...)      \
-    msg_return_ifm(emerg, expr, err, __VA_ARGS__)
-#define emerg_return_sifm(expr, err, ...)      \
-    msg_return_sifm(emerg, expr, err, __VA_ARGS__)
+#define emerg_return_if(expr, err)      msg_return_if(emerg_, expr, err)
+#define emerg_return_sif(expr, err)     msg_return_sif(emerg_, expr, err)
+#define emerg_return_ifm(expr, err, ...)    \
+    msg_return_ifm(emerg_, expr, err, __VA_ARGS__)
+#define emerg_return_sifm(expr, err, ...)   \
+    msg_return_sifm(emerg_, expr, err, __VA_ARGS__)
 
-#define emerg_err_if(expr)               msg_err_if(emerg, expr)
-#define emerg_err_sif(expr)              msg_err_sif(emerg, expr)
-#define emerg_err_ifm(expr, ...)         \
-    msg_err_ifm(emerg, expr, __VA_ARGS__)
-#define emerg_err_sifm(expr, ...)         \
-    msg_err_sifm(emerg, expr, __VA_ARGS__)
+#define emerg_err_if(expr)              msg_err_if(emerg_, expr)
+#define emerg_err_sif(expr)             msg_err_sif(emerg_, expr)
+#define emerg_err_ifm(expr, ...)        msg_err_ifm(emerg_, expr, __VA_ARGS__)
+#define emerg_err_sifm(expr, ...)       msg_err_sifm(emerg_, expr, __VA_ARGS__)
 
-#define emerg_goto_if(expr, gt)          msg_goto_if(emerg, expr, gt)
-#define emerg_strerror(errno)            msg_strerror(emerg, errno)
+#define emerg_goto_if(expr, gt)         msg_goto_if(emerg_, expr, gt)
+#define emerg_strerror(err)             msg_strerror(emerg_, err)
 
 /* alert_ macros */
-/* #define alert(...)                    msg(alert, __VA_ARGS__) */
-#define alert_err(...)                   msg_err(alert, __VA_ARGS__)
-#define alert_ifb(expr)                  msg_ifb(alert, expr)
-#define alert_if(expr)                   msg_if(alert, expr) 
-#define alert_ifm(expr, ...)             msg_ifm(alert, expr, __VA_ARGS__) 
+#define alert(...)                      msg(alert_, 0, __VA_ARGS__) 
+#define alert_err(...)                  msg_err(alert_, __VA_ARGS__)
+#define alert_ifb(expr)                 msg_ifb(alert_, expr)
+#define alert_if(expr)                  msg_if(alert_, expr) 
+#define alert_ifm(expr, ...)            msg_ifm(alert_, expr, __VA_ARGS__) 
 
-#define alert_return_if(expr, err)       msg_return_if(alert, expr, err)
-#define alert_return_sif(expr, err)      msg_return_sif(alert, expr, err)
+#define alert_return_if(expr, err)      msg_return_if(alert_, expr, err)
+#define alert_return_sif(expr, err)     msg_return_sif(alert_, expr, err)
 #define alert_return_ifm(expr, err, ...)      \
-    msg_return_ifm(alert, expr, err, __VA_ARGS__)
+    msg_return_ifm(alert_, expr, err, __VA_ARGS__)
 #define alert_return_sifm(expr, err, ...)      \
-    msg_return_sifm(alert, expr, err, __VA_ARGS__)
+    msg_return_sifm(alert_, expr, err, __VA_ARGS__)
 
-#define alert_err_if(expr)               msg_err_if(alert, expr)
-#define alert_err_sif(expr)              msg_err_sif(alert, expr)
-#define alert_err_ifm(expr, ...)         \
-    msg_err_ifm(alert, expr, __VA_ARGS__)
-#define alert_err_sifm(expr, ...)         \
-    msg_err_sifm(alert, expr, __VA_ARGS__)
+#define alert_err_if(expr)              msg_err_if(alert_, expr)
+#define alert_err_sif(expr)             msg_err_sif(alert_, expr)
+#define alert_err_ifm(expr, ...)        msg_err_ifm(alert_, expr, __VA_ARGS__)
+#define alert_err_sifm(expr, ...)       msg_err_sifm(alert_, expr, __VA_ARGS__)
 
-#define alert_goto_if(expr, gt)          msg_goto_if(alert, expr, gt)
-#define alert_strerror(errno)            msg_strerror(alert, errno)
+#define alert_goto_if(expr, gt)         msg_goto_if(alert_, expr, gt)
+#define alert_strerror(err)             msg_strerror(alert_, err)
 
 /* crit_ macros */
-#define crit(...)                       msg(critical, __VA_ARGS__) 
-#define crit_err(...)                   msg_err(critical, __VA_ARGS__)
-#define crit_ifb(expr)                  msg_ifb(critical, expr)
-#define crit_if(expr)                   msg_if(critical, expr) 
-#define crit_ifm(expr, ...)             msg_ifm(critical, expr, __VA_ARGS__) 
+#define crit(...)                       msg(crit_, 0, __VA_ARGS__) 
+#define crit_err(...)                   msg_err(crit_, __VA_ARGS__)
+#define crit_ifb(expr)                  msg_ifb(crit_, expr)
+#define crit_if(expr)                   msg_if(crit_, expr) 
+#define crit_ifm(expr, ...)             msg_ifm(crit_, expr, __VA_ARGS__) 
 
-#define crit_return_if(expr, err)       msg_return_if(critical, expr, err)
-#define crit_return_sif(expr, err)      msg_return_sif(critical, expr, err)
-#define crit_return_ifm(expr, err, ...)      \
-    msg_return_ifm(critical, expr, err, __VA_ARGS__)
-#define crit_return_sifm(expr, err, ...)      \
-    msg_return_sifm(critical, expr, err, __VA_ARGS__)
+#define crit_return_if(expr, err)       msg_return_if(crit_, expr, err)
+#define crit_return_sif(expr, err)      msg_return_sif(crit_, expr, err)
+#define crit_return_ifm(expr, err, ...) \
+    msg_return_ifm(crit_, expr, err, __VA_ARGS__)
+#define crit_return_sifm(expr, err, ...)    \
+    msg_return_sifm(crit_, expr, err, __VA_ARGS__)
 
-#define crit_err_if(expr)               msg_err_if(critical, expr)
-#define crit_err_sif(expr)              msg_err_sif(critical, expr)
-#define crit_err_ifm(expr, ...)         \
-    msg_err_ifm(critical, expr, __VA_ARGS__)
-#define crit_err_sifm(expr, ...)         \
-    msg_err_sifm(critical, expr, __VA_ARGS__)
+#define crit_err_if(expr)               msg_err_if(crit_, expr)
+#define crit_err_sif(expr)              msg_err_sif(crit_, expr)
+#define crit_err_ifm(expr, ...)         msg_err_ifm(crit_, expr, __VA_ARGS__)
+#define crit_err_sifm(expr, ...)        msg_err_sifm(crit_, expr, __VA_ARGS__)
 
 #define crit_goto_if(expr, gt)          msg_goto_if(crit, expr, gt)
-#define crit_strerror(errno)            msg_strerror(crit, errno)
+#define crit_strerror(err)              msg_strerror(crit, err)
 
 /* err_ macros */
-#define err(...)                       msg(error, __VA_ARGS__)
-#define err_err(...)                   msg_err(error, __VA_ARGS__)
-#define err_ifb(expr)                  msg_ifb(error, expr)
-#define err_if(expr)                   msg_if(error, expr) 
-#define err_ifm(expr, ...)             msg_ifm(error, expr, __VA_ARGS__) 
+#define err(...)                        msg(err_, 0, __VA_ARGS__)
+#define err_err(...)                    msg_err(err_, __VA_ARGS__)
+#define err_ifb(expr)                   msg_ifb(err_, expr)
+#define err_if(expr)                    msg_if(err_, expr) 
+#define err_ifm(expr, ...)              msg_ifm(err_, expr, __VA_ARGS__) 
 
-#define err_return_if(expr, err)       msg_return_if(error, expr, err)
-#define err_return_sif(expr, err)      msg_return_sif(error, expr, err)
-#define err_return_ifm(expr, err, ...)      \
-    msg_return_ifm(error, expr, err, __VA_ARGS__)
-#define err_return_sifm(expr, err, ...)      \
-    msg_return_sifm(error, expr, err, __VA_ARGS__)
+#define err_return_if(expr, err)        msg_return_if(err_, expr, err)
+#define err_return_sif(expr, err)       msg_return_sif(err_, expr, err)
+#define err_return_ifm(expr, err, ...)  \
+    msg_return_ifm(err_, expr, err, __VA_ARGS__)
+#define err_return_sifm(expr, err, ...) \
+    msg_return_sifm(err_, expr, err, __VA_ARGS__)
 
-#define err_err_if(expr)               msg_err_if(error, expr)
-#define err_err_sif(expr)              msg_err_sif(error, expr)
-#define err_err_ifm(expr, ...)         \
-    msg_err_ifm(error, expr, __VA_ARGS__)
-#define err_err_sifm(expr, ...)         \
-    msg_err_sifm(error, expr, __VA_ARGS__)
+#define err_err_if(expr)                msg_err_if(err_, expr)
+#define err_err_sif(expr)               msg_err_sif(err_, expr)
+#define err_err_ifm(expr, ...)          msg_err_ifm(err_, expr, __VA_ARGS__)
+#define err_err_sifm(expr, ...)         msg_err_sifm(err_, expr, __VA_ARGS__)
 
-#define err_goto_if(expr, gt)          msg_goto_if(error, expr, gt)
-#define err_strerror(errno)            msg_strerror(error, errno)
+#define err_goto_if(expr, gt)           msg_goto_if(err_, expr, gt)
+#define err_strerr_(err)                msg_strerr_(err_, err)
 
 /* warn_ macros */
-#define warn(...)                       msg(warning, __VA_ARGS__)
-#define warn_err(...)                   msg_err(warning, __VA_ARGS__)
-#define warn_ifb(expr)                  msg_ifb(warning, expr)
-#define warn_if(expr)                   msg_if(warning, expr) 
-#define warn_ifm(expr, ...)             msg_ifm(warning, expr, __VA_ARGS__) 
+#define warn(...)                       msg(warn_, 0, __VA_ARGS__)
+#define warn_err(...)                   msg_err(warn_, __VA_ARGS__)
+#define warn_ifb(expr)                  msg_ifb(warn_, expr)
+#define warn_if(expr)                   msg_if(warn_, expr) 
+#define warn_ifm(expr, ...)             msg_ifm(warn_, expr, __VA_ARGS__) 
 
-#define warn_return_if(expr, err)       msg_return_if(warning, expr, err)
-#define warn_return_sif(expr, err)      msg_return_sif(warning, expr, err)
+#define warn_return_if(expr, err)       msg_return_if(warn_, expr, err)
+#define warn_return_sif(expr, err)      msg_return_sif(warn_, expr, err)
 #define warn_return_ifm(expr, err, ...)      \
-    msg_return_ifm(warning, expr, err, __VA_ARGS__)
+    msg_return_ifm(warn_, expr, err, __VA_ARGS__)
 #define warn_return_sifm(expr, err, ...)      \
-    msg_return_sifm(warning, expr, err, __VA_ARGS__)
+    msg_return_sifm(warn_, expr, err, __VA_ARGS__)
 
-#define warn_err_if(expr)               msg_err_if(warning, expr)
-#define warn_err_sif(expr)              msg_err_sif(warning, expr)
-#define warn_err_ifm(expr, ...)         \
-    msg_err_ifm(warning, expr, __VA_ARGS__)
-#define warn_err_sifm(expr, ...)         \
-    msg_err_sifm(warning, expr, __VA_ARGS__)
+#define warn_err_if(expr)               msg_err_if(warn_, expr)
+#define warn_err_sif(expr)              msg_err_sif(warn_, expr)
+#define warn_err_ifm(expr, ...)         msg_err_ifm(warn_, expr, __VA_ARGS__)
+#define warn_err_sifm(expr, ...)        msg_err_sifm(warn_, expr, __VA_ARGS__)
 
-#define warn_goto_if(expr, gt)          msg_goto_if(warning, expr, gt)
-#define warn_strerror(errno)            msg_strerror(warning, errno)
+#define warn_goto_if(expr, gt)          msg_goto_if(warn_, expr, gt)
+#define warn_strerror(err)              msg_strerror(warn_, err)
 
 /* notice_ macros */
-/* #define notice(...)                    msg(notice, __VA_ARGS__) */
-#define notice_err(...)                   msg_err(notice, __VA_ARGS__)
-#define notice_ifb(expr)                  msg_ifb(notice, expr)
-#define notice_if(expr)                   msg_if(notice, expr) 
-#define notice_ifm(expr, ...)             msg_ifm(notice, expr, __VA_ARGS__) 
+#define notice(...)                     msg(notice_, 0, __VA_ARGS__)
+#define notice_err(...)                 msg_err(notice_, __VA_ARGS__)
+#define notice_ifb(expr)                msg_ifb(notice_, expr)
+#define notice_if(expr)                 msg_if(notice_, expr) 
+#define notice_ifm(expr, ...)           msg_ifm(notice_, expr, __VA_ARGS__) 
 
-#define notice_return_if(expr, err)       msg_return_if(notice, expr, err)
-#define notice_return_sif(expr, err)      msg_return_sif(notice, expr, err)
-#define notice_return_ifm(expr, err, ...)      \
-    msg_return_ifm(notice, expr, err, __VA_ARGS__)
-#define notice_return_sifm(expr, err, ...)      \
-    msg_return_sifm(notice, expr, err, __VA_ARGS__)
+#define notice_return_if(expr, err)     msg_return_if(notice_, expr, err)
+#define notice_return_sif(expr, err)    msg_return_sif(notice_, expr, err)
+#define notice_return_ifm(expr, err, ...)   \
+    msg_return_ifm(notice_, expr, err, __VA_ARGS__)
+#define notice_return_sifm(expr, err, ...)  \
+    msg_return_sifm(notice_, expr, err, __VA_ARGS__)
 
-#define notice_err_if(expr)               msg_err_if(notice, expr)
-#define notice_err_sif(expr)              msg_err_sif(notice, expr)
+#define notice_err_if(expr)             msg_err_if(notice_, expr)
+#define notice_err_sif(expr)            msg_err_sif(notice_, expr)
 #define notice_err_ifm(expr, ...)         \
-    msg_err_ifm(notice, expr, __VA_ARGS__)
-#define notice_err_sifm(expr, ...)         \
-    msg_err_sifm(notice, expr, __VA_ARGS__)
+    msg_err_ifm(notice_, expr, __VA_ARGS__)
+#define notice_err_sifm(expr, ...)        \
+    msg_err_sifm(notice_, expr, __VA_ARGS__)
 
-#define notice_goto_if(expr, gt)          msg_goto_if(notice, expr, gt)
-#define notice_strerror(errno)            msg_strerror(notice, errno)
+#define notice_goto_if(expr, gt)        msg_goto_if(notice_, expr, gt)
+#define notice_strerror(err)            msg_strerror(notice_, err)
 
 /* info_ macros */
-/* #define info(...)                    msg(info, __VA_ARGS__) */
-#define info_err(...)                   msg_err(info, __VA_ARGS__)
-#define info_ifb(expr)                  msg_ifb(info, expr)
-#define info_if(expr)                   msg_if(info, expr) 
-#define info_ifm(expr, ...)             msg_ifm(info, expr, __VA_ARGS__) 
+#define info(...)                       msg(info_, 0, __VA_ARGS__)
+#define info_err(...)                   msg_err(info_, __VA_ARGS__)
+#define info_ifb(expr)                  msg_ifb(info_, expr)
+#define info_if(expr)                   msg_if(info_, expr) 
+#define info_ifm(expr, ...)             msg_ifm(info_, expr, __VA_ARGS__) 
 
-#define info_return_if(expr, err)       msg_return_if(info, expr, err)
-#define info_return_sif(expr, err)      msg_return_sif(info, expr, err)
+#define info_return_if(expr, err)       msg_return_if(info_, expr, err)
+#define info_return_sif(expr, err)      msg_return_sif(info_, expr, err)
 #define info_return_ifm(expr, err, ...)      \
-    msg_return_ifm(info, expr, err, __VA_ARGS__)
+    msg_return_ifm(info_, expr, err, __VA_ARGS__)
 #define info_return_sifm(expr, err, ...)      \
-    msg_return_sifm(info, expr, err, __VA_ARGS__)
+    msg_return_sifm(info_, expr, err, __VA_ARGS__)
 
-#define info_err_if(expr)               msg_err_if(info, expr)
-#define info_err_sif(expr)              msg_err_sif(info, expr)
-#define info_err_ifm(expr, ...)         \
-    msg_err_ifm(info, expr, __VA_ARGS__)
-#define info_err_sifm(expr, ...)         \
-    msg_err_sifm(info, expr, __VA_ARGS__)
+#define info_err_if(expr)               msg_err_if(info_, expr)
+#define info_err_sif(expr)              msg_err_sif(info_, expr)
+#define info_err_ifm(expr, ...)         msg_err_ifm(info_, expr, __VA_ARGS__)
+#define info_err_sifm(expr, ...)        msg_err_sifm(info_, expr, __VA_ARGS__)
 
-#define info_goto_if(expr, gt)          msg_goto_if(info, expr, gt)
-#define info_strerror(errno)            msg_strerror(info, errno)
-
+#define info_goto_if(expr, gt)          msg_goto_if(info_, expr, gt)
+#define info_strerror(err)              msg_strerror(info_, err)
 
 /* dbg_ macros */
 #ifdef DEBUG
-    #define dbg(...)                    msg(debug, __VA_ARGS__)
-    #define dbg_err(...)                msg_err(debug, __VA_ARGS__)
+    #define dbg(...)                    msg(dbg_, 0, __VA_ARGS__)
+    #define dbg_err(...)                msg_err(dbg_, __VA_ARGS__)
 
-    #define dbg_if(expr)                msg_if(debug, expr) 
-    #define dbg_ifb(expr)               msg_ifb(debug, expr)
-    #define dbg_ifm(expr, ...)          msg_ifm(debug, expr, __VA_ARGS__) 
+    #define dbg_if(expr)                msg_if(dbg_, expr) 
+    #define dbg_ifb(expr)               msg_ifb(dbg_, expr)
+    #define dbg_ifm(expr, ...)          msg_ifm(dbg_, expr, __VA_ARGS__) 
 
-    #define dbg_return_if(expr, err)    msg_return_if(debug, expr, err)
-    #define dbg_return_sif(expr, err)   msg_return_sif(debug, expr, err)
+    #define dbg_return_if(expr, err)    msg_return_if(dbg_, expr, err)
+    #define dbg_return_sif(expr, err)   msg_return_sif(dbg_, expr, err)
     #define dbg_return_ifm(expr, err, ...)      \
-        msg_return_ifm(debug, expr, err, __VA_ARGS__)
+        msg_return_ifm(dbg_, expr, err, __VA_ARGS__)
     #define dbg_return_sifm(expr, err, ...)      \
-        msg_return_sifm(debug, expr, err, __VA_ARGS__)
+        msg_return_sifm(dbg_, expr, err, __VA_ARGS__)
 
-    #define dbg_err_if(expr)            msg_err_if(debug, expr)
-    #define dbg_err_sif(expr)           msg_err_sif(debug, expr)
-    #define dbg_err_ifm(expr, ...)      \
-        msg_err_ifm(debug, expr, __VA_ARGS__)
-    #define dbg_err_sifm(expr, ...)      \
-        msg_err_sifm(debug, expr, __VA_ARGS__)
+    #define dbg_err_if(expr)            msg_err_if(dbg_, expr)
+    #define dbg_err_sif(expr)           msg_err_sif(dbg_, expr)
+    #define dbg_err_ifm(expr, ...)      msg_err_ifm(dbg_, expr, __VA_ARGS__)
+    #define dbg_err_sifm(expr, ...)     msg_err_sifm(dbg_, expr, __VA_ARGS__)
 
-    #define dbg_goto_if(expr, gt)       msg_goto_if(debug, expr, gt)
-    #define dbg_strerror(errno)         msg_strerror(debug, errno)
+    #define dbg_goto_if(expr, gt)       msg_goto_if(dbg_, expr, gt)
+    #define dbg_strerror(err)           msg_strerror(dbg_, err)
+
     /* simple debugging timing macros */
     #define TIMER_ON \
         time_t _t_beg = time(0), _t_prev = _t_beg, _t_now; int _t_step = 0
@@ -447,7 +431,7 @@ extern "C" {
     #define dbg_err_sifm(expr, ...)     do { if( (expr) ) goto err; } while(0)
 
     #define dbg_goto_if(expr, gt)       do { if( (expr) ) goto gt; } while(0)
-    #define dbg_strerror(errno)         dbg_nop()
+    #define dbg_strerror(err)           dbg_nop()
     #define TIMER_ON
     #define TIMER_STEP
     #define TIMER_OFF

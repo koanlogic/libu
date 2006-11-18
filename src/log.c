@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: log.c,v 1.10 2006/11/17 17:47:47 tat Exp $";
+    "$Id: log.c,v 1.11 2006/11/18 16:23:17 tat Exp $";
 
 #include <sys/types.h>
 #include <errno.h>
@@ -24,6 +24,8 @@ extern int facility;
 /* log hook. if not-zero use this function to write log messages */
 static u_log_hook_t hook = NULL;
 static void *hook_arg = NULL;
+
+enum { STRERR_BUFSZ = 128, ERRMSG_BUFSZ = 256 };
 
 #ifdef OS_WIN
 #define err_type DWORD
@@ -62,7 +64,6 @@ static inline const char* u_log_label(int lev)
     }
 }
 
-
 static int u_log(int fac, int level, const char *fmt, ...)
 {
     va_list ap;
@@ -100,13 +101,13 @@ int u_log_set_hook(u_log_hook_t func, void *arg, u_log_hook_t *old, void **parg)
     return 0;
 }
 
-int u_log_write_ex(int fac, int lev, int ctx, const char* file, int line, 
-    const char *func, const char* fmt, ...)
+int u_log_write_ex(int fac, int lev, int flags, int err, const char* file, 
+    int line, const char *func, const char* fmt, ...)
 {
     va_list ap;
-    char msg[U_MAX_LOG_LENGTH];
-    int rc;
     err_type savederr;
+    int rc;
+    char msg[U_MAX_LOG_LENGTH], strerr[STRERR_BUFSZ], errmsg[STRERR_BUFSZ];
 
     save_errno(savederr);
 
@@ -115,16 +116,26 @@ int u_log_write_ex(int fac, int lev, int ctx, const char* file, int line,
     rc = vsnprintf(msg, U_MAX_LOG_LENGTH, fmt, ap);
     va_end(ap);
 
-    if(rc > U_MAX_LOG_LENGTH)
+    if(rc >= U_MAX_LOG_LENGTH)
         goto err; /* message too long */
 
+    /* init empty strings */
+    errmsg[0] = strerr[0] = 0;
+
+    if(err)
+    {
+        u_strerror_r(err, strerr, sizeof(strerr));
+        u_snprintf(errmsg, sizeof(errmsg), "[errno: %d, %s]", err, strerr);
+        errmsg[sizeof(errmsg) - 1] = 0; /* paranoid set */
+    } 
+
     /* ok, send the msg to the logger */
-    if(ctx)
-        u_log(fac, lev, "[%s][%d:%s:%d:%s] %s", 
-               u_log_label(lev), getpid(), file, line, func, msg);
+    if(flags & LOG_WRITE_FLAG_CTX)
+        u_log(fac, lev, "[%s][%d:%s:%d:%s] %s %s", 
+               u_log_label(lev), getpid(), file, line, func, msg, errmsg);
     else
-        u_log(fac, lev, "[%s][%d:::] %s", 
-               u_log_label(lev), getpid(), msg);
+        u_log(fac, lev, "[%s][%d:::] %s %s", 
+               u_log_label(lev), getpid(), msg, errmsg);
 
     restore_errno(savederr);
     return 0;
@@ -132,3 +143,45 @@ err:
     restore_errno(savederr);
     return ~0;
 }
+
+int u_console_write_ex(int err, const char* file, int line, 
+    const char *func, const char* fmt, ...)
+{
+    err_type savederr;
+    va_list ap;
+    int rc;
+    char strerr[STRERR_BUFSZ], errmsg[STRERR_BUFSZ];
+
+    save_errno(savederr);
+
+    /* build the message to send to the log system */
+    va_start(ap, fmt); 
+
+    /* write the message to the standard error */
+    rc = vfprintf(stderr, fmt, ap);
+
+    va_end(ap);
+
+    if(rc < 0)
+        goto err;
+
+    /* init empty strings */
+    errmsg[0] = strerr[0] = 0;
+
+    if(err)
+    {
+        u_strerror_r(err, strerr, sizeof(strerr));
+        u_snprintf(errmsg, sizeof(errmsg), "[errno: %d, %s]", err, strerr);
+        errmsg[sizeof(errmsg) - 1] = 0; /* paranoid set */
+        fprintf(stderr, " %s\n", errmsg);
+    } else
+        fprintf(stderr, "\n");
+
+
+    restore_errno(savederr);
+    return 0;
+err:
+    restore_errno(savederr);
+    return ~0;
+}
+
