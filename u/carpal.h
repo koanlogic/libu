@@ -302,7 +302,7 @@ extern "C" {
 #define err_err_sifm(expr, ...)         msg_err_sifm(err_, expr, __VA_ARGS__)
 
 #define err_goto_if(expr, gt)           msg_goto_if(err_, expr, gt)
-#define err_strerr_(err)                msg_strerr_(err_, err)
+#define err_strerror(err)               msg_strerror(err_, err)
 
 /* warn_ macros */
 #define warn(...)                       msg(warn_, 0, __VA_ARGS__)
