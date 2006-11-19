@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: log.c,v 1.11 2006/11/18 16:23:17 tat Exp $";
+    "$Id: log.c,v 1.12 2006/11/19 06:31:49 tho Exp $";
 
 #include <sys/types.h>
 #include <errno.h>
@@ -151,6 +151,8 @@ int u_console_write_ex(int err, const char* file, int line,
     va_list ap;
     int rc;
     char strerr[STRERR_BUFSZ], errmsg[STRERR_BUFSZ];
+
+    u_unused_args(file, line, func);
 
     save_errno(savederr);
 

@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.27 2006/11/17 00:13:08 tat Exp $";
+    "$Id: misc.c,v 1.28 2006/11/19 06:31:49 tho Exp $";
 
 #include "libu_conf.h"
 #include <sys/types.h>
@@ -299,12 +299,12 @@ int u_load_file (const char *path, size_t sz_max, char **pbuf, size_t *psz)
     dbg_return_if (pbuf == NULL, ~0);
     dbg_return_if (psz == NULL, ~0);
     
-    warn_err_sif ((fp = fopen(path, "r")) == NULL);
-    warn_err_sif (fstat(fileno(fp), &sb) == -1); 
-    sz = sb.st_size;
-    warn_err_ifm (sz_max > 0 && sz > sz_max, "file too big");
+    warn_err_sifm ((fp = fopen(path, "r")) == NULL, "%s", path);
+    warn_err_sifm (fstat(fileno(fp), &sb) == -1, "%s", path); 
+    warn_err_ifm (sz_max > 0 && (sz = sb.st_size) > sz_max, 
+            "file too big (%uz vs %uz bytes)", sz, sz_max);
     warn_err_sif ((buf = u_zalloc(sz)) == NULL);
-    warn_err_sif (fread(buf, sz, 1, fp) != 1);
+    warn_err_sifm (fread(buf, sz, 1, fp) != 1, "%s", path);
     
     U_FCLOSE(fp);
     
