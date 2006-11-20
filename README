@@ -11,15 +11,16 @@ LibU in a few words
 
 Installation
 
-    LibU comes with MaKL (KoanLogic's autoconfiguration and building framework) 
-    and should need no user's intervention for compilation and installation,
-    except the classic steps:
+    LibU builds with MaKL (KoanLogic's autoconfiguration and building 
+    framework) and should need no user's intervention for compilation and 
+    installation, except the following steps:
 
-    $ ./configure && make
-    # sudo make install
+    $ ./maklconf [--prefix=... --enable_shared ...] 
+    $ makl
+    # makl install
 
     If you are installing LibU on a platform which is not yet supported by
-    MaKL, the only files you need to touch are Makefile.conf and conf.h.
+    MaKL, you must create your own Makefile.conf and include/u/libu_conf.h.
 
 Module Selection
 
@@ -27,7 +28,6 @@ Module Selection
 
         - hmap              (--no_hmap)
         - config            (--no_config)
-        - log and syslog    (--no_log)
         - net and uri       (--no_net)
         - env               (--no_env)
 
@@ -35,5 +35,3 @@ Contribute to LibU
 
     If you need support or you want to submit a patch or an enhancement,
     use the libu-dev@koanlogic.com mailing list.
-
-
