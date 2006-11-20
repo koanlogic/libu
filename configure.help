@@ -35,7 +35,7 @@ OPTION can be defined as follows:
 --enable_debug      enables debugging
 --enable_profile    enables profiling
 --enable_warns      set CFLAGS for extra warnings
---enable_shared     enable shared library build [default is DO NOT build]
+--enable_shared     enable shared library build [by default it is disabled]
 --no_hmap           disable hmap module
 --no_config         disable config module
 --no_log            disable log module

@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1 2006/11/20 13:38:01 tho Exp $
+# $Id: Makefile,v 1.2 2006/11/20 20:34:37 tho Exp $
 
 include common.mk
 include ../Makefile.conf
@@ -11,6 +11,7 @@ SRCS = toolbox/memory.c  \
        toolbox/str.c     \
        toolbox/buf.c     \
        toolbox/log.c
+
 ifndef NO_HMAP
 SRCS += toolbox/hmap.c
 endif
