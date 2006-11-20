@@ -62,7 +62,6 @@ void u_use_unused_args(char *dummy, ...);
 int u_data_is_bin (char *data, size_t sz);
 int u_data_dump (char *data, size_t sz, const char *file);
 int u_load_file (const char *path, size_t sz_max, char **pbuf, size_t *psz);
-int u_strerror_r(int err, char *buf, size_t size);
 
 #ifdef __cplusplus
 }

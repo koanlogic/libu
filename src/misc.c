@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.29 2006/11/19 07:38:45 tho Exp $";
+    "$Id: misc.c,v 1.30 2006/11/20 08:44:48 tho Exp $";
 
 #include "libu_conf.h"
 #include <sys/types.h>
@@ -318,55 +318,6 @@ err:
     return ~0;
 }
 
-/**
- *  \brief  Return, in the given buffer, a string describing the error code
- *
- *  Return in 'msg' a string describing the error code. Works equally with 
- *  POSIX-style C libs and with glibc (that use a different prototype for 
- *  strerror_r).
- *
- *  If strerror_r doesn't exist in the system strerror() is used instead.
- *
- *  \param  en      the error code
- *  \param  msg     the buffer that will get the error message
- *  \param  sz      size of buf
- *
- *  \return \c 0 on success, \c ~0 on error
- */ 
-int u_strerror_r(int en, char *msg, size_t sz)
-{
-
-#ifdef HAVE_STRERROR_R
-    enum { BUFSZ = 256 };
-    char buf[BUFSZ] = { 0 };
-    int rc;
-
-    /* assume POSIX prototype */
-    rc = (int)strerror_r(en, buf, BUFSZ);
-
-    if(rc == 0)
-    {    /* posix version, success */
-        strlcpy(msg, buf, sz);
-    } else if(rc == -1 || (rc > 0 && rc < 1024)) {
-         /* posix version, failed (returns -1 or an error number) */
-         goto err;
-    } else {
-        /* glibc char*-returning version, always succeeds */
-        strlcpy(msg, (char*)rc, sz);
-    }
-#else
-    /* there's not strerror_r, use strerror() instead */
-    char *p;
-
-    dbg_err_if((p = strerror(en)) == NULL);
-
-    strlcpy(msg, p, sz);
-#endif
-
-    return 0;
-err:
-    return ~0;
-}
 
 /**
  *      \}

@@ -92,6 +92,7 @@ int u_log_set_hook(u_log_hook_t hook, void *arg, u_log_hook_t *old, void**parg);
  * \param ecode     exit code
  * \param facility  facility
  * \param flags     OR-ed LOG_WRITE_FLAG_* flags
+ * \param err       if set append strerror(err) to the message
  * \param ...       printf-style variable length arguments list
  */
 #define u_log_die(ecode, facility, flags, err, ...)               \
@@ -162,7 +163,7 @@ int u_log_set_hook(u_log_hook_t hook, void *arg, u_log_hook_t *old, void**parg);
 
 /** \brief log a notice message
  *
- * Write a noticer log message.
+ * Write a notice log message.
  *
  * \param facility  facility
  * \param flags     OR-ed LOG_WRITE_FLAG_* flags
@@ -228,6 +229,23 @@ int u_log_set_hook(u_log_hook_t hook, void *arg, u_log_hook_t *old, void**parg);
 
 /** \brief write a log message to stderr */
 #define con_( err, ...) u_console_write( err, __VA_ARGS__)
+
+/**
+ *  \brief  Return, in the given buffer, a string describing the error code
+ *
+ *  Return in 'msg' a string describing the error code. Works equally with 
+ *  POSIX-style C libs and with glibc (that use a different prototype for 
+ *  strerror_r).
+ *
+ *  If strerror_r doesn't exist in the system strerror() is used instead.
+ *
+ *  \param  err     the error code
+ *  \param  buf     the buffer that will get the error message
+ *  \param  size    size of buf
+ *
+ *  \return \c 0 on success, \c ~0 on error
+ */ 
+int u_strerror_r(int err, char *buf, size_t size);
 
 /**
  *  \}

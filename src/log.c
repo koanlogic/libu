@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: log.c,v 1.12 2006/11/19 06:31:49 tho Exp $";
+    "$Id: log.c,v 1.13 2006/11/20 08:44:48 tho Exp $";
 
 #include <sys/types.h>
 #include <errno.h>
@@ -125,7 +125,7 @@ int u_log_write_ex(int fac, int lev, int flags, int err, const char* file,
     if(err)
     {
         u_strerror_r(err, strerr, sizeof(strerr));
-        u_snprintf(errmsg, sizeof(errmsg), "[errno: %d, %s]", err, strerr);
+        snprintf(errmsg, sizeof(errmsg), "[errno: %d, %s]", err, strerr);
         errmsg[sizeof(errmsg) - 1] = 0; /* paranoid set */
     } 
 
@@ -152,7 +152,10 @@ int u_console_write_ex(int err, const char* file, int line,
     int rc;
     char strerr[STRERR_BUFSZ], errmsg[STRERR_BUFSZ];
 
-    u_unused_args(file, line, func);
+    /* when writing to console the following parameters are not used */
+    file = NULL;
+    line = 0;
+    func = NULL;
 
     save_errno(savederr);
 
@@ -173,7 +176,7 @@ int u_console_write_ex(int err, const char* file, int line,
     if(err)
     {
         u_strerror_r(err, strerr, sizeof(strerr));
-        u_snprintf(errmsg, sizeof(errmsg), "[errno: %d, %s]", err, strerr);
+        snprintf(errmsg, sizeof(errmsg), "[errno: %d, %s]", err, strerr);
         errmsg[sizeof(errmsg) - 1] = 0; /* paranoid set */
         fprintf(stderr, " %s\n", errmsg);
     } else
@@ -184,6 +187,41 @@ int u_console_write_ex(int err, const char* file, int line,
     return 0;
 err:
     restore_errno(savederr);
+    return ~0;
+}
+
+int u_strerror_r(int en, char *msg, size_t sz)
+{
+
+#ifdef HAVE_STRERROR_R
+    enum { BUFSZ = 256 };
+    char buf[BUFSZ] = { 0 };
+    int rc;
+
+    /* assume POSIX prototype */
+    rc = (int)strerror_r(en, buf, BUFSZ);
+
+    if(rc == 0)
+    {    /* posix version, success */
+        strlcpy(msg, buf, sz);
+    } else if(rc == -1 || (rc > 0 && rc < 1024)) {
+         /* posix version, failed (returns -1 or an error number) */
+         goto err;
+    } else {
+        /* glibc char*-returning version, always succeeds */
+        strlcpy(msg, (char*)rc, sz);
+    }
+#else
+    /* there's not strerror_r, use strerror() instead */
+    char *p;
+
+    dbg_err_if((p = strerror(en)) == NULL);
+
+    strlcpy(msg, p, sz);
+#endif
+
+    return 0;
+err:
     return ~0;
 }
 
