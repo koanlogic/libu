@@ -1,8 +1,10 @@
-$Id: ChangeLog,v 1.11 2006/11/09 16:30:32 tho Exp $
+$Id: ChangeLog,v 1.12 2006/11/20 14:00:43 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/kl/cont/gb/html/libu.html
 
 LibU 0.5.0:
+	- clean separation of "toolbox" modules (i.e. log, env, carpal, etc.)
+	  from "portability" modules (i.e. strlcat/gettimeofday/etc. replacements)
 	- [net] added UNIX socket support
 	- [queue] {LIST,TAILQ}_FOREACH_SAFE and TAILQ_FOREACH_REVERSE{_SAFE,} 
 	  added
@@ -13,8 +15,8 @@ LibU 0.5.0:
 	- [log] msg_strerror() fix: POSIX vs glibc strerror_r prototypes check 
 	  is now performed at runtime since configure check would work when 
 	  cross-compiling
-	- [carpal] added new macros {dbg,info,warn,err,con}_ifm(expr,...) and 
-	  {info,warn,err,con}_{return,err}_sif
+	- [carpal] added macros for every syslog(3) level:
+		- {dbg,info,notice,warn,err,crit,alert,emerg,con}_[s]?if[m]?(expr,...) 
 	- [string] added new functions u_string_sprintf() and u_string_reserve()
 	- [buf] u_buf_printf() added; u_buf_free() memory leak fixed; moved 
 	  struct u_buf_s to u/buf.h so that it can be used in TAILs, LISTs, etc;
