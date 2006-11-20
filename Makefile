@@ -1,5 +1,5 @@
-# $Id: Makefile,v 1.1 2005/09/23 13:04:37 tho Exp $
+# $Id: Makefile,v 1.2 2006/11/20 13:40:01 tho Exp $
 
-SUBDIR = src u doc
+SUBDIR = srcs include doc
 
 include subdir.mk

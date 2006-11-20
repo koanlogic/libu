@@ -1,8 +1,8 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.48 2006/11/09 21:52:54 tho Exp $
+# $Id: configure,v 1.49 2006/11/20 13:40:01 tho Exp $
 
-export makl_conf_h=libu_conf.h
+export makl_conf_h="include/u/libu_conf.h"
 
 # Be sure MAKL_DIR is there.
 if [ -z "${MAKL_DIR}" ]; then
@@ -78,7 +78,7 @@ case ${target} in
 esac
 
 # C Flags
-makl_append_var_mk "CFLAGS" "-DHAVE_CONF_H -I`pwd`"
+makl_append_var_mk "CFLAGS" "-DHAVE_CONF_H -I`pwd`/include"
 
 # Binary dependencies
 makl_optional           1    "featx"   "doxygen"    "PATH_DOXYGEN"
