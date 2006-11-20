@@ -1,16 +1,30 @@
-# $Id: Makefile.dist,v 1.9 2006/03/02 17:16:10 tho Exp $
+# $Id: Makefile.dist,v 1.10 2006/11/20 13:49:53 tho Exp $
 
 include common.mk
 
 PKG_NAME = libu
 PKG_VERSION = $(shell cat VERSION)
 
+# top level build and configuration drivers
 DISTFILES =  Makefile LICENSE ChangeLog README VERSION configure \
              configure.help
-DISTFILES += $(wildcard u/*.h) u/Makefile
-DISTFILES += $(wildcard src/*.c) src/Makefile
+
+# headers (include/{u,missing,toolbox})
+DISTFILES += include/Makefile
+DISTFILES += $(wildcard include/missing/*.h) include/missing/Makefile
+DISTFILES += $(wildcard include/toolbox/*.h) include/toolbox/Makefile
+DISTFILES += include/u/libu.h include/u/missing.h include/u/toolbox.h
+DISTFILES += include/u/Makefile
+
+# sources (srcs/{missing,toolbox})
+DISTFILES += srcs/Makefile
+DISTFILES += $(wildcard srcs/missing/*.c)
+DISTFILES += $(wildcard srcs/toolbox/*.c)
+
+# man pages
 DISTFILES += $(wildcard doc/man/*.3) doc/man/Makefile
 
+# doxy bits
 DISTREMAP += doc/doxy/src/kl.css doc/html/kl.css
 DISTREMAP += pkg/Makefile.doc doc/Makefile
 DISTREMAP += pkg/Makefile.doxy.doc doc/html/Makefile
@@ -18,6 +32,6 @@ DISTREMAP += $(foreach f, $(notdir $(wildcard doc/doxy/html/*.html)), \
                        doc/doxy/html/$f doc/html/$f)
 
 dist-hook-pre:
-	@echo "Processing HTML documentation..." && cd doc/doxy && make
+	@echo "Processing HTML documentation..." && cd doc/doxy && $(MAKE)
 
 include dist.mk
