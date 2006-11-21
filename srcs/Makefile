@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.2 2006/11/20 20:34:37 tho Exp $
+# $Id: Makefile,v 1.3 2006/11/21 08:54:49 tho Exp $
 
 include common.mk
 include ../Makefile.conf
@@ -6,10 +6,10 @@ include ../Makefile.conf
 LIB = u
 
 # toolbox sources
-SRCS = toolbox/memory.c  \
-       toolbox/misc.c    \
-       toolbox/str.c     \
-       toolbox/buf.c     \
+SRCS = toolbox/memory.c \
+       toolbox/misc.c   \
+       toolbox/str.c    \
+       toolbox/buf.c    \
        toolbox/log.c
 
 ifndef NO_HMAP

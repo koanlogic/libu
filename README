@@ -1,37 +1,53 @@
-LibU in a few words
+== LibU in a few words ==
 
-    LibU is a multiplatform (UNIXes, Mac, Windows) C library which comes under 
-    a BSD-style license.  It includes many interdependent modules for doing 
-    different things: memory allocation, networking and URI parsing (rfc2396), 
-    string manipulation, debugging and logging in a very compact way, plus many
-    other miscellaneous tasks.  Its small footprint (about 70KB) and 
-    multiplatform nature, makes it an ideal candidate for integration in bigger
-    projects.  KLone - http://www.koanlogic.com/products/klone - is an example 
-    of such a combination.
+LibU is a multiplatform (UNIXes, Mac, Windows) C library which comes under a
+BSD-style license.  It includes many interdependent modules for doing different
+things: memory allocation, networking and URI parsing (rfc2396), string
+manipulation, debugging and logging in a very compact way, plus many other
+miscellaneous tasks.  Its small footprint (about 70KB) and multiplatform
+nature, makes it an ideal candidate for integration in bigger projects.  KLone
+- http://www.koanlogic.com/products/klone - is an example of such a combination.
 
-Installation
 
-    LibU builds with MaKL (KoanLogic's autoconfiguration and building 
-    framework) and should need no user's intervention for compilation and 
-    installation, except the following steps:
+== Installation ==
+
+LibU needs MaKL version 1.3.0 (or upper) to build.
+
+You can download MaKL at http://www.koanlogic.com/makl: follow the steps
+described in its README file to install it on your platform.  When 'makl' tool
+is at your disposal, move to LibU directory (e.g.  /home/me/tgz/libu-0.5.0/)
+and do the following:
 
     $ ./maklconf [--prefix=... --enable_shared ...] 
     $ makl
     # makl install
 
-    If you are installing LibU on a platform which is not yet supported by
-    MaKL, you must create your own Makefile.conf and include/u/libu_conf.h.
+Shared libraries are not built by default, so you'll have to explicitly set
+the '--enable_shared' flag in the configure step if you want/need them.
 
-Module Selection
+If you are installing LibU on a platform which is not yet supported by MaKL, 
+you will have to create the following objects:
 
-    The following modules can be left out through the given configure option:
+    * a toolchain file for MaKL (see tc/README file in MaKL package)
+    * Makefile.conf and include/u/libu_conf.h for LibU
 
-        - hmap              (--no_hmap)
-        - config            (--no_config)
-        - net and uri       (--no_net)
-        - env               (--no_env)
+matching your platform settings and available tools.  
 
-Contribute to LibU
+If you need support drop a line to one of {makl,libu}-users@koanlogic.com 
+mailing lists and we'll be glad to help.
 
-    If you need support or you want to submit a patch or an enhancement,
-    use the libu-dev@koanlogic.com mailing list.
+
+== Module Selection ==
+
+The following modules can be left out through the given configure option:
+
+    - hmap              (--no_hmap)
+    - config            (--no_config)
+    - net and uri       (--no_net)
+    - env               (--no_env)
+
+
+== Contribute to LibU ==
+
+If you want to submit a patch or an enhancement, send it to the 
+libu-dev@koanlogic.com mailing list.

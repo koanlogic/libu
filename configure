@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.49 2006/11/20 13:40:01 tho Exp $
+# $Id: configure,v 1.50 2006/11/21 08:54:49 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -26,7 +26,6 @@ makl_args_def "enable_profile"  "" "" "enables profiling"
 makl_args_def "enable_warns"    "" "" "set CFLAGS for extra warnings"
 makl_args_def "no_hmap"         "" "" "disable hmap module"
 makl_args_def "no_config"       "" "" "disable config module"
-makl_args_def "no_log"          "" "" "disable log module"
 makl_args_def "no_net"          "" "" "disable net module"
 makl_args_def "no_env"          "" "" "disable env module"
 makl_args_def "no_ipv6"         "" "" "disable IPv6 support"
@@ -49,7 +48,6 @@ __makl_enable_warns ()
 }
 __makl_no_hmap ()           { makl_set_var "NO_HMAP" ; }
 __makl_no_config ()         { makl_set_var "NO_CONFIG" ; }
-__makl_no_log ()            { makl_set_var "NO_LOG" ; }
 __makl_no_net ()            { makl_set_var "NO_NET" ; }
 __makl_no_env ()            { makl_set_var "NO_ENV" ; }
 __makl_no_ipv6 ()           { makl_set_var "NO_IPV6" ; }

@@ -38,7 +38,6 @@ OPTION can be defined as follows:
 --enable_shared     enable shared library build [by default it is disabled]
 --no_hmap           disable hmap module
 --no_config         disable config module
---no_log            disable log module
 --no_net            disable net module
 --no_env            disable env module
 

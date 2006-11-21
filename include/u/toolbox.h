@@ -14,6 +14,7 @@
 #include <u/toolbox/queue.h>
 #include <u/toolbox/str.h>
 #include <u/toolbox/uri.h>
+#include <u/toolbox/log.h>
 /* always include net.h even if NO_NET is set */
 #include <u/toolbox/net.h>
 
@@ -25,9 +26,6 @@
 #endif
 #ifndef NO_CONFIG
     #include <u/toolbox/config.h>
-#endif
-#ifndef NO_LOG
-    #include <u/toolbox/log.h>
 #endif
 
 #endif  /* !_LIBU_TOOLBOX_H_ */
