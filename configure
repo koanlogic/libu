@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.50 2006/11/21 08:54:49 tho Exp $
+# $Id: configure,v 1.51 2006/11/27 14:03:40 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -69,6 +69,7 @@ case ${target} in
         makl_set_var_h "OS_UNIX"
         makl_set_var_h "U_PATH_SEPARATOR" "'/'"
         if [ `echo $target | grep darwin` ]; then
+            makl_set_var_mk "OS_DARWIN" "true"
             makl_set_var_mk "SHLIB_LDFLAGS" \
                 "-undefined suppress -flat_namespace"
         fi

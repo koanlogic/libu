@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.3 2006/11/21 08:54:49 tho Exp $
+# $Id: Makefile,v 1.4 2006/11/27 14:03:40 tho Exp $
 
 include common.mk
 include ../Makefile.conf
@@ -63,6 +63,7 @@ endif
 include lib.mk
 
 # MacOSX ld(1) bug workaround
+ifdef OS_DARWIN
 install-hook-post:
 	$(RANLIB) $(LIBDIR)/libu.a
-
+endif
