@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.51 2006/11/27 14:03:40 tho Exp $
+# $Id: configure,v 1.52 2006/12/10 18:46:25 tat Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -10,7 +10,7 @@ if [ -z "${MAKL_DIR}" ]; then
     echo "  WARNING: it seems that MaKL is not installed/configured in your    "
     echo "           environment.                                              "
     echo "           See http://www.koanlogic.com/kl/cont/gb/html/makl.html    "
-    echo "           for download, installation and configuratioN information. "
+    echo "           for download, installation and configuration information. "
     echo "====================================================================="
     exit 1
 fi
