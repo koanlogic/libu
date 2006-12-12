@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.52 2006/12/10 18:46:25 tat Exp $
+# $Id: configure,v 1.53 2006/12/12 13:21:28 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -102,6 +102,7 @@ makl_checkfunc          0   "strlcpy"
 makl_checkfunc          0   "strlcat"
 makl_checkfunc          0   "gettimeofday"
 makl_checkfunc          0   "daemon"
+makl_checkfunc          0   "mkstemps"
 makl_func_strerror_r    0
 makl_checkheader        0   "unistd"    "<unistd.h>"
 makl_checkheader        0   "stdlib"    "<stdlib.h>"

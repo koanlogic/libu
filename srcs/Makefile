@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.4 2006/11/27 14:03:40 tho Exp $
+# $Id: Makefile,v 1.5 2006/12/12 13:21:28 tho Exp $
 
 include common.mk
 include ../Makefile.conf
@@ -58,6 +58,9 @@ SRCS += missing/gettimeofday.c
 endif
 ifndef HAVE_DAEMON
 SRCS += missing/daemon.c
+endif
+ifndef HAVE_MKSTEMPS
+SRCS += missing/mkstemps.c
 endif
 
 include lib.mk
