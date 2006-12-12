@@ -1,8 +1,9 @@
-$Id: ChangeLog,v 1.12 2006/11/20 14:00:43 tho Exp $
+$Id: ChangeLog,v 1.13 2006/12/12 13:35:34 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/kl/cont/gb/html/libu.html
 
 LibU 0.5.0:
+	- mkstemps() added to the portability layer
 	- clean separation of "toolbox" modules (i.e. log, env, carpal, etc.)
 	  from "portability" modules (i.e. strlcat/gettimeofday/etc. replacements)
 	- [net] added UNIX socket support
