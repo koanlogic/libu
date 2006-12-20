@@ -5,8 +5,8 @@ PROG = cli
 SRCS = main.c
 
 CFLAGS = -g
-CFLAGS += -I../../../
+CFLAGS += -I../../../include
 
-LDADD = ../../../src/libu.a
+LDADD = ../../../srcs/libu.a
 
 include prog.mk
