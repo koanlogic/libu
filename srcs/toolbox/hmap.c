@@ -1,4 +1,4 @@
-/* $Id: hmap.c,v 1.1 2006/11/20 13:38:01 tho Exp $ */
+/* $Id: hmap.c,v 1.2 2007/01/03 16:47:21 stewy Exp $ */
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -23,29 +23,20 @@
 
 
 /* policy queue object */
-struct u_hmap_queue_o_s 
+struct u_hmap_q_s 
 {
-    char *key;
-    void *o;
-    TAILQ_ENTRY(u_hmap_queue_o_s) next;
-};
-
-/* hmap object abstraction */
-struct u_hmap_o_s 
-{
-    char *key;
-    void *val;
-    LIST_ENTRY(u_hmap_o_s) next;
-    struct u_hmap_queue_o_s *pqe; 
+    void *key,
+         *o;
+    TAILQ_ENTRY(u_hmap_q_s) next;
 };
 
 /* hmap policy representation */
 struct u_hmap_pcy_s 
 {
-    int (*pop)(struct u_hmap_s *hmap); 
-    int (*push)(struct u_hmap_s *hmap, struct u_hmap_o_s *obj,
-            struct u_hmap_queue_o_s **data); 
-    TAILQ_HEAD(u_hmap_queue_h_s, u_hmap_queue_o_s) queue;
+    int (*pop)(struct u_hmap_s *hmap, u_hmap_o_t **obj); 
+    int (*push)(struct u_hmap_s *hmap, u_hmap_o_t *obj,
+            u_hmap_q_t **data); 
+    TAILQ_HEAD(u_hmap_q_h_s, u_hmap_q_s) queue;
     enum {
         U_HMAP_PCY_OP_PUT = 0x1,
         U_HMAP_PCY_OP_GET = 0x2
@@ -55,44 +46,66 @@ struct u_hmap_pcy_s
 /* hmap representation */
 struct u_hmap_s 
 {
-    u_hmap_opts_t *opts;
+   u_hmap_opts_t *opts;
     size_t size;
     LIST_HEAD(u_hmap_e_s, u_hmap_o_s) *hmap;
     struct u_hmap_pcy_s pcy;
 };
 
 
-static int _get (u_hmap_t *hmap, const char *key, 
-        struct u_hmap_o_s **o);
+static int _get (u_hmap_t *hmap, void *key, 
+        u_hmap_o_t **o);
 
 static int _opts_check (u_hmap_opts_t *opts);
 static int _pcy_setup (u_hmap_t *hmap);
+static const char *_pcy2str(u_hmap_pcy_t policy);
 
-static struct u_hmap_o_s *_o_new (const char *key, void *val);
-static void _o_free (u_hmap_t *hmap, struct u_hmap_o_s *obj);
+static void _o_free (u_hmap_t *hmap, u_hmap_o_t *obj);
 
-static struct u_hmap_queue_o_s *_data_o_new(const char *key);
-static void _data_o_free (struct u_hmap_queue_o_s *s);
+static u_hmap_q_t *_q_o_new (void *key);
+static void _q_o_free (u_hmap_t *hmap, u_hmap_q_t *s);
 
-static size_t _f_hash (const char *key, size_t size);
-static int _f_comp (const char *k1, const char *k2);
-static void _f_free (void *val);
+static size_t _f_hash (void *key, size_t size);
+static int _f_comp (void *k1, void *k2);
+static void _f_free_key (void *val);
+static void _f_free_obj (void *val);
 
-static int _queue_push (u_hmap_t *hmap, struct u_hmap_o_s *obj, 
-        struct u_hmap_queue_o_s **data);
-static int _queue_push_count (u_hmap_t *hmap, struct u_hmap_o_s *obj,
-        struct u_hmap_queue_o_s **counts);
-static int _queue_pop_front (u_hmap_t *hmap);
-static int _queue_pop_back (u_hmap_t *hmap);
+static int _queue_push (u_hmap_t *hmap, u_hmap_o_t *obj, 
+        u_hmap_q_t **data);
+static int _queue_push_count (u_hmap_t *hmap, u_hmap_o_t *obj,
+        u_hmap_q_t **counts);
+static int _queue_pop_front (u_hmap_t *hmap, u_hmap_o_t **obj);
+static int _queue_pop_back (u_hmap_t *hmap, u_hmap_o_t **obj);
 
 
-static size_t _f_hash (const char *key, size_t size)
+/**
+ * \brief Get a string representation of an error code
+ *
+ * Get a string representation of an error code
+ *
+ * \param rc   return code 
+ */
+const char *u_hmap_strerror (u_hmap_ret_t rc)
+{
+    switch (rc)
+    {
+        case U_HMAP_ERR_NONE:
+            return "success";
+        case U_HMAP_ERR_FAIL:
+            return "general failure";
+    }
+    return NULL;
+}
+
+/* Default hash function */
+static size_t _f_hash (void *key, size_t size)
 {
     size_t h = 0;
-    
-    while (*key)
+    char *k = (unsigned char *) key;
+
+    while (*k)
     {
-        h += *key++;
+        h += *k++;
         h += (h << 10);
         h ^= (h >> 6);
     }
@@ -103,18 +116,29 @@ static size_t _f_hash (const char *key, size_t size)
     return (h + (h << 15)) % size;
 }
 
-static int _f_comp (const char *k1, const char *k2) 
+/* Default comparison function for key comparison */
+static int _f_comp (void *k1, void *k2) 
 {
-    return strcmp(k1, k2);
+    return strcmp((char *)k1, (char *)k2);
 }
 
-static void _f_free (void *val)
+/* Default function for freeing hmap object keys */
+static void _f_free_key (void *key)
+{
+    dbg_ifb (key == NULL) return;
+
+    u_free(key); 
+}
+
+/* Default function for freeing hmap object values */
+static void _f_free_obj (void *val)
 {
     dbg_ifb (val == NULL) return;
 
     u_free(val); 
 }
 
+/* Check validity of options */
 static int _opts_check (u_hmap_opts_t *opts)
 {
     dbg_err_if (opts == NULL);
@@ -125,14 +149,14 @@ static int _opts_check (u_hmap_opts_t *opts)
             opts->policy > U_HMAP_PCY_LFU);
     dbg_err_if (opts->f_hash == NULL);
     dbg_err_if (opts->f_comp == NULL);
-    dbg_err_if (opts->f_free == NULL);
-     
-    return 0;
+
+    return U_HMAP_ERR_NONE;
 
 err:
-    return ~0;
+    return U_HMAP_ERR_FAIL;
 }
 
+/* Setup policy parameters */
 static int _pcy_setup (u_hmap_t *hmap) 
 {
     dbg_return_if (hmap == NULL, ~0);
@@ -161,9 +185,10 @@ static int _pcy_setup (u_hmap_t *hmap)
             break;
         default:
             dbg("Invalid policy: %d", hmap->opts->policy);
-            return ~0;
+            return U_HMAP_ERR_FAIL;
     }
-    return 0;
+
+    return U_HMAP_ERR_NONE;
 }
 
 /**
@@ -176,7 +201,7 @@ static int _pcy_setup (u_hmap_t *hmap)
  * \param opts      options to be passed to the hmap
  * \param hmap      on success contains the hmap options object
  * 
- * \return 0 on success, non-zero on failure
+ * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
  */
 int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **hmap)
 {
@@ -194,6 +219,7 @@ int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **hmap)
         c->opts = opts;
         dbg_err_if (_opts_check(c->opts));
     }
+    u_hmap_opts_dbg(c->opts);
     dbg_err_if (_pcy_setup(c));
 
     c->size = 0;
@@ -209,19 +235,26 @@ int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **hmap)
 
     *hmap = c;
 
-    return 0;
+    return U_HMAP_ERR_NONE;
 
 err:
     u_free(c);
     *hmap = NULL;    
-    return ~0;
+    return U_HMAP_ERR_FAIL;
 }
 
+/**
+ * \brief Debug Hmap
+ *
+ * Print out information on an hmap.
+ *
+ * \param hmap  hmap object
+ */
 void u_hmap_dbg (u_hmap_t *hmap)
 {
     enum { MAX_LINE = 255 };
     u_string_t *s = NULL, *st = NULL;
-    struct u_hmap_o_s *obj;
+    u_hmap_o_t *obj;
     size_t i;
 
     dbg_ifb (hmap == NULL) return;
@@ -264,51 +297,75 @@ err:
 /**
  * \brief   Delete an object from the hmap
  * 
- * Delete object with given \a key from \a hmap.
+ * Delete object with given \a key from \a hmap and return it (if the object is
+ * owned by user).
  * 
  * \param hmap      hmap object
  * \param key       key of object to be deleted 
+ * \param obj       deleted object
  * 
- * \return 0 on success, non-zero on failure
+ * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
  */
-int u_hmap_del (u_hmap_t *hmap, const char *key) 
+int u_hmap_del (u_hmap_t *hmap, void *key, u_hmap_o_t **obj) 
 {
-    struct u_hmap_o_s *obj = NULL;
+    u_hmap_o_t *o = NULL;
 
     dbg_err_if (hmap == NULL);
     dbg_err_if (key == NULL);
 
-    if (_get(hmap, key, &obj))
-        return ~0;
+    if (obj)
+        *obj = NULL;
 
-    dbg_err_if (obj == NULL);
-    LIST_REMOVE(obj, next);
-    _o_free(hmap, obj);
-    return 0;
+    if (_get(hmap, key, &o))
+        return U_HMAP_ERR_FAIL;
+
+    dbg_err_if (o == NULL);
+    LIST_REMOVE(o, next);
+
+    if (hmap->opts->options & U_HMAP_OPTS_OWNSDATA)
+        _o_free(hmap, o);
+    else
+        if (obj)
+            *obj = o;
+
+    return U_HMAP_ERR_NONE;
     
 err:
-    return ~0;
+    return U_HMAP_ERR_FAIL;
 }
 
-static int _get (u_hmap_t *hmap, const char *key, 
-                       struct u_hmap_o_s **o)
+/* Retrieve an hmap element given a key */
+static int _get (u_hmap_t *hmap, void *key, 
+                       u_hmap_o_t **o)
 {
-    struct u_hmap_o_s *obj;
+    u_hmap_o_t *obj;
     struct u_hmap_e_s *x;
     int comp;
+	size_t hash;
 
     dbg_err_if (hmap == NULL);
     dbg_err_if (key == NULL);
     dbg_err_if (o == NULL);
 
-    x = &hmap->hmap[hmap->opts->f_hash(key, hmap->opts->max_size)];
+	hash = hmap->opts->f_hash(key, hmap->opts->max_size);
+
+	if (hmap->opts->f_hash != &_f_hash && 
+			!(hmap->opts->options & U_HMAP_OPTS_HASH_STRONG)) {
+		enum { MAX_INT = 20 };
+		unsigned char h[MAX_INT];
+
+		u_snprintf(h, MAX_INT, "%u", hash);
+		hash = _f_hash(h, hmap->opts->max_size);
+	}
+
+	x = &hmap->hmap[hash];
 
     LIST_FOREACH(obj, x, next) 
     {
         if ((comp = hmap->opts->f_comp(key, obj->key)) == 0) /* object found */
         { 
             *o = obj;
-            return 0;
+            return U_HMAP_ERR_NONE;
         } else if (comp < 0) { /* cannot be in list (ordered) */
             *o = NULL;
             break;
@@ -316,12 +373,19 @@ static int _get (u_hmap_t *hmap, const char *key,
     }
 
 err: 
-    return ~0;
+    return U_HMAP_ERR_FAIL;
 }
 
+/**
+ * \brief Debug policy
+ * 
+ * Print out policy information.
+ * 
+ * \param hmap  hmap object
+ */
 void u_hmap_pcy_dbg (u_hmap_t *hmap)
 {
-    struct u_hmap_queue_o_s *data;
+    u_hmap_q_t *data;
     u_string_t *s = NULL;
 
     dbg_ifb (hmap == NULL) return;
@@ -347,45 +411,48 @@ void u_hmap_pcy_dbg (u_hmap_t *hmap)
     return;
 }
 
-static int _queue_pop_front (u_hmap_t *hmap)
+/* pop the front of an object queue */
+static int _queue_pop_front (u_hmap_t *hmap, u_hmap_o_t **obj)
 {
-    struct u_hmap_queue_o_s *first;
+    u_hmap_q_t *first;
 
     dbg_err_if (hmap == NULL);
 
     dbg_err_if ((first = TAILQ_FIRST(&hmap->pcy.queue)) == NULL);
-    dbg_err_if (u_hmap_del(hmap, first->key));
+    dbg_err_if (u_hmap_del(hmap, first->key, obj));
     TAILQ_REMOVE(&hmap->pcy.queue, first, next);
-    _data_o_free(first);
+    _q_o_free(hmap, first);
 
-    return 0;
+    return U_HMAP_ERR_NONE;
 
 err:
-    return ~0;
+    return U_HMAP_ERR_FAIL;
 }
 
-static int _queue_pop_back (u_hmap_t *hmap)
+/* pop the back of an object queue */
+static int _queue_pop_back (u_hmap_t *hmap, u_hmap_o_t **obj)
 {
-    struct u_hmap_queue_o_s *last;
+    u_hmap_q_t *last;
 
     dbg_err_if (hmap == NULL);
 
-    dbg_err_if ((last = TAILQ_LAST(&hmap->pcy.queue, u_hmap_queue_h_s))
+    dbg_err_if ((last = TAILQ_LAST(&hmap->pcy.queue, u_hmap_q_h_s))
             == NULL);
-    dbg_err_if (u_hmap_del(hmap, last->key));
+    dbg_err_if (u_hmap_del(hmap, last->key, obj));
     TAILQ_REMOVE(&hmap->pcy.queue, last, next);
-    _data_o_free(last);
+    _q_o_free(hmap, last);
     
-    return 0;
+    return U_HMAP_ERR_NONE;
 
 err: 
-    return ~0;
+    return U_HMAP_ERR_FAIL;
 }
 
-static int _queue_push (u_hmap_t *hmap, struct u_hmap_o_s *obj,
-        struct u_hmap_queue_o_s **data)
+/* push object data onto queue */
+static int _queue_push (u_hmap_t *hmap, u_hmap_o_t *obj,
+        u_hmap_q_t **data)
 {
-    struct u_hmap_queue_o_s *new;
+    u_hmap_q_t *new;
 
     dbg_err_if (hmap == NULL);
     dbg_err_if (obj == NULL);
@@ -393,23 +460,24 @@ static int _queue_push (u_hmap_t *hmap, struct u_hmap_o_s *obj,
 
     if (*data == NULL) 
     {  /* no reference to queue entry */
-        dbg_err_if ((new = _data_o_new(obj->key)) == NULL);
+        dbg_err_if ((new = _q_o_new(obj->key)) == NULL);
         TAILQ_INSERT_HEAD(&hmap->pcy.queue, new, next);
         *data = new;
     } else { /* have element in queue - move to head */
         TAILQ_REMOVE(&hmap->pcy.queue, *data, next);
         TAILQ_INSERT_HEAD(&hmap->pcy.queue, *data, next);
     }
-    return 0;
+    return U_HMAP_ERR_NONE;
     
 err:
-    return ~0;
+    return U_HMAP_ERR_FAIL;
 }
 
-static int _queue_push_count (u_hmap_t *hmap, struct u_hmap_o_s *obj, 
-        struct u_hmap_queue_o_s **counts)
+/* Increment count data object and push onto queue */
+static int _queue_push_count (u_hmap_t *hmap, u_hmap_o_t *obj, 
+        u_hmap_q_t **counts)
 {
-    struct u_hmap_queue_o_s *new, *t;
+    u_hmap_q_t *new, *t;
     int *count;
 
     dbg_err_if (hmap == NULL);
@@ -418,7 +486,7 @@ static int _queue_push_count (u_hmap_t *hmap, struct u_hmap_o_s *obj,
 
     if (*counts == NULL) /* no reference to queue entry */
     {  
-        dbg_err_if ((new = _data_o_new(obj->key)) == NULL);
+        dbg_err_if ((new = _q_o_new(obj->key)) == NULL);
         TAILQ_INSERT_HEAD(&hmap->pcy.queue, new, next);
         *counts = TAILQ_FIRST(&hmap->pcy.queue);
         dbg_err_if ((count = (int *) u_zalloc(sizeof(int))) == NULL);
@@ -439,65 +507,94 @@ static int _queue_push_count (u_hmap_t *hmap, struct u_hmap_o_s *obj,
                 TAILQ_INSERT_TAIL(&hmap->pcy.queue, *counts, next);
         }
     }
-    return 0;
+    return U_HMAP_ERR_NONE;
     
 err:
-    return ~0;
+    return U_HMAP_ERR_FAIL;
 }
 
 /**
  * \brief   Insert an object into the hmap
  * 
- * Insert a {\a key:\a val} pair into \a hmap. The object must be allocated
- * externally, but its ownership passes to \a hmap. Hence, the appropriate
- * object deallocation function should be set in the relative options field.
+ * Insert a (key, val) pair \a obj into \a hmap. Such object should be created
+ * with u_hmap_o_new(). The user is responsible for allocation of keys and
+ * values unless U_HMAP_OPTS_OWNSDATA is set. If a value is overwritten, the \a
+ * old value is returned (only if data is owned by user).
  * 
  * \param hmap      hmap object
- * \param key       key to be inserted 
- * \param val       value to be inserted
+ * \param obj       key to be inserted 
+ * \param old       returned old value
  * 
- * \return 0 on success, non-zero on failure
+ * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
  */
-int u_hmap_put (u_hmap_t *hmap, const char *key, void *val)
+int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
 {
-    struct u_hmap_o_s *obj, *new;
+    u_hmap_o_t *o;
     struct u_hmap_e_s *x;
     int comp;
+	size_t hash;
 
     dbg_err_if (hmap == NULL);
-    dbg_err_if (key == NULL);
-    dbg_err_if (val == NULL);
+    dbg_err_if (obj == NULL);
 
-    dbg_err_if ((new = _o_new(key, val)) == NULL);
-    x = &hmap->hmap[hmap->opts->f_hash(key, hmap->opts->max_size)];
+    if (old)
+        *old = NULL;
+
+    hash = hmap->opts->f_hash(obj->key, hmap->opts->max_size);
+
+	if (hmap->opts->f_hash != &_f_hash && 
+			!(hmap->opts->options & U_HMAP_OPTS_HASH_STRONG)) {
+		enum { MAX_INT = 20 };
+		unsigned char h[MAX_INT];
+
+		u_snprintf(h, MAX_INT, "%u", hash);
+		hash = _f_hash(h, hmap->opts->max_size);
+	}
 
     if (hmap->opts->policy != U_HMAP_PCY_NONE &&
             hmap->size >= hmap->opts->max_elems) 
     {
         dbg("Cache full - freeing according to policy %d", hmap->opts->policy);
-        hmap->pcy.pop(hmap);
+        hmap->pcy.pop(hmap, old);
     }
 
-    if (LIST_EMPTY(x)) 
+	x = &hmap->hmap[hash];
+
+    if (LIST_EMPTY(x) || (hmap->opts->options & U_HMAP_OPTS_NO_ORDERING)) 
     {
-        LIST_INSERT_HEAD(x, new, next);
+        LIST_INSERT_HEAD(x, obj, next);
     } else {
-        LIST_FOREACH(obj, x, next) 
+        LIST_FOREACH(o, x, next) 
         {
-            if ((comp = hmap->opts->f_comp(key, obj->key)) == 0) 
+            if ((comp = hmap->opts->f_comp(obj->key, o->key)) == 0) 
             { 
-                /* object already hmapd -> overwrite */
-                LIST_INSERT_AFTER(obj, new, next);
-                LIST_REMOVE(obj, next);
-                _o_free(hmap, obj); 
-                goto end;
+                /* object already hmapd */
+                if (!(hmap->opts->options & U_HMAP_OPTS_NO_OVERWRITE))
+                {
+                    LIST_INSERT_AFTER(o, obj, next);
+                    LIST_REMOVE(o, next);
+
+                    if (hmap->opts->options & U_HMAP_OPTS_OWNSDATA)
+                        _o_free(hmap, o);
+                    else
+                        if (old)
+                            *old = o;
+
+                    goto end;
+
+                } else {
+                    if (old) 
+                        *old = obj; 
+                    
+                    return U_HMAP_ERR_EXISTS; 
+                }
             } else { 
                 if (comp < 0) 
                 {
-                    LIST_INSERT_BEFORE(obj, new, next); 
+                    LIST_INSERT_BEFORE(o, obj, next); 
                     break;
-                } else if (!LIST_NEXT(obj, next)) {
-                    LIST_INSERT_AFTER(obj, new, next);
+                } else if (!LIST_NEXT(o, next)) {
+                    LIST_INSERT_AFTER(o, obj, next);
                     break;
                 }
             }
@@ -507,68 +604,64 @@ int u_hmap_put (u_hmap_t *hmap, const char *key, void *val)
     hmap->size++;
 
 end:
-    if ((hmap->pcy.ops & U_HMAP_PCY_OP_PUT) == U_HMAP_PCY_OP_PUT)
-        hmap->pcy.push(hmap, new, &new->pqe);
+    if (hmap->pcy.ops & U_HMAP_PCY_OP_PUT)
+        hmap->pcy.push(hmap, obj, &obj->pqe);
 
-    return 0;
+    return U_HMAP_ERR_NONE;
 
 err:
-    return ~0;
+    return U_HMAP_ERR_FAIL;
 }
 
 /**
  * \brief   Retrieve an object from the hmap
  * 
  * Retrieve object with given \a key from \a hmap. On success the requested
- * object is returned in \a val. The object is not removed from the hmap, so
+ * object is returned in \a obj. The object is not removed from the hmap, so
  * ownership of the object is not returned to the user.
  * 
  * \param hmap      hmap object
  * \param key       key to be retrieved 
- * \param val       returned value
+ * \param obj       returned object
  * 
- * \return 0 on success, non-zero on failure
+ * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
  */
-int u_hmap_get (u_hmap_t *hmap, const char *key, void **val)
+int u_hmap_get (u_hmap_t *hmap, void *key, u_hmap_o_t **obj) 
 {
-    struct u_hmap_o_s *obj = NULL;
-
     dbg_err_if (hmap == NULL);
     dbg_err_if (key == NULL);
-    dbg_err_if (val == NULL);
+    dbg_err_if (obj == NULL);
 
-    if (_get(hmap, key, &obj)) 
+    if (_get(hmap, key, obj)) 
     {
-        *val = NULL;
-        return ~0;
+        *obj = NULL;
+        return U_HMAP_ERR_FAIL;
     }
     dbg_err_if (obj == NULL);
 
-    if ((hmap->pcy.ops & U_HMAP_PCY_OP_GET) == U_HMAP_PCY_OP_GET)
-        hmap->pcy.push(hmap, obj, &obj->pqe);
+    if (hmap->pcy.ops & U_HMAP_PCY_OP_GET)
+        hmap->pcy.push(hmap, *obj, &(*obj)->pqe);
         
-    *val = obj->val;
-
-    return 0;
+    return U_HMAP_ERR_NONE;
 
 err:
-    return ~0;
+    return U_HMAP_ERR_FAIL;
 }
 
 /**
  * \brief   Perform an operation on all objects
  * 
  * Execute function \a f on all objects within \a hmap. These functions should 
- * return 0 on success, and take an object as a parameter.
+ * return U_HMAP_ERR_NONE on success, and take an object as a parameter.
  * 
  * \param hmap      hmap object
  * \param f         function    
  * 
- * \return 0 on success, non-zero on failure
+ * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
  */
 int u_hmap_foreach (u_hmap_t *hmap, int f(void *val))
 {
-    struct u_hmap_o_s *obj;
+    u_hmap_o_t *obj;
     size_t i;
 
     dbg_err_if (hmap == NULL);
@@ -580,10 +673,10 @@ int u_hmap_foreach (u_hmap_t *hmap, int f(void *val))
             dbg_err_if (f(obj->val));
     }
 
-    return 0;
+    return U_HMAP_ERR_NONE;
 
 err:
-    return ~0;
+    return U_HMAP_ERR_FAIL;
 }
 
 /**
@@ -595,12 +688,12 @@ err:
  * 
  * \param hmap      hmap object
  * 
- * \return 0 on success, non-zero on failure
+ * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
  */
 int u_hmap_free (u_hmap_t *hmap)
 {
-    struct u_hmap_o_s *obj;
-    struct u_hmap_queue_o_s *data;
+    u_hmap_o_t *obj;
+    u_hmap_q_t *data;
     size_t i;
 
     dbg_return_if (hmap == NULL, ~0);
@@ -621,13 +714,13 @@ int u_hmap_free (u_hmap_t *hmap)
     while ((data = TAILQ_FIRST(&hmap->pcy.queue)) != NULL) 
     {
         TAILQ_REMOVE(&hmap->pcy.queue, data, next);
-        _data_o_free(data);
+        _q_o_free(hmap, data);
     }
 
     u_free(hmap->opts);
     u_free(hmap);
 
-    return 0;
+    return U_HMAP_ERR_NONE;
 }
 
 /**
@@ -639,7 +732,7 @@ int u_hmap_free (u_hmap_t *hmap)
  * 
  * \param opts      on success contains the hmap options object
  * 
- * \return 0 on success, non-zero on failure
+ * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
  */
 int u_hmap_opts_new (u_hmap_opts_t **opts)
 {
@@ -654,45 +747,67 @@ int u_hmap_opts_new (u_hmap_opts_t **opts)
     o->max_size = U_HMAP_MAX_SIZE;
     o->max_elems = U_HMAP_MAX_ELEMS;
     o->policy = U_HMAP_PCY_NONE;
+    o->options = 0;
     o->f_hash = &_f_hash;
     o->f_comp = &_f_comp;
-    o->f_free = &_f_free;
+    o->f_free_key = &_f_free_key;
+    o->f_free_obj = &_f_free_obj;
     o->f_str = NULL;
     
     *opts = o;
     
-    return 0;
+    return U_HMAP_ERR_NONE;
 err:
     *opts = NULL;
-    return ~0;
+    return U_HMAP_ERR_FAIL;
 }
 
+/**
+ * \brief Debug options
+ * 
+ * Print out information on option settings.
+ * 
+ * \param opts  options object
+ */
 void u_hmap_opts_dbg (u_hmap_opts_t *opts)
 {
     dbg_ifb (opts == NULL) return;
 
-    dbg("[%u - %d,%d,%d,%x,%x,%x,%x]",
-        sizeof(u_hmap_opts_t),
-        opts->policy,
-        opts->max_size,
-        opts->max_elems,
-        opts->f_hash,
-        opts->f_comp,
-        opts->f_free,
-        opts->f_str);
+    dbg("[hmap options]");
+    dbg("max size: %u", opts->max_size);
+    dbg("max elems: %u", opts->max_elems);
+    dbg("policy: %s", _pcy2str(opts->policy));
+    dbg("ownsdata: %d, &f_free_key: %x, &f_free_obj(): %x", 
+            (opts->options & U_HMAP_OPTS_OWNSDATA)>0,
+            &opts->f_free_key,
+            &opts->f_free_obj);
+    dbg("no_overwrite: %d", (opts->options & U_HMAP_OPTS_NO_OVERWRITE)>0);
+    dbg("no_ordering: %d", (opts->options & U_HMAP_OPTS_NO_ORDERING)>0);
 }
 
-static struct u_hmap_o_s *_o_new (const char *key, void *val)
+/**
+ * \brief   Create a data object
+ *
+ * Creates a new (key, value) tuple to be inserted into a hmap. By default, the
+ * user is responsible for allocation and deallocation of these objects and
+ * their content. If the option U_HMAP_OPTS_OWNSDATA is set 
+ *
+ * \param key       pointer to the key
+ * \param val       pointer to the oject
+ *
+ * \return pointer to a new u_hmap_o_t 
+ */
+u_hmap_o_t *u_hmap_o_new (void *key, void *val)
 {
-    struct u_hmap_o_s *obj;
+    u_hmap_o_t *obj;
 
     dbg_return_if (key == NULL, NULL);
     dbg_return_if (val == NULL, NULL);
 
-    dbg_return_if ((obj = (struct u_hmap_o_s *) 
-                u_zalloc(sizeof(struct u_hmap_o_s))) == NULL, NULL);
+    dbg_return_if ((obj = (u_hmap_o_t *) 
+                u_zalloc(sizeof(u_hmap_o_t))) == NULL, NULL);
     
-    dbg_err_if ((obj->key = strdup(key)) == NULL);
+    obj->key = key;
     obj->val = val;
     obj->pqe = NULL;
 
@@ -703,27 +818,53 @@ err:
     return NULL;
 }
 
-static void _o_free (u_hmap_t *hmap, struct u_hmap_o_s *obj)
+/** 
+ * \brief  Free a data object 
+ *
+ * Frees a data object (without freeing its content). This function should only
+ * be used if U_HMAP_OPTS_OWNSDATA is not set to free objects allocated with
+ * u_hmap_o_new(). If U_HMAP_OPTS_OWNSDATA is set, the data is freed
+ * automatically by the hashmap by using the default free function or the
+ * overridden functions f_free_key() and f_free_obj.
+ *
+ * \param obj       hmap object
+ */
+void u_hmap_o_free (u_hmap_o_t *obj)
+{
+    dbg_ifb (obj == NULL) return;
+    
+    u_free(obj);
+}
+
+/* Free a data object including content if U_HMAP_OPTS_OWNSDATA */
+static void _o_free (u_hmap_t *hmap, u_hmap_o_t *obj)
 {
     dbg_ifb (hmap == NULL) return;
     dbg_ifb (obj == NULL) return;
-    
-    hmap->opts->f_free(obj->val);  /* custom object deletion */
-    u_free(obj->key);  /* strdup()ed key */
-    u_free(obj); 
+
+    if (hmap->opts->options & U_HMAP_OPTS_OWNSDATA) 
+    {
+        if (hmap->opts->f_free_key)
+            hmap->opts->f_free_key(obj->key);  
+        if (hmap->opts->f_free_obj)
+            hmap->opts->f_free_obj(obj->val);
+
+        u_hmap_o_free(obj); 
+    }
 }
 
-static struct u_hmap_queue_o_s *_data_o_new (const char *key)
+/* Allocate a new queue data object */
+static u_hmap_q_t *_q_o_new (void *key)
 {
-    struct u_hmap_queue_o_s *data;
+    u_hmap_q_t *data = NULL;
 
     dbg_return_if (key == NULL, NULL);
 
-    dbg_return_if ((data = (struct u_hmap_queue_o_s *)
-                u_zalloc(sizeof(struct u_hmap_queue_o_s))) == NULL,
+    dbg_return_if ((data = (u_hmap_q_t *)
+                u_zalloc(sizeof(u_hmap_q_t))) == NULL,
             NULL);
 
-    dbg_err_if ((data->key = strdup(key)) == NULL);
+    data->key = key;
     data->o = NULL;
     
     return data;
@@ -733,13 +874,30 @@ err:
     return NULL;
 }
 
-static void _data_o_free (struct u_hmap_queue_o_s *data)
+/* Free a data queue object */
+static void _q_o_free (u_hmap_t *hmap, u_hmap_q_t *data)
 {
     dbg_ifb (data == NULL) return;
 
     u_free(data->o);
-    u_free(data->key);
     u_free(data);
+}
+
+/* Get a string representation of a policy */
+static const char *_pcy2str(u_hmap_pcy_t policy)
+{
+    switch (policy)
+    {
+        case U_HMAP_PCY_NONE:
+            return "none";
+        case U_HMAP_PCY_FIFO:
+            return "fifo";
+        case U_HMAP_PCY_LRU:
+            return "fifo";
+        case U_HMAP_PCY_LFU:
+            return "lfu";
+    }
+    return NULL;
 }
 
 /**

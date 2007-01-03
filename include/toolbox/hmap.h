@@ -12,6 +12,21 @@
 extern "C" {
 #endif
 
+/** \brief hmap error codes */
+typedef enum {
+    U_HMAP_ERR_NONE = 0,
+    U_HMAP_ERR_EXISTS,
+    U_HMAP_ERR_FAIL
+} u_hmap_ret_t;
+
+/** \brief hmap options */
+typedef enum {
+    U_HMAP_OPTS_OWNSDATA =       0x1,
+    U_HMAP_OPTS_NO_OVERWRITE =   0x2,
+    U_HMAP_OPTS_NO_ORDERING =    0x4,
+	U_HMAP_OPTS_HASH_STRONG = 	 0x8
+} u_hmap_options_t;
+
 /** \brief Policies to discard hmap elements */
 typedef enum {
     U_HMAP_PCY_NONE = 1,    /**< never discard old elements - 
@@ -21,34 +36,57 @@ typedef enum {
     U_HMAP_PCY_LFU      /**< discard least frequently used */     
 } u_hmap_pcy_t;
 
-/** \brief Optional Map settings */
-typedef struct u_hmap_opts_s {
-
-    size_t max_size;        /**< maximum size of hashhmap array */
-    size_t max_elems;       /**< maximum number of elements in hmap */
-    u_hmap_pcy_t policy;    /**< caching policy */
-
-    /** hash function to be used in hashhmap */
-    size_t (*f_hash)(const char *key, size_t buckets);   
-    /** function for key comparison */
-    int (*f_comp)(const char *k1, const char *k2);   
-    /** function for freeing an object */
-    void (*f_free)(void *val);   
-    /** function to get a string representation of an object */
-    u_string_t *(*f_str)(void *val);   
-} u_hmap_opts_t;
-
-/* internal pre-declarations */
 typedef struct u_hmap_s u_hmap_t;     
 
+/** \brief Optional Map settings */
+struct u_hmap_opts_s {
+
+    size_t max_size,        /**< maximum size of hashhmap array */
+           max_elems;       /**< maximum number of elements in hmap */
+
+    u_hmap_pcy_t policy;    /**< caching policy */
+
+    int options;          /**< see definitions for U_HMAP_OPTS_* */ 
+                              
+
+    /** hash function to be used in hashhmap */
+    size_t (*f_hash)(void *key, size_t buckets);   
+    /** function for key comparison */
+    int (*f_comp)(void *k1, void *k2);   
+    /** function for freeing an key */
+    void (*f_free_key)(void *val);   
+    /** function for freeing an object */
+    void (*f_free_obj)(void *val);   
+    /** function to get a string representation of an object */
+    u_string_t *(*f_str)(void *val);   
+};
+typedef struct u_hmap_opts_s u_hmap_opts_t;
+
+typedef struct u_hmap_q_s u_hmap_q_t;
+
+/* internal pre-declarations */
+struct u_hmap_o_s 
+{
+    void *key,
+         *val;
+    LIST_ENTRY(u_hmap_o_s) next;
+    u_hmap_q_t *pqe; 
+};
+typedef struct u_hmap_o_s u_hmap_o_t;     
+
+const char *u_hmap_strerror(u_hmap_ret_t);
 
 /* u_hmap_t */
 int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **hmap);
-int u_hmap_put (u_hmap_t *hmap, const char *key, void *val);
-int u_hmap_get (u_hmap_t *hmap, const char *key, void **val);
-int u_hmap_del (u_hmap_t *hmap, const char *key);
+int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old);
+int u_hmap_get (u_hmap_t *hmap, void *key, u_hmap_o_t **obj);
+int u_hmap_del (u_hmap_t *hmap, void *key, u_hmap_o_t **obj);
 int u_hmap_free (u_hmap_t *hmap);
 int u_hmap_foreach (u_hmap_t *hmap, int f(void *val));
+
+/* u_hmap_o_t */
+u_hmap_o_t *u_hmap_o_new (void *key, void *val);
+void u_hmap_o_free (u_hmap_o_t *obj);
 
 /* u_hmap_opts_t */
 int u_hmap_opts_new (u_hmap_opts_t **opts);
