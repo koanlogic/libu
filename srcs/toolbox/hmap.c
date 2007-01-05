@@ -1,4 +1,4 @@
-/* $Id: hmap.c,v 1.2 2007/01/03 16:47:21 stewy Exp $ */
+/* $Id: hmap.c,v 1.3 2007/01/05 16:43:44 stewy Exp $ */
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -8,8 +8,6 @@
 
 #include <toolbox/memory.h>
 #include <toolbox/carpal.h>
-#include <toolbox/queue.h>
-#include <toolbox/str.h>
 #include <toolbox/hmap.h>
 
 /**
@@ -63,12 +61,13 @@ static const char *_pcy2str(u_hmap_pcy_t policy);
 static void _o_free (u_hmap_t *hmap, u_hmap_o_t *obj);
 
 static u_hmap_q_t *_q_o_new (void *key);
-static void _q_o_free (u_hmap_t *hmap, u_hmap_q_t *s);
+static void _q_o_free (u_hmap_q_t *s);
 
 static size_t _f_hash (void *key, size_t size);
 static int _f_comp (void *k1, void *k2);
 static void _f_free_key (void *val);
 static void _f_free_obj (void *val);
+static u_string_t *_f_str (u_hmap_o_t *obj);
 
 static int _queue_push (u_hmap_t *hmap, u_hmap_o_t *obj, 
         u_hmap_q_t **data);
@@ -103,6 +102,8 @@ static size_t _f_hash (void *key, size_t size)
     size_t h = 0;
     char *k = (unsigned char *) key;
 
+    dbg_ifb (key == NULL) return -1;
+
     while (*k)
     {
         h += *k++;
@@ -119,6 +120,9 @@ static size_t _f_hash (void *key, size_t size)
 /* Default comparison function for key comparison */
 static int _f_comp (void *k1, void *k2) 
 {
+    dbg_ifb (k1 == NULL) return -1;    
+    dbg_ifb (k2 == NULL) return -1;  
+    
     return strcmp((char *)k1, (char *)k2);
 }
 
@@ -136,6 +140,27 @@ static void _f_free_obj (void *val)
     dbg_ifb (val == NULL) return;
 
     u_free(val); 
+}
+
+/* Default string representation of objects */
+static u_string_t *_f_str (u_hmap_o_t *obj)
+{
+    enum { MAX_OBJ_STR = 256 };
+    char buf[MAX_OBJ_STR];
+    u_string_t *s = NULL;
+
+    dbg_err_if (obj == NULL);
+
+    char *key = (char *) obj->key,
+         *val = (char *) obj->val;
+
+    dbg_err_if (u_snprintf(buf, MAX_OBJ_STR, "[%s:%s]", key, val));    
+    dbg_err_if (u_string_create(buf, strlen(buf)+1, &s));
+
+    return s;
+
+err:
+    return NULL;
 }
 
 /* Check validity of options */
@@ -208,6 +233,7 @@ int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **hmap)
     size_t i;
     u_hmap_t *c = NULL;
 
+    /* allow (opts == NULL) */
     dbg_return_if (hmap == NULL, ~0);
    
     dbg_return_if ((c = (u_hmap_t *) u_zalloc(sizeof(u_hmap_t))) == NULL, ~0);
@@ -268,19 +294,14 @@ void u_hmap_dbg (u_hmap_t *hmap)
 
         LIST_FOREACH(obj, &hmap->hmap[i], next) 
         {
-            dbg_err_if (u_string_append(s, "[", 1));
-            dbg_err_if (u_string_append(s, obj->key, strlen(obj->key)));
-            dbg_err_if (u_string_append(s, ":", 1));
-
             if (hmap->opts->f_str == NULL) 
             {
-                dbg_err_if (u_string_append(s, "*", 1));
+                dbg_err_if (u_string_append(s, "[]", 2));
             } else {
-                st = hmap->opts->f_str(obj->val);
+                st = hmap->opts->f_str(obj);
                 dbg_err_if (u_string_append(s, u_string_c(st),
                             u_string_len(st)-1));
             }
-            dbg_err_if (u_string_append(s, "]", 1));
         } 
         dbg_err_if (u_string_append(s, "|", 1));
         dbg(u_string_c(s));
@@ -290,7 +311,8 @@ void u_hmap_dbg (u_hmap_t *hmap)
     return;
 
 err:
-    u_string_free(s);
+    if (s)
+        u_string_free(s);
     return;   
 }
 
@@ -421,7 +443,7 @@ static int _queue_pop_front (u_hmap_t *hmap, u_hmap_o_t **obj)
     dbg_err_if ((first = TAILQ_FIRST(&hmap->pcy.queue)) == NULL);
     dbg_err_if (u_hmap_del(hmap, first->key, obj));
     TAILQ_REMOVE(&hmap->pcy.queue, first, next);
-    _q_o_free(hmap, first);
+    _q_o_free(first);
 
     return U_HMAP_ERR_NONE;
 
@@ -440,7 +462,7 @@ static int _queue_pop_back (u_hmap_t *hmap, u_hmap_o_t **obj)
             == NULL);
     dbg_err_if (u_hmap_del(hmap, last->key, obj));
     TAILQ_REMOVE(&hmap->pcy.queue, last, next);
-    _q_o_free(hmap, last);
+    _q_o_free(last);
     
     return U_HMAP_ERR_NONE;
 
@@ -714,7 +736,7 @@ int u_hmap_free (u_hmap_t *hmap)
     while ((data = TAILQ_FIRST(&hmap->pcy.queue)) != NULL) 
     {
         TAILQ_REMOVE(&hmap->pcy.queue, data, next);
-        _q_o_free(hmap, data);
+        _q_o_free(data);
     }
 
     u_free(hmap->opts);
@@ -752,7 +774,7 @@ int u_hmap_opts_new (u_hmap_opts_t **opts)
     o->f_comp = &_f_comp;
     o->f_free_key = &_f_free_key;
     o->f_free_obj = &_f_free_obj;
-    o->f_str = NULL;
+    o->f_str = &_f_str;
     
     *opts = o;
     
@@ -875,7 +897,7 @@ err:
 }
 
 /* Free a data queue object */
-static void _q_o_free (u_hmap_t *hmap, u_hmap_q_t *data)
+static void _q_o_free (u_hmap_q_t *data)
 {
     dbg_ifb (data == NULL) return;
 

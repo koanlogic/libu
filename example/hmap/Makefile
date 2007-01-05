@@ -4,7 +4,7 @@ include ../../Makefile.conf
 PROG = hmap
 SRCS = main.c
 
-CFLAGS = -g -DDEBUG #-Wall -pedantic -ansi
+CFLAGS = -g -DDEBUG -std=c99 -Wall -ansi 
 CFLAGS += -I../../include
 
 LDADD = ../../srcs/libu.a

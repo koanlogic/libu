@@ -6,7 +6,8 @@
 #define _U_HMAP_H_
 
 #include <sys/types.h>
-#include <u/toolbox/str.h>
+#include <toolbox/str.h>
+#include <toolbox/queue.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,6 +38,18 @@ typedef enum {
 } u_hmap_pcy_t;
 
 typedef struct u_hmap_s u_hmap_t;     
+typedef struct u_hmap_opts_s u_hmap_opts_t;
+typedef struct u_hmap_q_s u_hmap_q_t;
+typedef struct u_hmap_o_s u_hmap_o_t;     
+
+/* internal pre-declarations */
+struct u_hmap_o_s 
+{
+    void *key,
+         *val;
+    LIST_ENTRY(u_hmap_o_s) next;
+    u_hmap_q_t *pqe; 
+};
 
 /** \brief Optional Map settings */
 struct u_hmap_opts_s {
@@ -57,23 +70,12 @@ struct u_hmap_opts_s {
     void (*f_free_key)(void *val);   
     /** function for freeing an object */
     void (*f_free_obj)(void *val);   
-    /** function to get a string representation of an object */
-    u_string_t *(*f_str)(void *val);   
+    /** function to get a string representation of a (key, val) object */
+    u_string_t *(*f_str)(u_hmap_o_t *obj);   
 };
-typedef struct u_hmap_opts_s u_hmap_opts_t;
 
-typedef struct u_hmap_q_s u_hmap_q_t;
 
-/* internal pre-declarations */
-struct u_hmap_o_s 
-{
-    void *key,
-         *val;
-    LIST_ENTRY(u_hmap_o_s) next;
-    u_hmap_q_t *pqe; 
-};
-typedef struct u_hmap_o_s u_hmap_o_t;     
-
+/* u_hmap_* */
 const char *u_hmap_strerror(u_hmap_ret_t);
 
 /* u_hmap_t */
@@ -95,6 +97,7 @@ int u_hmap_opts_new (u_hmap_opts_t **opts);
 void u_hmap_dbg (u_hmap_t *hmap);
 void u_hmap_opts_dbg (u_hmap_opts_t *opts);
 void u_hmap_pcy_dbg (u_hmap_t *hmap);
+
 
 #ifdef __cplusplus
 }

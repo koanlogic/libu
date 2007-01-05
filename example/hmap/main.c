@@ -1,4 +1,4 @@
-/* $Id: main.c,v 1.3 2007/01/03 16:47:21 stewy Exp $ */
+/* $Id: main.c,v 1.4 2007/01/05 16:43:44 stewy Exp $ */
 
 /* TODO public version of o_free () to free objects! */
 
@@ -10,7 +10,7 @@ static int example_static(void);
 static int example_dynamic_own_hmap(void);
 static int example_dynamic_own_user(void);
 static int example_no_overwrite(void);
-static int example_hash_custom(void);
+static int example_types_custom(void);
 
 int main()
 {
@@ -18,7 +18,7 @@ int main()
     con_err_if (example_dynamic_own_hmap());
     con_err_if (example_dynamic_own_user());
     con_err_if (example_no_overwrite());
-    con_err_if (example_hash_custom());
+    con_err_if (example_types_custom());
 
     return 0;
 err:    
@@ -116,6 +116,7 @@ static int example_dynamic_own_hmap()
     con("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
 
     /* free hmap (options and elements are freed automatically) */
+    u_hmap_dbg(hmap);
     u_hmap_free(hmap);
 
     return 0;
@@ -231,42 +232,8 @@ err:
 #undef MAP_INSERT
 }
 
-#if 0
-static int example_no_ordering()
-{
-    u_hmap_opts_t *opts = NULL;
-    u_hmap_t *hmap = NULL;
-    u_hmap_o_t *obj = NULL;
-    
-    con("example_no_ordering"); 
 
-    con_err_if (u_hmap_opts_new(&opts));
-    opts->max_size = 3;
-    opts->options |= U_HMAP_OPTS_NO_ORDERING;
-    con_err_if (u_hmap_new(opts, &hmap));
-
-    con_err_if (u_hmap_put(hmap, u_hmap_o_new("F", "1"), NULL));
-    con_err_if (u_hmap_put(hmap, u_hmap_o_new("E", "2"), NULL));
-    con_err_if (u_hmap_put(hmap, u_hmap_o_new("B", "3"), NULL));
-    con_err_if (u_hmap_put(hmap, u_hmap_o_new("B", "3.1"), NULL));
-    con_err_if (u_hmap_put(hmap, u_hmap_o_new("B", "3.2"), NULL));
-    con_err_if (u_hmap_put(hmap, u_hmap_o_new("A", "4"), NULL));
-    con_err_if (u_hmap_put(hmap, u_hmap_o_new("D", "5"), NULL));
-    con_err_if (u_hmap_put(hmap, u_hmap_o_new("C", "6"), NULL));
-
-//    con_err_if (u_hmap_get(hmap, "A", &obj)); 
-//    con("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
-    u_hmap_dbg(hmap);
-
-    u_hmap_free(hmap);
-
-    return 0;
-err:
-    return 0;
-}
-#endif
-
-static int example_hash_custom()
+static int example_types_custom()
 {
 #define MAP_INSERT(hmap, k, v) \
     con_err_if ((o[k-1] = _sample_obj(k, v)) == NULL); \
@@ -276,6 +243,32 @@ static int example_hash_custom()
     {
         return (*((int *) key) % size);
     };
+
+    static int _sample_comp(void *key1, void *key2)
+    {
+        int k1 = *((int *) key1),
+            k2 = *((int *) key2);
+        
+        return k1 < k2 ? -1 : ((k1 > k2)? 1 : 0);
+    }
+
+    static u_string_t *_sample_str(u_hmap_o_t *obj)
+    {
+        enum { MAX_OBJ_STR = 256 };
+        char buf[MAX_OBJ_STR];
+        u_string_t *s = NULL;
+
+        int key = *((int *) obj->key);
+        char *val = (char *) obj->val;
+
+        con_err_if (u_snprintf(buf, MAX_OBJ_STR, "[%d:%s]", key, val));
+        con_err_if (u_string_create(buf, strlen(buf)+1, &s));
+
+        return s;
+
+    err:
+        return NULL;
+    }
 
     /* Allocate (key, value) pair dynamically */
     static u_hmap_o_t *_sample_obj(int key, const char *val)
@@ -308,17 +301,26 @@ static int example_hash_custom()
     u_hmap_t *hmap = NULL;
     u_hmap_o_t *o[3], *obj = NULL;
     
-    con("example_hash_custom()"); 
+    con("example_types_custom()"); 
 
     con_err_if (u_hmap_opts_new(&opts));
     opts->options |= U_HMAP_OPTS_OWNSDATA | U_HMAP_OPTS_HASH_STRONG;
+    opts->max_size = 3;
     opts->f_hash = &_sample_hash;
+    opts->f_comp = &_sample_comp;
+    opts->f_str = &_sample_str;
 
     con_err_if (u_hmap_new(opts, &hmap));
 
-    MAP_INSERT(hmap, 1, "one");
     MAP_INSERT(hmap, 2, "two");
+    MAP_INSERT(hmap, 1, "one");
+    MAP_INSERT(hmap, 4, "four");
+    MAP_INSERT(hmap, 7, "seven");
+    MAP_INSERT(hmap, 4, "four2");
     MAP_INSERT(hmap, 3, "three");
+    MAP_INSERT(hmap, 6, "six");
+    MAP_INSERT(hmap, 1, "one2");
+    MAP_INSERT(hmap, 5, "five");
 
     con_err_if (u_hmap_get(hmap, o[0]->key, &obj)); 
     con("hmap['%d'] = %s", *((int *) obj->key), (char *) obj->val);
@@ -326,11 +328,12 @@ static int example_hash_custom()
     con("hmap['%d'] = %s", *((int *) obj->key), (char *) obj->val);
     con_err_if (u_hmap_get(hmap, o[2]->key, &obj)); 
     con("hmap['%d'] = %s", *((int *) obj->key), (char *) obj->val);
-
+    
+    u_hmap_dbg(hmap);
     u_hmap_free(hmap);
 
     return 0;
 err:
-    return 0;
+    return ~0;
 #undef MAP_INSERT
 }
