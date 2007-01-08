@@ -1,4 +1,4 @@
-/* $Id: hmap.c,v 1.3 2007/01/05 16:43:44 stewy Exp $ */
+/* $Id: hmap.c,v 1.4 2007/01/08 21:37:04 stewy Exp $ */
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -236,7 +236,7 @@ int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **hmap)
     /* allow (opts == NULL) */
     dbg_return_if (hmap == NULL, ~0);
    
-    dbg_return_if ((c = (u_hmap_t *) u_zalloc(sizeof(u_hmap_t))) == NULL, ~0);
+    dbg_return_sif ((c = (u_hmap_t *) u_zalloc(sizeof(u_hmap_t))) == NULL, ~0);
     
     if (opts == NULL)
     {
@@ -249,7 +249,7 @@ int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **hmap)
     dbg_err_if (_pcy_setup(c));
 
     c->size = 0;
-    dbg_err_if ((c->hmap = (struct u_hmap_e_s *) 
+    dbg_err_sif ((c->hmap = (struct u_hmap_e_s *) 
                 u_zalloc(sizeof(struct u_hmap_e_s) * 
                     c->opts->max_size)) == NULL);
 
@@ -511,7 +511,7 @@ static int _queue_push_count (u_hmap_t *hmap, u_hmap_o_t *obj,
         dbg_err_if ((new = _q_o_new(obj->key)) == NULL);
         TAILQ_INSERT_HEAD(&hmap->pcy.queue, new, next);
         *counts = TAILQ_FIRST(&hmap->pcy.queue);
-        dbg_err_if ((count = (int *) u_zalloc(sizeof(int))) == NULL);
+        dbg_err_sif ((count = (int *) u_zalloc(sizeof(int))) == NULL);
         new->o = (void *) count;
         *counts = new;
     } else { /* have element in queue - move to head */
@@ -762,7 +762,7 @@ int u_hmap_opts_new (u_hmap_opts_t **opts)
 
     dbg_err_if (opts == NULL);
 
-    dbg_err_if ((o = (u_hmap_opts_t *) u_zalloc(sizeof(u_hmap_opts_t))) 
+    dbg_err_sif ((o = (u_hmap_opts_t *) u_zalloc(sizeof(u_hmap_opts_t))) 
             == NULL);
     
     /* set defaults */
@@ -826,7 +826,7 @@ u_hmap_o_t *u_hmap_o_new (void *key, void *val)
     dbg_return_if (key == NULL, NULL);
     dbg_return_if (val == NULL, NULL);
 
-    dbg_return_if ((obj = (u_hmap_o_t *) 
+    dbg_return_sif ((obj = (u_hmap_o_t *) 
                 u_zalloc(sizeof(u_hmap_o_t))) == NULL, NULL);
     
     obj->key = key;
@@ -882,7 +882,7 @@ static u_hmap_q_t *_q_o_new (void *key)
 
     dbg_return_if (key == NULL, NULL);
 
-    dbg_return_if ((data = (u_hmap_q_t *)
+    dbg_return_sif ((data = (u_hmap_q_t *)
                 u_zalloc(sizeof(u_hmap_q_t))) == NULL,
             NULL);
 
