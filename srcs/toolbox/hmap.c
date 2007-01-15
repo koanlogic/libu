@@ -1,4 +1,4 @@
-/* $Id: hmap.c,v 1.4 2007/01/08 21:37:04 stewy Exp $ */
+/* $Id: hmap.c,v 1.5 2007/01/15 15:17:07 tho Exp $ */
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -9,6 +9,7 @@
 #include <toolbox/memory.h>
 #include <toolbox/carpal.h>
 #include <toolbox/hmap.h>
+#include <toolbox/misc.h>
 
 /**
  *  \defgroup hmap Map 
@@ -92,6 +93,8 @@ const char *u_hmap_strerror (u_hmap_ret_t rc)
             return "success";
         case U_HMAP_ERR_FAIL:
             return "general failure";
+        case U_HMAP_ERR_EXISTS:
+            return "element already exists in table";
     }
     return NULL;
 }
@@ -100,7 +103,7 @@ const char *u_hmap_strerror (u_hmap_ret_t rc)
 static size_t _f_hash (void *key, size_t size)
 {
     size_t h = 0;
-    char *k = (unsigned char *) key;
+    unsigned char *k = (unsigned char *) key;
 
     dbg_ifb (key == NULL) return -1;
 
@@ -374,7 +377,7 @@ static int _get (u_hmap_t *hmap, void *key,
 	if (hmap->opts->f_hash != &_f_hash && 
 			!(hmap->opts->options & U_HMAP_OPTS_HASH_STRONG)) {
 		enum { MAX_INT = 20 };
-		unsigned char h[MAX_INT];
+		char h[MAX_INT];
 
 		u_snprintf(h, MAX_INT, "%u", hash);
 		hash = _f_hash(h, hmap->opts->max_size);
@@ -567,7 +570,7 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
 	if (hmap->opts->f_hash != &_f_hash && 
 			!(hmap->opts->options & U_HMAP_OPTS_HASH_STRONG)) {
 		enum { MAX_INT = 20 };
-		unsigned char h[MAX_INT];
+		char h[MAX_INT];
 
 		u_snprintf(h, MAX_INT, "%u", hash);
 		hash = _f_hash(h, hmap->opts->max_size);
@@ -821,13 +824,13 @@ void u_hmap_opts_dbg (u_hmap_opts_t *opts)
  */
 u_hmap_o_t *u_hmap_o_new (void *key, void *val)
 {
-    u_hmap_o_t *obj;
+    u_hmap_o_t *obj = NULL;
 
     dbg_return_if (key == NULL, NULL);
     dbg_return_if (val == NULL, NULL);
 
-    dbg_return_sif ((obj = (u_hmap_o_t *) 
-                u_zalloc(sizeof(u_hmap_o_t))) == NULL, NULL);
+    dbg_err_sif ((obj = (u_hmap_o_t *) 
+                u_zalloc(sizeof(u_hmap_o_t))) == NULL);
     
     obj->key = key;
     obj->val = val;
@@ -836,7 +839,7 @@ u_hmap_o_t *u_hmap_o_new (void *key, void *val)
     return obj;
  
 err:
-    u_free(obj);
+    U_FREE(obj);
     return NULL;
 }
 
@@ -882,9 +885,8 @@ static u_hmap_q_t *_q_o_new (void *key)
 
     dbg_return_if (key == NULL, NULL);
 
-    dbg_return_sif ((data = (u_hmap_q_t *)
-                u_zalloc(sizeof(u_hmap_q_t))) == NULL,
-            NULL);
+    dbg_err_sif ((data = (u_hmap_q_t *)
+                u_zalloc(sizeof(u_hmap_q_t))) == NULL);
 
     data->key = key;
     data->o = NULL;
@@ -892,7 +894,7 @@ static u_hmap_q_t *_q_o_new (void *key)
     return data;
 
 err:
-    u_free(data);
+    U_FREE(data);
     return NULL;
 }
 
