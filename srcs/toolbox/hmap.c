@@ -1,4 +1,4 @@
-/* $Id: hmap.c,v 1.5 2007/01/15 15:17:07 tho Exp $ */
+/* $Id: hmap.c,v 1.6 2007/01/16 20:42:07 stewy Exp $ */
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -66,8 +66,7 @@ static void _q_o_free (u_hmap_q_t *s);
 
 static size_t _f_hash (void *key, size_t size);
 static int _f_comp (void *k1, void *k2);
-static void _f_free_key (void *val);
-static void _f_free_obj (void *val);
+static void _f_free (u_hmap_o_t *obj);
 static u_string_t *_f_str (u_hmap_o_t *obj);
 
 static int _queue_push (u_hmap_t *hmap, u_hmap_o_t *obj, 
@@ -129,20 +128,13 @@ static int _f_comp (void *k1, void *k2)
     return strcmp((char *)k1, (char *)k2);
 }
 
-/* Default function for freeing hmap object keys */
-static void _f_free_key (void *key)
+/* Default function for freeing hmap objects  */
+static void _f_free (u_hmap_o_t *obj)
 {
-    dbg_ifb (key == NULL) return;
+    dbg_ifb (obj == NULL) return;
 
-    u_free(key); 
-}
-
-/* Default function for freeing hmap object values */
-static void _f_free_obj (void *val)
-{
-    dbg_ifb (val == NULL) return;
-
-    u_free(val); 
+    u_free(obj->key); 
+    u_free(obj->val); 
 }
 
 /* Default string representation of objects */
@@ -304,6 +296,7 @@ void u_hmap_dbg (u_hmap_t *hmap)
                 st = hmap->opts->f_str(obj);
                 dbg_err_if (u_string_append(s, u_string_c(st),
                             u_string_len(st)-1));
+                u_string_free(st);
             }
         } 
         dbg_err_if (u_string_append(s, "|", 1));
@@ -316,10 +309,12 @@ void u_hmap_dbg (u_hmap_t *hmap)
 err:
     if (s)
         u_string_free(s);
+    if (st)
+        u_string_free(st);
     return;   
 }
 
-/**
+/*
  * \brief   Delete an object from the hmap
  * 
  * Delete object with given \a key from \a hmap and return it (if the object is
@@ -567,14 +562,14 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
 
     hash = hmap->opts->f_hash(obj->key, hmap->opts->max_size);
 
-	if (hmap->opts->f_hash != &_f_hash && 
-			!(hmap->opts->options & U_HMAP_OPTS_HASH_STRONG)) {
-		enum { MAX_INT = 20 };
-		char h[MAX_INT];
+    if (hmap->opts->f_hash != &_f_hash &&
+            !(hmap->opts->options & U_HMAP_OPTS_HASH_STRONG)) {
+        enum { MAX_INT = 20 };
+        char h[MAX_INT];
 
-		u_snprintf(h, MAX_INT, "%u", hash);
-		hash = _f_hash(h, hmap->opts->max_size);
-	}
+        u_snprintf(h, MAX_INT, "%u", hash);
+        hash = _f_hash(h, hmap->opts->max_size);
+    }
 
     if (hmap->opts->policy != U_HMAP_PCY_NONE &&
             hmap->size >= hmap->opts->max_elems) 
@@ -591,9 +586,10 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
     } else {
         LIST_FOREACH(o, x, next) 
         {
+            /* object already hmapd */
             if ((comp = hmap->opts->f_comp(obj->key, o->key)) == 0) 
             { 
-                /* object already hmapd */
+                /* overwrite */
                 if (!(hmap->opts->options & U_HMAP_OPTS_NO_OVERWRITE))
                 {
                     LIST_INSERT_AFTER(o, obj, next);
@@ -607,9 +603,14 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
 
                     goto end;
 
+                /* don't overwrite */
                 } else {
-                    if (old) 
-                        *old = obj; 
+
+                    if (hmap->opts->options & U_HMAP_OPTS_OWNSDATA)
+                        _o_free(hmap, obj);                          
+                    else
+                        if (old) 
+                            *old = obj; 
                     
                     return U_HMAP_ERR_EXISTS; 
                 }
@@ -775,8 +776,7 @@ int u_hmap_opts_new (u_hmap_opts_t **opts)
     o->options = 0;
     o->f_hash = &_f_hash;
     o->f_comp = &_f_comp;
-    o->f_free_key = &_f_free_key;
-    o->f_free_obj = &_f_free_obj;
+    o->f_free = &_f_free;
     o->f_str = &_f_str;
     
     *opts = o;
@@ -802,10 +802,9 @@ void u_hmap_opts_dbg (u_hmap_opts_t *opts)
     dbg("max size: %u", opts->max_size);
     dbg("max elems: %u", opts->max_elems);
     dbg("policy: %s", _pcy2str(opts->policy));
-    dbg("ownsdata: %d, &f_free_key: %x, &f_free_obj(): %x", 
+    dbg("ownsdata: %d, &f_free: %x", 
             (opts->options & U_HMAP_OPTS_OWNSDATA)>0,
-            &opts->f_free_key,
-            &opts->f_free_obj);
+            &opts->f_free);
     dbg("no_overwrite: %d", (opts->options & U_HMAP_OPTS_NO_OVERWRITE)>0);
     dbg("no_ordering: %d", (opts->options & U_HMAP_OPTS_NO_ORDERING)>0);
 }
@@ -850,7 +849,7 @@ err:
  * be used if U_HMAP_OPTS_OWNSDATA is not set to free objects allocated with
  * u_hmap_o_new(). If U_HMAP_OPTS_OWNSDATA is set, the data is freed
  * automatically by the hashmap by using the default free function or the
- * overridden functions f_free_key() and f_free_obj.
+ * overridden f_free().
  *
  * \param obj       hmap object
  */
@@ -869,10 +868,8 @@ static void _o_free (u_hmap_t *hmap, u_hmap_o_t *obj)
 
     if (hmap->opts->options & U_HMAP_OPTS_OWNSDATA) 
     {
-        if (hmap->opts->f_free_key)
-            hmap->opts->f_free_key(obj->key);  
-        if (hmap->opts->f_free_obj)
-            hmap->opts->f_free_obj(obj->val);
+        if (hmap->opts->f_free)
+            hmap->opts->f_free(obj);
 
         u_hmap_o_free(obj); 
     }

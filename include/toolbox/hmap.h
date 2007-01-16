@@ -66,10 +66,8 @@ struct u_hmap_opts_s {
     size_t (*f_hash)(void *key, size_t buckets);   
     /** function for key comparison */
     int (*f_comp)(void *k1, void *k2);   
-    /** function for freeing an key */
-    void (*f_free_key)(void *val);   
     /** function for freeing an object */
-    void (*f_free_obj)(void *val);   
+    void (*f_free)(u_hmap_o_t *obj);   
     /** function to get a string representation of a (key, val) object */
     u_string_t *(*f_str)(u_hmap_o_t *obj);   
 };
