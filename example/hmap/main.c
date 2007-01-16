@@ -1,4 +1,4 @@
-/* $Id: main.c,v 1.6 2007/01/16 23:22:33 stewy Exp $ */
+/* $Id: main.c,v 1.7 2007/01/16 23:26:01 stewy Exp $ */
 
 #include <string.h>
 
@@ -233,7 +233,8 @@ static int example_no_overwrite()
     con_err_if (u_hmap_del(hmap, "A", &obj)); 
     u_hmap_o_free(obj); 
 
-    /* free hmap (options and elements are freed automatically) */
+    /* free hmap and opts */
+    u_hmap_opts_free(opts);
     u_hmap_free(hmap);
 
     return 0;
