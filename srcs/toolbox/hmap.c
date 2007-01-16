@@ -1,4 +1,4 @@
-/* $Id: hmap.c,v 1.6 2007/01/16 20:42:07 stewy Exp $ */
+/* $Id: hmap.c,v 1.7 2007/01/16 23:22:33 stewy Exp $ */
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -45,10 +45,14 @@ struct u_hmap_pcy_s
 /* hmap representation */
 struct u_hmap_s 
 {
-   u_hmap_opts_t *opts;
-    size_t size;
-    LIST_HEAD(u_hmap_e_s, u_hmap_o_s) *hmap;
-    struct u_hmap_pcy_s pcy;
+    u_hmap_opts_t *opts;        /* hmap options */
+
+    size_t sz,                  /* current size */
+           size;                /* array size */
+
+    LIST_HEAD(u_hmap_e_s, u_hmap_o_s) *hmap;    /* the hashmap */
+
+    struct u_hmap_pcy_s pcy;    /* discard policy */
 };
 
 
@@ -233,23 +237,23 @@ int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **hmap)
    
     dbg_return_sif ((c = (u_hmap_t *) u_zalloc(sizeof(u_hmap_t))) == NULL, ~0);
     
-    if (opts == NULL)
+    dbg_err_if (u_hmap_opts_new(&c->opts));
+    if (opts)
     {
-        dbg_err_if (u_hmap_opts_new(&c->opts));
-    } else { 
-        c->opts = opts;
+        dbg_err_if (u_hmap_opts_copy(c->opts, opts));
         dbg_err_if (_opts_check(c->opts));
     }
     u_hmap_opts_dbg(c->opts);
     dbg_err_if (_pcy_setup(c));
 
-    c->size = 0;
+    c->sz = 0;
+    c->size = c->opts->max_size;
     dbg_err_sif ((c->hmap = (struct u_hmap_e_s *) 
                 u_zalloc(sizeof(struct u_hmap_e_s) * 
-                    c->opts->max_size)) == NULL);
+                    c->size)) == NULL);
 
     /* initialise entries */
-    for (i = 0; i < c->opts->max_size; i++)
+    for (i = 0; i < c->size; i++)
         LIST_INIT(&c->hmap[i]);
 
     TAILQ_INIT(&c->pcy.queue);
@@ -281,7 +285,7 @@ void u_hmap_dbg (u_hmap_t *hmap)
     dbg_ifb (hmap == NULL) return;
 
     dbg ("<hmap>");
-    for (i = 0; i < hmap->opts->max_size; i++) 
+    for (i = 0; i < hmap->size; i++) 
     {
         dbg_ifb (u_string_create("", 1, &s)) return;
         dbg_err_if (u_string_clear(s));
@@ -348,6 +352,8 @@ int u_hmap_del (u_hmap_t *hmap, void *key, u_hmap_o_t **obj)
         if (obj)
             *obj = o;
 
+    hmap->sz--;
+
     return U_HMAP_ERR_NONE;
     
 err:
@@ -367,7 +373,7 @@ static int _get (u_hmap_t *hmap, void *key,
     dbg_err_if (key == NULL);
     dbg_err_if (o == NULL);
 
-	hash = hmap->opts->f_hash(key, hmap->opts->max_size);
+	hash = hmap->opts->f_hash(key, hmap->size);
 
 	if (hmap->opts->f_hash != &_f_hash && 
 			!(hmap->opts->options & U_HMAP_OPTS_HASH_STRONG)) {
@@ -375,7 +381,7 @@ static int _get (u_hmap_t *hmap, void *key,
 		char h[MAX_INT];
 
 		u_snprintf(h, MAX_INT, "%u", hash);
-		hash = _f_hash(h, hmap->opts->max_size);
+		hash = _f_hash(h, hmap->size);
 	}
 
 	x = &hmap->hmap[hash];
@@ -560,7 +566,7 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
     if (old)
         *old = NULL;
 
-    hash = hmap->opts->f_hash(obj->key, hmap->opts->max_size);
+    hash = hmap->opts->f_hash(obj->key, hmap->size);
 
     if (hmap->opts->f_hash != &_f_hash &&
             !(hmap->opts->options & U_HMAP_OPTS_HASH_STRONG)) {
@@ -568,11 +574,11 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
         char h[MAX_INT];
 
         u_snprintf(h, MAX_INT, "%u", hash);
-        hash = _f_hash(h, hmap->opts->max_size);
+        hash = _f_hash(h, hmap->size);
     }
 
     if (hmap->opts->policy != U_HMAP_PCY_NONE &&
-            hmap->size >= hmap->opts->max_elems) 
+            hmap->sz >= hmap->opts->max_elems) 
     {
         dbg("Cache full - freeing according to policy %d", hmap->opts->policy);
         hmap->pcy.pop(hmap, old);
@@ -627,7 +633,7 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
         }
     }
    
-    hmap->size++;
+    hmap->sz++;
 
 end:
     if (hmap->pcy.ops & U_HMAP_PCY_OP_PUT)
@@ -693,7 +699,7 @@ int u_hmap_foreach (u_hmap_t *hmap, int f(void *val))
     dbg_err_if (hmap == NULL);
     dbg_err_if (f == NULL);
 
-    for (i = 0; i < hmap->opts->max_size; i++) 
+    for (i = 0; i < hmap->size; i++) 
     {
         LIST_FOREACH(obj, &hmap->hmap[i], next)
             dbg_err_if (f(obj->val));
@@ -706,26 +712,24 @@ err:
 }
 
 /**
- * \brief   Deallocate the hmap
+ * \brief   Deallocate hmap
  * 
- * Deallocate \a hmap along with options and all hmapd objects. Objects are
- * freed via free() by default or using the custom deallocation function passed
- * in the hmap options. 
+ * Deallocate \a hmap along with all hmapd objects (unless U_HMAP_OPTS_OWNSDATA
+ * is set). Objects are freed via free() by default or using the custom
+ * deallocation function passed in the hmap options. 
  * 
  * \param hmap      hmap object
- * 
- * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
  */
-int u_hmap_free (u_hmap_t *hmap)
+void u_hmap_free (u_hmap_t *hmap)
 {
     u_hmap_o_t *obj;
     u_hmap_q_t *data;
     size_t i;
 
-    dbg_return_if (hmap == NULL, ~0);
+    dbg_ifb (hmap == NULL) return;
 
     /* free the hashhmap */
-    for (i = 0; i < hmap->opts->max_size; i++) 
+    for (i = 0; i < hmap->size; i++) 
     {
         while ((obj = LIST_FIRST(&hmap->hmap[i])) != NULL) 
         {
@@ -746,7 +750,7 @@ int u_hmap_free (u_hmap_t *hmap)
     u_free(hmap->opts);
     u_free(hmap);
 
-    return U_HMAP_ERR_NONE;
+    return;
 }
 
 /**
@@ -785,6 +789,40 @@ int u_hmap_opts_new (u_hmap_opts_t **opts)
 err:
     *opts = NULL;
     return U_HMAP_ERR_FAIL;
+}
+
+/**
+ * \brief   Deallocate hmap options
+ * 
+ * Deallocate hmap options object \a opts.
+ * 
+ * \param opts      hmap options 
+ */
+void u_hmap_opts_free (u_hmap_opts_t *opts)
+{
+    dbg_ifb (opts == NULL) return;
+
+    u_free(opts);
+}
+
+/**
+ * \brief   Copy hmap options
+ * 
+ * Copy hmap options \a from to \a to.
+ * 
+ * \param opts      hmap options 
+ */
+int u_hmap_opts_copy (u_hmap_opts_t *to, u_hmap_opts_t *from)
+{
+    dbg_err_if (to == NULL);
+    dbg_err_if (from == NULL);
+
+    memcpy(to, from, sizeof(u_hmap_opts_t));
+
+    return 0;
+
+err:
+    return ~0;
 }
 
 /**
@@ -905,7 +943,7 @@ static void _q_o_free (u_hmap_q_t *data)
 }
 
 /* Get a string representation of a policy */
-static const char *_pcy2str(u_hmap_pcy_t policy)
+static const char *_pcy2str (u_hmap_pcy_t policy)
 {
     switch (policy)
     {

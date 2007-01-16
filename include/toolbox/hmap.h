@@ -74,14 +74,14 @@ struct u_hmap_opts_s {
 
 
 /* u_hmap_* */
-const char *u_hmap_strerror(u_hmap_ret_t);
+const char *u_hmap_strerror (u_hmap_ret_t);
 
 /* u_hmap_t */
 int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **hmap);
 int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old);
 int u_hmap_get (u_hmap_t *hmap, void *key, u_hmap_o_t **obj);
 int u_hmap_del (u_hmap_t *hmap, void *key, u_hmap_o_t **obj);
-int u_hmap_free (u_hmap_t *hmap);
+void u_hmap_free (u_hmap_t *hmap);
 int u_hmap_foreach (u_hmap_t *hmap, int f(void *val));
 
 /* u_hmap_o_t */
@@ -90,6 +90,8 @@ void u_hmap_o_free (u_hmap_o_t *obj);
 
 /* u_hmap_opts_t */
 int u_hmap_opts_new (u_hmap_opts_t **opts);
+int u_hmap_opts_copy (u_hmap_opts_t *to, u_hmap_opts_t *from);
+void u_hmap_opts_free (u_hmap_opts_t *opts);
 
 /* testing */
 void u_hmap_dbg (u_hmap_t *hmap);

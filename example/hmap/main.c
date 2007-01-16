@@ -1,6 +1,4 @@
-/* $Id: main.c,v 1.5 2007/01/16 20:38:33 stewy Exp $ */
-
-/* TODO public version of o_free () to free objects! */
+/* $Id: main.c,v 1.6 2007/01/16 23:22:33 stewy Exp $ */
 
 #include <string.h>
 
@@ -65,11 +63,14 @@ static int example_static()
     con_err_if (u_hmap_del(hmap, "first", &obj)); 
     u_hmap_o_free(obj);
 
-    /* free hmap (options are freed automatically) */
+    /* free hmap and options */
     u_hmap_free(hmap);
     
     return 0;
 err:
+    if (hmap)
+        u_hmap_free(hmap);
+
     return ~0;
 }
 
@@ -117,10 +118,17 @@ static int example_dynamic_own_hmap()
 
     /* free hmap (options and elements are freed automatically) */
     u_hmap_dbg(hmap);
+    u_hmap_opts_free(opts);
     u_hmap_free(hmap);
 
     return 0;
+
 err:
+    if (opts)
+        u_hmap_opts_free(opts);
+    if (hmap)
+        u_hmap_free(hmap);
+
     return ~0;
 }
 
@@ -229,7 +237,13 @@ static int example_no_overwrite()
     u_hmap_free(hmap);
 
     return 0;
+
 err:
+    if (opts)
+        u_hmap_opts_free(opts);
+    if (hmap)
+        u_hmap_free(hmap);
+
     return ~0;
 #undef MAP_INSERT
 }
@@ -335,10 +349,17 @@ static int example_types_custom()
     con("hmap['%d'] = %s", *((int *) obj->key), (char *) obj->val);
     
     u_hmap_dbg(hmap);
+    u_hmap_opts_free(opts);
     u_hmap_free(hmap);
 
     return 0;
 err:
+
+    if (opts)
+        u_hmap_opts_free(opts);
+    if (hmap)
+        u_hmap_free(hmap);
+
     return ~0;
 #undef MAP_INSERT
 }
