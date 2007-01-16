@@ -1,6 +1,8 @@
-/* $Id: main.c,v 1.4 2007/01/05 16:43:44 stewy Exp $ */
+/* $Id: main.c,v 1.5 2007/01/16 20:38:33 stewy Exp $ */
 
 /* TODO public version of o_free () to free objects! */
+
+#include <string.h>
 
 #include <u/libu.h>
 
@@ -52,18 +54,16 @@ static int example_static()
 
     /* remove an element and replace it */
     con_err_if (u_hmap_del(hmap, "fifth", &obj)); 
+    u_hmap_o_free(obj);
     
     /* check that it has been deleted */
     con_err_if (u_hmap_get(hmap, "fifth", &obj) == 0); 
 
-    /* replace with a new element and print it */
-    con("decrementing hmap['%s']", "first");
-    con_err_if (u_hmap_get(hmap, "first", &obj)); 
-    int x = *((int *) obj->val);
-    x--;
-    con_err_if (u_hmap_put(hmap, u_hmap_o_new("first", &x), NULL));
-    con_err_if (u_hmap_get(hmap, "first", &obj)); 
-    con("hmap['%s'] = %d", (char *) obj->key, *((int *) obj->val));
+    /* delete the other two elements */
+    con_err_if (u_hmap_del(hmap, "last", &obj)); 
+    u_hmap_o_free(obj);
+    con_err_if (u_hmap_del(hmap, "first", &obj)); 
+    u_hmap_o_free(obj);
 
     /* free hmap (options are freed automatically) */
     u_hmap_free(hmap);
@@ -88,12 +88,12 @@ static int example_dynamic_own_hmap()
     con_err_if (u_hmap_new(opts, &hmap));
 
     /* insert some sample elements */
-    con_err_if (u_hmap_put(hmap, u_hmap_o_new(strdup("english"), 
-                    strdup("Hello world!")), NULL));
-    con_err_if (u_hmap_put(hmap, u_hmap_o_new(strdup("italian"), 
-                    strdup("Ciao mondo!")), NULL));
-    con_err_if (u_hmap_put(hmap, u_hmap_o_new(strdup("german"), 
-                    strdup("Hallo Welt!")), NULL));
+    con_err_if (u_hmap_put(hmap, u_hmap_o_new((void *) u_strdup("english"), 
+                    (void *) u_strdup("Hello world!")), NULL));
+    con_err_if (u_hmap_put(hmap, u_hmap_o_new((void *) u_strdup("italian"), 
+                    (void *) u_strdup("Ciao mondo!")), NULL));
+    con_err_if (u_hmap_put(hmap, u_hmap_o_new((void *) u_strdup("german"), 
+                    (void *) u_strdup("Hallo Welt!")), NULL));
 
     /* retrieve and print values to console */
     con_err_if (u_hmap_get(hmap, "italian", &obj)); 
@@ -110,8 +110,8 @@ static int example_dynamic_own_hmap()
     con_err_if (u_hmap_get(hmap, "german", &obj) == 0); 
 
     /* replace with a new element and print it */
-    con_err_if (u_hmap_put(hmap, u_hmap_o_new(strdup("german"), 
-                    strdup("Auf Wiedersehen!")), NULL));
+    con_err_if (u_hmap_put(hmap, u_hmap_o_new((void *) u_strdup("german"), 
+                    (void *) u_strdup("Auf Wiedersehen!")), NULL));
     con_err_if (u_hmap_get(hmap, "german", &obj)); 
     con("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
 
@@ -133,6 +133,7 @@ static int example_dynamic_own_user()
     if (obj) { \
         u_free(obj->key); \
         u_free(obj->val); \
+        u_hmap_o_free(obj); \
         obj = NULL; \
     }
     
@@ -142,12 +143,12 @@ static int example_dynamic_own_user()
     con_err_if (u_hmap_new(NULL, &hmap));
 
     /* insert some sample elements */
-    con_err_if (u_hmap_put(hmap, u_hmap_o_new(strdup("english"), 
-                    strdup("Hello world!")), &obj));
-    con_err_if (u_hmap_put(hmap, u_hmap_o_new(strdup("italian"), 
-                    strdup("Ciao mondo!")), &obj));
-    con_err_if (u_hmap_put(hmap, u_hmap_o_new(strdup("german"), 
-                    strdup("Hallo Welt!")), &obj));
+    con_err_if (u_hmap_put(hmap, u_hmap_o_new((void *) u_strdup("english"), 
+                    (void *) u_strdup("Hello world!")), &obj));
+    con_err_if (u_hmap_put(hmap, u_hmap_o_new((void *) u_strdup("italian"), 
+                    (void *) u_strdup("Ciao mondo!")), &obj));
+    con_err_if (u_hmap_put(hmap, u_hmap_o_new((void *) u_strdup("german"), 
+                    (void *) u_strdup("Hallo Welt!")), &obj));
 
     /* retrieve and print values to console */
     con_err_if (u_hmap_get(hmap, "italian", &obj)); 
@@ -165,11 +166,10 @@ static int example_dynamic_own_user()
     con_err_if (u_hmap_get(hmap, "german", &obj) == 0); 
 
     /* replace with a new element and print it */
-    con_err_if (u_hmap_put(hmap, u_hmap_o_new(strdup("german"), 
-                    strdup("Auf Wiedersehen!")), &obj));
-    OBJ_FREE(obj);
-    con_err_if (u_hmap_put(hmap, u_hmap_o_new(strdup("german"), 
-                    strdup("Auf Wiedersehen2!")), &obj));
+    con_err_if (u_hmap_put(hmap, u_hmap_o_new((void *) u_strdup("german"), 
+                    (void *) u_strdup("Auf Wiedersehen!")), NULL));
+    con_err_if (u_hmap_put(hmap, u_hmap_o_new((void *) u_strdup("german"), 
+                    (void *) u_strdup("Auf Wiedersehen2!")), &obj));
     OBJ_FREE(obj);
     con_err_if (u_hmap_get(hmap, "german", &obj)); 
     con("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
@@ -222,6 +222,8 @@ static int example_no_overwrite()
     /* retrieve and print values to console */
     con_err_if (u_hmap_get(hmap, "A", &obj)); 
     con("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
+    con_err_if (u_hmap_del(hmap, "A", &obj)); 
+    u_hmap_o_free(obj); 
 
     /* free hmap (options and elements are freed automatically) */
     u_hmap_free(hmap);
@@ -236,23 +238,23 @@ err:
 static int example_types_custom()
 {
 #define MAP_INSERT(hmap, k, v) \
-    con_err_if ((o[k-1] = _sample_obj(k, v)) == NULL); \
-    con_err_if (u_hmap_put(hmap, o[k-1], NULL));
+    con_err_if ((obj = _sample_obj(k, v)) == NULL); \
+    con_err_if (u_hmap_put(hmap, obj, NULL));
 
-    static size_t _sample_hash(void *key, size_t size)
+    size_t _sample_hash(void *key, size_t size)
     {
         return (*((int *) key) % size);
     };
 
-    static int _sample_comp(void *key1, void *key2)
+    int _sample_comp(void *key1, void *key2)
     {
         int k1 = *((int *) key1),
             k2 = *((int *) key2);
         
         return k1 < k2 ? -1 : ((k1 > k2)? 1 : 0);
-    }
+    };
 
-    static u_string_t *_sample_str(u_hmap_o_t *obj)
+    u_string_t *_sample_str(u_hmap_o_t *obj)
     {
         enum { MAX_OBJ_STR = 256 };
         char buf[MAX_OBJ_STR];
@@ -268,10 +270,10 @@ static int example_types_custom()
 
     err:
         return NULL;
-    }
+    };
 
     /* Allocate (key, value) pair dynamically */
-    static u_hmap_o_t *_sample_obj(int key, const char *val)
+    u_hmap_o_t *_sample_obj(int key, const char *val)
     {
         u_hmap_o_t *new = NULL;
 
@@ -282,7 +284,7 @@ static int example_types_custom()
         con_err_if (k == NULL);
         *k = key;
 
-        v = strdup(val);
+        v = u_strdup(val);
         con_err_if (v == NULL);
         
         new = u_hmap_o_new(k, v);
@@ -299,7 +301,7 @@ static int example_types_custom()
 
     u_hmap_opts_t *opts = NULL;
     u_hmap_t *hmap = NULL;
-    u_hmap_o_t *o[3], *obj = NULL;
+    u_hmap_o_t *obj = NULL; 
     
     con("example_types_custom()"); 
 
@@ -322,11 +324,14 @@ static int example_types_custom()
     MAP_INSERT(hmap, 1, "one2");
     MAP_INSERT(hmap, 5, "five");
 
-    con_err_if (u_hmap_get(hmap, o[0]->key, &obj)); 
+    int x = 1;
+    con_err_if (u_hmap_get(hmap, &x, &obj)); 
     con("hmap['%d'] = %s", *((int *) obj->key), (char *) obj->val);
-    con_err_if (u_hmap_get(hmap, o[1]->key, &obj)); 
+    x++;
+    con_err_if (u_hmap_get(hmap, &x, &obj)); 
     con("hmap['%d'] = %s", *((int *) obj->key), (char *) obj->val);
-    con_err_if (u_hmap_get(hmap, o[2]->key, &obj)); 
+    x++;
+    con_err_if (u_hmap_get(hmap, &x, &obj)); 
     con("hmap['%d'] = %s", *((int *) obj->key), (char *) obj->val);
     
     u_hmap_dbg(hmap);
