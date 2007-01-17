@@ -20,24 +20,30 @@ typedef enum {
     U_HMAP_ERR_FAIL
 } u_hmap_ret_t;
 
+/** \brief type of hashmap */
+typedef enum {
+    U_HMAP_TYPE_CHAIN,      /**< separate chaining (default) */
+    U_HMAP_TYPE_LINEAR      /**< linear probing */
+} u_hmap_type_t;
+
 /** \brief hmap options */
 typedef enum {
-    U_HMAP_OPTS_OWNSDATA =       0x1,
-    U_HMAP_OPTS_NO_OVERWRITE =   0x2,
-    U_HMAP_OPTS_NO_ORDERING =    0x4,
-	U_HMAP_OPTS_HASH_STRONG = 	 0x8
+    U_HMAP_OPTS_OWNSDATA =          0x1,    /**< hmap owns memory */
+    U_HMAP_OPTS_NO_OVERWRITE =      0x2,    /**< don't overwrite equal keys */
+    U_HMAP_OPTS_HASH_STRONG =       0x4     /**< custom hash function is strong */
 } u_hmap_options_t;
 
 /** \brief Policies to discard hmap elements */
 typedef enum {
     U_HMAP_PCY_NONE = 1,    /**< never discard old elements - 
-                                 for bounded inserts only */
+                                 grow if size is exceeded */
     U_HMAP_PCY_FIFO,    /**< discard entry inserted longest ago */
     U_HMAP_PCY_LRU,     /**< discard least recently used */
     U_HMAP_PCY_LFU      /**< discard least frequently used */     
-} u_hmap_pcy_t;
+} u_hmap_pcy_type_t;
 
 typedef struct u_hmap_s u_hmap_t;     
+typedef struct u_hmap_pcy_s u_hmap_pcy_t;     
 typedef struct u_hmap_opts_s u_hmap_opts_t;
 typedef struct u_hmap_q_s u_hmap_q_t;
 typedef struct u_hmap_o_s u_hmap_o_t;     
@@ -47,19 +53,24 @@ struct u_hmap_o_s
 {
     void *key,
          *val;
+
     LIST_ENTRY(u_hmap_o_s) next;
+
     u_hmap_q_t *pqe; 
 };
 
 /** \brief Optional Map settings */
 struct u_hmap_opts_s {
 
-    size_t max_size,        /**< maximum size of hashhmap array */
-           max_elems;       /**< maximum number of elements in hmap */
+    size_t size,            /**< approximate size of hashhmap array */
+           max;             /**< maximum number of elements in hmap -
+                             only applies to hmaps with discard policy */
 
-    u_hmap_pcy_t policy;    /**< caching policy */
+    u_hmap_type_t type;         /**< type of hashmap */
 
-    int options;          /**< see definitions for U_HMAP_OPTS_* */ 
+    u_hmap_pcy_type_t policy;   /**< discard policy (disabled by default) */
+
+    int options;            /**< see definitions for U_HMAP_OPTS_* */ 
                               
 
     /** hash function to be used in hashhmap */
@@ -81,6 +92,7 @@ int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **hmap);
 int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old);
 int u_hmap_get (u_hmap_t *hmap, void *key, u_hmap_o_t **obj);
 int u_hmap_del (u_hmap_t *hmap, void *key, u_hmap_o_t **obj);
+int u_hmap_copy (u_hmap_t *to, u_hmap_t *from);
 void u_hmap_free (u_hmap_t *hmap);
 int u_hmap_foreach (u_hmap_t *hmap, int f(void *val));
 

@@ -1,4 +1,4 @@
-/* $Id: main.c,v 1.8 2007/01/17 10:25:38 stewy Exp $ */
+/* $Id: main.c,v 1.9 2007/01/17 22:13:59 stewy Exp $ */
 
 #include <string.h>
 
@@ -12,13 +12,19 @@ static int example_dynamic_own_user(void);
 static int example_no_overwrite(void);
 static int example_types_custom(void);
 
+static int test_resize(void);
+
 int main()
 {
+    /* examples */
     con_err_if (example_static());
     con_err_if (example_dynamic_own_hmap());
     con_err_if (example_dynamic_own_user());
     con_err_if (example_no_overwrite());
     con_err_if (example_types_custom());
+    
+    /* tests */
+    con_err_if (test_resize());
 
     return 0;
 err:    
@@ -320,7 +326,7 @@ static int example_types_custom()
 
     con_err_if (u_hmap_opts_new(&opts));
     opts->options |= U_HMAP_OPTS_OWNSDATA | U_HMAP_OPTS_HASH_STRONG;
-    opts->max_size = 3;
+    opts->size = 3;
     opts->f_hash = &_sample_hash;
     opts->f_comp = &_sample_comp;
     opts->f_str = &_sample_str;
@@ -358,4 +364,49 @@ err:
 
     return ~0;
 #undef MAP_INSERT
+}
+
+static int test_resize()
+{
+    enum { NUM_ELEMS = 100000, MAX_STR = 256 };
+    u_hmap_opts_t *opts = NULL;
+    u_hmap_t *hmap = NULL;
+    u_hmap_o_t *obj = NULL;
+    int i = 0;
+    char key[MAX_STR], 
+         val[MAX_STR];
+
+    con("test_resize()");
+
+    /* initialise hmap with no options - user owns data by default */
+    con_err_if (u_hmap_opts_new(&opts));
+    opts->size = 3;
+    con_err_if (u_hmap_new(opts, &hmap));
+
+    /* insert some sample elements */
+    for (i = 0; i < NUM_ELEMS; ++i) {
+        u_snprintf(key, MAX_STR, "key%d", i);
+        u_snprintf(val, MAX_STR, "val%d", i);
+        con_err_if (u_hmap_put(hmap, u_hmap_o_new(u_strdup(key), u_strdup(val)), NULL));
+    }
+
+    for (i = 0; i < NUM_ELEMS; ++i) {
+        u_snprintf(key, MAX_STR, "key%d", i);
+        con_err_if (u_hmap_del(hmap, key, &obj)); 
+        u_hmap_o_free(obj->key);
+        u_hmap_o_free(obj->val);
+        u_hmap_o_free(obj);
+    }
+
+    /* free hmap and options */
+    u_hmap_opts_free(opts);
+    u_hmap_free(hmap);
+    
+    return 0;
+
+err:
+    U_FREEF(opts, u_hmap_opts_free);
+    U_FREEF(hmap, u_hmap_free);
+
+    return ~0;
 }

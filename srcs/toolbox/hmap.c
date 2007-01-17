@@ -1,6 +1,5 @@
-/* $Id: hmap.c,v 1.9 2007/01/17 10:38:50 stewy Exp $ */
+/* $Id: hmap.c,v 1.10 2007/01/17 22:13:59 stewy Exp $ */
 
-#include <sys/types.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -19,6 +18,8 @@
 /* default limits handled by policies */
 #define U_HMAP_MAX_SIZE      512
 #define U_HMAP_MAX_ELEMS     U_HMAP_MAX_SIZE
+#define U_HMAP_RATE_FULL     0.75
+#define U_HMAP_RATE_RESIZE   3
 
 
 /* policy queue object */
@@ -26,21 +27,25 @@ struct u_hmap_q_s
 {
     void *key,
          *o;
+
     TAILQ_ENTRY(u_hmap_q_s) next;
 };
 
 /* hmap policy representation */
 struct u_hmap_pcy_s 
 {
-    int (*pop)(struct u_hmap_s *hmap, u_hmap_o_t **obj); 
-    int (*push)(struct u_hmap_s *hmap, u_hmap_o_t *obj,
+    int (*pop)(u_hmap_t *hmap, u_hmap_o_t **obj); 
+    int (*push)(u_hmap_t *hmap, u_hmap_o_t *obj,
             u_hmap_q_t **data); 
-    TAILQ_HEAD(u_hmap_q_h_s, u_hmap_q_s) queue;
+
     enum {
         U_HMAP_PCY_OP_PUT = 0x1,
         U_HMAP_PCY_OP_GET = 0x2
     } ops;
+    
+    TAILQ_HEAD(u_hmap_q_h_s, u_hmap_q_s) queue;
 };
+typedef struct u_hmap_q_h_s u_hmap_q_h_t;
 
 /* hmap representation */
 struct u_hmap_s 
@@ -48,20 +53,23 @@ struct u_hmap_s
     u_hmap_opts_t *opts;        /* hmap options */
 
     size_t sz,                  /* current size */
-           size;                /* array size */
+           size,                /* array size */
+           threshold;           /* when to resize */
 
-    LIST_HEAD(u_hmap_e_s, u_hmap_o_s) *hmap;    /* the hashmap */
+    int px;                     /* index into prime numbers */
 
     struct u_hmap_pcy_s pcy;    /* discard policy */
-};
 
+    LIST_HEAD(u_hmap_e_s, u_hmap_o_s) *hmap;    /* the hashmap */
+};
+typedef struct u_hmap_e_s u_hmap_e_t;
 
 static int _get (u_hmap_t *hmap, void *key, 
         u_hmap_o_t **o);
 
 static int _opts_check (u_hmap_opts_t *opts);
 static int _pcy_setup (u_hmap_t *hmap);
-static const char *_pcy2str(u_hmap_pcy_t policy);
+static const char *_pcy2str(u_hmap_pcy_type_t policy);
 
 static void _o_free (u_hmap_t *hmap, u_hmap_o_t *obj);
 
@@ -79,6 +87,9 @@ static int _queue_push_count (u_hmap_t *hmap, u_hmap_o_t *obj,
         u_hmap_q_t **counts);
 static int _queue_pop_front (u_hmap_t *hmap, u_hmap_o_t **obj);
 static int _queue_pop_back (u_hmap_t *hmap, u_hmap_o_t **obj);
+
+static int _resize(u_hmap_t *hmap);
+static int _next_prime(size_t *prime, size_t sz, int *index);
 
 
 /**
@@ -167,8 +178,10 @@ static int _opts_check (u_hmap_opts_t *opts)
 {
     dbg_err_if (opts == NULL);
 
-    dbg_err_if (opts->max_size == 0);
-    dbg_err_if (opts->max_elems == 0);
+    dbg_err_if (opts->size == 0);
+    dbg_err_if (opts->max == 0);
+    dbg_err_if (opts->type < U_HMAP_TYPE_CHAIN || 
+            opts->type > U_HMAP_TYPE_LINEAR);
     dbg_err_if (opts->policy < U_HMAP_PCY_NONE || 
             opts->policy > U_HMAP_PCY_LFU);
     dbg_err_if (opts->f_hash == NULL);
@@ -246,17 +259,22 @@ int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **hmap)
     u_hmap_opts_dbg(c->opts);
     dbg_err_if (_pcy_setup(c));
 
-    c->sz = 0;
-    c->size = c->opts->max_size;
-    dbg_err_sif ((c->hmap = (struct u_hmap_e_s *) 
-                u_zalloc(sizeof(struct u_hmap_e_s) * 
+    c->size = c->opts->size;
+    dbg_err_if (_next_prime(&c->size, c->size, &c->px));
+    c->threshold = U_HMAP_RATE_FULL * c->size;
+
+    dbg_err_sif ((c->hmap = (u_hmap_e_t *) 
+                u_zalloc(sizeof(u_hmap_e_t) * 
                     c->size)) == NULL);
 
     /* initialise entries */
-    for (i = 0; i < c->size; i++)
+    for (i = 0; i < c->size; ++i)
         LIST_INIT(&c->hmap[i]);
 
     TAILQ_INIT(&c->pcy.queue);
+    
+    dbg("[hmap]");
+    dbg("threshold: %u", c->threshold);
 
     *hmap = c;
 
@@ -265,6 +283,40 @@ int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **hmap)
 err:
     u_free(c);
     *hmap = NULL;    
+    return U_HMAP_ERR_FAIL;
+}
+
+/**
+ * \brief Copy hmap
+ *
+ * Perform a deep copy of an hmap \a from to \a to by rehashing all elements.
+ *
+ * \param to        destination hmap
+ * \param from      source hmap
+ * 
+ * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
+ */
+int u_hmap_copy (u_hmap_t *to, u_hmap_t *from)
+{
+    u_hmap_o_t *obj;
+    size_t i;
+    
+    dbg_err_if (to == NULL);
+    dbg_err_if (from == NULL);
+
+    for (i = 0; i < from->size; ++i) 
+    { 
+        while ((obj = LIST_FIRST(&from->hmap[i])) != NULL) 
+        {
+            dbg_err_if (u_hmap_put(to, u_hmap_o_new(obj->key, obj->val), NULL));
+            LIST_REMOVE(obj, next);
+            u_free(obj);
+        }
+    }
+
+    return U_HMAP_ERR_NONE;
+
+err:
     return U_HMAP_ERR_FAIL;
 }
 
@@ -285,7 +337,7 @@ void u_hmap_dbg (u_hmap_t *hmap)
     dbg_ifb (hmap == NULL) return;
 
     dbg ("<hmap>");
-    for (i = 0; i < hmap->size; i++) 
+    for (i = 0; i < hmap->size; ++i) 
     {
         dbg_ifb (u_string_create("", 1, &s)) return;
         dbg_err_if (u_string_clear(s));
@@ -363,7 +415,7 @@ static int _get (u_hmap_t *hmap, void *key,
                        u_hmap_o_t **o)
 {
     u_hmap_o_t *obj;
-    struct u_hmap_e_s *x;
+    u_hmap_e_t *x;
     int comp;
 	size_t hash;
 
@@ -554,7 +606,7 @@ err:
 int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
 {
     u_hmap_o_t *o;
-    struct u_hmap_e_s *x;
+    u_hmap_e_t *x;
     int comp;
 	size_t hash;
 
@@ -563,6 +615,16 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
 
     if (old)
         *old = NULL;
+
+    if (hmap->sz >= hmap->threshold) {
+        dbg("hmap full");
+        if (hmap->opts->policy == U_HMAP_PCY_NONE) {
+            dbg_err_if (_resize(hmap));
+        } else {
+            dbg("freeing according to policy %d", hmap->opts->policy);
+            dbg_err_if (hmap->pcy.pop(hmap, old));
+        }
+    }
 
     hash = hmap->opts->f_hash(obj->key, hmap->size);
 
@@ -575,16 +637,18 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
         hash = _f_hash(h, hmap->size);
     }
 
+#if 0
     if (hmap->opts->policy != U_HMAP_PCY_NONE &&
-            hmap->sz >= hmap->opts->max_elems) 
+            hmap->sz >= hmap->opts->max) 
     {
         dbg("Cache full - freeing according to policy %d", hmap->opts->policy);
         hmap->pcy.pop(hmap, old);
     }
+#endif
 
 	x = &hmap->hmap[hash];
 
-    if (LIST_EMPTY(x) || (hmap->opts->options & U_HMAP_OPTS_NO_ORDERING)) 
+    if (LIST_EMPTY(x))
     {
         LIST_INSERT_HEAD(x, obj, next);
     } else {
@@ -697,8 +761,8 @@ int u_hmap_foreach (u_hmap_t *hmap, int f(void *val))
     dbg_err_if (hmap == NULL);
     dbg_err_if (f == NULL);
 
-    for (i = 0; i < hmap->size; i++) 
-    {
+    for (i = 0; i < hmap->size; ++i) 
+    { 
         LIST_FOREACH(obj, &hmap->hmap[i], next)
             dbg_err_if (f(obj->val));
     }
@@ -727,7 +791,7 @@ void u_hmap_free (u_hmap_t *hmap)
     dbg_ifb (hmap == NULL) return;
 
     /* free the hashhmap */
-    for (i = 0; i < hmap->size; i++) 
+    for (i = 0; i < hmap->size; ++i) 
     {
         while ((obj = LIST_FIRST(&hmap->hmap[i])) != NULL) 
         {
@@ -782,6 +846,29 @@ err:
 }
 
 /**
+ * \brief Copy options
+ *
+ * Perform a deep copy of options object \a from to \a to.
+ *
+ * \param to        destination options
+ * \param from      source options
+ * 
+ * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
+ */
+int u_hmap_opts_copy (u_hmap_opts_t *to, u_hmap_opts_t *from)
+{
+    dbg_err_if (to == NULL);
+    dbg_err_if (from == NULL);
+
+    memcpy(to, from, sizeof(u_hmap_opts_t));
+
+    return U_HMAP_ERR_NONE;
+        
+err:
+    return U_HMAP_ERR_FAIL;
+}
+
+/**
  * \brief   Initialise hmap options
  * 
  * Set allocated hmap options to default values
@@ -792,8 +879,8 @@ void u_hmap_opts_init (u_hmap_opts_t *opts)
 {
     dbg_ifb (opts == NULL) return;
 
-    opts->max_size = U_HMAP_MAX_SIZE;
-    opts->max_elems = U_HMAP_MAX_ELEMS;
+    opts->size = U_HMAP_MAX_SIZE;
+    opts->max = U_HMAP_MAX_ELEMS;
     opts->policy = U_HMAP_PCY_NONE;
     opts->options = 0;
     opts->f_hash = &_f_hash;
@@ -819,26 +906,6 @@ void u_hmap_opts_free (u_hmap_opts_t *opts)
 }
 
 /**
- * \brief   Copy hmap options
- * 
- * Copy hmap options \a from to \a to.
- * 
- * \param opts      hmap options 
- */
-int u_hmap_opts_copy (u_hmap_opts_t *to, u_hmap_opts_t *from)
-{
-    dbg_err_if (to == NULL);
-    dbg_err_if (from == NULL);
-
-    memcpy(to, from, sizeof(u_hmap_opts_t));
-
-    return 0;
-
-err:
-    return ~0;
-}
-
-/**
  * \brief Debug options
  * 
  * Print out information on option settings.
@@ -850,14 +917,13 @@ void u_hmap_opts_dbg (u_hmap_opts_t *opts)
     dbg_ifb (opts == NULL) return;
 
     dbg("[hmap options]");
-    dbg("max size: %u", opts->max_size);
-    dbg("max elems: %u", opts->max_elems);
+    dbg("size: %u", opts->size);
+    dbg("max: %u", opts->max);
     dbg("policy: %s", _pcy2str(opts->policy));
     dbg("ownsdata: %d, &f_free: %x", 
             (opts->options & U_HMAP_OPTS_OWNSDATA)>0,
             &opts->f_free);
     dbg("no_overwrite: %d", (opts->options & U_HMAP_OPTS_NO_OVERWRITE)>0);
-    dbg("no_ordering: %d", (opts->options & U_HMAP_OPTS_NO_ORDERING)>0);
 }
 
 /**
@@ -956,7 +1022,7 @@ static void _q_o_free (u_hmap_q_t *data)
 }
 
 /* Get a string representation of a policy */
-static const char *_pcy2str (u_hmap_pcy_t policy)
+static const char *_pcy2str (u_hmap_pcy_type_t policy)
 {
     switch (policy)
     {
@@ -971,6 +1037,93 @@ static const char *_pcy2str (u_hmap_pcy_t policy)
     }
     return NULL;
 }
+
+static int _next_prime(size_t *prime, size_t sz, int *index) 
+{
+    static size_t primes[] = {
+        13, 19, 29, 41, 59, 79, 107, 149, 197, 263, 347, 457, 599, 787, 1031,
+        1361, 1777, 2333, 3037, 3967, 5167, 6719, 8737, 11369, 14783, 19219,
+        24989, 32491, 42257, 54941, 71429, 92861, 120721, 156941, 204047,
+        265271, 344857, 448321, 582821, 757693, 985003, 1280519, 1664681,
+        2164111, 2813353, 3657361, 4754591, 6180989, 8035301, 10445899,
+        13579681, 17653589, 22949669, 29834603, 38784989, 50420551, 65546729,
+        85210757, 110774011, 144006217, 187208107, 243370577, 316381771,
+        411296309, 534685237, 695090819, 903618083, 1174703521, 1527114613,
+        1837299131, 2147483647
+    };
+
+    int i;
+
+    dbg_err_if (prime == NULL);
+    dbg_err_if (sz == 0);
+    dbg_err_if (index == NULL);
+    
+    for (i = *index; i < sizeof(primes)/sizeof(size_t); ++i) {
+        if (primes[i] >= sz) {
+            *index = i;
+            *prime = primes[i];
+            goto ok;
+        }
+    }
+    dbg_err_ifm (1, "hmap size limit exceeded"); 
+
+ok:
+    return 0;
+
+err:    
+    return ~0;    
+}
+
+static int _resize(u_hmap_t *hmap)
+{
+    u_hmap_opts_t *newopts = NULL;
+    u_hmap_t *oldmap = NULL,
+             *newmap = NULL;
+
+    dbg_err_if (hmap == NULL);
+
+    if (hmap->opts->policy != U_HMAP_PCY_NONE)
+        return 0;
+
+    dbg("resize from: %u", hmap->size);
+    
+    /* copy old options */
+    dbg_err_if (u_hmap_opts_new(&newopts));
+    dbg_err_if (u_hmap_opts_copy(newopts, hmap->opts));
+    
+    /* set rate and create the new hashmap */
+    dbg_err_if (_next_prime(&newopts->size, 
+            U_HMAP_RATE_RESIZE * newopts->size, 
+            &hmap->px));
+    dbg_err_if (u_hmap_new(newopts, &newmap));
+    u_hmap_opts_free(newopts);
+
+    /* remove any ownership from old map to copy elements */
+    hmap->opts->options &= !U_HMAP_OPTS_OWNSDATA;
+    
+    /* copy old elements to new map policy */
+    dbg_err_if (u_hmap_copy(newmap, hmap));
+
+    /* free old allocated objects */
+    u_hmap_opts_free(hmap->opts);
+    u_free(hmap->hmap);
+
+    /* copy new map to this hmap */
+    memcpy(hmap, newmap, sizeof(u_hmap_t));
+    u_free(newmap);
+
+    dbg("resized to: %u", hmap->size);
+
+    return 0;
+
+err:
+    return ~0;
+}
+
+/**
+ *      \}
+ */
+
 
 /**
  *      \}
