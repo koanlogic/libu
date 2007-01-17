@@ -1,4 +1,4 @@
-/* $Id: hmap.c,v 1.10 2007/01/17 22:13:59 stewy Exp $ */
+/* $Id: hmap.c,v 1.11 2007/01/17 22:27:25 stewy Exp $ */
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -289,7 +289,8 @@ err:
 /**
  * \brief Copy hmap
  *
- * Perform a deep copy of an hmap \a from to \a to by rehashing all elements.
+ * Perform a copy of an hmap \a from to \a to by rehashing all elements and
+ * copying the object pointers to the new locations.
  *
  * \param to        destination hmap
  * \param from      source hmap
@@ -308,9 +309,8 @@ int u_hmap_copy (u_hmap_t *to, u_hmap_t *from)
     { 
         while ((obj = LIST_FIRST(&from->hmap[i])) != NULL) 
         {
-            dbg_err_if (u_hmap_put(to, u_hmap_o_new(obj->key, obj->val), NULL));
             LIST_REMOVE(obj, next);
-            u_free(obj);
+            dbg_err_if (u_hmap_put(to, obj, NULL));
         }
     }
 
