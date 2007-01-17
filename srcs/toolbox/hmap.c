@@ -1,4 +1,4 @@
-/* $Id: hmap.c,v 1.8 2007/01/17 10:32:21 stewy Exp $ */
+/* $Id: hmap.c,v 1.9 2007/01/17 10:38:50 stewy Exp $ */
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -771,22 +771,37 @@ int u_hmap_opts_new (u_hmap_opts_t **opts)
     dbg_err_sif ((o = (u_hmap_opts_t *) u_zalloc(sizeof(u_hmap_opts_t))) 
             == NULL);
     
-    /* set defaults */
-    o->max_size = U_HMAP_MAX_SIZE;
-    o->max_elems = U_HMAP_MAX_ELEMS;
-    o->policy = U_HMAP_PCY_NONE;
-    o->options = 0;
-    o->f_hash = &_f_hash;
-    o->f_comp = &_f_comp;
-    o->f_free = &_f_free;
-    o->f_str = &_f_str;
-    
+    u_hmap_opts_init(o);
+
     *opts = o;
     
     return U_HMAP_ERR_NONE;
 err:
     *opts = NULL;
     return U_HMAP_ERR_FAIL;
+}
+
+/**
+ * \brief   Initialise hmap options
+ * 
+ * Set allocated hmap options to default values
+ * 
+ * \param opts      hmap options object
+ */
+void u_hmap_opts_init (u_hmap_opts_t *opts)
+{
+    dbg_ifb (opts == NULL) return;
+
+    opts->max_size = U_HMAP_MAX_SIZE;
+    opts->max_elems = U_HMAP_MAX_ELEMS;
+    opts->policy = U_HMAP_PCY_NONE;
+    opts->options = 0;
+    opts->f_hash = &_f_hash;
+    opts->f_comp = &_f_comp;
+    opts->f_free = &_f_free;
+    opts->f_str = &_f_str;
+    
+    return;
 }
 
 /**

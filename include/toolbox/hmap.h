@@ -90,6 +90,7 @@ void u_hmap_o_free (u_hmap_o_t *obj);
 
 /* u_hmap_opts_t */
 int u_hmap_opts_new (u_hmap_opts_t **opts);
+void u_hmap_opts_init (u_hmap_opts_t *opts);
 int u_hmap_opts_copy (u_hmap_opts_t *to, u_hmap_opts_t *from);
 void u_hmap_opts_free (u_hmap_opts_t *opts);
 
