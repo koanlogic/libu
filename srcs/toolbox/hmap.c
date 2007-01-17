@@ -1,4 +1,4 @@
-/* $Id: hmap.c,v 1.7 2007/01/16 23:22:33 stewy Exp $ */
+/* $Id: hmap.c,v 1.8 2007/01/17 10:32:21 stewy Exp $ */
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -311,10 +311,8 @@ void u_hmap_dbg (u_hmap_t *hmap)
     return;
 
 err:
-    if (s)
-        u_string_free(s);
-    if (st)
-        u_string_free(st);
+    U_FREEF(st, u_string_free);
+    U_FREEF(s, u_string_free);
     return;   
 }
 
@@ -433,7 +431,7 @@ void u_hmap_pcy_dbg (u_hmap_t *hmap)
     return;
     
  err:
-    dbg_if (u_string_free(s));
+    U_FREEF(s, u_string_free);
     return;
 }
 
@@ -876,7 +874,7 @@ u_hmap_o_t *u_hmap_o_new (void *key, void *val)
     return obj;
  
 err:
-    U_FREE(obj);
+    u_free(obj);
     return NULL;
 }
 
@@ -929,7 +927,7 @@ static u_hmap_q_t *_q_o_new (void *key)
     return data;
 
 err:
-    U_FREE(data);
+    u_free(data);
     return NULL;
 }
 
