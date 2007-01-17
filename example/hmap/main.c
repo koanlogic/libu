@@ -1,4 +1,4 @@
-/* $Id: main.c,v 1.7 2007/01/16 23:26:01 stewy Exp $ */
+/* $Id: main.c,v 1.8 2007/01/17 10:25:38 stewy Exp $ */
 
 #include <string.h>
 
@@ -68,8 +68,7 @@ static int example_static()
     
     return 0;
 err:
-    if (hmap)
-        u_hmap_free(hmap);
+    U_FREEF(hmap, u_hmap_free);
 
     return ~0;
 }
@@ -124,10 +123,8 @@ static int example_dynamic_own_hmap()
     return 0;
 
 err:
-    if (opts)
-        u_hmap_opts_free(opts);
-    if (hmap)
-        u_hmap_free(hmap);
+    U_FREEF(opts, u_hmap_opts_free);
+    U_FREEF(hmap, u_hmap_free);
 
     return ~0;
 }
@@ -193,7 +190,10 @@ static int example_dynamic_own_user()
     u_hmap_free(hmap);
 
     return 0;
+
 err:
+    U_FREEF(hmap, u_hmap_free);
+
     return ~0;
 }
 
@@ -240,10 +240,8 @@ static int example_no_overwrite()
     return 0;
 
 err:
-    if (opts)
-        u_hmap_opts_free(opts);
-    if (hmap)
-        u_hmap_free(hmap);
+    U_FREEF(opts, u_hmap_opts_free);
+    U_FREEF(hmap, u_hmap_free);
 
     return ~0;
 #undef MAP_INSERT
@@ -355,11 +353,8 @@ static int example_types_custom()
 
     return 0;
 err:
-
-    if (opts)
-        u_hmap_opts_free(opts);
-    if (hmap)
-        u_hmap_free(hmap);
+    U_FREEF(opts, u_hmap_opts_free);
+    U_FREEF(hmap, u_hmap_free);
 
     return ~0;
 #undef MAP_INSERT
