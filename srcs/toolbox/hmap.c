@@ -1,4 +1,4 @@
-/* $Id: hmap.c,v 1.11 2007/01/17 22:27:25 stewy Exp $ */
+/* $Id: hmap.c,v 1.12 2007/01/18 23:15:29 stewy Exp $ */
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -58,7 +58,7 @@ struct u_hmap_s
 
     int px;                     /* index into prime numbers */
 
-    struct u_hmap_pcy_s pcy;    /* discard policy */
+    u_hmap_pcy_t pcy;    /* discard policy */
 
     LIST_HEAD(u_hmap_e_s, u_hmap_o_s) *hmap;    /* the hashmap */
 };
@@ -436,16 +436,45 @@ static int _get (u_hmap_t *hmap, void *key,
 
 	x = &hmap->hmap[hash];
 
-    LIST_FOREACH(obj, x, next) 
+    switch (hmap->opts->type)
     {
-        if ((comp = hmap->opts->f_comp(key, obj->key)) == 0) /* object found */
-        { 
-            *o = obj;
-            return U_HMAP_ERR_NONE;
-        } else if (comp < 0) { /* cannot be in list (ordered) */
-            *o = NULL;
+        case U_HMAP_TYPE_CHAIN:
+
+            LIST_FOREACH(obj, x, next) 
+            {
+                if ((comp = hmap->opts->f_comp(key, obj->key)) == 0) 
+                { /* object found */ 
+                    *o = obj;
+                    return U_HMAP_ERR_NONE;
+                } else if (comp < 0) { /* cannot be in list (ordered) */
+                    *o = NULL;
+                    break;
+                }
+            }
             break;
-        }
+
+
+        case U_HMAP_TYPE_LINEAR:
+            {
+                size_t last = ((hash + hmap->size -1) % hmap->size);
+
+                for (; hash != last; hash = ((hash +1) % hmap->size), 
+                        x = &hmap->hmap[hash])
+                {
+                    if (!LIST_EMPTY(x)) 
+                    {
+                        obj = LIST_FIRST(x);
+                        
+                        if ((hmap->opts->f_comp(key, obj->key)) == 0)
+                        {
+                            *o = obj;
+                            return U_HMAP_ERR_NONE; 
+                        }
+                    }
+                }
+            }
+
+            break;
     }
 
 err: 
@@ -637,74 +666,134 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
         hash = _f_hash(h, hmap->size);
     }
 
-#if 0
     if (hmap->opts->policy != U_HMAP_PCY_NONE &&
             hmap->sz >= hmap->opts->max) 
     {
         dbg("Cache full - freeing according to policy %d", hmap->opts->policy);
         hmap->pcy.pop(hmap, old);
     }
-#endif
 
 	x = &hmap->hmap[hash];
 
-    if (LIST_EMPTY(x))
+    switch (hmap->opts->type) 
     {
-        LIST_INSERT_HEAD(x, obj, next);
-    } else {
-        LIST_FOREACH(o, x, next) 
-        {
-            /* object already hmapd */
-            if ((comp = hmap->opts->f_comp(obj->key, o->key)) == 0) 
-            { 
-                /* overwrite */
-                if (!(hmap->opts->options & U_HMAP_OPTS_NO_OVERWRITE))
+        case U_HMAP_TYPE_CHAIN:
+
+            if (LIST_EMPTY(x))
+            {
+                LIST_INSERT_HEAD(x, obj, next);
+                goto end;
+            } else {
+                LIST_FOREACH(o, x, next) 
                 {
-                    LIST_INSERT_AFTER(o, obj, next);
-                    LIST_REMOVE(o, next);
+                    /* object already hmapd */
+                    if ((comp = hmap->opts->f_comp(obj->key, o->key)) == 0) 
+                    { 
+                        /* overwrite */
+                        if (!(hmap->opts->options & U_HMAP_OPTS_NO_OVERWRITE))
+                        {
+                            LIST_INSERT_AFTER(o, obj, next);
+                            LIST_REMOVE(o, next);
+                            hmap->sz--;
+                            /* XXX pop from policy queue */
 
-                    if (hmap->opts->options & U_HMAP_OPTS_OWNSDATA)
-                        _o_free(hmap, o);
-                    else
-                        if (old)
-                            *old = o;
+                            if (hmap->opts->options & U_HMAP_OPTS_OWNSDATA)
+                                _o_free(hmap, o);
+                            else
+                                if (old)
+                                    *old = o;
 
-                    goto end;
+                            goto end;
 
-                /* don't overwrite */
-                } else {
+                        /* don't overwrite */
+                        } else {
 
-                    if (hmap->opts->options & U_HMAP_OPTS_OWNSDATA)
-                        _o_free(hmap, obj);                          
-                    else
-                        if (old) 
-                            *old = obj; 
-                    
-                    return U_HMAP_ERR_EXISTS; 
-                }
-            } else { 
-                if (comp < 0) 
-                {
-                    LIST_INSERT_BEFORE(o, obj, next); 
-                    break;
-                } else if (!LIST_NEXT(o, next)) {
-                    LIST_INSERT_AFTER(o, obj, next);
-                    break;
+                            if (hmap->opts->options & U_HMAP_OPTS_OWNSDATA)
+                                _o_free(hmap, obj);                          
+                            else
+                                if (old) 
+                                    *old = obj; 
+                            
+                            return U_HMAP_ERR_EXISTS; 
+                        }
+                    } else { 
+                        if (comp < 0) 
+                        {
+                            LIST_INSERT_BEFORE(o, obj, next); 
+                            goto end;
+                        } else if (!LIST_NEXT(o, next)) {
+                            LIST_INSERT_AFTER(o, obj, next);
+                            goto end;
+                        }
+                    }
                 }
             }
-        }
+            break;
+
+        case U_HMAP_TYPE_LINEAR:
+
+            {
+                size_t last = ((hash + hmap->size -1) % hmap->size);
+
+                for (; hash != last; hash = ((hash+1) % hmap->size), 
+                        x = &hmap->hmap[hash])
+                {
+                    if (LIST_EMPTY(x)) 
+                    {
+                        LIST_INSERT_HEAD(x, obj, next);
+                        goto end;
+
+                    } else {
+
+                        o = LIST_FIRST(x);
+
+                        /* object already hmapd */
+                        if (hmap->opts->f_comp(o->key, obj->key) == 0)
+                        {
+                            /* overwrite */
+                            if (!(hmap->opts->options & U_HMAP_OPTS_NO_OVERWRITE)) 
+                            {
+                                LIST_INSERT_AFTER(o, obj, next);
+                                LIST_REMOVE(o, next);
+                                hmap->sz--;
+                                /* XXX pop from policy queue */
+
+                                if (hmap->opts->options & U_HMAP_OPTS_OWNSDATA)
+                                    _o_free(hmap, obj);
+                                else 
+                                    if (old)
+                                        *old = obj;
+
+                                goto end;
+
+                            /* don't overwrite */
+                            } else {
+
+                                if (hmap->opts->options & U_HMAP_OPTS_OWNSDATA)
+                                    _o_free(hmap, obj);
+                                else 
+                                    if (old)
+                                        *old = obj;
+
+                                return U_HMAP_ERR_EXISTS;
+                            }
+                        }
+                    }
+                }
+            }
+            break;
     }
-   
-    hmap->sz++;
+
+err:
+    return U_HMAP_ERR_FAIL;
 
 end:
+    hmap->sz++;
+
     if (hmap->pcy.ops & U_HMAP_PCY_OP_PUT)
         hmap->pcy.push(hmap, obj, &obj->pqe);
 
     return U_HMAP_ERR_NONE;
-
-err:
-    return U_HMAP_ERR_FAIL;
 }
 
 /**
