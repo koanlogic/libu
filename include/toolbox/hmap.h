@@ -6,8 +6,7 @@
 #define _U_HMAP_H_
 
 #include <sys/types.h>
-#include <toolbox/str.h>
-#include <toolbox/queue.h>
+#include <u/libu.h>
 
 #ifdef __cplusplus
 extern "C" {
