@@ -12,11 +12,15 @@
 extern "C" {
 #endif
 
-void *u_malloc(size_t sz);
-void *u_zalloc(size_t sz);
-void *u_calloc(size_t cnt, size_t sz);
-void *u_realloc(void *ptr, size_t sz);
-void u_free(void *ptr);
+void u_memory_set_malloc (void *(*f_malloc)(size_t));
+void u_memory_set_calloc (void *(*f_calloc)(size_t, size_t));
+void u_memory_set_realloc (void *(*f_realloc)(void *, size_t));
+void u_memory_set_free (void (*f_free)(void *));
+void *u_malloc (size_t sz);
+void *u_calloc (size_t cnt, size_t sz);
+void *u_zalloc (size_t sz);
+void *u_realloc (void *ptr, size_t sz);
+void u_free (void *ptr);
 
 #ifdef __cplusplus
 }
