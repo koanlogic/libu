@@ -1,4 +1,4 @@
-/* $Id: hmap.c,v 1.12 2007/01/18 23:15:29 stewy Exp $ */
+/* $Id: hmap.c,v 1.13 2007/01/22 14:02:26 tho Exp $ */
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -969,6 +969,7 @@ void u_hmap_opts_init (u_hmap_opts_t *opts)
     dbg_ifb (opts == NULL) return;
 
     opts->size = U_HMAP_MAX_SIZE;
+    opts->type = U_HMAP_TYPE_CHAIN;
     opts->max = U_HMAP_MAX_ELEMS;
     opts->policy = U_HMAP_PCY_NONE;
     opts->options = 0;
