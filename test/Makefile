@@ -1,5 +1,5 @@
 include common.mk
-include ../../Makefile.conf
+include ../Makefile.conf
 
 PROG = runtest
 SRCS = main.c test.c 
@@ -7,9 +7,9 @@ SRCS = main.c test.c
 SRCS += misc.c 
 SRCS += hmap.c 
 
-CFLAGS += -I../../include
+CFLAGS += -I../include
 CFLAGS += -g -DDEBUG
 
-LDADD += ../../srcs/libu.a
+LDADD += ../srcs/libu.a
 
 include prog.mk
