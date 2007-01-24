@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.2 2006/12/07 08:32:14 tho Exp $";
+    "$Id: misc.c,v 1.3 2007/01/24 17:12:02 tat Exp $";
 
 #include <u/libu_conf.h>
 #include <sys/types.h>
@@ -18,6 +18,8 @@ static const char rcsid[] =
 #include <fcntl.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include <toolbox/misc.h>
 #include <toolbox/carpal.h>
@@ -319,6 +321,154 @@ err:
     return ~0;
 }
 
+/** \brief  Top level I/O routine 
+ *
+ * Try to read/write - atomically - a chunk of \p l bytes from/to the object 
+ * referenced by the descriptor \p sd.  The data chunk is written to/read from
+ * the buffer starting at \p buf.  The I/O driver function \p f is used to 
+ * carry out the job, its interface and behaviour must conform to those of 
+ * \c POSIX.1 \c read() or \c write().  If \p n is not \c NULL, it will store
+ * the number of bytes actually read/written: this information is significant
+ * only when u_net_io has failed.  If \p eof is not \c NULL, it will be set
+ * to \c 1 on an end-of-file condition.
+ *
+ * \param f         the I/O function, i.e. \c read(2) or \c write(2)
+ * \param sd        the file descriptor on which the I/O operation is performed
+ * \param buf       the data chunk to be read or written
+ * \param l         the length in bytes of \p buf
+ * \param n         the number of bytes read/written as a value-result arg
+ * \param eof       true if end-of-file condition
+ * 
+ * \return  A \c ~0 is returned if an error other than \c EINTR or \c EAGAIN 
+ *          has occurred, or if the requested amount of data could 
+ *          not be entirely read/written.  A \c 0 is returned on success.
+ */
+int u_io (iof_t f, int sd, void *buf, size_t l, ssize_t *n, int *eof)
+{
+#define SET_PPTR(pptr, val) do {if ((pptr)) *(pptr) = (val);} while (0);
+    ssize_t nret;
+    size_t nleft = l;
+    char *p = buf;
+
+    SET_PPTR(n, 0);
+    SET_PPTR(eof, 0);
+
+    while (nleft > 0) 
+    {
+        if ((nret = (f) (sd, p, nleft)) == -1)
+        {
+            if (errno == EINTR || errno == EAGAIN)
+                continue;
+            else
+            {
+                warn_strerror(errno);
+                goto end;
+            }
+        }
+
+        /* test EOF */
+        if (nret == 0)
+        {
+            SET_PPTR(eof, 1);
+            goto end;
+        }
+        
+        nleft -= nret;
+        p += nret;
+    }
+
+end:
+    SET_PPTR(n, l - nleft);
+    return nleft ? ~0 : 0;
+#undef SET_PPTR
+}
+
+/**
+ *  \brief  sleep(3) wrapper that handles EINTR and EAGAIN
+ *
+ *  \param  secs        sleep for 'secs' seconds
+ *
+ *  \return on success returns the socket descriptor; on failure returns -1
+ */ 
+int u_sleep(unsigned int secs)
+{
+    int sleep_for, c;
+
+    for(sleep_for = secs; sleep_for > 0; sleep_for = c)
+    {
+        if((c = sleep(sleep_for)) == 0)
+            break;
+        else if(errno != EINTR && errno != EAGAIN)
+            return -1; /* should never happen */
+    }
+
+    return 0;
+}
+
+/**
+ *  \brief  accept(2) wrapper that handles EINTR and EAGAIN
+ *
+ *  \param  ld          file descriptor
+ *  \param  addr        see accept(2)   
+ *  \param  addrlen     size of addr struct
+ *
+ *  \return on success returns the socket descriptor; on failure returns -1
+ */ 
+int u_accept(int ld, struct sockaddr *addr, int *addrlen)
+{
+    int ad = -1;
+
+again:
+    ad = accept(ld, addr, addrlen);
+    if(ad == -1 && (errno == EINTR || errno == EAGAIN))
+        goto again; /* interrupted */
+
+    return ad;
+}
+
+/**
+ *  \brief  read(2) wrapper that handles EINTR and EAGAIN
+ *
+ *  \param  fd      file descriptor
+ *  \param  buf     buffer to read into
+ *  \param  size    size of the buffer
+ *
+ *  \return \c on success returns the number of bytes read (that will be always 'size' except on eof); on failure returns -1
+ */ 
+ssize_t u_read(int fd, void *buf, size_t size)
+{
+    ssize_t nw = 0;
+    int eof = 0;
+
+    if(u_io((iof_t) read, fd, buf, size, &nw, &eof))
+    {
+        if(eof)
+            return nw; /* may be zero */
+        else
+            return -1;
+    }
+
+    return nw;
+}
+
+/**
+ *  \brief  write(2) wrapper that handle EINTR and EAGAIN
+ *
+ *  \param  fd      file descriptor
+ *  \param  buf     buffer to write
+ *  \param  size    size of the buffer
+ *
+ *  \return \c size on success, -1 on error
+ */ 
+ssize_t u_write(int fd, void *buf, size_t size)
+{
+    ssize_t nw;
+
+    if(u_io((iof_t) write, fd, buf, size, NULL, NULL))
+        return -1;
+
+    return size;
+}
 
 /**
  *      \}

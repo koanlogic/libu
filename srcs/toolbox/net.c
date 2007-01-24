@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: net.c,v 1.1 2006/11/20 13:38:01 tho Exp $";
+    "$Id: net.c,v 1.2 2007/01/24 17:12:02 tat Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -415,67 +415,6 @@ err:
     return ~0;    
 }
 
-/** \brief  Top level I/O routine 
- *
- * Try to read/write - atomically - a chunk of \p l bytes from/to the object 
- * referenced by the descriptor \p sd.  The data chunk is written to/read from
- * the buffer starting at \p buf.  The I/O driver function \p f is used to 
- * carry out the job, its interface and behaviour must conform to those of 
- * \c POSIX.1 \c read() or \c write().  If \p n is not \c NULL, it will store
- * the number of bytes actually read/written: this information is significant
- * only when u_net_io has failed.  If \p eof is not \c NULL, it will be set
- * to \c 1 on an end-of-file condition.
- *
- * \param f         the I/O function, i.e. \c read(2) or \c write(2)
- * \param sd        the file descriptor on which the I/O operation is performed
- * \param buf       the data chunk to be read or written
- * \param l         the length in bytes of \p buf
- * \param n         the number of bytes read/written as a value-result arg
- * \param eof       true if end-of-file condition
- * 
- * \return  A \c ~0 is returned if an error other than \c EINTR or \c EAGAIN 
- *          has occurred, or if the requested amount of data could 
- *          not be entirely read/written.  A \c 0 is returned on success.
- */
-int u_net_io (iof_t f, int sd, void *buf, size_t l, ssize_t *n, int *eof)
-{
-#define SET_PPTR(pptr, val) do {if ((pptr)) *(pptr) = (val);} while (0);
-    ssize_t nret;
-    size_t nleft = l;
-    char *p = buf;
-
-    SET_PPTR(n, 0);
-    SET_PPTR(eof, 0);
-
-    while (nleft > 0) 
-    {
-        if ((nret = (f) (sd, p, nleft)) == -1)
-        {
-            if (errno == EINTR || errno == EAGAIN)
-                continue;
-            else
-            {
-                warn_strerror(errno);
-                goto end;
-            }
-        }
-
-        /* test EOF */
-        if (nret == 0)
-        {
-            SET_PPTR(eof, 1);
-            goto end;
-        }
-        
-        nleft -= nret;
-        p += nret;
-    }
-
-end:
-    SET_PPTR(n, l - nleft);
-    return nleft ? ~0 : 0;
-#undef SET_PPTR
-}
 
 /**
  *  \}
