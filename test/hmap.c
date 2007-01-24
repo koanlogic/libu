@@ -12,9 +12,7 @@ err:
 
 TEST_MODULE(hmap)
 {
-    int rc = 0;
-
     RUN_TEST( test_hmap_feature );
 
-    return rc;                                                
+    return 0;
 }

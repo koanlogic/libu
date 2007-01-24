@@ -28,11 +28,9 @@ static int test_success(void)
 
 TEST_MODULE(misc)
 {
-    int rc = 0;
-
     RUN_TEST( test_u_read );
     RUN_TEST( test_u_write );
     RUN_TEST( test_success );
 
-    return rc;                                                
+    return 0;                                                
 }
