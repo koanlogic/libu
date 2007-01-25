@@ -96,8 +96,8 @@
  * \return \c 0 on success, not zero on failure (i.e. test failed)
  */
 #define RUN_TEST( f ) \
-    if( f () ) { test_cnt++; test_fail++; con("%s: failed", #f); } \
-    else { test_cnt++; test_ok++; if(verbose) con("%s: ok", #f); }
+    if( f () ) { _test_cnt++; _test_fail++; con("%s: failed", #f); } \
+    else { _test_cnt++; _test_ok++; if(_verbose) con("%s: ok", #f); }
 
 
 /** \brief Import a test module in the test program
@@ -110,8 +110,8 @@
 #define IMPORT_TEST_MODULE( name ) \
     do {    \
         int run_tests_ ## name (void); \
-        *top = run_tests_ ## name; ++top; *top = NULL; \
-        *top_nm = u_strdup( #name ); ++top_nm; *top_nm = NULL; \
+        *_top = run_tests_ ## name; ++_top; *_top = NULL; \
+        *_top_nm = u_strdup( #name ); ++_top_nm; *_top_nm = NULL; \
     } while(0)
 
 /** \brief Run tests
@@ -129,13 +129,13 @@ int run_tests(int argc, char **argv);
 /** */
 typedef int (*test_runner_t)(void);
 /** */
-extern test_runner_t mods[], *top;
+extern test_runner_t _mods[], *_top;
 /** */
-extern char *mods_nm[], **top_nm;
+extern char *_mods_nm[], **_top_nm;
 /** */
-extern int test_cnt, test_ok, test_fail;
+extern int _test_cnt, _test_ok, _test_fail;
 /** */
-extern int verbose;
+extern int _verbose;
 
 /**
  *  \}

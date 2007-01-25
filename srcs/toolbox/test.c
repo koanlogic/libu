@@ -2,16 +2,16 @@
 
 enum { MAX_MODS = 1024 };
 
-test_runner_t mods[MAX_MODS] = { NULL };
-test_runner_t *top = mods;
+test_runner_t _mods[MAX_MODS] = { NULL };
+test_runner_t *_top = _mods;
 
-char *mods_nm[MAX_MODS] = { NULL };
-char **top_nm = mods_nm;
+char *_mods_nm[MAX_MODS] = { NULL };
+char **_top_nm = _mods_nm;
 
-int test_cnt = 0;
-int test_fail = 0;
-int test_ok = 0;
-int verbose = 0;
+int _test_cnt = 0;
+int _test_fail = 0;
+int _test_ok = 0;
+int _verbose = 0;
 
 static char **arg;
 static int narg;
@@ -29,7 +29,7 @@ static void usage(const char *prog)
 
     fprintf(stderr, us, prog);
 
-    for(p = mods_nm; p != top_nm; ++p)
+    for(p = _mods_nm; p != _top_nm; ++p)
         fprintf(stderr, "        %s\n", *p);
     fprintf(stderr, "\n");
 
@@ -45,7 +45,7 @@ static int parse_opt(int argc, char **argv)
         switch(ret)
         {
         case 'v': 
-            verbose = 1;
+            _verbose = 1;
             break;
         default:
         case 'h': 
@@ -66,11 +66,11 @@ static int run_test_module(const char *module)
     char **m;
     int i;
 
-    for(i = 0, m = mods_nm; m < top_nm; ++m, ++i)
+    for(i = 0, m = _mods_nm; m < _top_nm; ++m, ++i)
     {
         if(!strcasecmp(*m, module))
         {
-            mods[i]();  /* run module tests */
+            _mods[i]();  /* run module tests */
             return 0;
         }
     }
@@ -96,11 +96,11 @@ int run_tests(int argc, char **argv)
             dbg_err_if(run_test_module(arg[i]));
     } else {
         /* run all modules */
-        for(i = 0, p = mods; p < top; ++p, ++i)
+        for(i = 0, p = _mods; p < _top; ++p, ++i)
             (*p)();
     }
 
-    printf("%d test run, %d failed\n", test_cnt, test_fail);
+    printf("%d test run, %d failed\n", _test_cnt, _test_fail);
 
     return 0;
 err:
