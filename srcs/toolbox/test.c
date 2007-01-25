@@ -16,10 +16,10 @@ int verbose = 0;
 static char **arg;
 static int narg;
 
-static void usage()
+static void usage(const char *prog)
 {
     static const char *us = 
-        "usage: runtest OPTIONS [ MODULE ... ]\n"
+        "usage: %s OPTIONS [ MODULE ... ]\n"
         "\n"
         "    -h          display this help   \n"
         "    -v          be verbose          \n"
@@ -27,7 +27,7 @@ static void usage()
         "    Available modules:\n";
     char **p;
 
-    fprintf(stderr, us);
+    fprintf(stderr, us, prog);
 
     for(p = mods_nm; p != top_nm; ++p)
         fprintf(stderr, "        %s\n", *p);
@@ -49,7 +49,7 @@ static int parse_opt(int argc, char **argv)
             break;
         default:
         case 'h': 
-            usage();
+            usage(argv[0]);
         }
     }
 
