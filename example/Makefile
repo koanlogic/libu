@@ -1,3 +1,3 @@
-SUBDIR = hmap net
+SUBDIR = net
 
 include subdir.mk
