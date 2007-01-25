@@ -1,6 +1,14 @@
-$Id: ChangeLog,v 1.13 2006/12/12 13:35:34 tho Exp $
+$Id: ChangeLog,v 1.14 2007/01/25 09:11:29 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/kl/cont/gb/html/libu.html
+
+LibU 1.0.0:
+	- [hmap] module rework: [TODO explain new features] ...
+	- [test] added the unit test module [TODO explain features] ...
+	- [misc] added u_{read,write,accept,sleep} auto-restarting functions that 
+	  transparently handle EINTR
+	- [memory] added u_memory_set_{{m,c,re}alloc,free} function by which the
+	  user can override the default memory manager (i.e. libc malloc)
 
 LibU 0.5.0:
 	- mkstemps() added to the portability layer
