@@ -25,11 +25,11 @@ static int test_success(void)
     return 0;
 }
 
-TEST_MODULE(misc)
+U_TEST_MODULE(misc)
 {
-    RUN_TEST( test_u_read );
-    RUN_TEST( test_u_write );
-    RUN_TEST( test_success );
+    U_TEST_RUN( test_u_read );
+    U_TEST_RUN( test_u_write );
+    U_TEST_RUN( test_success );
 
     return 0;                                                
 }

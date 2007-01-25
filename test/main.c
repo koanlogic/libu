@@ -4,8 +4,8 @@ int facility = LOG_LOCAL0;
 
 int main(int argc, char **argv)
 {
-    IMPORT_TEST_MODULE(misc);
-    IMPORT_TEST_MODULE(hmap);
+    U_TEST_MODULE_USE(misc);
+    U_TEST_MODULE_USE(hmap);
 
-    return run_tests(argc, argv);
+    return u_test_run(argc, argv);
 }

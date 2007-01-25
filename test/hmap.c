@@ -9,9 +9,9 @@ err:
     return ~0;
 }
 
-TEST_MODULE(hmap)
+U_TEST_MODULE(hmap)
 {
-    RUN_TEST( test_hmap_feature );
+    U_TEST_RUN( test_hmap_feature );
 
     return 0;
 }

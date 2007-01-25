@@ -82,7 +82,7 @@ err:
     return ~0;
 }
 
-int run_tests(int argc, char **argv)
+int u_test_run(int argc, char **argv)
 {
     test_runner_t *p;
     int i;

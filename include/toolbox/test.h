@@ -6,10 +6,10 @@
  *  \defgroup test Unit testing
  *  \{
  *
- *      Tests are bundles in test modules defined by the TEST_MODULE macro; 
+ *      Tests are bundles in test modules defined by the U_TEST_MODULE macro; 
  *      each module contain one or more test functions; such functions will 
  *      be considered succesfull when returning 0. Function should be run
- *      from within the module main function wrapped by the RUN_TEST macro.
+ *      from within the module main function wrapped by the U_TEST_RUN macro.
  *      
  *
  *      Example: mymodule.c
@@ -33,10 +33,10 @@
  *              return ~0;
  *          }
  *
- *          TEST_MODULE( mymodule )
+ *          U_TEST_MODULE( mymodule )
  *          {
- *              RUN_TEST( test_feature_1 );
- *              RUN_TEST( test_feature_2 );
+ *              U_TEST_RUN( test_feature_1 );
+ *              U_TEST_RUN( test_feature_2 );
  *          
  *              return 0;                                                
  *          }
@@ -45,7 +45,7 @@
  *
  *      To build the 'runtest' executable define a main() function like 
  *      the example below and import your test modules using the 
- *      IMPORT_TEST_MODULE macro. 
+ *      U_TEST_USE_MODULE macro. 
  *
  *      Example: main.c
  *      \code
@@ -55,10 +55,10 @@
  *
  *          int main(int argc, char **argv)
  *          {
- *              IMPORT_TEST_MODULE( mymodule );
- *              IMPORT_TEST_MODULE( mymodule2 );
+ *              U_TEST_USE_MODULE( mymodule );
+ *              U_TEST_USE_MODULE( mymodule2 );
  *          
- *              return run_tests(argc, argv);
+ *              return u_test_run(argc, argv);
  *          }
  *      \endcode
  *
@@ -84,8 +84,8 @@
  *
  * \param name  module name
  */
-#define TEST_MODULE( name ) \
-    int run_tests_ ## name (void)
+#define U_TEST_MODULE( name ) \
+    int u_test_run_ ## name (void)
 
 /** \brief Define a test function
  *
@@ -95,7 +95,7 @@
  *
  * \return \c 0 on success, not zero on failure (i.e. test failed)
  */
-#define RUN_TEST( f ) \
+#define U_TEST_RUN( f ) \
     if( f () ) { _test_cnt++; _test_fail++; con("%s: failed", #f); } \
     else { _test_cnt++; _test_ok++; if(_verbose) con("%s: ok", #f); }
 
@@ -107,10 +107,10 @@
  * \param name     the name of the module
  *
  */
-#define IMPORT_TEST_MODULE( name ) \
+#define U_TEST_MODULE_USE( name ) \
     do {    \
-        int run_tests_ ## name (void); \
-        *_top = run_tests_ ## name; ++_top; *_top = NULL; \
+        int u_test_run_ ## name (void); \
+        *_top = u_test_run_ ## name; ++_top; *_top = NULL; \
         *_top_nm = u_strdup( #name ); ++_top_nm; *_top_nm = NULL; \
     } while(0)
 
@@ -124,7 +124,7 @@
  *
  * \return \c 0 on success, not zero on failure
  */
-int run_tests(int argc, char **argv);
+int u_test_run(int argc, char **argv);
 
 /** */
 typedef int (*test_runner_t)(void);
