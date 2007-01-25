@@ -1,13 +1,14 @@
-$Id: ChangeLog,v 1.16 2007/01/25 09:35:20 stewy Exp $
+$Id: ChangeLog,v 1.17 2007/01/25 18:13:45 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/kl/cont/gb/html/libu.html
 
 LibU 1.0.0:
-    - [hmap] module rework: implemented linear probing and array resizing based
-    on prime numbers; void *key, *val in u_hmap_o_t; new interfaces for managing
-    own data or giving hmap ownership and returning overwritten objects
+	- [hmap] module rework: implemented linear probing and array resizing based
+	  on prime numbers; void *key, *val in u_hmap_o_t; new interfaces for 
+	  managing own data or giving hmap ownership and returning overwritten 
+	  objects
 	- [test] added the unit test module; tests can be separated by module 
-      and/or functionality and can run selectively or all at once
+	  and/or functionality and can run selectively or all at once
 	- [misc] added u_{read,write,accept,sleep} auto-restarting functions that 
 	  transparently handle EINTR
 	- [memory] added u_memory_set_{{m,c,re}alloc,free} function by which the
