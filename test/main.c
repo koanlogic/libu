@@ -1,5 +1,4 @@
 #include <u/libu.h>
-#include "test.h"
 
 int facility = LOG_LOCAL0;
 

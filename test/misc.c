@@ -1,5 +1,4 @@
 #include <u/libu.h>
-#include "test.h"
 
 static int test_u_write(void)
 {

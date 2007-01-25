@@ -2,7 +2,7 @@ include common.mk
 include ../Makefile.conf
 
 PROG = runtest
-SRCS = main.c test.c 
+SRCS = main.c
 
 SRCS += misc.c 
 SRCS += hmap.c 
