@@ -1,4 +1,4 @@
-# $Id: Makefile.doxy.doc,v 1.5 2006/02/06 22:29:58 tho Exp $
+# $Id: Makefile.doxy.doc,v 1.6 2007/01/31 15:57:23 tat Exp $
 
 include common.mk
 include ../../Makefile.conf
@@ -8,7 +8,9 @@ HTMLDOCDIR = ${DOCDIR}/libu/html/
 all clean depend cleandepend:
 
 install:
-	${MKINSTALLDIRS} ${HTMLDOCDIR} && cp -r *.html *.css ${HTMLDOCDIR}
+	@if [ -f index.html ]; then \
+	    ${MKINSTALLDIRS} ${HTMLDOCDIR} && cp -r *.html *.css ${HTMLDOCDIR} \
+    fi
 
 uninstall:
 	rm -rf ${HTMLDOCDIR}
