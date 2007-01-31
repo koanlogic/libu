@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.3 2007/01/24 17:12:02 tat Exp $";
+    "$Id: misc.c,v 1.4 2007/01/31 13:03:11 tat Exp $";
 
 #include <u/libu_conf.h>
 #include <sys/types.h>
@@ -329,7 +329,7 @@ err:
  * carry out the job, its interface and behaviour must conform to those of 
  * \c POSIX.1 \c read() or \c write().  If \p n is not \c NULL, it will store
  * the number of bytes actually read/written: this information is significant
- * only when u_net_io has failed.  If \p eof is not \c NULL, it will be set
+ * only when u_io has failed.  If \p eof is not \c NULL, it will be set
  * to \c 1 on an end-of-file condition.
  *
  * \param f         the I/O function, i.e. \c read(2) or \c write(2)
