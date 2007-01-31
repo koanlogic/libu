@@ -1,4 +1,4 @@
-# $Id: Makefile.doxy.doc,v 1.6 2007/01/31 15:57:23 tat Exp $
+# $Id: Makefile.doxy.doc,v 1.7 2007/01/31 15:59:49 tat Exp $
 
 include common.mk
 include ../../Makefile.conf
@@ -9,7 +9,7 @@ all clean depend cleandepend:
 
 install:
 	@if [ -f index.html ]; then \
-	    ${MKINSTALLDIRS} ${HTMLDOCDIR} && cp -r *.html *.css ${HTMLDOCDIR} \
+	    ${MKINSTALLDIRS} ${HTMLDOCDIR} && cp -r *.html *.css ${HTMLDOCDIR} ; \
     fi
 
 uninstall:
