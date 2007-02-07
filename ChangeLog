@@ -1,4 +1,8 @@
-$Id: ChangeLog,v 1.17 2007/01/25 18:13:45 tho Exp $
+<<<<<<< ChangeLog
+$Id: ChangeLog,v 1.18 2007/02/07 10:24:50 tat Exp $
+=======
+$Id: ChangeLog,v 1.18 2007/02/07 10:24:50 tat Exp $
+>>>>>>> 1.17
 
 ChangeLog file of LibU - http://www.koanlogic.com/kl/cont/gb/html/libu.html
 
@@ -13,6 +17,7 @@ LibU 1.0.0:
 	  transparently handle EINTR
 	- [memory] added u_memory_set_{{m,c,re}alloc,free} function by which the
 	  user can override the default memory manager (i.e. libc malloc)
+	- [config] load in overwrite mode fix
 
 LibU 0.5.0:
 	- mkstemps() added to the portability layer

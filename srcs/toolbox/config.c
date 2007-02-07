@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.1 2006/11/20 13:38:01 tho Exp $";
+    "$Id: config.c,v 1.2 2007/02/07 10:24:50 tat Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -327,7 +327,13 @@ static int u_config_do_load(u_config_t *c, u_config_gets_t cb, void *arg,
                 warn_err("config error [line %d]: { or } must be the "
                          "only not-blank char in a line", lineno);
 
-            dbg_err_if(u_config_add_child(c, u_string_c(lastkey), &child));
+            /* modify the existing child (when overwriting) or add a new one */
+            if(!overwrite || 
+               (child = u_config_get_child(c, u_string_c(lastkey))) == NULL)
+            {
+                dbg_err_if(u_config_add_child(c, u_string_c(lastkey), &child));
+            }
+
             dbg_err_if(u_config_do_load(child, cb, arg, overwrite));
             dbg_err_if(u_string_clear(lastkey));
             continue;
