@@ -12,6 +12,8 @@
 struct itimerval itv;
 size_t file_size, buf_size;
 
+U_TEST_MODULE(misc);
+
 static void setitv(struct itimerval *pitv)
 {
     memset(pitv, 0, sizeof(struct itimerval));
@@ -22,6 +24,7 @@ static void setitv(struct itimerval *pitv)
 
 static void onsigalrm(int s)
 {
+    u_unused_args(s);
     setitv(&itv);
     con_if(setitimer(ITIMER_REAL, &itv, NULL) < 0);
 }
@@ -61,7 +64,7 @@ static int cat_file(const char *fn, unsigned int *phash)
 
     *phash = hash;
 
-    con_err_ifm(st.st_size != tot, "file size differs (%d != %d", 
+    con_err_ifm(st.st_size != tot, "file size differs (%d != %d)", 
             st.st_size, tot);
 
     u_free(buf);
@@ -75,10 +78,10 @@ err:
 
 static int gen_file(const char *fn, unsigned int *phash)
 {
-    int fd = -1, i;
+    int fd = -1;
     char *buf = NULL;
     unsigned int hash = 0;
-    size_t c, size = file_size;
+    size_t i, c, size = file_size;
 
     buf = u_malloc(buf_size);
     con_err_if(buf == NULL);

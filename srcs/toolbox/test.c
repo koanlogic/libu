@@ -57,8 +57,6 @@ static int parse_opt(int argc, char **argv)
     arg = argv + optind;
 
     return 0;
-err:
-    return ~0;
 }
 
 static int run_test_module(const char *module)

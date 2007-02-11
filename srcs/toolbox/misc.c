@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.4 2007/01/31 13:03:11 tat Exp $";
+    "$Id: misc.c,v 1.5 2007/02/11 21:37:10 tho Exp $";
 
 #include <u/libu_conf.h>
 #include <sys/types.h>
@@ -462,8 +462,6 @@ ssize_t u_read(int fd, void *buf, size_t size)
  */ 
 ssize_t u_write(int fd, void *buf, size_t size)
 {
-    ssize_t nw;
-
     if(u_io((iof_t) write, fd, buf, size, NULL, NULL))
         return -1;
 

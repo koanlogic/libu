@@ -1,4 +1,4 @@
-/* $Id: hmap.c,v 1.13 2007/01/22 14:02:26 tho Exp $ */
+/* $Id: hmap.c,v 1.14 2007/02/11 21:37:10 tho Exp $ */
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -54,9 +54,8 @@ struct u_hmap_s
 
     size_t sz,                  /* current size */
            size,                /* array size */
-           threshold;           /* when to resize */
-
-    int px;                     /* index into prime numbers */
+           threshold,           /* when to resize */
+           px;                  /* index into prime numbers array */
 
     u_hmap_pcy_t pcy;    /* discard policy */
 
@@ -89,7 +88,7 @@ static int _queue_pop_front (u_hmap_t *hmap, u_hmap_o_t **obj);
 static int _queue_pop_back (u_hmap_t *hmap, u_hmap_o_t **obj);
 
 static int _resize(u_hmap_t *hmap);
-static int _next_prime(size_t *prime, size_t sz, int *index);
+static int _next_prime(size_t *prime, size_t sz, size_t *idx);
 
 
 /**
@@ -180,8 +179,8 @@ static int _opts_check (u_hmap_opts_t *opts)
 
     dbg_err_if (opts->size == 0);
     dbg_err_if (opts->max == 0);
-    dbg_err_if (opts->type < U_HMAP_TYPE_CHAIN || 
-            opts->type > U_HMAP_TYPE_LINEAR);
+    dbg_err_if (opts->type != U_HMAP_TYPE_CHAIN && 
+            opts->type != U_HMAP_TYPE_LINEAR);
     dbg_err_if (opts->policy < U_HMAP_PCY_NONE || 
             opts->policy > U_HMAP_PCY_LFU);
     dbg_err_if (opts->f_hash == NULL);
@@ -1128,7 +1127,7 @@ static const char *_pcy2str (u_hmap_pcy_type_t policy)
     return NULL;
 }
 
-static int _next_prime(size_t *prime, size_t sz, int *index) 
+static int _next_prime(size_t *prime, size_t sz, size_t *idx) 
 {
     static size_t primes[] = {
         13, 19, 29, 41, 59, 79, 107, 149, 197, 263, 347, 457, 599, 787, 1031,
@@ -1142,15 +1141,15 @@ static int _next_prime(size_t *prime, size_t sz, int *index)
         1837299131, 2147483647
     };
 
-    int i;
+    size_t i;
 
     dbg_err_if (prime == NULL);
     dbg_err_if (sz == 0);
-    dbg_err_if (index == NULL);
+    dbg_err_if (idx == NULL);
     
-    for (i = *index; i < sizeof(primes)/sizeof(size_t); ++i) {
+    for (i = *idx; i < sizeof(primes)/sizeof(size_t); ++i) {
         if (primes[i] >= sz) {
-            *index = i;
+            *idx = i;
             *prime = primes[i];
             goto ok;
         }
@@ -1167,8 +1166,7 @@ err:
 static int _resize(u_hmap_t *hmap)
 {
     u_hmap_opts_t *newopts = NULL;
-    u_hmap_t *oldmap = NULL,
-             *newmap = NULL;
+    u_hmap_t *newmap = NULL;
 
     dbg_err_if (hmap == NULL);
 
