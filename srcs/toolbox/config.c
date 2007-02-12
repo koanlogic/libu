@@ -1,9 +1,9 @@
 /* 
- * Copyright (c) 2005, 2006 by KoanLogic s.r.l. - All rights reserved.  
+ * Copyright (c) 2005-2007 by KoanLogic s.r.l. - All rights reserved.  
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.2 2007/02/07 10:24:50 tat Exp $";
+    "$Id: config.c,v 1.3 2007/02/12 08:32:27 tho Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>

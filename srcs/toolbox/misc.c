@@ -1,9 +1,9 @@
 /* 
- * Copyright (c) 2005, 2006 by KoanLogic s.r.l. - All rights reserved.  
+ * Copyright (c) 2005-2007 by KoanLogic s.r.l. - All rights reserved.  
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.5 2007/02/11 21:37:10 tho Exp $";
+    "$Id: misc.c,v 1.6 2007/02/12 08:32:27 tho Exp $";
 
 #include <u/libu_conf.h>
 #include <sys/types.h>
