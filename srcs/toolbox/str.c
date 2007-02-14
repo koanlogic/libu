@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: str.c,v 1.2 2007/02/12 08:32:27 tho Exp $";
+    "$Id: str.c,v 1.3 2007/02/14 20:38:53 tat Exp $";
 
 #include <stdlib.h>
 #include <errno.h>
@@ -246,6 +246,53 @@ err:
     return ~0;
 }
 
+
+/* internal */
+int u_string_do_printf(u_string_t *s, int clear, const char *fmt, ...)
+{
+    va_list ap;
+    size_t sz, avail;
+
+    dbg_return_if(s == NULL, ~0);
+    dbg_return_if(fmt == NULL, ~0);
+
+    if(clear)
+        u_string_clear(s);
+
+again:
+    va_start(ap, fmt); 
+
+    avail = s->data_sz - s->data_len; /* avail may be zero */
+
+    /* write to the internal buffer of the string */
+    dbg_err_if(( sz = vsnprintf(s->data + s->data_len, avail, fmt, ap)) <= 0);
+
+    if(sz >= avail)
+    {
+        /* enlarge the buffer (make it at least 128 bytes bigger) */
+        dbg_err_if(u_string_reserve(s, s->data_sz + s->data_len + 2*sz + 1));
+
+        /* zero-term the buffer (vsnprintf has removed the last \0!) */
+        s->data[s->data_len] = 0;
+
+        va_end(ap);
+
+        /* try again with a bigger buffer */
+        goto again;
+    }
+
+    /* update string length */
+    s->data_len += sz; 
+    s->data[s->data_len] = 0;
+
+    va_end(ap);
+
+    return 0;
+err:
+    va_end(ap);
+    return ~0; /* error */
+}
+
 /**
  * \brief  Append a char* to a string
  *
@@ -285,7 +332,10 @@ err:
     return ~0;
 }
 
+/* defines documentation */
+
 /**
+ * \def u_string_sprintf
  * \brief  Set the string from sprintf-style arguments
  *
  * Set a string from the sprintf-style arguments
@@ -296,49 +346,45 @@ err:
  *
  * \return \c 0 on success, not zero on failure
  */
-int u_string_sprintf(u_string_t *s, const char *fmt, ...)
-{
-    va_list ap;
-    size_t sz, avail;
 
-    dbg_return_if(s == NULL, ~0);
-    dbg_return_if(fmt == NULL, ~0);
+/**
+ * \def u_string_aprintf
+ * \brief  Append a printf-style format string to the given string
+ *
+ * Append a printf-style format string to the given string.
+ *
+ * \param s     string object
+ * \param fmt   printf-style format
+ * \param ...   variable list of arguments
+ *
+ * \return \c 0 on success, not zero on failure
+ */
 
-    u_string_clear(s);
+/**
+ * \def u_string_ncat
+ * \brief  Append at most \p len characterss to a string
+ *
+ * Append a char* value to the given string. 
+ *
+ * \param s     string object
+ * \param buf   the value that will be appended to \a s
+ * \param len   length of \a buf
+ *
+ * \return \c 0 on success, not zero on failure
+ */
 
-again:
-    va_start(ap, fmt); 
+/**
+ * \def u_string_cat
+ * \brief  Append a char* to a string
+ *
+ * Append a char* value to the given string. 
+ *
+ * \param s     string object
+ * \param buf   the value that will be appended to \a s
+ *
+ * \return \c 0 on success, not zero on failure
+ */
 
-    avail = s->data_sz - s->data_len; /* avail may be zero */
-
-    /* write to the internal buffer of the string */
-    dbg_err_if(( sz = vsnprintf(s->data + s->data_len, avail, fmt, ap)) <= 0);
-
-    if(sz >= avail)
-    {
-        /* enlarge the buffer (make it at least 128 bytes bigger) */
-        dbg_err_if(u_string_reserve(s, s->data_sz + s->data_len + 2*sz + 1));
-
-        /* zero-term the buffer (vsnprintf has removed the last \0!) */
-        s->data[s->data_len] = 0;
-
-        va_end(ap);
-
-        /* try again with a bigger buffer */
-        goto again;
-    }
-
-    /* update string length */
-    s->data_len += sz; 
-    s->data[s->data_len] = 0;
-
-    va_end(ap);
-
-    return 0;
-err:
-    va_end(ap);
-    return ~0; /* error */
-}
 
 /**
  *      \}
