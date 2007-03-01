@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.7 2007/03/01 09:26:03 tat Exp $";
+    "$Id: misc.c,v 1.8 2007/03/01 10:50:18 tat Exp $";
 
 #include <u/libu_conf.h>
 #include <sys/types.h>
@@ -339,7 +339,7 @@ err:
  * \param n         the number of bytes read/written as a value-result arg
  * \param eof       true if end-of-file condition
  * 
- * \return  A \c ~0 is returned if an error other than \c EINTR or \c EAGAIN 
+ * \return  A \c ~0 is returned if an error other than \c EINTR
  *          has occurred, or if the requested amount of data could 
  *          not be entirely read/written.  A \c 0 is returned on success.
  */
@@ -384,7 +384,7 @@ end:
 }
 
 /**
- *  \brief  sleep(3) wrapper that handles EINTR and EAGAIN
+ *  \brief  sleep(3) wrapper that handles EINTR
  *
  *  \param  secs        sleep for 'secs' seconds
  *
@@ -398,7 +398,7 @@ int u_sleep(unsigned int secs)
     {
         if((c = sleep(sleep_for)) == 0)
             break;
-        else if(errno != EINTR && errno != EAGAIN)
+        else if(errno != EINTR)
             return -1; /* should never happen */
     }
 
@@ -406,7 +406,7 @@ int u_sleep(unsigned int secs)
 }
 
 /**
- *  \brief  accept(2) wrapper that handles EINTR and EAGAIN
+ *  \brief  accept(2) wrapper that handles EINTR
  *
  *  \param  ld          file descriptor
  *  \param  addr        see accept(2)   
@@ -420,14 +420,14 @@ int u_accept(int ld, struct sockaddr *addr, int *addrlen)
 
 again:
     ad = accept(ld, addr, addrlen);
-    if(ad == -1 && (errno == EINTR || errno == EAGAIN))
+    if(ad == -1 && (errno == EINTR))
         goto again; /* interrupted */
 
     return ad;
 }
 
 /**
- *  \brief  read(2) wrapper that handles EINTR and EAGAIN
+ *  \brief  read(2) wrapper that handles EINTR
  *
  *  \param  fd      file descriptor
  *  \param  buf     buffer to read into
@@ -452,7 +452,7 @@ ssize_t u_read(int fd, void *buf, size_t size)
 }
 
 /**
- *  \brief  write(2) wrapper that handle EINTR and EAGAIN
+ *  \brief  write(2) wrapper that handle EINTR 
  *
  *  \param  fd      file descriptor
  *  \param  buf     buffer to write
