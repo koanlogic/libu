@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.6 2007/02/12 08:32:27 tho Exp $";
+    "$Id: misc.c,v 1.7 2007/03/01 09:26:03 tat Exp $";
 
 #include <u/libu_conf.h>
 #include <sys/types.h>
@@ -357,7 +357,7 @@ int u_io (iof_t f, int sd, void *buf, size_t l, ssize_t *n, int *eof)
     {
         if ((nret = (f) (sd, p, nleft)) == -1)
         {
-            if (errno == EINTR || errno == EAGAIN)
+            if (errno == EINTR)
                 continue;
             else
             {
