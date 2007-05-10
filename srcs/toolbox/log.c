@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: log.c,v 1.2 2007/02/12 08:32:27 tho Exp $";
+    "$Id: log.c,v 1.3 2007/05/10 14:17:58 tat Exp $";
 
 #include <sys/types.h>
 #include <errno.h>
@@ -196,10 +196,13 @@ int u_strerror_r(int en, char *msg, size_t sz)
 #ifdef HAVE_STRERROR_R
     enum { BUFSZ = 256 };
     char buf[BUFSZ] = { 0 };
-    int rc;
+
+    /* on 64bit hosts a char* is 64bit long while a int is just 32bit so it 
+       is not safe to cast between those two types. longlong is always 64bits */
+    long long rc;
 
     /* assume POSIX prototype */
-    rc = (int)strerror_r(en, buf, BUFSZ);
+    rc = (long long)strerror_r(en, buf, BUFSZ);
 
     if(rc == 0)
     {    /* posix version, success */
