@@ -1,4 +1,4 @@
-/* $Id: hmap.c,v 1.14 2007/02/11 21:37:10 tho Exp $ */
+/* $Id: hmap.c,v 1.15 2007/05/15 09:52:56 tat Exp $ */
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -860,6 +860,37 @@ int u_hmap_foreach (u_hmap_t *hmap, int f(void *val))
 err:
     return U_HMAP_ERR_FAIL;
 }
+
+/**
+ * \brief   Perform an operation on all objects
+ * 
+ * Execute function \a f on all objects within \a hmap. These functions should 
+ * return U_HMAP_ERR_NONE on success, and take an object as a parameter.
+ * 
+ * \param hmap      hmap object
+ * \param f         function, must accept key and val params   
+ * 
+ * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
+ */
+int u_hmap_foreach_keyval(u_hmap_t *hmap, int f(void *key, void *val))
+{
+    struct u_hmap_o_s *obj;
+    size_t i;
+
+    dbg_err_if (hmap == NULL);
+    dbg_err_if (f == NULL);
+
+    for (i = 0; i < hmap->size; ++i) 
+    {
+        LIST_FOREACH(obj, &hmap->hmap[i], next)
+                dbg_err_if (f(obj->key,obj->val));
+    }
+
+    return U_HMAP_ERR_NONE;
+err:
+    return U_HMAP_ERR_FAIL;
+}
+
 
 /**
  * \brief   Deallocate hmap
