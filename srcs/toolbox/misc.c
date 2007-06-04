@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.8 2007/03/01 10:50:18 tat Exp $";
+    "$Id: misc.c,v 1.9 2007/06/04 16:13:28 tat Exp $";
 
 #include <u/libu_conf.h>
 #include <sys/types.h>
@@ -19,8 +19,8 @@ static const char rcsid[] =
 #include <unistd.h>
 #include <dirent.h>
 #include <sys/types.h>
-#include <sys/socket.h>
 
+#include <toolbox/net.h>
 #include <toolbox/misc.h>
 #include <toolbox/carpal.h>
 #include <toolbox/memory.h>
@@ -392,6 +392,9 @@ end:
  */ 
 int u_sleep(unsigned int secs)
 {
+#ifdef OS_WIN
+	Sleep(secs * 1000);
+#else
     int sleep_for, c;
 
     for(sleep_for = secs; sleep_for > 0; sleep_for = c)
@@ -402,6 +405,7 @@ int u_sleep(unsigned int secs)
             return -1; /* should never happen */
     }
 
+#endif
     return 0;
 }
 
