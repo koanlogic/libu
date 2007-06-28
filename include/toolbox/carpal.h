@@ -415,9 +415,9 @@ extern "C" {
     #define dbg(...)                    dbg_nop()
     #define dbg_err(...)                do { goto err; } while(0)
 
-    #define dbg_if(expr)                if( (expr) ) { ; }
+    #define dbg_if(expr)                do { if( (expr) ) { ; } } while(0)
     #define dbg_ifb(expr)               if( (expr) )
-    #define dbg_ifm(expr, ...)          if( (expr) ) { ; }
+    #define dbg_ifm(expr, ...)          do { if( (expr) ) { ; } } while(0)
 
     #define dbg_return_if(expr, err)    do { if( (expr) ) return err; } while(0)
     #define dbg_return_sif(expr, err)   dbg_return_if(expr, err)
