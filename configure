@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.54 2007/06/04 16:13:28 tat Exp $
+# $Id: configure,v 1.55 2007/07/03 11:54:38 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -85,7 +85,7 @@ makl_optional           1    "featx"   "doxygen"    "PATH_DOXYGEN"
 ## Function dependencies
 makl_checktype          0   "pid_t"     "<sys/types.h>" 
 makl_checktype          0   "ssize_t"   "<sys/types.h>" 
-makl_checktype          0   "in_addr_t" 	    \
+makl_checktype          0   "in_addr_t"         \
                             "<sys/types.h>"     \
                             "<sys/socket.h>"    \
                             "<netinet/in.h>"    \
@@ -119,8 +119,8 @@ fi
 
 # check for IPv4, IPv6 and Unix socket support
 if [ -z "`makl_get_var_h "OS_WIN"`" ]; then
-	makl_checktype 		1   "struct sockaddr_in"    \
-		"<sys/types.h> <sys/socket.h> <netinet/in.h>" 
+    makl_checktype      1   "struct sockaddr_in"    \
+        "<sys/types.h> <sys/socket.h> <netinet/in.h>" 
 fi
 
 

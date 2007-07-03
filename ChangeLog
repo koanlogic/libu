@@ -1,10 +1,12 @@
-<<<<<<< ChangeLog
-$Id: ChangeLog,v 1.18 2007/02/07 10:24:50 tat Exp $
-=======
-$Id: ChangeLog,v 1.18 2007/02/07 10:24:50 tat Exp $
->>>>>>> 1.17
+$Id: ChangeLog,v 1.19 2007/07/03 11:54:38 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/kl/cont/gb/html/libu.html
+
+LibU 1.1.0:
+	- [missing, misc] windows mingw fixes
+	- [hmap] u_hmap_foreach_keyval() function added
+	- [log] u_strerror_r fix to make it working on 64bit platforms
+	- [carpal] dbg_if{,m}() fix
 
 LibU 1.0.0:
 	- [hmap] module rework: implemented linear probing and array resizing based

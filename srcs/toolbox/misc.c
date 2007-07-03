@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.9 2007/06/04 16:13:28 tat Exp $";
+    "$Id: misc.c,v 1.10 2007/07/03 11:54:38 tho Exp $";
 
 #include <u/libu_conf.h>
 #include <sys/types.h>
@@ -393,7 +393,7 @@ end:
 int u_sleep(unsigned int secs)
 {
 #ifdef OS_WIN
-	Sleep(secs * 1000);
+    Sleep(secs * 1000);
 #else
     int sleep_for, c;
 
