@@ -44,7 +44,6 @@ int u_config_set_key(u_config_t *c, const char *key, const char *val);
 int u_config_add_child(u_config_t *c, const char *key, u_config_t **pc);
 u_config_t* u_config_get_child_n(u_config_t *c, const char *key, int n);
 u_config_t* u_config_get_child(u_config_t *c, const char *key);
-u_config_t *u_config_get_child_anon_n (u_config_t *c, int n);
 
 void u_config_print(u_config_t *c, int lev);
 

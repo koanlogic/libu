@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.3 2007/02/12 08:32:27 tho Exp $";
+    "$Id: config.c,v 1.4 2007/11/08 22:43:19 tat Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -95,7 +95,7 @@ u_config_t* u_config_get_child_n(u_config_t *c, const char *key, int n)
 
     TAILQ_FOREACH(item, &c->children, np)
     {
-        if(strcmp(item->key, key) == 0 && n-- == 0)
+        if((key == NULL || strcmp(item->key, key) == 0) && n-- == 0)
             return item;  /* found */
     }
 
