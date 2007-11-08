@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.4 2007/11/08 22:43:19 tat Exp $";
+    "$Id: config.c,v 1.5 2007/11/08 23:46:31 tat Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -145,7 +145,7 @@ static u_config_t* u_config_get_root(u_config_t *c)
     return c;
 }
 
-static int u_config_set_value(u_config_t *c, const char *val)
+int u_config_set_value(u_config_t *c, const char *val)
 {
     u_config_t *root, *ignore;
     const char *varval, *vs, *ve, *p;
