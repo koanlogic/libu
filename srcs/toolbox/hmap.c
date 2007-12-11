@@ -1,4 +1,4 @@
-/* $Id: hmap.c,v 1.15 2007/05/15 09:52:56 tat Exp $ */
+/* $Id: hmap.c,v 1.16 2007/12/11 22:10:13 stewy Exp $ */
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -157,11 +157,13 @@ static u_string_t *_f_str (u_hmap_o_t *obj)
     enum { MAX_OBJ_STR = 256 };
     char buf[MAX_OBJ_STR];
     u_string_t *s = NULL;
+    char *key,
+         *val;
 
     dbg_err_if (obj == NULL);
 
-    char *key = (char *) obj->key,
-         *val = (char *) obj->val;
+    key = (char *) obj->key,
+    val = (char *) obj->val;
 
     dbg_err_if (u_snprintf(buf, MAX_OBJ_STR, "[%s:%s]", key, val));    
     dbg_err_if (u_string_create(buf, strlen(buf)+1, &s));

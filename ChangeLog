@@ -1,10 +1,11 @@
-$Id: ChangeLog,v 1.21 2007/11/08 23:46:31 tat Exp $
+$Id: ChangeLog,v 1.22 2007/12/11 22:10:13 stewy Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/kl/cont/gb/html/libu.html
 
 LibU ....:
     - u_config_set_value's now in the public interface
     - u_config_get_child_n can return anonymous keys
+    - [hmap] fix problems with compilation on RedHat 7
 
 LibU 1.1.0:
 	- [missing, misc] windows mingw fixes
