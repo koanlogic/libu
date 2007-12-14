@@ -17,6 +17,7 @@
 #include <u/toolbox/log.h>
 /* always include net.h even if NO_NET is set */
 #include <u/toolbox/net.h>
+#include <u/toolbox/fs.h>
 #include <u/toolbox/test.h>
 
 #ifndef NO_ENV
