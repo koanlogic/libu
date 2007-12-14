@@ -224,70 +224,69 @@ err:
 #undef MAP_INSERT
 }
 
+size_t _sample_hash(void *key, size_t size)
+{
+    return (*((int *) key) % size);
+};
+
+int _sample_comp(void *key1, void *key2)
+{
+    int k1 = *((int *) key1),
+        k2 = *((int *) key2);
+    
+    return k1 < k2 ? -1 : ((k1 > k2)? 1 : 0);
+};
+
+u_string_t *_sample_str(u_hmap_o_t *obj)
+{
+    enum { MAX_OBJ_STR = 256 };
+    char buf[MAX_OBJ_STR];
+    u_string_t *s = NULL;
+
+    int key = *((int *) obj->key);
+    char *val = (char *) obj->val;
+
+    dbg_err_if (u_snprintf(buf, MAX_OBJ_STR, "[%d:%s]", key, val));
+    dbg_err_if (u_string_create(buf, strlen(buf)+1, &s));
+
+    return s;
+
+err:
+    return NULL;
+};
+
+/* Allocate (key, value) pair dynamically */
+u_hmap_o_t *_sample_obj(int key, const char *val)
+{
+    u_hmap_o_t *new = NULL;
+
+    int *k = NULL;
+    char *v = NULL;
+    
+    k = (int *) malloc(sizeof(int));
+    dbg_err_if (k == NULL);
+    *k = key;
+
+    v = u_strdup(val);
+    dbg_err_if (v == NULL);
+    
+    new = u_hmap_o_new(k, v);
+    dbg_err_if (new == NULL);
+    
+    return new;
+
+err:
+    u_free(k);
+    u_free(v);
+    
+    return NULL;
+};
 
 static int example_types_custom()
 {
 #define MAP_INSERT(hmap, k, v) \
     dbg_err_if ((obj = _sample_obj(k, v)) == NULL); \
     dbg_err_if (u_hmap_put(hmap, obj, NULL));
-
-    size_t _sample_hash(void *key, size_t size)
-    {
-        return (*((int *) key) % size);
-    };
-
-    int _sample_comp(void *key1, void *key2)
-    {
-        int k1 = *((int *) key1),
-            k2 = *((int *) key2);
-        
-        return k1 < k2 ? -1 : ((k1 > k2)? 1 : 0);
-    };
-
-    u_string_t *_sample_str(u_hmap_o_t *obj)
-    {
-        enum { MAX_OBJ_STR = 256 };
-        char buf[MAX_OBJ_STR];
-        u_string_t *s = NULL;
-
-        int key = *((int *) obj->key);
-        char *val = (char *) obj->val;
-
-        dbg_err_if (u_snprintf(buf, MAX_OBJ_STR, "[%d:%s]", key, val));
-        dbg_err_if (u_string_create(buf, strlen(buf)+1, &s));
-
-        return s;
-
-    err:
-        return NULL;
-    };
-
-    /* Allocate (key, value) pair dynamically */
-    u_hmap_o_t *_sample_obj(int key, const char *val)
-    {
-        u_hmap_o_t *new = NULL;
-
-        int *k = NULL;
-        char *v = NULL;
-        
-        k = (int *) malloc(sizeof(int));
-        dbg_err_if (k == NULL);
-        *k = key;
-
-        v = u_strdup(val);
-        dbg_err_if (v == NULL);
-        
-        new = u_hmap_o_new(k, v);
-        dbg_err_if (new == NULL);
-        
-        return new;
-
-    err:
-        u_free(k);
-        u_free(v);
-        
-        return NULL;
-    };
 
     u_hmap_opts_t *opts = NULL;
     u_hmap_t *hmap = NULL;
@@ -358,7 +357,8 @@ static int test_resize()
     for (i = 0; i < NUM_ELEMS; ++i) {
         u_snprintf(key, MAX_STR, "key%d", i);
         u_snprintf(val, MAX_STR, "val%d", i);
-        dbg_err_if (u_hmap_put(hmap, u_hmap_o_new(u_strdup(key), u_strdup(val)), NULL));
+        dbg_err_if (u_hmap_put(hmap, u_hmap_o_new(u_strdup(key), 
+                        u_strdup(val)), NULL));
     }
 
     for (i = 0; i < NUM_ELEMS; ++i) {
@@ -404,7 +404,8 @@ static int test_linear()
     for (i = 0; i < NUM_ELEMS; ++i) {
         u_snprintf(key, MAX_STR, "key%d", i);
         u_snprintf(val, MAX_STR, "val%d", i);
-        dbg_err_if (u_hmap_put(hmap, u_hmap_o_new(u_strdup(key), u_strdup(val)), NULL));
+        dbg_err_if (u_hmap_put(hmap, u_hmap_o_new(u_strdup(key), 
+                        u_strdup(val)), NULL));
     }
 
     for (i = 0; i < NUM_ELEMS; ++i) {
