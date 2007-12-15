@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: net.c,v 1.4 2007/12/14 14:24:18 tho Exp $";
+    "$Id: net.c,v 1.5 2007/12/15 22:52:31 tho Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -78,7 +78,7 @@ int u_net_sock (const char *uri, int mode)
         case U_NET_UDP4:
         case U_NET_UDP6:
         default:
-           warn_err("access method not implemented");
+           dbg_err("access method not implemented");
     }
 
     dbg_if (sd == -1);
@@ -339,7 +339,7 @@ int u_net_uri2addr (const char *uri, u_net_addr_t **pa)
     }
 #endif /* NO_UNIXSOCK */    
     else /* tcp6, udp[46] unsupported */
-        warn_err("unsupported URI scheme: %s", u->scheme); 
+        dbg_err("unsupported URI scheme: %s", u->scheme); 
     
     *pa = a;
     u_uri_free(u);
@@ -408,7 +408,7 @@ int u_net_uri2sin (u_uri_t *uri, struct sockaddr_in *sad)
     else if ((saddr = inet_addr(uri->host)) != INADDR_NONE)
         sad->sin_addr.s_addr = saddr;
     else
-        warn_err("invalid host name: \'%s\'", uri->host);
+        dbg_err("invalid host name: \'%s\'", uri->host);
 
     return 0;
 err:

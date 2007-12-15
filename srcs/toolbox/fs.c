@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: fs.c,v 1.2 2007/12/15 17:21:47 tho Exp $";
+    "$Id: fs.c,v 1.3 2007/12/15 22:52:31 tho Exp $";
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -42,19 +42,19 @@ int u_copy(const char *src, const char *dst)
     dbg_err_if(dst == NULL);
 
     sfp = fopen(src, "rb");
-    warn_err_sifm(sfp == NULL, "unable to open %s for reading", src);
+    dbg_err_sifm(sfp == NULL, "unable to open %s for reading", src);
 
     dfp = fopen(dst, "wb+");
-    warn_err_sifm(dfp == NULL, "unable to open %s for writing", dst);
+    dbg_err_sifm(dfp == NULL, "unable to open %s for writing", dst);
 
     while((c = fread(buf, 1, sizeof(buf), sfp)) > 0)
     {
-        warn_err_sifm(fwrite(buf, 1, c, dfp) == 0, "error writing to %s", dst);
+        dbg_err_sifm(fwrite(buf, 1, c, dfp) == 0, "error writing to %s", dst);
     }
 
-    warn_err_sif(fclose(sfp)); sfp = NULL;
+    dbg_err_sif(fclose(sfp)); sfp = NULL;
 
-    warn_err_sifm(fclose(dfp), "error flushing %s", dst); dfp = NULL;
+    dbg_err_sifm(fclose(dfp), "error flushing %s", dst); dfp = NULL;
 
     return 0;
 err:
@@ -83,7 +83,7 @@ int u_move(const char *src, const char *dst)
     dbg_err_if(dst == NULL);
 
 #ifdef HAVE_LINK
-    crit_err_sif((rc = link(src, dst)) < 0 && errno != EXDEV);
+    dbg_err_sif((rc = link(src, dst)) < 0 && errno != EXDEV);
 
     if(rc && errno == EXDEV)
         dbg_err_if(u_copy(src, dst)); /* deep copy */

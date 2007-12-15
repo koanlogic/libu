@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: env.c,v 1.3 2007/02/12 08:32:27 tho Exp $";
+    "$Id: env.c,v 1.4 2007/12/15 22:52:31 tho Exp $";
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -47,7 +47,7 @@ int u_env_init (const char *prefix, const char *cfile)
     dbg_return_if (cfile == NULL || prefix == NULL, ~0);
 
     /* if 'cfile' does not exist bail out */
-    warn_err_sifm (stat(cfile, &sb) == -1, "%s", cfile);
+    dbg_err_sifm (stat(cfile, &sb) == -1, "%s", cfile);
 
     snprintf(pcmd, BUFSZ, ". %s 2>/dev/null && env", cfile);
 

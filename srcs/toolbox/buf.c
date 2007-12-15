@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: buf.c,v 1.2 2007/02/12 08:32:27 tho Exp $";
+    "$Id: buf.c,v 1.3 2007/12/15 22:52:31 tho Exp $";
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -113,7 +113,7 @@ int u_buf_load(u_buf_t *ubuf, const char *filename)
     /* be sure to have a big enough buffer */
     dbg_err_if(u_buf_reserve(ubuf, st.st_size));
 
-    warn_err_sif((fp = fopen(filename, "r")) == NULL);
+    dbg_err_sif((fp = fopen(filename, "r")) == NULL);
 
     /* fill the buffer with the whole file content */
     dbg_err_if(fread(ubuf->data, st.st_size, 1, fp) == 0);

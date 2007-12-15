@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.10 2007/07/03 11:54:38 tho Exp $";
+    "$Id: misc.c,v 1.11 2007/12/15 22:52:31 tho Exp $";
 
 #include <u/libu_conf.h>
 #include <sys/types.h>
@@ -301,13 +301,13 @@ int u_load_file (const char *path, size_t sz_max, char **pbuf, size_t *psz)
     dbg_return_if (pbuf == NULL, ~0);
     dbg_return_if (psz == NULL, ~0);
     
-    warn_err_sifm ((fp = fopen(path, "r")) == NULL, "%s", path);
-    warn_err_sifm (fstat(fileno(fp), &sb) == -1, "%s", path); 
+    dbg_err_sifm ((fp = fopen(path, "r")) == NULL, "%s", path);
+    dbg_err_sifm (fstat(fileno(fp), &sb) == -1, "%s", path); 
     sz = sb.st_size;
-    warn_err_ifm (sz_max > 0 && sz > sz_max, 
+    dbg_err_ifm (sz_max > 0 && sz > sz_max, 
             "file too big (%zu vs %zu bytes)", sz, sz_max);
-    warn_err_sif ((buf = u_zalloc(sz)) == NULL);
-    warn_err_sifm (fread(buf, sz, 1, fp) != 1, "%s", path);
+    dbg_err_sif ((buf = u_zalloc(sz)) == NULL);
+    dbg_err_sifm (fread(buf, sz, 1, fp) != 1, "%s", path);
     
     U_FCLOSE(fp);
     
@@ -361,7 +361,7 @@ int u_io (iof_t f, int sd, void *buf, size_t l, ssize_t *n, int *eof)
                 continue;
             else
             {
-                warn_strerror(errno);
+                dbg_strerror(errno);
                 goto end;
             }
         }

@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.5 2007/11/08 23:46:31 tat Exp $";
+    "$Id: config.c,v 1.6 2007/12/15 22:52:31 tho Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -321,10 +321,10 @@ static int u_config_do_load(u_config_t *c, u_config_gets_t cb, void *arg,
         if(ln[0] == '{')
         {   /* group config values */
             if(u_string_len(lastkey) == 0)
-                warn_err("config error [line %d]: { not after a no-value key", 
+                dbg_err("config error [line %d]: { not after a no-value key", 
                          lineno);
             if(!u_isblank_str(++ln))
-                warn_err("config error [line %d]: { or } must be the "
+                dbg_err("config error [line %d]: { or } must be the "
                          "only not-blank char in a line", lineno);
 
             /* modify the existing child (when overwriting) or add a new one */
@@ -338,9 +338,9 @@ static int u_config_do_load(u_config_t *c, u_config_gets_t cb, void *arg,
             dbg_err_if(u_string_clear(lastkey));
             continue;
         } else if(ln[0] == '}') {
-            warn_err_ifm(c->parent == NULL,"config error: unmatched '}'");
+            dbg_err_ifm(c->parent == NULL,"config error: unmatched '}'");
             if(!u_isblank_str(++ln))
-                warn_err("config error [line %d]: { or } must be the "
+                dbg_err("config error [line %d]: { or } must be the "
                          "only not-blank char in a line", lineno);
             break; /* exit */
         }
@@ -455,9 +455,9 @@ int u_config_load_from_file (const char *file, u_config_t **pc)
     dbg_return_if (file == NULL, ~0);
     dbg_return_if (pc == NULL, ~0);
 
-    warn_err_if (u_config_create(&c));
-    warn_err_if ((fd = open(file, O_RDONLY)) == -1); 
-    warn_err_if (u_config_load(c, fd, 0));
+    dbg_err_if (u_config_create(&c));
+    dbg_err_if ((fd = open(file, O_RDONLY)) == -1); 
+    dbg_err_if (u_config_load(c, fd, 0));
 
     (void) close(fd);
 
