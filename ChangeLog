@@ -1,9 +1,10 @@
-$Id: ChangeLog,v 1.24 2007/12/14 21:06:55 tat Exp $
+$Id: ChangeLog,v 1.25 2007/12/15 16:15:48 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/kl/cont/gb/html/libu.html
 
 LibU ....:
-	- [fs] u_move, u_copy and u_remove added
+	- [fs] added new module with u_move, u_copy and u_remove interfaces,
+	  can be disabled via --no_fs configuration argument 
 	- [config] u_config_set_value's now in the public interface
 	- [config] u_config_get_child_n can return anonymous keys
 	- [hmap] fix compilation error with GCC 2.95

@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.7 2007/12/14 21:06:21 tat Exp $
+# $Id: Makefile,v 1.8 2007/12/15 16:15:48 tho Exp $
 
 include common.mk
 include ../Makefile.conf
@@ -11,7 +11,6 @@ SRCS = toolbox/memory.c \
        toolbox/str.c    \
        toolbox/buf.c    \
        toolbox/log.c    \
-       toolbox/fs.c     \
        toolbox/test.c
 
 ifndef NO_HMAP
@@ -25,6 +24,9 @@ SRCS += toolbox/env.c
 endif
 ifndef NO_NET
 SRCS += toolbox/net.c toolbox/uri.c
+endif
+ifndef NO_FS
+SRCS += toolbox/fs.c
 endif
 
 # missing sources

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.56 2007/12/14 13:15:49 tat Exp $
+# $Id: configure,v 1.57 2007/12/15 16:15:48 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -9,7 +9,7 @@ if [ -z "${MAKL_DIR}" ]; then
     echo "====================================================================="
     echo "  WARNING: it seems that MaKL is not installed/configured in your    "
     echo "           environment.                                              "
-    echo "           See http://www.koanlogic.com/kl/cont/gb/html/makl.html    "
+    echo "           See http://www.koanlogic.com/makl/index.html              "
     echo "           for download, installation and configuration information. "
     echo "====================================================================="
     exit 1
@@ -28,6 +28,7 @@ makl_args_def "no_hmap"         "" "" "disable hmap module"
 makl_args_def "no_config"       "" "" "disable config module"
 makl_args_def "no_net"          "" "" "disable net module"
 makl_args_def "no_env"          "" "" "disable env module"
+makl_args_def "no_fs"           "" "" "disable fs module"
 makl_args_def "no_ipv6"         "" "" "disable IPv6 support"
 makl_args_def "no_unixsock"     "" "" "disable Unix socket support"
 # ... and their handlers
@@ -50,6 +51,7 @@ __makl_no_hmap ()           { makl_set_var "NO_HMAP" ; }
 __makl_no_config ()         { makl_set_var "NO_CONFIG" ; }
 __makl_no_net ()            { makl_set_var "NO_NET" ; }
 __makl_no_env ()            { makl_set_var "NO_ENV" ; }
+__makl_no_fs ()             { makl_set_var "NO_FS" ; }
 __makl_no_ipv6 ()           { makl_set_var "NO_IPV6" ; }
 __makl_no_unixsock ()       { makl_set_var "NO_UNIXSOCK" ; }
 
