@@ -1,0 +1,46 @@
+# $Id: mk_cflags,v 1.1 2007/12/15 17:21:46 tho Exp $
+
+#
+# --enable_debug
+#
+makl_args_def       \
+    "enable_debug"  \
+    "" ""           \
+    "enables debugging support: carpal verbose output and CC debug flags"
+
+__makl_enable_debug ()
+{ 
+    makl_set_var_mk "LIBU_DEBUG" ;
+    makl_append_var_mk "CFLAGS" "-g -DDEBUG" ;
+}
+
+#
+# --enable_profile
+#
+makl_args_def           \
+    "enable_profile"    \
+    "" ""               \
+    "enables profiling via gprof (GCC only)"
+
+__makl_enable_profile () 
+{ 
+    makl_append_var_mk "CFLAGS" "-pg" ; 
+}
+
+#
+# --enable_warns
+#
+makl_args_def       \
+    "enable_warns"  \
+    "" ""           \
+    "set CFLAGS for extra warnings"
+
+__makl_enable_warns ()
+{
+    makl_append_var_mk "CFLAGS" "-std=c99 -W -Wall -Wstrict-prototypes "    \
+                                "-Wmissing-prototypes -Wpointer-arith "     \
+                                "-Wno-uninitialized -Wreturn-type "         \
+                                "-Wwrite-strings -Wswitch -Wshadow "        \
+                                "-Wunreachable-code -Wunused "              \
+                                "-Wcast-qual -pedantic "
+}

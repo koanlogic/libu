@@ -1,0 +1,27 @@
+# $Id: mk_support,v 1.1 2007/12/15 17:21:47 tho Exp $
+
+#
+# --no_ipv6
+#
+makl_args_def   \
+    "no_ipv6"   \
+    "" ""       \
+    "disable IPv6 support"
+
+__makl_no_ipv6 () 
+{ 
+    makl_set_var "NO_IPV6" ; 
+}
+
+#
+# --no_unixsock
+#
+makl_args_def       \
+    "no_unixsock"   \
+    "" ""           \
+    "disable Unix socket support"
+
+__makl_no_unixsock () 
+{ 
+    makl_set_var "NO_UNIXSOCK" ; 
+}

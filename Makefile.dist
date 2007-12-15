@@ -1,4 +1,4 @@
-# $Id: Makefile.dist,v 1.12 2007/10/10 22:05:46 tat Exp $
+# $Id: Makefile.dist,v 1.13 2007/12/15 17:21:46 tho Exp $
 
 include common.mk
 
@@ -9,8 +9,10 @@ ZIP ?= gzip
 ZIPEXT ?= gz
 
 # top level build and configuration drivers
-DISTFILES =  Makefile LICENSE ChangeLog README VERSION configure \
-             configure.help
+DISTFILES =  Makefile LICENSE ChangeLog README VERSION configure configure.help
+
+# configure command line args and handlers
+DISTFILES += $(wildcard build/mk_*)
 
 # headers (include/{u,missing,toolbox})
 DISTFILES += include/Makefile

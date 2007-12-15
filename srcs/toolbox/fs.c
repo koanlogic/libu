@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: fs.c,v 1.1 2007/12/14 21:06:21 tat Exp $";
+    "$Id: fs.c,v 1.2 2007/12/15 17:21:47 tho Exp $";
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -105,8 +105,7 @@ err:
  * 
  * Remove a file
  * 
- * \param   src     source file name
- * \param   dst     destination file name
+ * \param   file     name of file to be removed
  *
  * \return  zero on success, not zero on error
  */

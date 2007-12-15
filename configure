@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/bin/sh 
 #
-# $Id: configure,v 1.57 2007/12/15 16:15:48 tho Exp $
+# $Id: configure,v 1.58 2007/12/15 17:21:46 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -20,40 +20,10 @@ fi
 
 makl_args_init "$@"
 
-# Custom arguments ...
-makl_args_def "enable_debug"    "" "" "enables debugging"
-makl_args_def "enable_profile"  "" "" "enables profiling"
-makl_args_def "enable_warns"    "" "" "set CFLAGS for extra warnings"
-makl_args_def "no_hmap"         "" "" "disable hmap module"
-makl_args_def "no_config"       "" "" "disable config module"
-makl_args_def "no_net"          "" "" "disable net module"
-makl_args_def "no_env"          "" "" "disable env module"
-makl_args_def "no_fs"           "" "" "disable fs module"
-makl_args_def "no_ipv6"         "" "" "disable IPv6 support"
-makl_args_def "no_unixsock"     "" "" "disable Unix socket support"
-# ... and their handlers
-__makl_enable_debug ()   
-{ 
-    makl_set_var_mk    "LIBU_DEBUG" ;
-    makl_append_var_mk "CFLAGS" "-g -DDEBUG" ; 
-}
-__makl_enable_profile () { makl_append_var_mk "CFLAGS" "-pg" ; }
-__makl_enable_warns ()
-{
-    makl_append_var_mk "CFLAGS" "-std=c99 -W -Wall -Wstrict-prototypes "    \
-                                "-Wmissing-prototypes -Wpointer-arith "     \
-                                "-Wno-uninitialized -Wreturn-type "         \
-                                "-Wwrite-strings -Wswitch -Wshadow "        \
-                                "-Wwrite-strings -Wunreachable-code "       \
-                                "-Wunused -Wcast-qual -pedantic "
-}
-__makl_no_hmap ()           { makl_set_var "NO_HMAP" ; }
-__makl_no_config ()         { makl_set_var "NO_CONFIG" ; }
-__makl_no_net ()            { makl_set_var "NO_NET" ; }
-__makl_no_env ()            { makl_set_var "NO_ENV" ; }
-__makl_no_fs ()             { makl_set_var "NO_FS" ; }
-__makl_no_ipv6 ()           { makl_set_var "NO_IPV6" ; }
-__makl_no_unixsock ()       { makl_set_var "NO_UNIXSOCK" ; }
+# command line options (see relevant mk_* files in build/)
+. build/mk_cflags
+. build/mk_modules
+. build/mk_support
 
 # General settings (version is read from the VERSION file)
 makl_pkg_name "libu"
