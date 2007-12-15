@@ -40,6 +40,7 @@ OPTION can be defined as follows:
 --no_config         disable config module
 --no_net            disable net module
 --no_env            disable env module
+--no_fs             disable fs module
 
 Legend:
   <*>: required dependency
