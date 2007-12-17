@@ -1,6 +1,6 @@
 #!/bin/sh 
 #
-# $Id: configure,v 1.58 2007/12/15 17:21:46 tho Exp $
+# $Id: configure,v 1.59 2007/12/17 10:37:31 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -90,29 +90,32 @@ if [ $? -ne 0 ]; then
     makl_append_var_mk "CFLAGS" "-Dinline=\"\""
 fi
 
-# check for IPv4, IPv6 and Unix socket support
-if [ -z "`makl_get_var_h "OS_WIN"`" ]; then
-    makl_checktype      1   "struct sockaddr_in"    \
-        "<sys/types.h> <sys/socket.h> <netinet/in.h>" 
-fi
-
-
-# check for IPv6 support
-makl_checktype          0   "struct sockaddr_in6"   \
-    "<sys/types.h> <sys/socket.h> <netinet/in.h>" 
-if [ $? -ne 0 ]; then
-    makl_set_var "NO_IPV6" 
-fi
-
-# check for Unix socket support
-makl_checktype          0   "struct sockaddr_un"    \
-    "<sys/types.h> <sys/socket.h> <netinet/in.h> <sys/un.h>" 
-if [ $? -ne 0 ]; then
-    makl_set_var "NO_UNIXSOCK" 
-fi
-
 # Handle command-line arguments
 makl_args_handle "$@"
+
+# check for IPv4, IPv6 and Unix socket support 
+# these checks are disabled when --no_net is requested
+if [ -z "`makl_get_var_h "NO_NET"`" ]
+then
+    if [ -z "`makl_get_var_h "OS_WIN"`" ]; then
+        makl_checktype      1   "struct sockaddr_in"    \
+            "<sys/types.h> <sys/socket.h> <netinet/in.h>" 
+    fi
+
+    # check for IPv6 support
+    makl_checktype          0   "struct sockaddr_in6"   \
+        "<sys/types.h> <sys/socket.h> <netinet/in.h>" 
+    if [ $? -ne 0 ]; then
+        makl_set_var "NO_IPV6" 
+    fi
+
+    # check for Unix socket support
+    makl_checktype          0   "struct sockaddr_un"    \
+        "<sys/types.h> <sys/socket.h> <netinet/in.h> <sys/un.h>" 
+    if [ $? -ne 0 ]; then
+        makl_set_var "NO_UNIXSOCK" 
+    fi
+fi
 
 if [ -z "`makl_get_var_mk "LIBU_DEBUG"`" ]; then
     makl_append_var_mk "CFLAGS" "-O2"
@@ -120,7 +123,6 @@ fi
 
 # Install headers in a private subdir
 makl_set_var "INCDIR" "`makl_get_var_mk \"INCDIR\"`/u"
-
 
 # MaKL closing
 . ${MAKL_DIR}/cf/makl.term
