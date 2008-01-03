@@ -1,6 +1,6 @@
 #!/bin/sh 
 #
-# $Id: configure,v 1.59 2007/12/17 10:37:31 tho Exp $
+# $Id: configure,v 1.60 2008/01/03 14:21:48 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -94,7 +94,8 @@ fi
 makl_args_handle "$@"
 
 # check for IPv4, IPv6 and Unix socket support 
-# these checks are disabled when --no_net is requested
+# these checks are disabled when --no_net is requested in which case NO_IPV6
+# and NO_UNIXSOCK variables are asserted by default
 if [ -z "`makl_get_var_h "NO_NET"`" ]
 then
     if [ -z "`makl_get_var_h "OS_WIN"`" ]; then
@@ -115,6 +116,10 @@ then
     if [ $? -ne 0 ]; then
         makl_set_var "NO_UNIXSOCK" 
     fi
+else
+    # user supplied the --no_net argument
+    makl_set_var "NO_UNIXSOCK"
+    makl_set_var "NO_IPV6"
 fi
 
 if [ -z "`makl_get_var_mk "LIBU_DEBUG"`" ]; then
