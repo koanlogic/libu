@@ -17,7 +17,6 @@
 #include <u/toolbox/log.h>
 /* always include net.h even if NO_NET is set */
 #include <u/toolbox/net.h>
-#include <u/toolbox/fs.h>
 #include <u/toolbox/test.h>
 
 #ifndef NO_ENV
@@ -28,6 +27,15 @@
 #endif
 #ifndef NO_CONFIG
     #include <u/toolbox/config.h>
+#endif
+#ifndef NO_FS
+#include <u/toolbox/fs.h>
+#endif
+#ifndef NO_PWD
+#ifdef NO_HMAP
+    #include <u/toolbox/hmap.h>
+#endif
+    #include <u/toolbox/pwd.h>
 #endif
 
 #endif  /* !_LIBU_TOOLBOX_H_ */

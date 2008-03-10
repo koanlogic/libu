@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.8 2007/12/15 16:15:48 tho Exp $
+# $Id: Makefile,v 1.9 2008/03/10 15:32:52 tho Exp $
 
 include common.mk
 include ../Makefile.conf
@@ -27,6 +27,13 @@ SRCS += toolbox/net.c toolbox/uri.c
 endif
 ifndef NO_FS
 SRCS += toolbox/fs.c
+endif
+ifndef NO_PWD
+ifdef NO_HMAP   # pwd needs hmap
+$(warning adding hmap module as a dependency to pwd)
+SRCS += toolbox/hmap.c
+endif
+SRCS += toolbox/pwd.c
 endif
 
 # missing sources
