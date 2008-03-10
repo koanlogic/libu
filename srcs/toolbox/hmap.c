@@ -1,4 +1,11 @@
-/* $Id: hmap.c,v 1.16 2007/12/11 22:10:13 stewy Exp $ */
+/* 
+ * Copyright (c) 2005-2008 by KoanLogic s.r.l. - All rights reserved.  
+ *
+ * $Id: hmap.c,v 1.17 2008/03/10 16:51:44 tho Exp $
+ */
+
+static const char rcsid[] =
+    "$Id: hmap.c,v 1.17 2008/03/10 16:51:44 tho Exp $";
 
 #include <stdlib.h>
 #include <unistd.h>

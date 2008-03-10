@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: pwd.c,v 1.1 2008/03/10 15:32:52 tho Exp $";
+    "$Id: pwd.c,v 1.2 2008/03/10 16:51:44 tho Exp $";
 
 #include <u/libu_conf.h>
 #include <u/libu.h>
@@ -17,6 +17,9 @@ static int u_pwd_db_push (u_pwd_t *pwd, u_pwd_rec_t *rec);
 static int u_pwd_rec_new (const char *user, const char *pass, const char *hint,
         u_pwd_rec_t **prec);
 static void u_pwd_rec_free (u_pwd_rec_t *rec);
+
+/* hmap private free */
+static void __hmap_pwd_rec_free (u_hmap_o_t *obj);
 
 struct u_pwd_s
 {
@@ -117,7 +120,11 @@ int u_pwd_term (u_pwd_t *pwd)
 {
     nop_return_if (pwd == NULL, 0);
 
-    return u_pwd_db_destroy(pwd);
+    (void) u_pwd_db_destroy(pwd);
+
+    U_FREE(pwd);
+
+    return 0;
 }
 
 /**
@@ -195,9 +202,15 @@ err:
 
 static int u_pwd_db_create (u_pwd_t *pwd)
 {
+    u_hmap_opts_t hopts;
+
     dbg_return_if (pwd == NULL, ~0);
 
-    return u_hmap_new(NULL, &pwd->db);
+    u_hmap_opts_init(&hopts);
+    hopts.options |= U_HMAP_OPTS_OWNSDATA;
+    hopts.f_free = __hmap_pwd_rec_free;
+
+    return u_hmap_new(&hopts, &pwd->db);
 }
 
 static int u_pwd_db_destroy (u_pwd_t *pwd)
@@ -316,6 +329,13 @@ err:
     if (rec)
         u_pwd_rec_free(rec);
     return ~0;
+}
+
+static void __hmap_pwd_rec_free (u_hmap_o_t *obj)
+{
+    U_FREE(obj->key);
+    u_pwd_rec_free((u_pwd_rec_t *) obj->val);
+    return;
 }
 
 static void u_pwd_rec_free (u_pwd_rec_t *rec)
