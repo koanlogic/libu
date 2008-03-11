@@ -1,3 +1,10 @@
+/* 
+ * Copyright (c) 2005-2008 by KoanLogic s.r.l. - All rights reserved.  
+ */
+
+static const char rcsid[] =
+    "$Id: test.c,v 1.6 2008/03/11 07:14:16 tho Exp $";
+
 #include <u/libu.h>
 
 enum { MAX_MODS = 1024 };
