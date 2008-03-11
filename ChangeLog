@@ -1,8 +1,10 @@
-$Id: ChangeLog,v 1.25 2007/12/15 16:15:48 tho Exp $
+$Id: ChangeLog,v 1.26 2008/03/11 07:31:11 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/kl/cont/gb/html/libu.html
 
-LibU ....:
+LibU 1.2.0:
+	- [pwd] added new module for simple password authentication, can be
+	  disabled via --no_pwd configuration argument 
 	- [fs] added new module with u_move, u_copy and u_remove interfaces,
 	  can be disabled via --no_fs configuration argument 
 	- [config] u_config_set_value's now in the public interface
