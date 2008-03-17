@@ -25,12 +25,16 @@ typedef ssize_t (*hash_fn_t) (const char *, size_t, char []);
 /* fgets-like prototype with generic stream type */
 typedef char *(*fgets_fn_t) (char *, int, void *);
 
+/* rewind-like prototype with generic stream type */
+typedef void (*rewind_fn_t) (void *);
+
 int u_pwd_init (void *res, fgets_fn_t gf, hash_fn_t hf, size_t hash_len, 
         u_pwd_t **ppwd);
 int u_pwd_load (u_pwd_t *pwd);
 int u_pwd_term (u_pwd_t *pwd);
 int u_pwd_retr (u_pwd_t *pwd, const char *user, u_pwd_rec_t **prec);
 int u_pwd_auth_user (u_pwd_t *pwd, const char *user, const char *pass);
+int u_pwd_reload_if_mod (u_pwd_t *pwd, rewind_fn_t rf);
 
 #ifdef __cplusplus
 }

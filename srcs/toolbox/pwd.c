@@ -3,13 +3,18 @@
  */
 
 static const char rcsid[] =
-    "$Id: pwd.c,v 1.2 2008/03/10 16:51:44 tho Exp $";
+    "$Id: pwd.c,v 1.3 2008/03/17 09:52:29 tho Exp $";
 
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <u/libu_conf.h>
 #include <u/libu.h>
 #include <toolbox/hmap.h>
 #include <toolbox/pwd.h>
 
+static int u_pwd_detect_mod (u_pwd_t *pwd);
+static int u_pwd_update_last_mod (u_pwd_t *pwd);
+static int u_pwd_get_ctime (u_pwd_t *pwd, time_t *pctime);
 static int u_pwd_db_create (u_pwd_t *pwd);
 static int u_pwd_db_destroy (u_pwd_t *pwd);
 static int u_pwd_db_load (u_pwd_t *pwd);
@@ -25,10 +30,13 @@ struct u_pwd_s
 {
     void *res_handler;      /* underlying storage resource: FILE*, io_t*, ... */
     u_hmap_t *db;           /* in-memory pwd db snapshot */
-    hash_fn_t cb_hash;      /* hash function for password hiding */
+    int reload_if_mod;      /* if set, reload .db in case master file has been
+                               modified since last_mod */ 
+    time_t last_mod;        /* timestamp of master file's last update */
     size_t hash_len;        /* hash'd password length */
-    fgets_fn_t cb_fgets;    /* function for reading lines from the storage 
-                             * resource */
+    hash_fn_t cb_hash;      /* hash function for password hiding */
+    fgets_fn_t cb_fgets;    /* function for reading lines from the pwd file */ 
+    rewind_fn_t cb_rewind;  /* function for rewinding the read pointer */
 };
 
 /* each pwd line looks like this: "<user>:<password>[:hint]\n" */
@@ -47,12 +55,12 @@ struct u_pwd_rec_s
 /**
  *  \brief  Initialize the PWD module
  *
- *  \param  res         PWD file handler (\c FILE, \c io_t, etc.)
- *  \param  gf          fgets-like function used to retrieve line-by-line
- *                      the PWD records from the supplied resource
- *  \param  hf          password hash function to use
- *  \param  hash_len    hash function output buffer length
- *  \param  ppwd        the PWD instance handler as a result argument
+ *  \param  res             PWD file handler (\c FILE, \c io_t, etc.)
+ *  \param  gf              fgets-like function used to retrieve line-by-line
+ *                          the PWD records from the supplied resource
+ *  \param  hf              password hash function to use
+ *  \param  hash_len        hash function output buffer length
+ *  \param  ppwd            the PWD instance handler as a result argument
  *
  *  \return \c 0 on success, \c ~0 on error
  */
@@ -73,6 +81,9 @@ int u_pwd_init (void *res, fgets_fn_t gf, hash_fn_t hf, size_t hash_len,
     pwd->hash_len = hash_len;
     pwd->cb_fgets = gf;
     pwd->res_handler = res;
+    pwd->reload_if_mod = 0; /* default is not to auto-reload master file */
+    pwd->last_mod = 0;      /* will be set if needed */
+    pwd->cb_rewind = NULL;  /* will be set by u_pwd_reload_if_mod */
 
     dbg_err_if (u_pwd_load(pwd));
 
@@ -103,6 +114,7 @@ int u_pwd_load (u_pwd_t *pwd)
 
     dbg_err_if (u_pwd_db_create(pwd));
     dbg_err_if (u_pwd_db_load(pwd));
+    dbg_err_if (u_pwd_update_last_mod(pwd));
 
     return 0;
 err:
@@ -144,6 +156,10 @@ int u_pwd_retr (u_pwd_t *pwd, const char *user, u_pwd_rec_t **prec)
     dbg_return_if (pwd->db == NULL, ~0);
     dbg_return_if (prec == NULL, ~0);
 
+    /* on error keep on working with the old in-memory db */
+    dbg_ifb (u_pwd_detect_mod(pwd))
+        warn("error reloading master pwd file: using stale cache");
+
     dbg_err_if (u_hmap_get(pwd->db, user, &hobj));
     *prec = (u_pwd_rec_t *) hobj->val;
 
@@ -166,6 +182,10 @@ int u_pwd_auth_user (u_pwd_t *pwd, const char *user, const char *pass)
     int rc;
     u_pwd_rec_t *rec;
     char *__p = NULL, __pstack[U_PWD_LINE_MAX];
+
+    /* on error keep on working with the old in-memory db */
+    dbg_ifb (u_pwd_detect_mod(pwd))
+        warn("error reloading master pwd file: using stale cache");
 
     /* retrieve the pwd record */
     dbg_err_if (u_pwd_retr(pwd, user, &rec));
@@ -193,6 +213,27 @@ int u_pwd_auth_user (u_pwd_t *pwd, const char *user, const char *pass)
 err:
     if (__p && (__p != __pstack))
         u_free(__p);
+    return ~0;
+}
+
+/**
+ *  \brief  Ask to reload passwd file into memory if on-disk change is detected
+ *
+ *  \param  pwd     PWD module instance
+
+ *  \return \c 0 on success, \c ~0 on error
+ */
+int u_pwd_reload_if_mod (u_pwd_t *pwd, rewind_fn_t rf)
+{
+    dbg_return_if (pwd == NULL, ~0);
+    dbg_return_if (rf == NULL, ~0);
+
+    pwd->reload_if_mod = 1;
+    pwd->cb_rewind = rf;
+    dbg_err_if (u_pwd_get_ctime(pwd, &pwd->last_mod));
+
+    return 0;
+err:
     return ~0;
 }
 
@@ -235,6 +276,15 @@ static int u_pwd_db_load (u_pwd_t *pwd)
     dbg_return_if (pwd == NULL, ~0);
     dbg_return_if (pwd->res_handler == NULL, ~0);
     dbg_return_if (pwd->cb_fgets == NULL, ~0);
+
+    /* rewind resource */
+    if (pwd->cb_rewind)
+    {
+#ifdef DEBUG
+        info("rewinding master pwd file");
+#endif
+        pwd->cb_rewind(pwd->res_handler);
+    }
 
     for (cnt = 1; pwd->cb_fgets(ln, sizeof ln, pwd->res_handler) != NULL; cnt++)
     {
@@ -349,4 +399,71 @@ static void u_pwd_rec_free (u_pwd_rec_t *rec)
     u_free(rec);
 
     return;
+}
+
+static int u_pwd_update_last_mod (u_pwd_t *pwd)
+{
+    time_t __ctime;
+
+    dbg_return_if (pwd == NULL, ~0);
+
+    /* do nothing if auto-reload detection is not set */
+    if (!pwd->reload_if_mod)
+        return 0;
+
+    dbg_err_if (u_pwd_get_ctime(pwd, &__ctime));
+
+    pwd->last_mod = __ctime;
+
+    return 0;
+err:
+    return ~0;
+}
+
+static int u_pwd_detect_mod (u_pwd_t *pwd)
+{
+    time_t __ctime;
+
+    dbg_return_if (pwd == NULL, ~0);
+
+    if (!pwd->reload_if_mod)
+        return 0;
+
+    dbg_err_if (u_pwd_get_ctime(pwd, &__ctime));
+    
+    if (__ctime != pwd->last_mod)
+    {
+        dbg("modification detected in pwd file: reloading into memory");
+        dbg_err_if (u_pwd_load(pwd));
+    }
+
+    return 0;
+err:
+    return ~0;
+}
+
+/* XXX assume pwd->res_handler is FILE* */
+static int u_pwd_get_ctime (u_pwd_t *pwd, time_t *pctime)
+{
+    struct stat sb;
+
+    dbg_return_if (pwd == NULL, ~0);
+    dbg_return_if (!pwd->reload_if_mod, ~0);
+    dbg_return_if (pctime == NULL, ~0);
+
+    dbg_err_sif (fstat(fileno(pwd->res_handler), &sb) == -1);
+
+#ifdef DEBUG
+    info("---pwd---");
+    info("ctime: %s", ctime(&sb.st_ctime));
+    info("mtime: %s", ctime(&sb.st_mtime));
+    info("atime: %s", ctime(&sb.st_atime));
+    info("---------");
+#endif
+
+    *pctime = sb.st_ctime;
+
+    return 0;
+err:
+    return ~0;
 }
