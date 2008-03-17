@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: pwd.c,v 1.3 2008/03/17 09:52:29 tho Exp $";
+    "$Id: pwd.c,v 1.4 2008/03/17 10:53:45 tho Exp $";
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -312,7 +312,11 @@ static int u_pwd_db_load (u_pwd_t *pwd)
 
         /* push rec to db */
         dbg_ifb (u_pwd_db_push(pwd, rec))
+        {
             info("could not push record for entry at line %zu", cnt);
+            u_pwd_rec_free(rec);
+        }
+
         rec = NULL;
     }
 
