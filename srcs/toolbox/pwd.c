@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: pwd.c,v 1.6 2008/03/18 11:50:19 tho Exp $";
+    "$Id: pwd.c,v 1.7 2008/03/18 15:42:00 tho Exp $";
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -262,7 +262,7 @@ int u_pwd_init_file (const char *res_uri, u_pwd_hash_cb_t cb_hash,
  *
  *  \param  rec     the pwd_rec record to be disposed
  *
- *  \return return nothing
+ *  \return nothing
  */ 
 void u_pwd_rec_free (u_pwd_rec_t *rec)
 {
@@ -275,6 +275,45 @@ void u_pwd_rec_free (u_pwd_rec_t *rec)
     u_free(rec);
 
     return;
+}
+
+/**
+ *  \brief  Return the user field of the supplied pwd record
+ *
+ *  \param  rec     handler of a pwd record returned by u_pwd_retr
+ *
+ *  \return the user string or \c NULL on error
+ */ 
+const char *u_pwd_rec_get_user (u_pwd_rec_t *rec)
+{
+    dbg_return_if (rec == NULL, NULL);
+    return rec->user;
+}
+
+/**
+ *  \brief  Return the password field of the supplied pwd record
+ *
+ *  \param  rec     handler of a pwd record returned by u_pwd_retr
+ *
+ *  \return the password string or \c NULL on error
+ */ 
+const char *u_pwd_rec_get_password (u_pwd_rec_t *rec)
+{
+    dbg_return_if (rec == NULL, NULL);
+    return rec->pass;
+}
+
+/**
+ *  \brief  Return the opaque field of the supplied pwd record
+ *
+ *  \param  rec     handler of a pwd record returned by u_pwd_retr
+ *
+ *  \return the opaque string (can be \c NULL even if successful)
+ */ 
+const char *u_pwd_rec_get_opaque (u_pwd_rec_t *rec)
+{
+    dbg_return_if (rec == NULL, NULL);
+    return rec->opaque;
 }
 
 /**
