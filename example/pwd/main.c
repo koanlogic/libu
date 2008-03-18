@@ -6,14 +6,29 @@ int facility = LOG_LOCAL0;
 
 int main (int argc, char *argv[])
 {
-    int i, rc;
+    char c;
+    int i, rc, in_memory = 0;
     u_pwd_t *pwd = NULL;
     char prompt[128];
 
-    /* in memory db snapshot */
-    con_err_if (u_pwd_init_file("./passwd", NULL, 0, 0, &pwd));
+    while ((c = getopt(argc, argv, "m")) != -1)
+    {
+        switch (c)
+        {
+            case 'm':
+                ++in_memory;
+                break;
+            default:
+                con_err("usage: pwd [-m] user ...");
+        }
+    }
+    
+    argc -= optind;
+    argv += optind;
 
-    for (i = 1; i < argc; i++)
+    con_err_if (u_pwd_init_file("./passwd", NULL, 0, in_memory, &pwd));
+
+    for (i = 0; i < argc; i++)
     {
         u_snprintf(prompt, sizeof prompt, "%s: ", argv[i]);
         rc = u_pwd_auth_user(pwd, argv[i], getpass(prompt));
