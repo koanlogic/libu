@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: test.c,v 1.6 2008/03/11 07:14:16 tho Exp $";
+    "$Id: test.c,v 1.7 2008/03/18 10:43:28 tho Exp $";
 
 #include <u/libu.h>
 
@@ -80,11 +80,7 @@ static int run_test_module(const char *module)
         }
     }
 
-    con_err("unknown module %s", module);
-
-    return 0;
-err:
-    return ~0;
+    con_return_ifm (1, ~0, "unknown module %s", module);
 }
 
 int u_test_run(int argc, char **argv)
