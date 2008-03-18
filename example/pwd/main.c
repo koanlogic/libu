@@ -4,19 +4,14 @@
 
 int facility = LOG_LOCAL0;
 
-static void file_rewind (void *res_handler);
-static char *file_fgets(char *str, int size, void *res_handler);
-
 int main (int argc, char *argv[])
 {
     int i, rc;
-    FILE *fp = NULL;
     u_pwd_t *pwd = NULL;
     char prompt[128];
 
-    con_err_sif ((fp = fopen("./passwd", "r")) == NULL);
-    con_err_if (u_pwd_init(fp, file_fgets, NULL, 0, &pwd));
-    (void) u_pwd_reload_if_mod(pwd, file_rewind);
+    /* in memory db snapshot */
+    con_err_if (u_pwd_init_file("./passwd", NULL, 0, 0, &pwd));
 
     for (i = 1; i < argc; i++)
     {
@@ -25,18 +20,9 @@ int main (int argc, char *argv[])
         con("auth %s", rc ? "failed" : "ok");
     }
 
+    u_pwd_term(pwd);
+
     return EXIT_SUCCESS;
 err:
     return EXIT_FAILURE;
-}
-
-static void file_rewind (void *res_handler)
-{
-    rewind((FILE *) res_handler);
-    return;
-}
-
-static char *file_fgets(char *str, int size, void *res_handler)
-{
-    return fgets(str, size, (FILE *) res_handler); 
 }

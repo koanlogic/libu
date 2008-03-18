@@ -19,22 +19,38 @@ typedef struct u_pwd_s u_pwd_t;
 struct u_pwd_rec_s;
 typedef struct u_pwd_rec_s u_pwd_rec_t;
 
-/* hash prototype */
-typedef ssize_t (*hash_fn_t) (const char *, size_t, char []);
+/* password hashing function:
+ * supply a string and its lenght, return the hashed string */
+typedef ssize_t (*u_pwd_hash_cb_t) (const char *, size_t, char []);
 
-/* fgets-like prototype with generic stream type */
-typedef char *(*fgets_fn_t) (char *, int, void *);
+/* load function:
+ * fgets-like prototype with generic stream type */
+typedef char *(*u_pwd_load_cb_t) (char *, int, void *);
 
-/* rewind-like prototype with generic stream type */
-typedef void (*rewind_fn_t) (void *);
+/* master password db open:
+ * supply an uri, return the resource handler */
+typedef int (*u_pwd_open_cb_t) (const char *, void **);
 
-int u_pwd_init (void *res, fgets_fn_t gf, hash_fn_t hf, size_t hash_len, 
-        u_pwd_t **ppwd);
-int u_pwd_load (u_pwd_t *pwd);
-int u_pwd_term (u_pwd_t *pwd);
+/* master password db close:
+ * supply res handler */
+typedef void (*u_pwd_close_cb_t) (void *);
+
+/* update notification:
+ * return true if supplied timestamp is older than last modification time */
+typedef int (*u_pwd_notify_cb_t) (const char *, time_t, time_t *);
+
+/* interface */
+int u_pwd_init (const char *res_uri, u_pwd_open_cb_t cb_open, 
+        u_pwd_load_cb_t cb_load, u_pwd_close_cb_t cb_close, 
+        u_pwd_notify_cb_t cb_notify, u_pwd_hash_cb_t cb_hash, 
+        size_t hash_len, int in_memory, u_pwd_t **ppwd);
+int u_pwd_init_file (const char *res_uri, u_pwd_hash_cb_t cb_hash, 
+        size_t hash_len, int in_memory, u_pwd_t **ppwd);
+void u_pwd_term (u_pwd_t *pwd);
+int u_pwd_in_memory (u_pwd_t *pwd);
 int u_pwd_retr (u_pwd_t *pwd, const char *user, u_pwd_rec_t **prec);
-int u_pwd_auth_user (u_pwd_t *pwd, const char *user, const char *pass);
-int u_pwd_reload_if_mod (u_pwd_t *pwd, rewind_fn_t rf);
+int u_pwd_auth_user (u_pwd_t *pwd, const char *user, const char *password);
+void u_pwd_rec_free (u_pwd_rec_t *rec);
 
 #ifdef __cplusplus
 }

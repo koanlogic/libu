@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: pwd.c,v 1.4 2008/03/17 10:53:45 tho Exp $";
+    "$Id: pwd.c,v 1.5 2008/03/18 10:38:04 tho Exp $";
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -12,39 +12,64 @@ static const char rcsid[] =
 #include <toolbox/hmap.h>
 #include <toolbox/pwd.h>
 
-static int u_pwd_detect_mod (u_pwd_t *pwd);
-static int u_pwd_update_last_mod (u_pwd_t *pwd);
-static int u_pwd_get_ctime (u_pwd_t *pwd, time_t *pctime);
-static int u_pwd_db_create (u_pwd_t *pwd);
-static int u_pwd_db_destroy (u_pwd_t *pwd);
+/* in-memory db */
+static int u_pwd_db_new (u_pwd_t *pwd);
+static int u_pwd_db_term (u_pwd_t *pwd);
 static int u_pwd_db_load (u_pwd_t *pwd);
 static int u_pwd_db_push (u_pwd_t *pwd, u_pwd_rec_t *rec);
-static int u_pwd_rec_new (const char *user, const char *pass, const char *hint,
+static void __hmap_pwd_rec_free (u_hmap_o_t *obj);  /* hook hmap free */
+
+/* misc */
+static int u_pwd_load (u_pwd_t *pwd);
+static int u_pwd_need_reload (u_pwd_t *pwd);
+
+/* u_pwd_rec_t */
+static int u_pwd_rec_new (const char *user, const char *pass, 
+        const char *opaque, u_pwd_rec_t **prec);
+static int u_pwd_retr_mem (u_pwd_t *pwd, const char *user, 
         u_pwd_rec_t **prec);
-static void u_pwd_rec_free (u_pwd_rec_t *rec);
+static int u_pwd_retr_res (u_pwd_t *pwd, const char *user, 
+        u_pwd_rec_t **prec);
 
-/* hmap private free */
-static void __hmap_pwd_rec_free (u_hmap_o_t *obj);
+/* res ops */
+static int u_pwd_res_open (u_pwd_t *pwd);
+static void u_pwd_res_close (u_pwd_t *pwd);
 
+/* file specialization */
+static int __file_open (const char *path, void **pfp);
+static void __file_close (void *fp);
+static char *__file_load (char *str, int size, void *fp);
+static int __file_notify (const char *path, time_t last_update, 
+        time_t *pnew_update);
+
+/* a pwd instance context (will be passed along all u_pwd functions) */
 struct u_pwd_s
 {
-    void *res_handler;      /* underlying storage resource: FILE*, io_t*, ... */
-    u_hmap_t *db;           /* in-memory pwd db snapshot */
-    int reload_if_mod;      /* if set, reload .db in case master file has been
-                               modified since last_mod */ 
-    time_t last_mod;        /* timestamp of master file's last update */
-    size_t hash_len;        /* hash'd password length */
-    hash_fn_t cb_hash;      /* hash function for password hiding */
-    fgets_fn_t cb_fgets;    /* function for reading lines from the pwd file */ 
-    rewind_fn_t cb_rewind;  /* function for rewinding the read pointer */
+    void *res_handler;  /* underlying storage resource: FILE*, io_t*, ... */
+    char res_uri[U_FILENAME_MAX + 1];
+
+    size_t hash_len;            /* hash'd password length */
+    u_pwd_hash_cb_t cb_hash;   /* hash function for password hiding */
+
+    u_pwd_open_cb_t cb_open;   /* function for opening the db */
+    u_pwd_load_cb_t cb_load;   /* function for getting db records one by one */
+    u_pwd_close_cb_t cb_close; /* function for opening the db */
+
+    u_pwd_notify_cb_t cb_notify;   /* function for notifying changes in the 
+                                       master copy */
+
+    time_t last_mod;        /* timestamp of master db's last update */
+    int in_memory;          /* if set access is done via snapshot db */
+    u_hmap_t *db;           /* in-memory master db snapshot */
 };
 
-/* each pwd line looks like this: "<user>:<password>[:hint]\n" */
+/* each pwd line looks like this: "<user>:<password>[:opaque]\n":
+ * the following holds the line tokenization result */
 struct u_pwd_rec_s
 {
     char *user;     /* credential owner */
     char *pass;     /* password (hashed or cleartext) */
-    char *hint;     /* optional (e.g. PSK hint) */
+    char *opaque;   /* optional application specific data (e.g. PSK hint) */
 };
 
 /**
@@ -53,39 +78,58 @@ struct u_pwd_rec_s
  */
 
 /**
- *  \brief  Initialize the PWD module
- *
- *  \param  res             PWD file handler (\c FILE, \c io_t, etc.)
- *  \param  gf              fgets-like function used to retrieve line-by-line
- *                          the PWD records from the supplied resource
- *  \param  hf              password hash function to use
- *  \param  hash_len        hash function output buffer length
- *  \param  ppwd            the PWD instance handler as a result argument
+ *  \brief  Initialize a pwd instance
+ * 
+ *  \param  res_uri     name of the master db resource
+ *  \param  cb_open     method to open \p res_uri (get its handler)
+ *  \param  cb_load     method to load \p res_uri lines one by one
+ *  \param  cb_close    method to dispose \p res_uri handler (OPTIONAL)
+ *  \param  cb_notify   methor to notify changes in the master resource 
+ *                      (OPTIONAL)
+ *  \param  cb_hash     method to hash passwords (OPTIONAL)
+ *  \param  hash_len    hashed password string lenght (needed if \p cb_hash
+ *                      has been set)
+ *  \param  in_memory   if true, keep an hash-map'd version of the master db
+ *                      into memory (useful for huge and static db's)
+ *  \param  ppwd        the pwd instance handler as a result value
  *
  *  \return \c 0 on success, \c ~0 on error
- */
-int u_pwd_init (void *res, fgets_fn_t gf, hash_fn_t hf, size_t hash_len, 
-        u_pwd_t **ppwd)
+ */ 
+int u_pwd_init (const char *res_uri, u_pwd_open_cb_t cb_open, 
+        u_pwd_load_cb_t cb_load, u_pwd_close_cb_t cb_close, 
+        u_pwd_notify_cb_t cb_notify, u_pwd_hash_cb_t cb_hash, 
+        size_t hash_len, int in_memory, u_pwd_t **ppwd)
 {
     u_pwd_t *pwd;
    
-    dbg_return_if (res == NULL, ~0);
-    dbg_return_if (gf == NULL, ~0);
-    dbg_return_if (hf && !hash_len, ~0);
+    dbg_return_if (res_uri == NULL, ~0);
+    dbg_return_if (cb_open == NULL, ~0);
+    dbg_return_if (cb_load == NULL, ~0);
+    /* cb_close is non-mandatory */
+    /* cb_notify is non-mandatory */
+    dbg_return_if (cb_hash && !hash_len, ~0);
     dbg_return_if (ppwd == NULL, ~0);
 
+    /* make room for the instance context */
     pwd = u_zalloc(sizeof(u_pwd_t));
     dbg_err_sif (pwd == NULL);
 
-    pwd->cb_hash = hf;  /* may be NULL, if supplied hash_len must be > 0 */
-    pwd->hash_len = hash_len;
-    pwd->cb_fgets = gf;
-    pwd->res_handler = res;
-    pwd->reload_if_mod = 0; /* default is not to auto-reload master file */
-    pwd->last_mod = 0;      /* will be set if needed */
-    pwd->cb_rewind = NULL;  /* will be set by u_pwd_reload_if_mod */
+    /* copy in supplied attributes and methods */
+    pwd->res_handler = NULL;
+    strlcpy(pwd->res_uri, res_uri, sizeof pwd->res_uri);
 
-    dbg_err_if (u_pwd_load(pwd));
+    pwd->hash_len = hash_len;
+    pwd->cb_hash = cb_hash;
+    pwd->cb_open = cb_open;
+    pwd->cb_load = cb_load;
+    pwd->cb_close = cb_close;
+    pwd->cb_notify = cb_notify;
+    pwd->last_mod = 0;
+    pwd->in_memory = in_memory;
+    pwd->db = NULL;
+
+    /* NOTE: don't load to memory if requested (i.e. .in_memory != 0) here:
+     * it will be done at very first u_pwd_retr() via u_pwd_need_reload() */
 
     *ppwd = pwd;
 
@@ -96,96 +140,46 @@ err:
 }
 
 /**
- *  \brief  Load the PWD resource into memory
- *
- *  \param  pwd     PWD instance handler (must have been already initialized 
- *                  with u_pwd_init())
- *
- *  \return \c 0 on success, \c ~0 on error
- */
-int u_pwd_load (u_pwd_t *pwd)
-{
-    dbg_return_if (pwd == NULL, ~0);
-    dbg_return_if (pwd->res_handler == NULL, ~0);
-    dbg_return_if (pwd->cb_fgets == NULL, ~0);
-
-    if (pwd->db)
-        (void) u_pwd_db_destroy(pwd);
-
-    dbg_err_if (u_pwd_db_create(pwd));
-    dbg_err_if (u_pwd_db_load(pwd));
-    dbg_err_if (u_pwd_update_last_mod(pwd));
-
-    return 0;
-err:
-    return ~0;
-}
-
-/**
- *  \brief  Shutdown the PWD instance
- *
- *  \param  pwd     PWD module instance that has to be destroyed
+ *  \brief  Retrieve a pwd record
+ * 
+ *  \param  pwd    an already initialized pwd instance
+ *  \param  user    user whose info shall be retrieved
+ *  \param  prec    retrieved user record as a result argument (NOTE that
+ *                  in case pwd has been initialized as "in_memory" the record
+ *                  is owned by the internal hash map and must not be free'd,
+ *                  otherwise the record must be free'd using u_pwd_rec_free
+ *                  API).
  *
  *  \return \c 0 on success, \c ~0 on error
- */
-int u_pwd_term (u_pwd_t *pwd)
-{
-    nop_return_if (pwd == NULL, 0);
-
-    (void) u_pwd_db_destroy(pwd);
-
-    U_FREE(pwd);
-
-    return 0;
-}
-
-/**
- *  \brief  Retrieve a user PWD record
- *
- *  \param  pwd     PWD module instance
- *  \param  user    user to retrieve
- *  \param  prec    the retrieved record as a result argument
- *
- *  \return \c 0 on success, \c ~0 on error
- */
+ */ 
 int u_pwd_retr (u_pwd_t *pwd, const char *user, u_pwd_rec_t **prec)
 {
-    u_hmap_o_t *hobj = NULL;
-
     dbg_return_if (pwd == NULL, ~0);
-    dbg_return_if (pwd->db == NULL, ~0);
+    dbg_return_if (user == NULL, ~0);
     dbg_return_if (prec == NULL, ~0);
 
-    /* on error keep on working with the old in-memory db */
-    dbg_ifb (u_pwd_detect_mod(pwd))
-        warn("error reloading master pwd file: using stale cache");
+    /* if in-memory snapshot is mantained, search there (in case on-storage
+     * image has changed it will be resync'd automatically) */
+    if (pwd->in_memory)
+        return u_pwd_retr_mem(pwd, user, prec);
 
-    dbg_err_if (u_hmap_get(pwd->db, user, &hobj));
-    *prec = (u_pwd_rec_t *) hobj->val;
-
-    return 0;
-err:
-    return ~0;
+    return u_pwd_retr_res(pwd, user, prec);
 }
 
 /**
- *  \brief  Authorize the supplied user
+ *  \brief  Check if user has presented the right credential
+ * 
+ *  \param  pwd        an already initialized pwd instance
+ *  \param  user        user whose credential has to be checked
+ *  \param  password    the supplied credential
  *
- *  \param  pwd     PWD module instance
- *  \param  user    user to authorize
- *  \param  pass    supplied password (cleartext or hashed)
- *
- *  \return \c 0 on success (user authorized), \c ~0 on error
- */
-int u_pwd_auth_user (u_pwd_t *pwd, const char *user, const char *pass)
+ *  \return \c 0 if authentication is ok, \c ~0 if authentication fails
+ */ 
+int u_pwd_auth_user (u_pwd_t *pwd, const char *user, const char *password)
 {
     int rc;
-    u_pwd_rec_t *rec;
+    u_pwd_rec_t *rec = NULL;
     char *__p = NULL, __pstack[U_PWD_LINE_MAX];
-
-    /* on error keep on working with the old in-memory db */
-    dbg_ifb (u_pwd_detect_mod(pwd))
-        warn("error reloading master pwd file: using stale cache");
 
     /* retrieve the pwd record */
     dbg_err_if (u_pwd_retr(pwd, user, &rec));
@@ -195,11 +189,11 @@ int u_pwd_auth_user (u_pwd_t *pwd, const char *user, const char *pass)
     {
         /* create a buffer that fits the specific hash function */
         dbg_err_if ((__p = u_zalloc(pwd->hash_len)) == NULL);
-        (void) pwd->cb_hash(pass, strlen(pass), __p);
+        (void) pwd->cb_hash(password, strlen(password), __p);
     }
     else
     {
-        dbg_if (strlcpy(__pstack, pass, sizeof __pstack) >= sizeof __pstack);
+        (void) strlcpy(__pstack, password, sizeof __pstack);
         __p = __pstack;
     }
 
@@ -209,39 +203,279 @@ int u_pwd_auth_user (u_pwd_t *pwd, const char *user, const char *pass)
     if (__p && (__p != __pstack))
         u_free(__p);
 
+    /* rec ownership is ours only if hmap doesn't have it */
+    if (!pwd->in_memory)
+        u_pwd_rec_free(rec);
+
     return rc;
 err:
     if (__p && (__p != __pstack))
         u_free(__p);
+
+    if (!pwd->in_memory && rec)
+        u_pwd_rec_free(rec);
+
     return ~0;
 }
 
 /**
- *  \brief  Ask to reload passwd file into memory if on-disk change is detected
+ *  \brief  Dispose the supplied pwd instance
+ * 
+ *  \param  pwd    the pwd instance that shall be disposed
  *
- *  \param  pwd     PWD module instance
-
- *  \return \c 0 on success, \c ~0 on error
- */
-int u_pwd_reload_if_mod (u_pwd_t *pwd, rewind_fn_t rf)
+ *  \return nothing
+ */ 
+void u_pwd_term (u_pwd_t *pwd)
 {
-    dbg_return_if (pwd == NULL, ~0);
-    dbg_return_if (rf == NULL, ~0);
+    nop_return_if (pwd == NULL, );
 
-    pwd->reload_if_mod = 1;
-    pwd->cb_rewind = rf;
-    dbg_err_if (u_pwd_get_ctime(pwd, &pwd->last_mod));
+    (void) u_pwd_db_term(pwd);
 
-    return 0;
-err:
-    return ~0;
+    U_FREE(pwd);
+
+    return;
+}
+
+/**
+ *  \brief  Init specialization for file-based password db
+ * 
+ *  \param  res_uri     name of the master db resource
+ *  \param  cb_hash     method to hash passwords (OPTIONAL)
+ *  \param  hash_len    hashed password string lenght (needed if \p cb_hash
+ *                      has been set)
+ *  \param  in_memory   if true, keep an hash-map'd version of the master db
+ *                      into memory (useful for huge and static db's)
+ *  \param  ppwd       the pwd instance handler as a result value
+ *
+ *  \return \c 0 on success, \c ~0 on error
+ */ 
+int u_pwd_init_file (const char *res_uri, u_pwd_hash_cb_t cb_hash, 
+        size_t hash_len, int in_memory, u_pwd_t **ppwd)
+{
+    return u_pwd_init (res_uri, __file_open, __file_load, __file_close, 
+        __file_notify, cb_hash, hash_len, in_memory, ppwd);
+}
+
+/**
+ *  \brief  Dispose a pwd_rec record (must be used on returned pwd_rec
+ *          record from u_pwd_retr on in_memory pwd instances)
+ *
+ *  \param  rec     the pwd_rec record to be disposed
+ *
+ *  \return return nothing
+ */ 
+void u_pwd_rec_free (u_pwd_rec_t *rec)
+{
+    nop_return_if (rec == NULL, );
+
+    U_FREE(rec->user);
+    U_FREE(rec->pass);
+    U_FREE(rec->opaque);
+
+    u_free(rec);
+
+    return;
+}
+
+/**
+ *  \brief  Return the in_memory flag of the supplied pwd instance
+ *
+ *  \param  pwd    the pwd instance to be examined
+ *
+ *  \return return \c 0 in case it is not an in-memory pwd instance
+ */ 
+int u_pwd_in_memory (u_pwd_t *pwd)
+{
+    return pwd->in_memory;
 }
 
 /**
  *  \}
  */
 
-static int u_pwd_db_create (u_pwd_t *pwd)
+static int u_pwd_load (u_pwd_t *pwd)
+{
+    dbg_return_if (pwd == NULL, ~0);
+    dbg_return_if (!pwd->in_memory, ~0);
+
+    /* wipe away old snapshot */
+    if (pwd->db)
+        (void) u_pwd_db_term(pwd);
+    
+    /* create new hash map and load master db contents into it */
+    dbg_err_if (u_pwd_db_new(pwd));
+    dbg_err_if (u_pwd_db_load(pwd));
+
+    return 0;
+err:
+    return ~0;
+}
+
+static int u_pwd_retr_res (u_pwd_t *pwd, const char *user, 
+        u_pwd_rec_t **prec)
+{
+    size_t lc, got_it = 0;
+    char ln[U_PWD_LINE_MAX], __user[U_PWD_LINE_MAX];
+    char *toks[3 + 1];  /* line fmt is: "name:password[:opaque]\n" */
+    u_pwd_rec_t *rec = NULL;
+
+    dbg_return_if (pwd->res_uri == NULL, ~0);
+    dbg_return_if (pwd->cb_load == NULL, ~0);
+    /* cb_open consistency will be checked inside u_pwd_res_open */
+
+    /* open master db */
+    dbg_err_if (u_pwd_res_open(pwd));
+
+    /* do suitable search string for strstr(3) */
+    u_snprintf(__user, sizeof __user, "%s:", user);
+    
+    /* read line by line */
+    for (lc = 1; pwd->cb_load(ln, sizeof ln, pwd->res_handler) != NULL; lc++)
+    {
+        /* skip comments */
+        if (ln[0] == '#')
+            continue;
+
+        /* check if we're on user line, in case break the read loop... 
+         * this is different from using the in-memory version in case an 
+         * entry is duplicated: in-memory matches the last entry, here
+         * we would get the first one */
+        if (strstr(ln, __user) == ln)
+        {
+            got_it = 1;
+            break;
+        }
+    }
+
+    /* check if we've reached here due to simple loop exhaustion */
+    dbg_err_ifm (!got_it, "user %s not found", user);
+
+    /* remove terminating \n if needed */
+    if (ln[strlen(ln) - 1] == '\n')
+        ln[strlen(ln) - 1] = '\0';
+
+    /* tokenize line */
+    dbg_err_ifm (u_tokenize(ln, ":", toks, 3), 
+            "bad syntax at line %zu (%s)", lc, ln);
+
+    /* create new record to be given back */
+    dbg_err_if (u_pwd_rec_new(toks[0], toks[1], toks[2], &rec));
+
+    /* dispose resource handler (if a 'close' method has been set) */
+    u_pwd_res_close(pwd);
+
+    /* copy out */
+    *prec = rec;
+
+    return 0;
+err:
+    if (rec)
+        u_pwd_rec_free(rec);
+
+    u_pwd_res_close(pwd);
+
+    return ~0;
+}
+
+static int u_pwd_res_open (u_pwd_t *pwd)
+{
+    dbg_return_if (pwd->cb_open == NULL, ~0);
+
+    if (pwd->res_handler != NULL)
+        warn("non-NULL resource handler will be lost");
+
+    pwd->res_handler = NULL;
+
+    return pwd->cb_open(pwd->res_uri, &pwd->res_handler);
+}
+
+static void u_pwd_res_close (u_pwd_t *pwd)
+{
+    nop_return_if (pwd->res_handler == NULL, );
+    nop_return_if (pwd->cb_close == NULL, );
+
+    pwd->cb_close(pwd->res_handler);
+    pwd->res_handler = NULL;
+    
+    return;
+}
+
+static int u_pwd_rec_new (const char *user, const char *pass, 
+        const char *opaque, u_pwd_rec_t **prec)
+{
+    u_pwd_rec_t *rec = NULL;
+
+    dbg_return_if (user == NULL, ~0);
+    dbg_return_if (pass == NULL, ~0);
+    dbg_return_if (prec == NULL, ~0);
+
+    rec = u_zalloc(sizeof(u_pwd_rec_t));
+    dbg_err_sif (rec == NULL);
+
+    rec->user = u_strdup(user);
+    dbg_err_sif (rec->user == NULL);
+
+    rec->pass = u_strdup(pass);
+    dbg_err_sif (rec->pass == NULL);
+
+    /* opaque field may be NULL */
+    if (opaque)
+    {
+        rec->opaque = u_strdup(opaque);
+        dbg_err_sif (rec->opaque == NULL);
+    }
+
+    *prec = rec;
+
+    return 0;
+err:
+    if (rec)
+        u_pwd_rec_free(rec);
+    return ~0;
+}
+
+static int u_pwd_retr_mem (u_pwd_t *pwd, const char *user, 
+        u_pwd_rec_t **prec)
+{
+    u_hmap_o_t *hobj = NULL;
+
+    dbg_return_if (pwd == NULL, ~0);
+    dbg_return_if (user == NULL, ~0);
+    dbg_return_if (prec == NULL, ~0);
+
+    /* on error keep on working with the old in-memory db */
+    dbg_ifb (u_pwd_need_reload(pwd))
+        warn("error reloading master pwd file: using stale cache");
+
+    dbg_err_if (pwd->db == NULL);
+    dbg_err_if (u_hmap_get(pwd->db, user, &hobj));
+    *prec = (u_pwd_rec_t *) hobj->val;
+
+    return 0;
+err:
+    return ~0;
+}
+
+static int u_pwd_need_reload (u_pwd_t *pwd)
+{
+    time_t update_timestamp;
+
+    /* if needed parameters are not set return immediately (no error) */
+    nop_return_if (!pwd->in_memory, 0);
+    nop_return_if (pwd->cb_notify == NULL, 0);
+
+    /* in case no update has been notified return */
+    if (!pwd->cb_notify(pwd->res_uri, pwd->last_mod, &update_timestamp))
+        return 0;
+
+    /* update notified: set .last_mod */
+    pwd->last_mod = update_timestamp;
+    
+    /* reload db to memory */
+    return u_pwd_load(pwd);
+}
+
+static int u_pwd_db_new (u_pwd_t *pwd)
 {
     u_hmap_opts_t hopts;
 
@@ -250,16 +484,16 @@ static int u_pwd_db_create (u_pwd_t *pwd)
     u_hmap_opts_init(&hopts);
     hopts.options |= U_HMAP_OPTS_OWNSDATA;
     hopts.f_free = __hmap_pwd_rec_free;
-
+            
     return u_hmap_new(&hopts, &pwd->db);
 }
 
-static int u_pwd_db_destroy (u_pwd_t *pwd)
+static int u_pwd_db_term (u_pwd_t *pwd)
 {
     dbg_return_if (pwd == NULL, ~0);
-
+        
     nop_return_if (pwd->db == NULL, 0);
-
+            
     u_hmap_free(pwd->db);
     pwd->db = NULL;
 
@@ -268,25 +502,19 @@ static int u_pwd_db_destroy (u_pwd_t *pwd)
 
 static int u_pwd_db_load (u_pwd_t *pwd)
 {
-    size_t cnt;
+    size_t lc;
     char ln[U_PWD_LINE_MAX];
-    char *toks[3 + 1];  /* line fmt is: "name:password:hint\n" */
+    char *toks[3 + 1];  /* line fmt is: "name:password[:hint]\n" */
     u_pwd_rec_t *rec = NULL;
+    
+    dbg_return_if (pwd->res_uri == NULL, ~0);
+    dbg_return_if (pwd->cb_load == NULL, ~0);
+    /* cb_open and cb_close will be checked inside u_pwd_res_{open,close} */
 
-    dbg_return_if (pwd == NULL, ~0);
-    dbg_return_if (pwd->res_handler == NULL, ~0);
-    dbg_return_if (pwd->cb_fgets == NULL, ~0);
+    /* open master db */
+    dbg_err_if (u_pwd_res_open(pwd));
 
-    /* rewind resource */
-    if (pwd->cb_rewind)
-    {
-#ifdef DEBUG
-        info("rewinding master pwd file");
-#endif
-        pwd->cb_rewind(pwd->res_handler);
-    }
-
-    for (cnt = 1; pwd->cb_fgets(ln, sizeof ln, pwd->res_handler) != NULL; cnt++)
+    for (lc = 1; pwd->cb_load(ln, sizeof ln, pwd->res_handler) != NULL; lc++)
     {
         /* skip comment lines */
         if (ln[0] == '#')
@@ -299,22 +527,22 @@ static int u_pwd_db_load (u_pwd_t *pwd)
         /* tokenize line */
         dbg_ifb (u_tokenize(ln, ":", toks, 3))
         {
-            info("bad pwd format at line %zu (%s)", cnt, ln);
+            info("bad syntax at line %zu (%s)", lc, ln);
             continue;
         }
 
         /* create u_pwd_rec_t from tokens */
         dbg_ifb (u_pwd_rec_new(toks[0], toks[1], toks[2], &rec))
         {
-            info("could not create record for entry at line %zu", cnt);
+            info("could not create record for entry at line %zu", lc);
             continue;
         }
 
         /* push rec to db */
         dbg_ifb (u_pwd_db_push(pwd, rec))
         {
-            info("could not push record for entry at line %zu", cnt);
-            u_pwd_rec_free(rec);
+            info("could not push record for entry at line %zu", lc);
+            u_pwd_rec_free(rec), rec = NULL;
         }
 
         rec = NULL;
@@ -323,7 +551,16 @@ static int u_pwd_db_load (u_pwd_t *pwd)
     if (rec)
         u_pwd_rec_free(rec);
 
+    u_pwd_res_close(pwd);
+
     return 0;
+err:
+    if (rec)
+        u_pwd_rec_free(rec);
+
+    u_pwd_res_close(pwd);
+
+    return ~0;
 }
 
 static int u_pwd_db_push (u_pwd_t *pwd, u_pwd_rec_t *rec)
@@ -331,7 +568,6 @@ static int u_pwd_db_push (u_pwd_t *pwd, u_pwd_rec_t *rec)
     char *hkey = NULL;
     u_hmap_o_t *hobj = NULL;
 
-    dbg_return_if (pwd == NULL, ~0);
     dbg_return_if (pwd->db == NULL, ~0);
     dbg_return_if (rec == NULL, ~0);
     dbg_return_if (rec->user == NULL, ~0);
@@ -351,123 +587,58 @@ err:
     return ~0;
 }
 
-static int u_pwd_rec_new (const char *user, const char *pass, const char *hint,
-        u_pwd_rec_t **prec)
+/* 
+ * prefabricated callbacks
+ */
+static int __file_open (const char *path, void **pfp)
 {
-    u_pwd_rec_t *rec = NULL;
+    FILE *fp = NULL;
 
-    dbg_return_if (user == NULL, ~0);
-    dbg_return_if (pass == NULL, ~0);
-    dbg_return_if (prec == NULL, ~0);
+    dbg_err_sif ((fp = fopen(path, "r")) == NULL);
 
-    rec = u_zalloc(sizeof(u_pwd_rec_t));
-    dbg_err_sif (rec == NULL);
-
-    rec->user = u_strdup(user);    
-    dbg_err_sif (rec->user == NULL);
-
-    rec->pass = u_strdup(pass);    
-    dbg_err_sif (rec->pass == NULL);
-
-    /* hint may be NULL */
-    if (hint)
-    {
-        rec->hint = u_strdup(hint);    
-        dbg_err_sif (rec->hint == NULL);
-    }
-
-    *prec = rec;
+    *pfp = (void *) fp;
 
     return 0;
 err:
-    if (rec)
-        u_pwd_rec_free(rec);
     return ~0;
 }
 
+static void __file_close (void *fp)
+{
+    fclose((FILE *) fp);
+    return;
+}
+
+static char *__file_load (char *str, int size, void *fp)
+{
+    return fgets(str, size, (FILE *) fp);
+}
+
+/* in case file update has been detected, *pnew_update is also set */
+static int __file_notify (const char *path, time_t last_update, 
+        time_t *pnew_update)
+{
+    struct stat sb;
+
+    dbg_err_if (path == NULL);
+
+    dbg_err_sif (stat(path, &sb));
+
+    if (sb.st_ctime != last_update)
+    {
+        *pnew_update = sb.st_ctime;
+        return 1;
+    }
+
+    /* fall through (return false) */
+err:
+    return 0;
+}
+
+/* hmap glue */
 static void __hmap_pwd_rec_free (u_hmap_o_t *obj)
 {
     U_FREE(obj->key);
     u_pwd_rec_free((u_pwd_rec_t *) obj->val);
     return;
-}
-
-static void u_pwd_rec_free (u_pwd_rec_t *rec)
-{
-    nop_return_if (rec == NULL, );
-
-    U_FREE(rec->user);
-    U_FREE(rec->pass);
-    U_FREE(rec->hint);
-
-    u_free(rec);
-
-    return;
-}
-
-static int u_pwd_update_last_mod (u_pwd_t *pwd)
-{
-    time_t __ctime;
-
-    dbg_return_if (pwd == NULL, ~0);
-
-    /* do nothing if auto-reload detection is not set */
-    if (!pwd->reload_if_mod)
-        return 0;
-
-    dbg_err_if (u_pwd_get_ctime(pwd, &__ctime));
-
-    pwd->last_mod = __ctime;
-
-    return 0;
-err:
-    return ~0;
-}
-
-static int u_pwd_detect_mod (u_pwd_t *pwd)
-{
-    time_t __ctime;
-
-    dbg_return_if (pwd == NULL, ~0);
-
-    if (!pwd->reload_if_mod)
-        return 0;
-
-    dbg_err_if (u_pwd_get_ctime(pwd, &__ctime));
-    
-    if (__ctime != pwd->last_mod)
-    {
-        dbg("modification detected in pwd file: reloading into memory");
-        dbg_err_if (u_pwd_load(pwd));
-    }
-
-    return 0;
-err:
-    return ~0;
-}
-
-/* XXX assume pwd->res_handler is FILE* */
-static int u_pwd_get_ctime (u_pwd_t *pwd, time_t *pctime)
-{
-    struct stat sb;
-
-    dbg_return_if (pwd == NULL, ~0);
-    dbg_return_if (!pwd->reload_if_mod, ~0);
-    dbg_return_if (pctime == NULL, ~0);
-
-    dbg_err_sif (fstat(fileno(pwd->res_handler), &sb) == -1);
-
-#ifdef DEBUG
-    info("---pwd---");
-    info("ctime: %s", ctime(&sb.st_ctime));
-    info("mtime: %s", ctime(&sb.st_mtime));
-    info("atime: %s", ctime(&sb.st_atime));
-    info("---------");
-#endif
-
-    *pctime = sb.st_ctime;
-
-    return 0;
-err:
-    return ~0;
 }
