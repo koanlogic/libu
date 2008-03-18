@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: pwd.c,v 1.5 2008/03/18 10:38:04 tho Exp $";
+    "$Id: pwd.c,v 1.6 2008/03/18 11:50:19 tho Exp $";
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -49,18 +49,18 @@ struct u_pwd_s
     char res_uri[U_FILENAME_MAX + 1];
 
     size_t hash_len;            /* hash'd password length */
-    u_pwd_hash_cb_t cb_hash;   /* hash function for password hiding */
+    u_pwd_hash_cb_t cb_hash;    /* hash function for password hiding */
 
-    u_pwd_open_cb_t cb_open;   /* function for opening the db */
-    u_pwd_load_cb_t cb_load;   /* function for getting db records one by one */
-    u_pwd_close_cb_t cb_close; /* function for opening the db */
+    u_pwd_open_cb_t cb_open;    /* function for opening the db */
+    u_pwd_load_cb_t cb_load;    /* function for getting db records one by one */
+    u_pwd_close_cb_t cb_close;  /* function for opening the db */
 
-    u_pwd_notify_cb_t cb_notify;   /* function for notifying changes in the 
+    u_pwd_notify_cb_t cb_notify;    /* function for notifying changes in the 
                                        master copy */
 
-    time_t last_mod;        /* timestamp of master db's last update */
-    int in_memory;          /* if set access is done via snapshot db */
-    u_hmap_t *db;           /* in-memory master db snapshot */
+    time_t last_mod;    /* timestamp of master db's last update */
+    int in_memory;      /* if set access is done via snapshot db */
+    u_hmap_t *db;       /* in-memory master db snapshot */
 };
 
 /* each pwd line looks like this: "<user>:<password>[:opaque]\n":
@@ -142,7 +142,7 @@ err:
 /**
  *  \brief  Retrieve a pwd record
  * 
- *  \param  pwd    an already initialized pwd instance
+ *  \param  pwd     an already initialized pwd instance
  *  \param  user    user whose info shall be retrieved
  *  \param  prec    retrieved user record as a result argument (NOTE that
  *                  in case pwd has been initialized as "in_memory" the record
@@ -169,7 +169,7 @@ int u_pwd_retr (u_pwd_t *pwd, const char *user, u_pwd_rec_t **prec)
 /**
  *  \brief  Check if user has presented the right credential
  * 
- *  \param  pwd        an already initialized pwd instance
+ *  \param  pwd         an already initialized pwd instance
  *  \param  user        user whose credential has to be checked
  *  \param  password    the supplied credential
  *
@@ -221,7 +221,7 @@ err:
 /**
  *  \brief  Dispose the supplied pwd instance
  * 
- *  \param  pwd    the pwd instance that shall be disposed
+ *  \param  pwd     the pwd instance that shall be disposed
  *
  *  \return nothing
  */ 
@@ -245,7 +245,7 @@ void u_pwd_term (u_pwd_t *pwd)
  *                      has been set)
  *  \param  in_memory   if true, keep an hash-map'd version of the master db
  *                      into memory (useful for huge and static db's)
- *  \param  ppwd       the pwd instance handler as a result value
+ *  \param  ppwd        the pwd instance handler as a result value
  *
  *  \return \c 0 on success, \c ~0 on error
  */ 
