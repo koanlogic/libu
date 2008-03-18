@@ -21,7 +21,7 @@ typedef struct u_pwd_rec_s u_pwd_rec_t;
 
 /* password hashing function:
  * supply a string and its lenght, return the hashed string */
-typedef ssize_t (*u_pwd_hash_cb_t) (const char *, size_t, char []);
+typedef int (*u_pwd_hash_cb_t) (const char *, size_t, char []);
 
 /* load function:
  * fgets-like prototype with generic stream type */
