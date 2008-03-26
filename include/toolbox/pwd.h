@@ -50,7 +50,7 @@ void u_pwd_term (u_pwd_t *pwd);
 int u_pwd_in_memory (u_pwd_t *pwd);
 int u_pwd_retr (u_pwd_t *pwd, const char *user, u_pwd_rec_t **prec);
 int u_pwd_auth_user (u_pwd_t *pwd, const char *user, const char *password);
-void u_pwd_rec_free (u_pwd_rec_t *rec);
+void u_pwd_rec_free (u_pwd_t *pwd, u_pwd_rec_t *rec);
 const char *u_pwd_rec_get_user (u_pwd_rec_t *rec);
 const char *u_pwd_rec_get_password (u_pwd_rec_t *rec);
 const char *u_pwd_rec_get_opaque (u_pwd_rec_t *rec);

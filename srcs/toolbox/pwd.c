@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: pwd.c,v 1.7 2008/03/18 15:42:00 tho Exp $";
+    "$Id: pwd.c,v 1.8 2008/03/26 08:12:04 tho Exp $";
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -144,11 +144,8 @@ err:
  * 
  *  \param  pwd     an already initialized pwd instance
  *  \param  user    user whose info shall be retrieved
- *  \param  prec    retrieved user record as a result argument (NOTE that
- *                  in case pwd has been initialized as "in_memory" the record
- *                  is owned by the internal hash map and must not be free'd,
- *                  otherwise the record must be free'd using u_pwd_rec_free
- *                  API).
+ *  \param  prec    retrieved user record as a result argument (the record 
+ *                  must be free'd using u_pwd_rec_free API).
  *
  *  \return \c 0 on success, \c ~0 on error
  */ 
@@ -205,7 +202,7 @@ int u_pwd_auth_user (u_pwd_t *pwd, const char *user, const char *password)
 
     /* rec ownership is ours only if hmap doesn't have it */
     if (!pwd->in_memory)
-        u_pwd_rec_free(rec);
+        u_pwd_rec_free(pwd, rec);
 
     return rc;
 err:
@@ -213,7 +210,7 @@ err:
         u_free(__p);
 
     if (!pwd->in_memory && rec)
-        u_pwd_rec_free(rec);
+        u_pwd_rec_free(pwd, rec);
 
     return ~0;
 }
@@ -260,13 +257,18 @@ int u_pwd_init_file (const char *res_uri, u_pwd_hash_cb_t cb_hash,
  *  \brief  Dispose a pwd_rec record (must be used on returned pwd_rec
  *          record from u_pwd_retr on in_memory pwd instances)
  *
+ *  \param  pwd     the pwd instance which owns \p rec
  *  \param  rec     the pwd_rec record to be disposed
  *
  *  \return nothing
  */ 
-void u_pwd_rec_free (u_pwd_rec_t *rec)
+void u_pwd_rec_free (u_pwd_t *pwd, u_pwd_rec_t *rec)
 {
-    nop_return_if (rec == NULL, );
+    dbg_return_if (pwd == NULL, );
+    dbg_return_if (rec == NULL, );
+
+    /* only records coming from non hash-map'd pwd's shall be free'd */
+    nop_return_if (pwd->in_memory, );
 
     U_FREE(rec->user);
     U_FREE(rec->pass);
@@ -409,7 +411,7 @@ static int u_pwd_retr_res (u_pwd_t *pwd, const char *user,
     return 0;
 err:
     if (rec)
-        u_pwd_rec_free(rec);
+        u_pwd_rec_free(pwd, rec);
 
     u_pwd_res_close(pwd);
 
@@ -469,7 +471,12 @@ static int u_pwd_rec_new (const char *user, const char *pass,
     return 0;
 err:
     if (rec)
-        u_pwd_rec_free(rec);
+    {
+        U_FREE(rec->user);
+        U_FREE(rec->pass);
+        U_FREE(rec->opaque);
+        u_free(rec);
+    }
     return ~0;
 }
 
@@ -581,21 +588,21 @@ static int u_pwd_db_load (u_pwd_t *pwd)
         dbg_ifb (u_pwd_db_push(pwd, rec))
         {
             info("could not push record for entry at line %zu", lc);
-            u_pwd_rec_free(rec), rec = NULL;
+            u_pwd_rec_free(pwd, rec), rec = NULL;
         }
 
         rec = NULL;
     }
 
     if (rec)
-        u_pwd_rec_free(rec);
+        u_pwd_rec_free(pwd, rec);
 
     u_pwd_res_close(pwd);
 
     return 0;
 err:
     if (rec)
-        u_pwd_rec_free(rec);
+        u_pwd_rec_free(pwd, rec);
 
     u_pwd_res_close(pwd);
 
@@ -677,7 +684,12 @@ err:
 /* hmap glue */
 static void __hmap_pwd_rec_free (u_hmap_o_t *obj)
 {
+    u_pwd_t fake_pwd;
+
+    fake_pwd.in_memory = 1;
+
     U_FREE(obj->key);
-    u_pwd_rec_free((u_pwd_rec_t *) obj->val);
+    u_pwd_rec_free(&fake_pwd, (u_pwd_rec_t *) obj->val);
+
     return;
 }
