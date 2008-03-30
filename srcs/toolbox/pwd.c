@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: pwd.c,v 1.8 2008/03/26 08:12:04 tho Exp $";
+    "$Id: pwd.c,v 1.9 2008/03/30 13:31:28 tho Exp $";
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -651,7 +651,7 @@ err:
 
 static void __file_close (void *fp)
 {
-    fclose((FILE *) fp);
+    dbg_return_sif (fclose((FILE *) fp), /* nothing */);
     return;
 }
 
