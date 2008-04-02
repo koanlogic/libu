@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: list.c,v 1.1 2008/04/02 10:12:49 tho Exp $";
+    "$Id: list.c,v 1.2 2008/04/02 10:30:43 tho Exp $";
 
 #include <u/libu_conf.h>
 #include <u/libu.h>
@@ -22,7 +22,7 @@ struct u_list_s
 };
 
 /**
- *  \defgroup list LIST
+ *  \defgroup list Lists
  *  \{
  */
 

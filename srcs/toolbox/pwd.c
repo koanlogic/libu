@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: pwd.c,v 1.9 2008/03/30 13:31:28 tho Exp $";
+    "$Id: pwd.c,v 1.10 2008/04/02 10:30:43 tho Exp $";
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -73,7 +73,7 @@ struct u_pwd_rec_s
 };
 
 /**
- *  \defgroup pwd PWD
+ *  \defgroup pwd Password
  *  \{
  */
 
