@@ -11,7 +11,7 @@ OPTION can be defined as follows:
 --version           [-V] display MaKL version
 --cross_compile     configure for cross-compilation (no execution tests)
 --noclean           do not clean cache at end of execution (testing only)
---prefix=BASE       set BASE directory for installation [BASE=]
+--prefix=BASE       set BASE directory for installation [BASE=/usr/local]
 --dir-bin=BASE      set BASE directory for binaries [BASE=/usr/local/bin]
 --dir-sbin=BASE     set BASE directory for sys binaries [BASE=/usr/local/sbin]
 --dir-conf=BASE     set BASE directory for configuration [BASE=/usr/local/conf]
