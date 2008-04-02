@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.9 2008/03/10 15:32:52 tho Exp $
+# $Id: Makefile,v 1.10 2008/04/02 10:12:49 tho Exp $
 
 include common.mk
 include ../Makefile.conf
@@ -32,8 +32,11 @@ ifndef NO_PWD
 ifdef NO_HMAP   # pwd needs hmap
 $(warning adding hmap module as a dependency to pwd)
 SRCS += toolbox/hmap.c
-endif
+endif   # NO_HMAP (PWD dep)
 SRCS += toolbox/pwd.c
+endif   # !NO_PWD 
+ifndef NO_LIST
+SRCS += toolbox/list.c
 endif
 
 # missing sources

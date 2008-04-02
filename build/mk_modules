@@ -1,4 +1,4 @@
-# $Id: mk_modules,v 1.2 2008/03/10 15:32:52 tho Exp $
+# $Id: mk_modules,v 1.3 2008/04/02 10:12:49 tho Exp $
 
 #
 # --no_hmap
@@ -76,4 +76,17 @@ makl_args_def   \
 __makl_no_pwd () 
 { 
     makl_set_var "NO_PWD" ; 
+}
+
+#
+# --no_list
+#
+makl_args_def   \
+    "no_list"   \
+    "" ""       \
+    "disable list module"
+
+__makl_no_list () 
+{ 
+    makl_set_var "NO_LIST" ; 
 }
