@@ -9,17 +9,22 @@ OPTION can be defined as follows:
 --help_gen          [-g] generate new configure.help based on configuration
 --verbose           [-v] show verbose debugging output
 --version           [-V] display MaKL version
-
 --cross_compile     configure for cross-compilation (no execution tests)
 --noclean           do not clean cache at end of execution (testing only)
---prefix=BASE       set BASE directory for installation [BASE=/usr/local]
+--prefix=BASE       set BASE directory for installation [BASE=]
 --dir-bin=BASE      set BASE directory for binaries [BASE=/usr/local/bin]
---dir-sbin=BASE     set BASE directory for system [BASE=/usr/local/sbin]
---dir-inc=BASE      set BASE directory for includes [BASE=/usr/local/include]
+--dir-sbin=BASE     set BASE directory for sys binaries [BASE=/usr/local/sbin]
+--dir-conf=BASE     set BASE directory for configuration [BASE=/usr/local/conf]
+--dir-inc=BASE      set BASE directory for includes [BASE=/usr/local/includes]
 --dir-lib=BASE      set BASE directory for libraries [BASE=/usr/local/lib]
---dir-share=BASE    set BASE directory for shared [BASE=/usr/local/share]
---dir-man=BASE      set BASE directory for man [BASE=/usr/local/man]
---dir-doc=BASE      set BASE directory for documentation [BASE=/usr/local/doc]
+--dir-shlib=BASE    set BASE directory for shared libs [BASE=/usr/local/shlib]
+--dir-libex=BASE    set BASE directory for binaries executed by other programs
+                        [BASE=/usr/local/libexec]
+--dir-var=BASE      set BASE directory for multi-purpose (log, temp, spool) dir
+                        [BASE=/usr/local/var]
+--dir-share=BASE    set BASE directory for shared data [BASE=/usr/local/share]
+--dir-man=BASE      set BASE directory for man pages [BASE=/usr/local/share/man]
+--dir-doc=BASE      set BASE directory for docs [BASE=/usr/local/share/doc]
 
 --defown=USERID     set default file owner id
 --defgrp=GROUPID    set default file group id
@@ -32,16 +37,23 @@ OPTION can be defined as follows:
 
 --enable-X=ID       enable feature of type X and id ID
 --disable-X=ID      disable feature of type X and id ID
---enable_debug      enables debugging
---enable_profile    enables profiling
+--enable_shared     enable shared library build
+--enable_profile    enables profiling via gprof (GCC only)
 --enable_warns      set CFLAGS for extra warnings
---enable_shared     enable shared library build [by default it is disabled]
+--enable_debug      enable debugging support: carpal verbose output and CC 
+                    debug flags
+
 --no_hmap           disable hmap module
 --no_config         disable config module
 --no_net            disable net module
 --no_env            disable env module
 --no_fs             disable fs module
+--no_pwd            disable pwd module
+--no_list           disable list module
+--no_ipv6           disable IPv6 support
+--no_unixsock       disable Unix socket support
 
 Legend:
   <*>: required dependency
   <?>: optional dependency
+
