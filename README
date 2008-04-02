@@ -45,7 +45,14 @@ The following modules can be left out through the given configure option:
     - config            (--no_config)
     - net and uri       (--no_net)
     - env               (--no_env)
+    - fs                (--no_fs)
+    - pwd               (--no_pwd)
+    - list              (--no_list)
 
+== Extra configuration flags
+
+    - configure LibU for debugging      (--enable_debug)
+    - compile LibU with pedantic CFLAGS (--enable_warns)
 
 == Contribute to LibU ==
 
