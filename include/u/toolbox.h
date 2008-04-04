@@ -37,5 +37,8 @@
 #endif
     #include <u/toolbox/pwd.h>
 #endif
+#ifndef NO_LIST
+#include <u/toolbox/list.h>
+#endif
 
 #endif  /* !_LIBU_TOOLBOX_H_ */
