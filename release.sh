@@ -17,8 +17,9 @@ REL_DIR="${REL_WD}/DIST"
 REL_TMP_DIR="${REL_DIR}/tmp"
 REL_OUT_DIR="${REL_DIR}/out"
 
-REL_TARGET="root@gonzo.koanlogic.com:/var/www-anemic/www/download/libu/"
-
+REL_HOST="gonzo.koanlogic.com"
+REL_HOST_DIR="/var/www-anemic/www/download/libu/"
+REL_TARGET="${REL_HOST}:${REL_HOST_DIR}"
 
 yesno ()
 {
@@ -50,7 +51,7 @@ make_pre()
 
 make_tag()
 {
-    yesno "using tag \"${REL_TAG}\", do you want to continue ?" \
+    yesno "using tag \"${REL_TAG}\", do you want to continue (y/n)?" \
         || err "bailing out on client request"
 
     echo "==> tagging as \"${REL_TAG}\""
@@ -78,20 +79,32 @@ make_dist()
     makl-conf || err "makl-conf failed"
     makl -f Makefile.dist dist || "dist target failed"
 
-    cp ChangeLog libu-${REL_VERSION}.* ${REL_OUT_DIR} \
+    cp libu-${REL_VERSION}.* ${REL_OUT_DIR} \
         || err "can't copy dist files to ${REL_OUT_DIR}"
     popd
 }
 
 make_upload()
 {
-    echo "uploading release"
-    scp -r ${REL_OUT_DIR}/libu-${REL_VERSION}.* ChangeLog ${REL_TARGET} \
+    local rcmd;
+
+    rcmd="cd ${REL_HOST_DIR} && chgrp www-data libu-${REL_VERSION}.* && \
+          ../mklatest.sh libu ${REL_VERSION}"
+
+    echo "==> uploading release"
+
+    # upload 
+    scp -r ${REL_OUT_DIR}/libu-${REL_VERSION}.* root@${REL_TARGET} \
         || err "can't copy dist files to ${REL_TARGET}"
+
+    # update -latest (this also extract ChangeLog from package)
+    ssh root@${REL_HOST} ${rcmd} \
+        || err "can't create -latest link on ${REL_HOST}"
 }
 
 make_clean()
 {
+    echo "==> clean up"
     rm -r ${REL_DIR}
 }
 
