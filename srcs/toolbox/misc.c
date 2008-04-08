@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.12 2008/03/10 16:51:44 tho Exp $";
+    "$Id: misc.c,v 1.13 2008/04/08 12:33:37 tho Exp $";
 
 #include <u/libu_conf.h>
 #include <sys/types.h>
@@ -106,14 +106,18 @@ char *u_strdup(const char *s)
  */
 int u_savepid (const char *pf)
 {
-    FILE *pfp;
+    FILE *pfp = NULL;
 
-    dbg_return_if ((pfp = fopen(pf, "w")) == NULL, ~0);
+    dbg_return_if (pf == NULL, ~0);
 
-    fprintf(pfp, "%ld\n", (long) getpid());
+    dbg_err_sif ((pfp = fopen(pf, "w")) == NULL);
+    dbg_err_sif (fprintf(pfp, "%ld\n", (long) getpid()) == 0);
     fclose(pfp);
 
     return 0;
+err:
+    U_FCLOSE(pfp);
+    return ~0;
 }
 
 /** \brief  Safe string copy, see also the U_SSTRNCPY define 
