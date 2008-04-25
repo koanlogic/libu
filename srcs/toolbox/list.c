@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: list.c,v 1.2 2008/04/02 10:30:43 tho Exp $";
+    "$Id: list.c,v 1.3 2008/04/25 19:29:18 tat Exp $";
 
 #include <u/libu_conf.h>
 #include <u/libu.h>
@@ -66,7 +66,11 @@ void u_list_free(u_list_t *list)
     dbg_return_if(list == NULL, );
 
     while((item = TAILQ_FIRST(&list->head)) != NULL)
+    {
         TAILQ_REMOVE(&list->head, item, np);
+
+        u_free(item);
+    }
 
     u_free(list);
 
@@ -121,6 +125,7 @@ int u_list_del(u_list_t *list, void *ptr)
         {
             TAILQ_REMOVE(&list->head, item, np);
             list->count--;
+            u_free(item);
             return 0; /* removed */
         }
     }
