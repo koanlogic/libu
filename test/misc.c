@@ -214,10 +214,55 @@ err:
     return ~0;
 }
 
+static int test_u_path_snprintf(void)
+{
+    struct vt_s
+    {
+        const char *src, *exp;
+    } vt[] = {
+        { "",           "" },
+        { "/",          "/" },
+        { "//",         "/" },
+        { "///",        "/" },
+        { "a",          "a" },
+        { "ab",         "ab" },
+        { "abc",        "abc" },
+        { "a/b",        "a/b" },
+        { "/a",         "/a" },
+        { "//a",        "/a" },
+        { "///a",       "/a" },
+        { "////a",      "/a" },
+        { "/a//",       "/a/" },
+        { "/a///",      "/a/" },
+        { "/a////",     "/a/" },
+        { "a//b",       "a/b" },
+        { "a///b",      "a/b" },
+        { "a////b",     "a/b" },
+        { "a/b//c",     "a/b/c" },
+        { "a/b//c/",    "a/b/c/" },
+        { "a//b//c//",  "a/b/c/" },
+        { NULL,         NULL }
+    };
+    int i;
+    char buf[4096];
+
+    for(i = 0; vt[i].src; ++i)
+    {
+        u_path_snprintf(buf, sizeof(buf), '/', "%s", vt[i].src);
+        con_err_ifm(strcmp(buf, vt[i].exp), "src: %s  exp: %s  got: %s",
+                vt[i].src, vt[i].exp, buf);
+    }
+
+    return 0;
+err:
+    return ~0;
+}
+
 U_TEST_MODULE(misc)
 {
     U_TEST_RUN( test_u_rdwr );
     U_TEST_RUN( test_u_str );
+    U_TEST_RUN( test_u_path_snprintf );
 
     return 0;                                                
 }

@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.13 2008/04/08 12:33:37 tho Exp $";
+    "$Id: misc.c,v 1.14 2008/04/25 20:58:36 tat Exp $";
 
 #include <u/libu_conf.h>
 #include <sys/types.h>
@@ -241,8 +241,13 @@ int u_path_snprintf(char *buf, size_t sz, char sep, const char *fmt, ...)
 
     /* remove multiple consecutive '/' */
     for(len = i = strlen(buf); i > 0; --i)
+    {
         if(buf[i] == sep && buf[i-1] == sep)
-            memmove(buf + i, buf + i + 1, len--);
+        {
+            memmove(buf + i, buf + i + 1, len - i);
+            len--;
+        }
+    }
 
     return 0;
 err:
