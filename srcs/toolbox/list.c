@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: list.c,v 1.3 2008/04/25 19:29:18 tat Exp $";
+    "$Id: list.c,v 1.4 2008/04/29 09:54:45 tho Exp $";
 
 #include <u/libu_conf.h>
 #include <u/libu.h>
@@ -29,7 +29,7 @@ struct u_list_s
 /**
  *  \brief  Create a new list object
  *
- *  \params plist   the newly created list object as a result argument
+ *  \param plist   the newly created list object as a result argument
  *
  *  \return \c 0 on success, \c ~0 on error
  */ 
@@ -55,7 +55,7 @@ err:
  *  \brief  Free the list object: note the list doesn't own the pointers in it,
  *          the client must free them
  *
- *  \params list    the list object that has to be disposed
+ *  \param list    the list object that has to be disposed
  *
  *  \return nothing 
  */ 
@@ -80,8 +80,8 @@ void u_list_free(u_list_t *list)
 /**
  *  \brief  Push an element to the list
  *
- *  \params list    the partent list object (created via u_list_new)
- *  \params ptr     the element that has to be push'd
+ *  \param list    the partent list object (created via u_list_new)
+ *  \param ptr     the element that has to be push'd
  *
  *  \return \c 0 on success, \c ~0 on error
  */ 
@@ -110,8 +110,8 @@ err:
 /**
  *  \brief  Pop an element from the list
  *
- *  \params list    the partent list object (created via u_list_new)
- *  \params ptr     the element that has to be pop'd
+ *  \param list    the partent list object (created via u_list_new)
+ *  \param ptr     the element that has to be pop'd
  *
  *  \return \c 0 if \p ptr has been removed, \c ~0 if \p ptr was not found
  */ 
@@ -136,7 +136,7 @@ int u_list_del(u_list_t *list, void *ptr)
 /**
  *  \brief  Count elements in list
  *
- *  \params list    a list object
+ *  \param list    a list object
  *
  *  \return the number of elements in \p list
  */ 
@@ -149,8 +149,8 @@ size_t u_list_count(u_list_t *list)
 /**
  *  \brief  Get the n-th element in list
  *
- *  \params list    a list object
- *  \params n       the ordinal of the element that should be retrieved
+ *  \param list    a list object
+ *  \param n       the ordinal of the element that should be retrieved
  *
  *  \return the pointer to the n-th element or \c NULL if no n-th element has
  *          been found
