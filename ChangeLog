@@ -1,9 +1,10 @@
-$Id: ChangeLog,v 1.31 2008/04/30 16:08:14 tat Exp $
+$Id: ChangeLog,v 1.32 2008/04/30 16:12:54 tat Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
 LibU x.y.z:
     - [config] include directive support
+    - [config] example/config/uconfig program added
 
 LibU 1.2.1:
 	- [misc] u_path_snprintf memmove fix

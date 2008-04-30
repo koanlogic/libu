@@ -1,3 +1,3 @@
-SUBDIR = net
+SUBDIR = net pwd config
 
 include subdir.mk
