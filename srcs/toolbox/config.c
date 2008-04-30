@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.7 2008/03/10 16:51:44 tho Exp $";
+    "$Id: config.c,v 1.8 2008/04/30 16:04:07 tat Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -218,7 +218,7 @@ err:
 }
 
 static int u_config_do_set_key(u_config_t *c, const char *key, const char *val, 
-    int overwrite)
+    int overwrite, u_config_t **pchild)
 {
     u_config_t *child = NULL;
     char *p, *child_key;
@@ -231,13 +231,17 @@ static int u_config_do_set_key(u_config_t *c, const char *key, const char *val,
             dbg_err_if(u_config_add_child(c, key, &child));
         } 
         dbg_err_if(u_config_set_value(child, val));
+
+        /* return the child we just added/modified */
+        if(pchild)
+            *pchild = child;
     } else {
         child_key = u_strndup(key, p-key);
         dbg_err_if(child_key == NULL);
         if((child = u_config_get_child(c, child_key)) == NULL)
             dbg_err_if(u_config_add_child(c, child_key, &child));
         U_FREE(child_key);
-        return u_config_do_set_key(child, ++p, val, overwrite);
+        return u_config_do_set_key(child, ++p, val, overwrite, NULL);
     }
     return 0;
 err:
@@ -246,12 +250,12 @@ err:
 
 int u_config_add_key(u_config_t *c, const char *key, const char *val)
 {
-    return u_config_do_set_key(c, key, val, 0 /* don't overwrite */);
+    return u_config_do_set_key(c, key, val, 0 /* don't overwrite */, NULL);
 }
 
 int u_config_set_key(u_config_t *c, const char *key, const char *val)
 {
-    return u_config_do_set_key(c, key, val, 1 /* overwrite */);
+    return u_config_do_set_key(c, key, val, 1 /* overwrite */, NULL);
 }
 
 static int cs_getline(u_config_gets_t cb, void *arg, u_string_t *ln)
@@ -281,6 +285,55 @@ err:
     return ~0;
 }
 
+static int u_config_include(u_config_t *c, u_config_t *inckey, const char *path,
+        int overwrite)
+{
+    u_config_t *subkey;
+    int fd = -1, i;
+    const char *p;
+
+    dbg_err_if(c == NULL);
+    dbg_err_if(path == NULL);
+
+    for(i = 0; u_config_get_subkey_nth(c, "include", i, &subkey) == 0; ++i)
+    {
+        if(subkey != inckey && !strcmp(path, u_config_get_value(subkey)))
+            crit_err("circular dependency error loading %s", path);
+    }
+
+    /* find the end of the key string */
+    for(p = path; *p && u_isblank(*p); ++p);
+
+    dbg_err_if(p == NULL);
+
+    crit_err_sifm ((fd = open(p, O_RDONLY)) == -1,
+        "unable to access configuration file: %s", p);
+
+    dbg_err_if(u_config_load(c, fd, overwrite));
+
+    close(fd), fd = -1;
+
+    return 0;
+err:
+    if(fd >= 0)
+        close(fd);
+    return ~0;
+}
+
+/**
+ * \brief  Delete a child config object.
+ *
+ *  Delete a child config object. \c child must be a child of \c c.
+ *
+ * \param c         configuration object
+ * \param child     the config object to delete
+ *
+ */
+static void u_config_del_key(u_config_t *c, u_config_t *child)
+{
+    TAILQ_REMOVE(&c->children, child, np);
+}
+
 static int u_config_do_load(u_config_t *c, u_config_gets_t cb, void *arg, 
     int overwrite)
 {
@@ -290,6 +343,7 @@ static int u_config_do_load(u_config_t *c, u_config_gets_t cb, void *arg,
     size_t len;
     int lineno = 1;
     u_config_t *child = NULL;
+    u_config_t *subkey;
 
     dbg_err_if(u_string_create(NULL, 0, &line));
     dbg_err_if(u_string_create(NULL, 0, &key));
@@ -321,10 +375,10 @@ static int u_config_do_load(u_config_t *c, u_config_gets_t cb, void *arg,
         if(ln[0] == '{')
         {   /* group config values */
             if(u_string_len(lastkey) == 0)
-                dbg_err("config error [line %d]: { not after a no-value key", 
+                crit_err("config error [line %d]: { not after a no-value key", 
                          lineno);
             if(!u_isblank_str(++ln))
-                dbg_err("config error [line %d]: { or } must be the "
+                crit_err("config error [line %d]: { or } must be the "
                          "only not-blank char in a line", lineno);
 
             /* modify the existing child (when overwriting) or add a new one */
@@ -338,7 +392,7 @@ static int u_config_do_load(u_config_t *c, u_config_gets_t cb, void *arg,
             dbg_err_if(u_string_clear(lastkey));
             continue;
         } else if(ln[0] == '}') {
-            dbg_err_ifm(c->parent == NULL,"config error: unmatched '}'");
+            crit_err_ifm(c->parent == NULL,"config error: unmatched '}'");
             if(!u_isblank_str(++ln))
                 dbg_err("config error [line %d]: { or } must be the "
                          "only not-blank char in a line", lineno);
@@ -362,11 +416,26 @@ static int u_config_do_load(u_config_t *c, u_config_gets_t cb, void *arg,
             continue;
         }
 
-        /* add to the var list */
-        dbg_err_if(u_config_do_set_key(c, 
-                        u_string_c(key), 
-                        u_string_len(value) ? u_string_c(value) : NULL, 
+        if(!strcmp(u_string_c(key), "include"))
+        {
+            crit_err_ifm(u_string_len(value) == 0, "missing include filename");
+
+            /* add to the include key to the list to resolve ${} vars */
+            dbg_err_if(u_config_do_set_key(c, u_string_c(key), 
+                        u_string_c(value), 0, &subkey));
+
+            /* load the included file */
+            dbg_err_if(u_config_include(c, subkey, u_config_get_value(subkey), 
                         overwrite));
+
+        } else {
+            /* add to the var list */
+            dbg_err_if(u_config_do_set_key(c, 
+                            u_string_c(key), 
+                            u_string_len(value) ? u_string_c(value) : NULL, 
+                            overwrite, NULL));
+        }
+
     }
     
     u_string_free(lastkey);
@@ -496,20 +565,6 @@ err:
     if(c)
         u_config_free(c);
     return ~0;
-}
-
-/**
- * \brief  Delete a child config object.
- *
- *  Delete a child config object. \c child must be a child of \c c.
- *
- * \param c         configuration object
- * \param child     the config object to delete
- *
- */
-static void u_config_del_key(u_config_t *c, u_config_t *child)
-{
-    TAILQ_REMOVE(&c->children, child, np);
 }
 
 /**
