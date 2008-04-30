@@ -23,6 +23,17 @@ extern "C" {
 #define msg(label, err, ...) label( err, __VA_ARGS__ )
 #define msg_noargs(label, err, literal) label( err, "%s", literal)
 
+/**
+ *  \defgroup carpal Flow Control
+ *  \{
+ *      In all the macros that follow the \c msg_ prefix can be substituted by
+ *      any of \c dbg_, \c info_, \c notice_, \c warn_, \c err_, \c crit_,
+ *      \c alert_, \c emerg_ strings.  As you may easily spot, each of these 
+ *      variant is in 1:1 correspondence with \c syslog(1) error levels.  
+ *      Also the special \c con_ prefix can be used to redirect the message 
+ *      to the console.
+ */
+
 /** \brief log a message and goto "err" label
  *
  *   log a message of type \e label if \e expr not zero.
@@ -189,6 +200,10 @@ extern "C" {
     } while(0)  
 
 #endif /* ! def OS_WIN */
+
+/**
+ *  \}
+ */  
 
 /* nop_ macros */
 #define nop_return_if(expr, err)       do { if(expr) return err; } while(0)
