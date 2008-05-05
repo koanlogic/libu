@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.8 2008/04/30 16:04:07 tat Exp $";
+    "$Id: config.c,v 1.9 2008/05/05 14:38:08 tat Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -42,6 +42,12 @@ struct u_config_s
     u_config_list_t children;   /* subkeys              */
     u_config_t *parent;         /* parent config obj    */
 };
+
+/* file system pre-defined driver */
+extern u_config_driver_t u_config_drv_fs;
+
+/* forward declarations */
+static int u_config_include(u_config_t*, u_config_driver_t*, u_config_t*, int);
 
 /**
  * \brief  Print configuration to \c stdout
@@ -278,64 +284,15 @@ static int cs_getline(u_config_gets_t cb, void *arg, u_string_t *ln)
             break;
     }
 
-    dbg_err_if(p == NULL);
+    nop_err_if(p == NULL); /* eof */
 
     return 0;
 err:
     return ~0;
 }
 
-static int u_config_include(u_config_t *c, u_config_t *inckey, const char *path,
-        int overwrite)
-{
-    u_config_t *subkey;
-    int fd = -1, i;
-    const char *p;
-
-    dbg_err_if(c == NULL);
-    dbg_err_if(path == NULL);
-
-    for(i = 0; u_config_get_subkey_nth(c, "include", i, &subkey) == 0; ++i)
-    {
-        if(subkey != inckey && !strcmp(path, u_config_get_value(subkey)))
-            crit_err("circular dependency error loading %s", path);
-    }
-
-    /* find the end of the key string */
-    for(p = path; *p && u_isblank(*p); ++p);
-
-    dbg_err_if(p == NULL);
-
-    crit_err_sifm ((fd = open(p, O_RDONLY)) == -1,
-        "unable to access configuration file: %s", p);
-
-    dbg_err_if(u_config_load(c, fd, overwrite));
-
-    close(fd), fd = -1;
-
-    return 0;
-err:
-    if(fd >= 0)
-        close(fd);
-    return ~0;
-}
-
-/**
- * \brief  Delete a child config object.
- *
- *  Delete a child config object. \c child must be a child of \c c.
- *
- * \param c         configuration object
- * \param child     the config object to delete
- *
- */
-static void u_config_del_key(u_config_t *c, u_config_t *child)
-{
-    TAILQ_REMOVE(&c->children, child, np);
-}
-
-static int u_config_do_load(u_config_t *c, u_config_gets_t cb, void *arg, 
-    int overwrite)
+static int u_config_do_load_drv(u_config_t *c, u_config_driver_t *drv, 
+        void *arg, int overwrite)
 {
     enum { MAX_NEST_LEV = 20 };
     u_string_t *line = NULL, *key = NULL, *lastkey = NULL, *value = NULL;
@@ -350,7 +307,9 @@ static int u_config_do_load(u_config_t *c, u_config_gets_t cb, void *arg,
     dbg_err_if(u_string_create(NULL, 0, &value));
     dbg_err_if(u_string_create(NULL, 0, &lastkey));
 
-    for(; cs_getline(cb, arg, line) == 0; u_string_clear(line), ++lineno)
+    dbg_err_if(drv->gets == NULL);
+
+    for(; cs_getline(drv->gets, arg, line) == 0; u_string_clear(line), ++lineno)
     {
         /* remove comments if any */
         if((p = strchr(u_string_c(line), '#')) != NULL)
@@ -388,8 +347,10 @@ static int u_config_do_load(u_config_t *c, u_config_gets_t cb, void *arg,
                 dbg_err_if(u_config_add_child(c, u_string_c(lastkey), &child));
             }
 
-            dbg_err_if(u_config_do_load(child, cb, arg, overwrite));
+            dbg_err_if(u_config_do_load_drv(child, drv, arg, overwrite));
+
             dbg_err_if(u_string_clear(lastkey));
+
             continue;
         } else if(ln[0] == '}') {
             crit_err_ifm(c->parent == NULL,"config error: unmatched '}'");
@@ -425,8 +386,7 @@ static int u_config_do_load(u_config_t *c, u_config_gets_t cb, void *arg,
                         u_string_c(value), 0, &subkey));
 
             /* load the included file */
-            dbg_err_if(u_config_include(c, subkey, u_config_get_value(subkey), 
-                        overwrite));
+            dbg_err_if(u_config_include(c, drv, subkey, overwrite));
 
         } else {
             /* add to the var list */
@@ -456,21 +416,90 @@ err:
     return ~0;
 }
 
+static int u_config_include(u_config_t *c, u_config_driver_t *drv, 
+        u_config_t *inckey, int overwrite)
+{
+    u_config_t *subkey;
+    int i;
+    const char *p, *path;
+    void *arg = NULL;
+
+    dbg_err_if(c == NULL);
+
+    path = u_config_get_value(inckey);
+    dbg_err_if(path == NULL);
+
+    for(i = 0; u_config_get_subkey_nth(c, "include", i, &subkey) == 0; ++i)
+    {
+        if(subkey != inckey && !strcmp(path, u_config_get_value(subkey)))
+            crit_err("circular dependency error loading %s", path);
+    }
+
+    /* find the end of the key string */
+    for(p = path; *p && u_isblank(*p); ++p);
+
+    dbg_err_if(p == NULL);
+
+    crit_err_ifm ( drv->open == NULL,
+        "'include' feature used but the 'open' driver callback is not defined");
+
+    crit_err_ifm (drv->open(p, &arg),
+        "unable to access input file: %s", p);
+
+    dbg_err_if(u_config_do_load_drv(c, drv, arg, overwrite));
+
+    if(drv->close)
+        crit_err_ifm (drv->close(arg),
+            "unable to close input file: %s", p);
+    else
+        warn("the 'close' driver callback is not defined, not closing...");
+
+    return 0;
+err:
+    if(arg && drv->close)
+        drv->close(arg);
+    return ~0;
+}
+
+/**
+ * \brief  Delete a child config object.
+ *
+ *  Delete a child config object. \c child must be a child of \c c.
+ *
+ * \param c         configuration object
+ * \param child     the config object to delete
+ *
+ */
+static void u_config_del_key(u_config_t *c, u_config_t *child)
+{
+    TAILQ_REMOVE(&c->children, child, np);
+}
+
+/**
+ * \brief  Load from an opaque data source
+ *
+ *  Load configuration data from a data source; a gets()-like function must
+ *  be provided by the caller to read the configuration line-by-line.
+ *
+ *  Using this interface is not possibile to use the 'include' command; use
+ *  u_config_load_from_file or u_config_load_from_drv instead.
+ *
+ * \param c         configuration object
+ * \param cb        gets()-like callback
+ * \param arg       opaque argument passed to the 'cb' function
+ * \param overwrite     if 1 overwrite keys with the same name otherwise new
+ *
+ */
 int u_config_load_from(u_config_t *c, u_config_gets_t cb, 
     void *arg, int overwrite)
 {
-    dbg_err_if(u_config_do_load(c, cb, arg, overwrite));
+    u_config_driver_t drv = { NULL, NULL, cb };
+
+    dbg_err_if(u_config_do_load_drv(c, &drv, NULL, overwrite));
 
     return 0;
 err:
     return ~0;
-}
-
-static char *u_config_fgetline(void* arg, char * buf, size_t size)
-{
-    FILE *f = (FILE*)arg;
-
-    return fgets(buf, size, f);
 }
 
 /**
@@ -490,13 +519,13 @@ static char *u_config_fgetline(void* arg, char * buf, size_t size)
  */
 int u_config_load(u_config_t *c, int fd, int overwrite)
 {
-    FILE *file;
+    FILE *file = NULL;
 
     /* must dup because fclose() calls close(2) on fd */
     file = fdopen(dup(fd), "r");
     dbg_err_if(file == NULL);
 
-    dbg_err_if(u_config_do_load(c, u_config_fgetline, file, overwrite));
+    dbg_err_if(u_config_do_load_drv(c, &u_config_drv_fs, file, overwrite));
 
     fclose(file);
 
@@ -518,24 +547,13 @@ err:
  */
 int u_config_load_from_file (const char *file, u_config_t **pc)
 {
-    int fd = -1;
-    u_config_t *c = NULL;
-
     dbg_return_if (file == NULL, ~0);
     dbg_return_if (pc == NULL, ~0);
 
-    dbg_err_if (u_config_create(&c));
-    dbg_err_if ((fd = open(file, O_RDONLY)) == -1); 
-    dbg_err_if (u_config_load(c, fd, 0));
-
-    (void) close(fd);
-
-    *pc = c;
+    dbg_err_if (u_config_load_from_drv(file, &u_config_drv_fs, 0, pc));
 
     return 0;
 err:
-    (void) u_config_free(c);
-    U_CLOSE(fd);
     return ~0;
 }
 
@@ -740,6 +758,40 @@ int u_config_get_subkey_value_b(u_config_t *c, const char *subkey, int def,
 
     return ~0; /* not-bool value */
 }
+
+int u_config_load_from_drv(const char *uri, u_config_driver_t *drv, 
+        int overwrite, u_config_t **pc)
+{
+    u_config_t *c = NULL;
+    void *arg = NULL;
+
+    dbg_err_if (uri == NULL);
+    dbg_err_if (pc == NULL);
+    dbg_err_if (drv == NULL);
+
+    dbg_err_if (drv->gets == NULL);
+
+    dbg_err_if (u_config_create(&c));
+
+    if(drv->open)
+        dbg_err_if (drv->open(uri, &arg));
+
+    dbg_err_if (u_config_do_load_drv(c, drv, arg, overwrite));
+
+    if(drv->close)
+        dbg_err_if (drv->close(arg));
+
+    *pc = c;
+
+    return 0;
+err:
+    if(arg && drv->close)
+        drv->close(arg);
+    if(c)
+        u_config_free(c);
+    return ~0;
+}
+
 
 /**
  *      \}

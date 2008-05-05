@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.10 2008/04/02 10:12:49 tho Exp $
+# $Id: Makefile,v 1.11 2008/05/05 14:38:08 tat Exp $
 
 include common.mk
 include ../Makefile.conf
@@ -18,6 +18,7 @@ SRCS += toolbox/hmap.c
 endif
 ifndef NO_CONFIG
 SRCS += toolbox/config.c
+SRCS += toolbox/config_fs.c
 endif
 ifndef NO_ENV
 SRCS += toolbox/env.c

@@ -14,11 +14,22 @@ extern "C" {
 struct u_config_s;
 typedef struct u_config_s u_config_t;
 
+struct u_config_driver_s
+{
+    int (*open)(const char *uri, void **parg);
+    int (*close)(void *arg);
+    char* (*gets)(void *arg, char *buf, size_t size);
+};
+typedef struct u_config_driver_s u_config_driver_t;
+
 int u_config_create(u_config_t **pc);
 int u_config_free(u_config_t *c);
 int u_config_load(u_config_t *c, int fd, int overwrite);
 
 int u_config_load_from_file (const char *file, u_config_t **pc);
+
+int u_config_load_from_drv(const char *uri, u_config_driver_t *drv, 
+        int overwrite, u_config_t **pc);
 
 typedef char* (*u_config_gets_t)(void *arg, char *buf, size_t size);
 int u_config_load_from(u_config_t *c, u_config_gets_t cb, 
