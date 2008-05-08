@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.10 2008/05/08 16:44:56 tat Exp $";
+    "$Id: config.c,v 1.11 2008/05/08 17:10:02 tat Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -383,13 +383,7 @@ static int u_config_do_load_drv(u_config_t *c, u_config_driver_t *drv,
             /* load the included file */
             dbg_err_if(u_config_include(c, drv, subkey, overwrite));
 
-        } else {
-            /* add to the var list */
-            dbg_err_if(u_config_do_set_key(c, 
-                            u_string_c(key), 
-                            u_string_len(value) ? u_string_c(value) : NULL, 
-                            overwrite, NULL));
-        }
+        } 
 
         /* if the valus is empty an open bracket will follow, save the key */
         if(u_string_len(value) == 0)
@@ -397,6 +391,13 @@ static int u_config_do_load_drv(u_config_t *c, u_config_driver_t *drv,
             dbg_err_if(u_string_set(lastkey, ln, p-ln));
             continue;
         }
+
+        /* add to the var list */
+        dbg_err_if(u_config_do_set_key(c, 
+                        u_string_c(key), 
+                        u_string_len(value) ? u_string_c(value) : NULL, 
+                        overwrite, NULL));
+
     }
     
     u_string_free(lastkey);
