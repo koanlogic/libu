@@ -19,6 +19,7 @@ struct u_config_driver_s
     int (*open)(const char *uri, void **parg);
     int (*close)(void *arg);
     char* (*gets)(void *arg, char *buf, size_t size);
+    int (*resolv)(const char *name, char *uri, size_t uri_bufsz);
 };
 typedef struct u_config_driver_s u_config_driver_t;
 

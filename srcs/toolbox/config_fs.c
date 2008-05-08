@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config_fs.c,v 1.1 2008/05/05 14:51:53 tat Exp $";
+    "$Id: config_fs.c,v 1.2 2008/05/08 16:44:56 tat Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -78,7 +78,8 @@ err:
 u_config_driver_t u_config_drv_fs = { 
     drv_fs_open, 
     drv_fs_close, 
-    drv_fs_gets 
+    drv_fs_gets,
+    NULL /* include resolver */
 };
 
 

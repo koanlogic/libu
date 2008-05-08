@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.9 2008/05/05 14:38:08 tat Exp $";
+    "$Id: config.c,v 1.10 2008/05/08 16:44:56 tat Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -14,6 +14,7 @@ static const char rcsid[] =
 
 #include <toolbox/carpal.h>
 #include <toolbox/queue.h>
+#include <toolbox/list.h>
 #include <toolbox/config.h>
 #include <toolbox/misc.h>
 #include <toolbox/memory.h>
@@ -67,6 +68,7 @@ void u_config_print(u_config_t *c, int lev)
 
     for(i = 0; i < lev; ++i)
         printf("  ");
+
     if (c->key)
         printf("%s: %s\n", c->key, c->value == NULL ? "" : c->value);
 
@@ -370,13 +372,6 @@ static int u_config_do_load_drv(u_config_t *c, u_config_driver_t *drv,
         dbg_err_if(u_string_set(value, p, strlen(p)));
         dbg_err_if(u_string_trim(value));
 
-        /* if the valus is empty an open bracket will follow, save the key */
-        if(u_string_len(value) == 0)
-        {
-            dbg_err_if(u_string_set(lastkey, ln, p-ln));
-            continue;
-        }
-
         if(!strcmp(u_string_c(key), "include"))
         {
             crit_err_ifm(u_string_len(value) == 0, "missing include filename");
@@ -396,6 +391,12 @@ static int u_config_do_load_drv(u_config_t *c, u_config_driver_t *drv,
                             overwrite, NULL));
         }
 
+        /* if the valus is empty an open bracket will follow, save the key */
+        if(u_string_len(value) == 0)
+        {
+            dbg_err_if(u_string_set(lastkey, ln, p-ln));
+            continue;
+        }
     }
     
     u_string_free(lastkey);
@@ -423,6 +424,7 @@ static int u_config_include(u_config_t *c, u_config_driver_t *drv,
     int i;
     const char *p, *path;
     void *arg = NULL;
+    char uri[U_FILENAME_MAX + 1];
 
     dbg_err_if(c == NULL);
 
@@ -443,10 +445,18 @@ static int u_config_include(u_config_t *c, u_config_driver_t *drv,
     crit_err_ifm ( drv->open == NULL,
         "'include' feature used but the 'open' driver callback is not defined");
 
+    /* resolv the include filename */
+    if(drv->resolv)
+    {
+        dbg_err_if (drv->resolv(p, uri, sizeof(uri)));
+
+        p = uri;
+    } 
+
     crit_err_ifm (drv->open(p, &arg),
         "unable to access input file: %s", p);
 
-    dbg_err_if(u_config_do_load_drv(c, drv, arg, overwrite));
+    dbg_err_if (u_config_do_load_drv(c, drv, arg, overwrite));
 
     if(drv->close)
         crit_err_ifm (drv->close(arg),
@@ -493,9 +503,9 @@ static void u_config_del_key(u_config_t *c, u_config_t *child)
 int u_config_load_from(u_config_t *c, u_config_gets_t cb, 
     void *arg, int overwrite)
 {
-    u_config_driver_t drv = { NULL, NULL, cb };
+    u_config_driver_t drv = { NULL, NULL, cb, NULL };
 
-    dbg_err_if(u_config_do_load_drv(c, &drv, NULL, overwrite));
+    dbg_err_if(u_config_do_load_drv(c, &drv, arg, overwrite));
 
     return 0;
 err:
@@ -759,6 +769,7 @@ int u_config_get_subkey_value_b(u_config_t *c, const char *subkey, int def,
     return ~0; /* not-bool value */
 }
 
+
 int u_config_load_from_drv(const char *uri, u_config_driver_t *drv, 
         int overwrite, u_config_t **pc)
 {
@@ -792,7 +803,7 @@ err:
     return ~0;
 }
 
-
 /**
  *      \}
  */
+
