@@ -1,12 +1,12 @@
-$Id: ChangeLog,v 1.34 2008/05/08 16:44:56 tat Exp $
+$Id: ChangeLog,v 1.35 2008/05/09 07:58:15 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
 LibU x.y.z:
-    - [config] drivers can set a callback function to resolve include filenames
-    - [config] load from opaque data sources (u_config_load_from_drv)
-    - [config] include directive support
-    - [config] example/config/uconfig program added
+	- [config] drivers can set a callback function to resolve include filenames
+	- [config] load from opaque data sources (u_config_load_from_drv)
+	- [config] include directive support
+	- [config] example/config/uconfig program added
 
 LibU 1.2.1:
 	- [misc] u_path_snprintf memmove fix
