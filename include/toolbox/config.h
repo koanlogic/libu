@@ -6,6 +6,7 @@
 #define _U_CONFIG_H_
 
 #include <u/libu_conf.h>
+#include <toolbox/str.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,6 +58,10 @@ int u_config_add_child(u_config_t *c, const char *key, u_config_t **pc);
 int u_config_set_value(u_config_t *c, const char *val);
 u_config_t* u_config_get_child_n(u_config_t *c, const char *key, int n);
 u_config_t* u_config_get_child(u_config_t *c, const char *key);
+
+int u_config_has_children(u_config_t *c);
+int u_config_to_buf(u_config_t *c, char *buf, size_t size);
+int u_config_from_buf(char *buf, size_t len, u_config_t **pc);
 
 void u_config_print(u_config_t *c, int lev);
 

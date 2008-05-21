@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.11 2008/05/08 17:10:02 tat Exp $";
+    "$Id: config.c,v 1.12 2008/05/21 12:10:32 tat Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -46,6 +46,7 @@ struct u_config_s
 
 /* file system pre-defined driver */
 extern u_config_driver_t u_config_drv_fs;
+extern u_config_driver_t u_config_drv_mem;
 
 /* forward declarations */
 static int u_config_include(u_config_t*, u_config_driver_t*, u_config_t*, int);
@@ -770,7 +771,6 @@ int u_config_get_subkey_value_b(u_config_t *c, const char *subkey, int def,
     return ~0; /* not-bool value */
 }
 
-
 int u_config_load_from_drv(const char *uri, u_config_driver_t *drv, 
         int overwrite, u_config_t **pc)
 {
@@ -803,6 +803,127 @@ err:
         u_config_free(c);
     return ~0;
 }
+
+int u_config_has_children(u_config_t *c)
+{
+    u_config_t *item;
+
+    TAILQ_FOREACH(item, &c->children, np)
+        return 1;
+
+    return 0;
+}
+
+static int u_config_to_str(u_config_t *c, u_string_t *s)
+{
+    u_config_t *item;
+
+    dbg_err_if(c == NULL);
+    dbg_err_if(s == NULL);
+
+    if(c->key)
+        u_string_aprintf(s, "%s %s\n", c->key, (c->value ? c->value : ""));
+    
+    if(u_config_has_children(c))
+    {
+        if(c->parent)
+            u_string_aprintf(s, "{\n");
+
+        TAILQ_FOREACH(item, &c->children, np)
+            u_config_to_str(item, s);
+
+        if(c->parent)
+            u_string_aprintf(s, "}\n");
+    }
+
+    return 0;
+err:
+    return ~0;
+}
+
+int u_config_to_buf(u_config_t *c, char *buf, size_t size)
+{
+    u_string_t *s = NULL;
+
+    dbg_err_if(u_string_create(NULL, 0, &s));
+
+    dbg_err_if(u_config_to_str(c, s));
+
+    /* buffer too small */
+    warn_err_if(u_string_len(s) >= size);
+
+    strlcpy(buf, u_string_c(s), size);
+
+    u_string_free(s);
+
+    return 0;
+err:
+    if(s)
+        u_string_free(s);
+    return ~0;
+}
+
+/* gets() callback helper struct */
+struct u_config_buf_s
+{
+    char *data;
+    size_t len;
+};
+
+static char* u_config_buf_gets(void *arg, char *buf, size_t size)
+{
+    struct u_config_buf_s *g = (struct u_config_buf_s*)arg;
+    char *s = buf;
+    int i, c;
+
+    dbg_err_if(arg == NULL);
+    dbg_err_if(buf == NULL);
+    dbg_err_if(size == 0);
+
+    if(g->len == 0 || g->data[0] == '\0')
+        return NULL;
+
+    size--; /* save a char for the trailing \0 */
+
+    for(; size && g->len; --size)
+    {
+        c = *g->data;
+
+        g->data++, g->len--;
+
+        *s++ = c;
+
+        if(c == '\n')
+            break;
+    }
+    *s = '\0';
+
+    /* dbg("ln: [%s]", buf); */
+
+    return buf;
+err:
+    return NULL;
+}
+
+int u_config_from_buf(char *buf, size_t len, u_config_t **pc)
+{
+    u_config_driver_t drv = { NULL, NULL, u_config_buf_gets, NULL };
+    struct u_config_buf_s arg = { buf, len };
+    u_config_t *c = NULL;
+
+    dbg_err_if(u_config_create(&c));
+
+    dbg_err_if(u_config_do_load_drv(c, &drv, &arg, 0));
+
+    *pc = c;
+
+    return 0;
+err:
+    if(c)
+        u_config_free(c);
+    return ~0;
+}
+
 
 /**
  *      \}

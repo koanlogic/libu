@@ -12,6 +12,8 @@ int main(int argc, char **argv)
 
     u_config_print(c, 0);
 
+    u_config_free(c);
+
     return 0;
 err:
     return 1;
