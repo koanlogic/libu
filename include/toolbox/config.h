@@ -6,7 +6,6 @@
 #define _U_CONFIG_H_
 
 #include <u/libu_conf.h>
-#include <toolbox/str.h>
 
 #ifdef __cplusplus
 extern "C" {
