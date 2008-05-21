@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.12 2008/05/21 12:10:32 tat Exp $";
+    "$Id: config.c,v 1.13 2008/05/21 12:59:21 tat Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -841,7 +841,7 @@ err:
     return ~0;
 }
 
-int u_config_to_buf(u_config_t *c, char *buf, size_t size)
+int u_config_save_to_buf(u_config_t *c, char *buf, size_t size)
 {
     u_string_t *s = NULL;
 
@@ -905,7 +905,7 @@ err:
     return NULL;
 }
 
-int u_config_from_buf(char *buf, size_t len, u_config_t **pc)
+int u_config_load_from_buf(char *buf, size_t len, u_config_t **pc)
 {
     u_config_driver_t drv = { NULL, NULL, u_config_buf_gets, NULL };
     struct u_config_buf_s arg = { buf, len };
