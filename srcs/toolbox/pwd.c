@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: pwd.c,v 1.10 2008/04/02 10:30:43 tho Exp $";
+    "$Id: pwd.c,v 1.11 2008/05/28 19:05:33 tho Exp $";
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -356,7 +356,7 @@ static int u_pwd_retr_res (u_pwd_t *pwd, const char *user,
         u_pwd_rec_t **prec)
 {
     size_t lc, got_it = 0;
-    char ln[U_PWD_LINE_MAX], __user[U_PWD_LINE_MAX];
+    char ln[U_PWD_LINE_MAX], uu[U_PWD_LINE_MAX];
     char *toks[3 + 1];  /* line fmt is: "name:password[:opaque]\n" */
     u_pwd_rec_t *rec = NULL;
 
@@ -368,7 +368,7 @@ static int u_pwd_retr_res (u_pwd_t *pwd, const char *user,
     dbg_err_if (u_pwd_res_open(pwd));
 
     /* do suitable search string for strstr(3) */
-    u_snprintf(__user, sizeof __user, "%s:", user);
+    u_snprintf(uu, sizeof uu, "%s:", user);
     
     /* read line by line */
     for (lc = 1; pwd->cb_load(ln, sizeof ln, pwd->res_handler) != NULL; lc++)
@@ -381,7 +381,7 @@ static int u_pwd_retr_res (u_pwd_t *pwd, const char *user,
          * this is different from using the in-memory version in case an 
          * entry is duplicated: in-memory matches the last entry, here
          * we would get the first one */
-        if (strstr(ln, __user) == ln)
+        if (strstr(ln, uu) == ln)
         {
             got_it = 1;
             break;
