@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: misc.c,v 1.14 2008/04/25 20:58:36 tat Exp $";
+    "$Id: misc.c,v 1.15 2008/05/28 17:42:53 tho Exp $";
 
 #include <u/libu_conf.h>
 #include <sys/types.h>
@@ -17,10 +17,8 @@ static const char rcsid[] =
 #include <ctype.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <dirent.h>
 #include <sys/types.h>
 
-#include <toolbox/net.h>
 #include <toolbox/misc.h>
 #include <toolbox/carpal.h>
 #include <toolbox/memory.h>
@@ -416,27 +414,6 @@ int u_sleep(unsigned int secs)
 
 #endif
     return 0;
-}
-
-/**
- *  \brief  accept(2) wrapper that handles EINTR
- *
- *  \param  ld          file descriptor
- *  \param  addr        see accept(2)   
- *  \param  addrlen     size of addr struct
- *
- *  \return on success returns the socket descriptor; on failure returns -1
- */ 
-int u_accept(int ld, struct sockaddr *addr, int *addrlen)
-{
-    int ad = -1;
-
-again:
-    ad = accept(ld, addr, addrlen);
-    if(ad == -1 && (errno == EINTR))
-        goto again; /* interrupted */
-
-    return ad;
 }
 
 /**

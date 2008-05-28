@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: net.c,v 1.6 2008/03/10 16:51:44 tho Exp $";
+    "$Id: net.c,v 1.7 2008/05/28 17:42:53 tho Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -415,6 +415,26 @@ err:
     return ~0;    
 }
 
+/**
+ *  \brief  accept(2) wrapper that handles EINTR
+ *
+ *  \param  ld          file descriptor
+ *  \param  addr        see accept(2)   
+ *  \param  addrlen     size of addr struct
+ *
+ *  \return on success returns the socket descriptor; on failure returns -1
+ */ 
+int u_accept(int ld, struct sockaddr *addr, int *addrlen)
+{
+    int ad = -1;
+
+again:
+    ad = accept(ld, addr, addrlen);
+    if(ad == -1 && (errno == EINTR))
+        goto again; /* interrupted */
+
+    return ad;
+}
 
 /**
  *  \}
