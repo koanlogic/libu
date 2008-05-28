@@ -1,13 +1,16 @@
-$Id: ChangeLog,v 1.37 2008/05/21 12:59:21 tat Exp $
+$Id: ChangeLog,v 1.38 2008/05/28 19:49:30 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
 LibU x.y.z:
-    - [config] u_config_load_from_buf and u_config_save_to_buf added
+	- [config] u_config_load_from_buf and u_config_save_to_buf added
 	- [config] drivers can set a callback function to resolve include filenames
 	- [config] load from opaque data sources (u_config_load_from_drv)
 	- [config] include directive support
 	- [config] example/config/uconfig program added
+	- [misc/net] moved u_accept from misc to net
+	- [pwd] fix a parser problem with GCC 4.2.3
+	- [headers] cleanup
 
 LibU 1.2.1:
 	- [misc] u_path_snprintf memmove fix
