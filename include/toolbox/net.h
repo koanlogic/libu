@@ -9,9 +9,15 @@
 
 #ifdef OS_UNIX
 #include <sys/types.h>
+#ifdef HAVE_SYS_SOCKET
 #include <sys/socket.h>
+#endif
+#ifdef HAVE_NETINET_IN
 #include <netinet/in.h>
+#endif
+#ifdef HAVE_NETINET_TCP
 #include <netinet/tcp.h>
+#endif
 #ifdef HAVE_SYSUIO
 #include <sys/uio.h>
 #endif
@@ -24,7 +30,7 @@
 
 #ifdef OS_WIN
 #include <windows.h>
-#include <winsock.h>
+/* #include <winsock.h> not compatible with ws2tcpip.h */
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #endif

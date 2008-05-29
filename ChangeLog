@@ -1,8 +1,10 @@
-$Id: ChangeLog,v 1.38 2008/05/28 19:49:30 tho Exp $
+$Id: ChangeLog,v 1.39 2008/05/29 16:12:07 tat Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
 LibU x.y.z:
+	- [configure] netinet/{tcp,in}.h and sys/socket.h tests
+	- [net] do not include winsock.h
 	- [config] u_config_load_from_buf and u_config_save_to_buf added
 	- [config] drivers can set a callback function to resolve include filenames
 	- [config] load from opaque data sources (u_config_load_from_drv)

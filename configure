@@ -1,6 +1,6 @@
 #!/bin/sh 
 #
-# $Id: configure,v 1.60 2008/01/03 14:21:48 tho Exp $
+# $Id: configure,v 1.61 2008/05/29 16:12:07 tat Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -82,6 +82,11 @@ makl_checkheader        0   "stdlib"    "<stdlib.h>"
 makl_checkheader        0   "paths"     "<paths.h>"
 makl_checkheader        0   "sysuio"    "<sys/types.h>" "<sys/uio.h>"
 makl_checkheader        0   "strings"   "<strings.h>"
+
+makl_checkheader        0   "sys_socket"    "<sys/socket.h>"
+makl_checkheader        0   "netinet_in"    "<netinet/in.h>"
+makl_checkheader        0   "netinet_tcp"   "<netinet/tcp.h>" "<sys/types.h>"
+
 makl_checktmzone        0
 makl_checkextvar        0   "optarg"
 makl_checkextvar        0   "optind"
