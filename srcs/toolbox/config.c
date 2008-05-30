@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.13 2008/05/21 12:59:21 tat Exp $";
+    "$Id: config.c,v 1.14 2008/05/30 14:14:18 stewy Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -373,7 +373,8 @@ static int u_config_do_load_drv(u_config_t *c, u_config_driver_t *drv,
         dbg_err_if(u_string_set(value, p, strlen(p)));
         dbg_err_if(u_string_trim(value));
 
-        if(!strcmp(u_string_c(key), "include"))
+        if(!strcmp(u_string_c(key), "include") ||       /* forced dependency */
+                !strcmp(u_string_c(key), "-include"))   /* optional dependency */
         {
             crit_err_ifm(u_string_len(value) == 0, "missing include filename");
 
@@ -382,8 +383,10 @@ static int u_config_do_load_drv(u_config_t *c, u_config_driver_t *drv,
                         u_string_c(value), 0, &subkey));
 
             /* load the included file */
-            dbg_err_if(u_config_include(c, drv, subkey, overwrite));
-
+            if (u_string_c(key)[0] == '-')  /* failure is not critical */
+                dbg_if(u_config_include(c, drv, subkey, overwrite));
+            else                            /* failure is critical */
+                dbg_err_if(u_config_include(c, drv, subkey, overwrite));
         } 
 
         /* if the valus is empty an open bracket will follow, save the key */
