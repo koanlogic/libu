@@ -1,4 +1,4 @@
-/* $Id: main.c,v 1.4 2006/07/07 16:10:48 tho Exp $ */
+/* $Id: main.c,v 1.5 2008/05/30 19:33:48 tho Exp $ */
 
 #include <stdlib.h>
 #include <err.h>
@@ -14,6 +14,7 @@ int main (int argc, char *argv[])
         errx(1, "usage: cli <server_uri>");
 
     dbg_err_if ((csd = u_net_sock(argv[1], U_NET_CSOCK)) == -1);
+    dbg_err_if (u_net_nagle_off(csd));
     dbg_err_if (u_net_writen(csd, "hello", strlen("hello") + 1));
     U_CLOSE(csd);
     

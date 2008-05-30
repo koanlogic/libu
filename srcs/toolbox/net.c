@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: net.c,v 1.7 2008/05/28 17:42:53 tho Exp $";
+    "$Id: net.c,v 1.8 2008/05/30 19:33:48 tho Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -222,15 +222,21 @@ int u_net_sock_udp (u_net_addr_t *a, int mode)
 int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int reuse, int backlog)
 {
     int rv, lsd = -1;
+#ifdef HAVE_SETSOCKOPT
     int on = reuse ? 1 : 0;
+#else
+    u_unused_args(reuse);
+#endif 
 
     dbg_return_if (sad == NULL, -1);
     
     lsd = socket(AF_INET6, SOCK_STREAM, 0);
     dbg_err_if (lsd == -1);
 
+#ifdef HAVE_SETSOCKOPT
     rv = setsockopt(lsd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on);
     dbg_err_if (rv == -1);
+#endif
 
     rv = bind(lsd, (struct sockaddr *) sad, sizeof *sad);
     dbg_err_if (rv == -1);
@@ -271,15 +277,21 @@ err:
 int u_net_tcp4_ssock (struct sockaddr_in *sad, int reuse, int backlog)
 {
     int rv, lsd = -1;
+#ifdef HAVE_SETSOCKOPT
     int on = reuse ? 1 : 0;
+#else
+    u_unused_args(reuse);
+#endif
 
     dbg_return_if (sad == NULL, -1);
     
     lsd = socket(AF_INET, SOCK_STREAM, 0);
     dbg_err_if (lsd == -1);
 
+#ifdef HAVE_SETSOCKOPT
     rv = setsockopt(lsd, SOL_SOCKET, SO_REUSEADDR, (const char*)&on, sizeof on);
     dbg_err_if (rv == -1);
+#endif
 
     rv = bind(lsd, (struct sockaddr *) sad, sizeof *sad);
     dbg_err_if (rv == -1);
@@ -434,6 +446,33 @@ again:
         goto again; /* interrupted */
 
     return ad;
+}
+
+/**
+ *  \brief  Disable Nagle algorithm on the supplied TCP socket
+ *
+ *  \param  sd  a TCP socket descriptor
+ *
+ *  \return \c 0 if successful, \c ~0 on error
+ */ 
+int u_net_nagle_off (int sd)
+{
+#if defined(HAVE_TCP_NODELAY) && defined(HAVE_SETSOCKOPT)
+    int rc, on = 1;
+
+    dbg_return_if (sd < 0, ~0);
+
+    rc = setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *) &on, sizeof on);
+    dbg_err_sifm (rc == -1, "error disabling Nagle algorithm on sd %d", sd);
+
+    return 0;
+err:
+    return ~0;
+#else /* !HAVE_TCP_NODELAY || !HAVE_SETSOCKOPT */
+    u_unused_args(sd);
+    dbg("%s is not implemented on this platform", __FUNCTION__);
+    return 0;
+#endif  /* !HAVE_TCP_NODELAY */
 }
 
 /**

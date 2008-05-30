@@ -139,6 +139,8 @@ int u_net_uri2sun (const char *uri, struct sockaddr_un *sad);
 int u_net_addr_new (int type, u_net_addr_t **pa);
 void u_net_addr_free (u_net_addr_t *addr);
 
+int u_net_nagle_off (int sd);
+
 #ifdef __cplusplus
 }
 #endif

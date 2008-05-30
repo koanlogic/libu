@@ -1,6 +1,6 @@
 #!/bin/sh 
 #
-# $Id: configure,v 1.61 2008/05/29 16:12:07 tat Exp $
+# $Id: configure,v 1.62 2008/05/30 19:33:48 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -62,6 +62,8 @@ makl_checktype          0   "in_addr_t"         \
                             "<sys/socket.h>"    \
                             "<netinet/in.h>"    \
                             "<arpa/inet.h>"
+makl_checksymbol        0   "TCP_NODELAY"   "<netinet/tcp.h>"
+makl_checkfunc          0   "setsockopt"
 makl_checkfunc          0   "getpid"
 makl_checkfunc          0   "link"
 makl_checkfunc          0   "unlink"
