@@ -1,4 +1,4 @@
-$Id: ChangeLog,v 1.40 2008/06/09 08:25:46 tho Exp $
+$Id: ChangeLog,v 1.41 2008/06/17 23:49:51 stewy Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
@@ -15,6 +15,7 @@ LibU x.y.z:
 	- [headers] cleanup
 	- [misc] u_path_snprintf memmove fix
 	- [list] memory leak fix
+	- [carpal] *_err_rcif()
 
 LibU 1.2.0:
 	- [list] added new module for dynamic lists handling (wrapper around

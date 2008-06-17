@@ -143,6 +143,17 @@ extern "C" {
  */
 #define msg_err_if(label, expr) do { msg_ifb(label, expr) { goto err;} } while(0)
 
+/** \brief log a message if \e expr not zero, set \e errcode and goto to the label "err"
+ *
+ *   log a message of type \e label if \e expr is not zero, set variable "rc"
+ *   (that must be defined) to \e errcode and jump to label "err" (that must be
+ *   defined).
+ *
+ *   \e expr text statement will be written to the log file.
+ */
+#define msg_err_rcif(label, expr, errcode) \
+    do { msg_ifb(label, expr) { rc = errcode; goto err;} } while(0)
+
 /** \brief log the given message if \e expr not zero and goto to the label "err"
  *
  *   log a message of type \e label if \e expr is not zero and goto
@@ -228,6 +239,7 @@ extern "C" {
 #define con_err_sif(expr)               msg_err_sif(con_, expr)
 #define con_err_ifm(expr, ...)          msg_err_ifm(con_, expr, __VA_ARGS__)
 #define con_err_sifm(expr, ...)         msg_err_sifm(con_, expr, __VA_ARGS__)
+#define con_err_rcif(expr, ...)         msg_err_rcif(con_, expr, __VA_ARGS__)
 
 #define con_goto_if(expr, gt)           msg_goto_if(con_, expr, gt)
 #define con_strerror(err)               msg_strerror(con_, err)
@@ -250,6 +262,7 @@ extern "C" {
 #define emerg_err_sif(expr)             msg_err_sif(emerg_, expr)
 #define emerg_err_ifm(expr, ...)        msg_err_ifm(emerg_, expr, __VA_ARGS__)
 #define emerg_err_sifm(expr, ...)       msg_err_sifm(emerg_, expr, __VA_ARGS__)
+#define emerg_err_rcif(expr, ...)       msg_err_rcif(emerg_, expr, __VA_ARGS__)
 
 #define emerg_goto_if(expr, gt)         msg_goto_if(emerg_, expr, gt)
 #define emerg_strerror(err)             msg_strerror(emerg_, err)
@@ -272,6 +285,7 @@ extern "C" {
 #define alert_err_sif(expr)             msg_err_sif(alert_, expr)
 #define alert_err_ifm(expr, ...)        msg_err_ifm(alert_, expr, __VA_ARGS__)
 #define alert_err_sifm(expr, ...)       msg_err_sifm(alert_, expr, __VA_ARGS__)
+#define alert_err_rcif(expr, ...)       msg_err_rcif(alert_, expr, __VA_ARGS__)
 
 #define alert_goto_if(expr, gt)         msg_goto_if(alert_, expr, gt)
 #define alert_strerror(err)             msg_strerror(alert_, err)
@@ -294,6 +308,7 @@ extern "C" {
 #define crit_err_sif(expr)              msg_err_sif(crit_, expr)
 #define crit_err_ifm(expr, ...)         msg_err_ifm(crit_, expr, __VA_ARGS__)
 #define crit_err_sifm(expr, ...)        msg_err_sifm(crit_, expr, __VA_ARGS__)
+#define crit_err_rcif(expr, ...)        msg_err_rcif(crit_, expr, __VA_ARGS__)
 
 #define crit_goto_if(expr, gt)          msg_goto_if(crit, expr, gt)
 #define crit_strerror(err)              msg_strerror(crit, err)
@@ -316,6 +331,7 @@ extern "C" {
 #define err_err_sif(expr)               msg_err_sif(err_, expr)
 #define err_err_ifm(expr, ...)          msg_err_ifm(err_, expr, __VA_ARGS__)
 #define err_err_sifm(expr, ...)         msg_err_sifm(err_, expr, __VA_ARGS__)
+#define err_err_rcif(expr, ...)         msg_err_rcif(err_, expr, __VA_ARGS__)
 
 #define err_goto_if(expr, gt)           msg_goto_if(err_, expr, gt)
 #define err_strerror(err)               msg_strerror(err_, err)
@@ -338,6 +354,7 @@ extern "C" {
 #define warn_err_sif(expr)              msg_err_sif(warn_, expr)
 #define warn_err_ifm(expr, ...)         msg_err_ifm(warn_, expr, __VA_ARGS__)
 #define warn_err_sifm(expr, ...)        msg_err_sifm(warn_, expr, __VA_ARGS__)
+#define warn_err_rcif(expr, ...)        msg_err_rcif(warn_, expr, __VA_ARGS__)
 
 #define warn_goto_if(expr, gt)          msg_goto_if(warn_, expr, gt)
 #define warn_strerror(err)              msg_strerror(warn_, err)
@@ -362,6 +379,8 @@ extern "C" {
     msg_err_ifm(notice_, expr, __VA_ARGS__)
 #define notice_err_sifm(expr, ...)        \
     msg_err_sifm(notice_, expr, __VA_ARGS__)
+#define notice_err_rcif(expr, ...)        \
+    msg_err_rcif(notice_, expr, __VA_ARGS__)
 
 #define notice_goto_if(expr, gt)        msg_goto_if(notice_, expr, gt)
 #define notice_strerror(err)            msg_strerror(notice_, err)
@@ -384,6 +403,7 @@ extern "C" {
 #define info_err_sif(expr)              msg_err_sif(info_, expr)
 #define info_err_ifm(expr, ...)         msg_err_ifm(info_, expr, __VA_ARGS__)
 #define info_err_sifm(expr, ...)        msg_err_sifm(info_, expr, __VA_ARGS__)
+#define info_err_rcif(expr, ...)        msg_err_rcif(info_, expr, __VA_ARGS__)
 
 #define info_goto_if(expr, gt)          msg_goto_if(info_, expr, gt)
 #define info_strerror(err)              msg_strerror(info_, err)
@@ -408,6 +428,7 @@ extern "C" {
     #define dbg_err_sif(expr)           msg_err_sif(dbg_, expr)
     #define dbg_err_ifm(expr, ...)      msg_err_ifm(dbg_, expr, __VA_ARGS__)
     #define dbg_err_sifm(expr, ...)     msg_err_sifm(dbg_, expr, __VA_ARGS__)
+    #define dbg_err_rcif(expr, ...)     msg_err_rcif(dbg_, expr, __VA_ARGS__)
 
     #define dbg_goto_if(expr, gt)       msg_goto_if(dbg_, expr, gt)
     #define dbg_strerror(err)           msg_strerror(dbg_, err)
@@ -445,6 +466,8 @@ extern "C" {
     #define dbg_err_sif(expr)           do { if( (expr) ) goto err; } while(0)
     #define dbg_err_ifm(expr, ...)      do { if( (expr) ) goto err; } while(0)
     #define dbg_err_sifm(expr, ...)     do { if( (expr) ) goto err; } while(0)
+    #define dbg_err_rcif(expr, errcode, ...)    \
+        do { if( (expr) ) { rc = errcode; goto err; } } while(0)
 
     #define dbg_goto_if(expr, gt)       do { if( (expr) ) goto gt; } while(0)
     #define dbg_strerror(err)           dbg_nop()
