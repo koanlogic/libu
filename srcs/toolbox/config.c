@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: config.c,v 1.14 2008/05/30 14:14:18 stewy Exp $";
+    "$Id: config.c,v 1.15 2008/06/18 10:05:30 tat Exp $";
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -52,6 +52,34 @@ extern u_config_driver_t u_config_drv_mem;
 static int u_config_include(u_config_t*, u_config_driver_t*, u_config_t*, int);
 
 /**
+ * \brief  Print configuration to the given file descriptor
+ *
+ * Print a configuration object and its children to \c fp. For each config
+ * object all keys/values pair will be printed.
+ *
+ * \param c     configuration object
+ * \param fp    output file descriptor
+ * \param lev   nesting level; must be zero
+ *
+ * \return \c 0 on success, not zero on failure
+ */
+void u_config_print_to_fp(u_config_t *c, FILE *fp, int lev)
+{
+    u_config_t *item;
+    int i;
+
+    for(i = 0; i < lev; ++i)
+        fprintf(fp, "  ");
+
+    if (c->key)
+        fprintf(fp, "%s: %s\n", c->key, c->value == NULL ? "" : c->value);
+
+    ++lev;
+    TAILQ_FOREACH(item, &c->children, np)
+        u_config_print_to_fp(item, fp, lev);
+}
+
+/**
  * \brief  Print configuration to \c stdout
  *
  * Print a configuration object and its children to \c stdout. For each config
@@ -64,18 +92,7 @@ static int u_config_include(u_config_t*, u_config_driver_t*, u_config_t*, int);
  */
 void u_config_print(u_config_t *c, int lev)
 {
-    u_config_t *item;
-    int i;
-
-    for(i = 0; i < lev; ++i)
-        printf("  ");
-
-    if (c->key)
-        printf("%s: %s\n", c->key, c->value == NULL ? "" : c->value);
-
-    ++lev;
-    TAILQ_FOREACH(item, &c->children, np)
-        u_config_print(item, lev);
+    return u_config_print_to_fp(c, stdout, lev);
 }
 
 int u_config_add_child(u_config_t *c, const char *key, u_config_t **pc)

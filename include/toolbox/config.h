@@ -5,6 +5,7 @@
 #ifndef _U_CONFIG_H_
 #define _U_CONFIG_H_
 
+#include <stdio.h>
 #include <u/libu_conf.h>
 
 #ifdef __cplusplus
@@ -62,6 +63,7 @@ int u_config_has_children(u_config_t *c);
 int u_config_save_to_buf(u_config_t *c, char *buf, size_t size);
 int u_config_load_from_buf(char *buf, size_t len, u_config_t **pc);
 
+void u_config_print_to_fp(u_config_t *c, FILE *fp, int lev);
 void u_config_print(u_config_t *c, int lev);
 
 #ifdef __cplusplus
