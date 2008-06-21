@@ -17,7 +17,9 @@ typedef struct u_list_s u_list_t;
 int u_list_create(u_list_t **plist);
 void u_list_free(u_list_t *list);
 int u_list_add(u_list_t *list, void *ptr);
+int u_list_insert(u_list_t *list, void *ptr, size_t n);
 int u_list_del(u_list_t *list, void *ptr);
+int u_list_del_n(u_list_t *list, size_t n, void **pptr);
 size_t u_list_count(u_list_t *list);
 void* u_list_get_n(u_list_t *list, size_t n);
 

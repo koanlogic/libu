@@ -6,6 +6,7 @@ int main(int argc, char **argv)
 {
     U_TEST_MODULE_USE(misc);
     U_TEST_MODULE_USE(hmap);
+    U_TEST_MODULE_USE(list);
 
     return u_test_run(argc, argv);
 }

@@ -6,6 +6,7 @@ SRCS = main.c
 
 SRCS += misc.c 
 SRCS += hmap.c 
+SRCS += list.c 
 
 CFLAGS += -I../include
 CFLAGS += -g -DDEBUG

@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: list.c,v 1.4 2008/04/29 09:54:45 tho Exp $";
+    "$Id: list.c,v 1.5 2008/06/21 11:21:18 tat Exp $";
 
 #include <u/libu_conf.h>
 #include <u/libu.h>
@@ -87,24 +87,7 @@ void u_list_free(u_list_t *list)
  */ 
 int u_list_add(u_list_t *list, void *ptr)
 {
-    u_list_item_t *item = NULL;
-
-    dbg_return_if (list == NULL, ~0);
-    dbg_return_if (ptr == NULL, ~0);
-
-    item = (u_list_item_t*)u_zalloc(sizeof(u_list_item_t));
-    dbg_err_if(item == NULL);
-
-    item->ptr = ptr;
-        
-    TAILQ_INSERT_TAIL(&list->head, item, np);
-    list->count++;
-
-    return 0;
-err:
-    if(item)
-        u_free(item);
-    return ~0;
+    return u_list_insert(list, ptr, list->count);
 }
 
 /**
@@ -169,6 +152,87 @@ void* u_list_get_n(u_list_t *list, size_t n)
     }
 
     return NULL;
+}
+
+/**
+ *  \brief  Insert an element at the given position
+ *
+ *  \param list    the partent list object (created via u_list_new)
+ *  \param ptr     the element that has to be push'd
+ *  \param idx     the position in the list (from zero to N)
+ *
+ *  \return \c 0 on success, \c ~0 on error
+ */ 
+int u_list_insert(u_list_t *list, void *ptr, size_t n)
+{
+    u_list_item_t *prev, *item = NULL;
+
+    dbg_return_if (list == NULL, ~0);
+    dbg_return_if (n > list->count, ~0);
+
+    item = (u_list_item_t*)u_zalloc(sizeof(u_list_item_t));
+    dbg_err_if(item == NULL);
+
+    item->ptr = ptr;
+            
+    if(n == 0)
+    {
+        TAILQ_INSERT_HEAD(&list->head, item, np);
+    } else if (n == list->count) {
+        TAILQ_INSERT_TAIL(&list->head, item, np);
+    } else {
+        /* find the current n-th elem */
+        TAILQ_FOREACH(prev, &list->head, np)
+        {
+            if(n-- == 0)
+                break;
+        }
+
+        TAILQ_INSERT_BEFORE(prev, item, np);
+    }
+
+    list->count++;
+
+    return 0;
+err:
+    if(item)
+        u_free(item);
+    return ~0;
+}
+
+/**
+ *  \brief  Delete an element given its position in the list
+ *
+ *  \param list    the partent list object (created via u_list_new)
+ *  \param n       element position in the list
+ *
+ *  \return \c 0 if \p ptr has been removed, \c ~0 if \p ptr was not found
+ */ 
+int u_list_del_n(u_list_t *list, size_t n, void**pptr)
+{
+    u_list_item_t *item = NULL;
+
+    dbg_return_if (list == NULL, ~0);
+    dbg_return_if (n >= list->count, ~0);
+
+    TAILQ_FOREACH(item, &list->head, np)
+    {
+        if(n-- == 0)
+            break;
+    }
+
+    if(pptr)
+        *pptr = item->ptr;
+
+    TAILQ_REMOVE(&list->head, item, np);
+
+    list->count--;
+
+    u_free(item);
+
+    return 0;
+err:
+    return ~0;
 }
 
 /**
