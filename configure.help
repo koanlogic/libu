@@ -50,6 +50,7 @@ OPTION can be defined as follows:
 --no_fs             disable fs module
 --no_pwd            disable pwd module
 --no_list           disable list module
+--no_array          disable array module
 --no_ipv6           disable IPv6 support
 --no_unixsock       disable Unix socket support
 

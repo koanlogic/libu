@@ -42,5 +42,8 @@
 #ifndef NO_LIST
 #include <u/toolbox/list.h>
 #endif
+#ifndef NO_ARRAY
+#include <u/toolbox/array.h>
+#endif
 
 #endif  /* !_LIBU_TOOLBOX_H_ */

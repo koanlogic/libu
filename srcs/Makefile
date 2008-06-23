@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.11 2008/05/05 14:38:08 tat Exp $
+# $Id: Makefile,v 1.12 2008/06/23 16:27:35 tho Exp $
 
 include common.mk
 include ../Makefile.conf
@@ -38,6 +38,9 @@ SRCS += toolbox/pwd.c
 endif   # !NO_PWD 
 ifndef NO_LIST
 SRCS += toolbox/list.c
+endif
+ifndef NO_ARRAY
+SRCS += toolbox/array.c
 endif
 
 # missing sources
