@@ -1,6 +1,6 @@
 #!/bin/sh 
 #
-# $Id: configure,v 1.62 2008/05/30 19:33:48 tho Exp $
+# $Id: configure,v 1.63 2008/06/23 09:27:09 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -62,7 +62,7 @@ makl_checktype          0   "in_addr_t"         \
                             "<sys/socket.h>"    \
                             "<netinet/in.h>"    \
                             "<arpa/inet.h>"
-makl_checksymbol        0   "TCP_NODELAY"   "<netinet/tcp.h>"
+makl_checksymbol        0   "TCP_NODELAY"   "<sys/types.h>" "<netinet/tcp.h>"
 makl_checkfunc          0   "setsockopt"
 makl_checkfunc          0   "getpid"
 makl_checkfunc          0   "link"
@@ -82,11 +82,11 @@ makl_func_strerror_r    0
 makl_checkheader        0   "unistd"    "<unistd.h>"
 makl_checkheader        0   "stdlib"    "<stdlib.h>"
 makl_checkheader        0   "paths"     "<paths.h>"
-makl_checkheader        0   "sysuio"    "<sys/types.h>" "<sys/uio.h>"
+makl_checkheader        0   "sysuio"    "<sys/uio.h>" "<sys/types.h>"
 makl_checkheader        0   "strings"   "<strings.h>"
 
-makl_checkheader        0   "sys_socket"    "<sys/socket.h>"
-makl_checkheader        0   "netinet_in"    "<netinet/in.h>"
+makl_checkheader        0   "sys_socket"    "<sys/socket.h>" "<sys/types.h>"
+makl_checkheader        0   "netinet_in"    "<netinet/in.h>" "<sys/types.h>"
 makl_checkheader        0   "netinet_tcp"   "<netinet/tcp.h>" "<sys/types.h>"
 
 makl_checktmzone        0
