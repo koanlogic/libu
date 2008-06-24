@@ -9,6 +9,8 @@
 #include <signal.h>
 #include <u/libu.h>
 
+U_TEST_MODULE(list);
+
 static int test_list_ins (void)
 {
     enum { ITERS = 3 };

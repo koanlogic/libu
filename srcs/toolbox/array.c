@@ -139,7 +139,7 @@ void *u_array_get_n (u_array_t *a, size_t idx)
 
     dbg_return_if (a == NULL, NULL);
 
-    warn_err_ifm (idx >= a->nelem, 
+    warn_err_ifm (idx >= a->sz,
             "trying to get an element out of array boundaries");
 
     s = a->base + (idx * sizeof(__slot_t));
@@ -147,6 +147,38 @@ void *u_array_get_n (u_array_t *a, size_t idx)
     return s->ptr;
 err:
     return NULL;
+}
+
+/**
+ *  \brief  Set an element at a given slot
+ *
+ *  \param a    the array object
+ *  \param elem the element that shall be inserted
+ *  \param idx  the index at which \p elem is to be inserted
+ *
+ *  \return \c 0 on success, \c ~0 on error
+ */
+int u_array_set_n (u_array_t *a, void *elem, size_t idx)
+{
+    __slot_t *s;
+
+    dbg_return_if (a == NULL, ~0);
+
+    warn_err_ifm (idx >= a->sz, 
+            "trying to set an element past array boundaries");
+
+    s = a->base + (idx * sizeof(__slot_t));
+
+    /* catch override and wail */
+    if (s->ptr != NULL)
+        warn("overriding element (%p) at %p[%d]", s->ptr, a->base, idx);
+
+    s->ptr = elem;
+    a->nelem += 1;
+
+    return 0;
+err:
+    return ~0;
 }
 
 /**

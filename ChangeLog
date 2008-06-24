@@ -1,9 +1,10 @@
-$Id: ChangeLog,v 1.44 2008/06/23 16:27:35 tho Exp $
+$Id: ChangeLog,v 1.45 2008/06/24 20:31:32 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
 LibU x.y.z:
-	- [array] added dynamic array module
+	- [array] dynamic array module added (can be disabled via --no_array
+	  configure argument)
 	- [list] u_list_insert and u_list_del_n added
 	- [config] u_config_print_to_fp added
 	- [configure] netinet/{tcp,in}.h and sys/socket.h tests
@@ -18,7 +19,7 @@ LibU x.y.z:
 	- [headers] cleanup
 	- [misc] u_path_snprintf memmove fix
 	- [list] memory leak fix
-	- [carpal] *_err_rcif()
+	- [carpal] *_err_rcif() family macros added
 
 LibU 1.2.0:
 	- [list] added new module for dynamic lists handling (wrapper around
