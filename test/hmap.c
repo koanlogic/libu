@@ -227,7 +227,7 @@ err:
 size_t _sample_hash(void *key, size_t size)
 {
     return (*((int *) key) % size);
-};
+}
 
 int _sample_comp(void *key1, void *key2)
 {
@@ -235,7 +235,7 @@ int _sample_comp(void *key1, void *key2)
         k2 = *((int *) key2);
     
     return k1 < k2 ? -1 : ((k1 > k2)? 1 : 0);
-};
+}
 
 u_string_t *_sample_str(u_hmap_o_t *obj)
 {
@@ -253,7 +253,7 @@ u_string_t *_sample_str(u_hmap_o_t *obj)
 
 err:
     return NULL;
-};
+}
 
 /* Allocate (key, value) pair dynamically */
 u_hmap_o_t *_sample_obj(int key, const char *val)
@@ -280,7 +280,7 @@ err:
     u_free(v);
     
     return NULL;
-};
+}
 
 static int example_types_custom()
 {

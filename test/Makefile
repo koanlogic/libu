@@ -5,10 +5,16 @@ PROG = runtest
 SRCS = main.c
 
 SRCS += misc.c 
-SRCS += hmap.c 
-SRCS += list.c 
 SRCS += string.c 
+ifndef NO_HMAP
+SRCS += hmap.c 
+endif
+ifndef NO_LIST
+SRCS += list.c 
+endif
+ifndef NO_ARRAY
 SRCS += array.c 
+endif
 
 CFLAGS += -I../include
 CFLAGS += -g -DDEBUG
