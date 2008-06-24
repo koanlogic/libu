@@ -45,7 +45,6 @@ static int test_u_array_set_get (void)
     int *ips = NULL, *ipg = NULL;
     size_t j;
     u_array_t *a = NULL;
-    int __i = 5;
 
     /* create 10-slots array */
     con_err_if (u_array_create(10, &a));
@@ -55,7 +54,7 @@ static int test_u_array_set_get (void)
     *ips = 5;
 
     /* set at 5th slot */
-    con_err_if (u_array_set_n(a, &__i, 5));
+    con_err_if (u_array_set_n(a, ips, 5));
 
     /* get at 5th slot */
     ipg = (int *) u_array_get_n(a, 5);
