@@ -2,16 +2,15 @@
  * Copyright (c) 2005-2008 by KoanLogic s.r.l. - All rights reserved.  
  */
 
-static const char rcsid[] =
-    "$Id: array.c,v 1.1 2008/06/23 16:27:35 tho Exp $";
-
 #include <u/libu_conf.h>
 #include <u/libu.h>
 #include <toolbox/array.h>
 
+typedef struct __slot_s { void *ptr; } __slot_t;
+
 struct u_array_s
 {
-    void *base;
+    __slot_t *base;
     size_t sz, nelem;
 };
 
@@ -26,7 +25,9 @@ int u_array_create (size_t sz, u_array_t **pa)
 
     /* if we've been requested to allocate some slot, do it now */
     if ((a->sz = sz) != 0)
-        warn_err_sif ((a->base = u_zalloc(sz * sizeof(a->base))) == NULL);
+        warn_err_sif ((a->base = u_zalloc(sz * sizeof(__slot_t))) == NULL);
+
+    a->nelem = 0;
 
     *pa = a;
     
@@ -52,6 +53,7 @@ int u_array_grow (u_array_t *a, size_t more)
 
     dbg_return_if (a == NULL, ~0);
 
+    /* auto resize strategy is to double the current size */
     new_sz = (more == U_ARRAY_GROW_AUTO) ? a->sz * 2 : a->sz + more;
 
     a->base = u_realloc(a->base, new_sz);
@@ -66,7 +68,7 @@ err:
 
 int u_array_add (u_array_t *a, void *elem)
 {
-    void *ptr;
+    __slot_t *s;
 
     dbg_return_if (a == NULL, ~0);
 
@@ -75,8 +77,8 @@ int u_array_add (u_array_t *a, void *elem)
         warn_err_if (u_array_grow(a, U_ARRAY_GROW_AUTO));
     
     /* stick the supplied element on top and increment nelem counter */
-    ptr = a->base + a->nelem;
-    ptr = elem;
+    s = a->base + (a->nelem * sizeof(__slot_t));
+    s->ptr = elem;
     a->nelem += 1;
 
     return 0;
@@ -86,12 +88,16 @@ err:
 
 void *u_array_get_n (u_array_t *a, size_t idx)
 {
+    __slot_t *s;
+
     dbg_return_if (a == NULL, NULL);
 
     warn_err_ifm (idx >= a->nelem, 
             "trying to get an element out of array boundaries");
 
-    return a->base + idx;
+    s = a->base + (idx * sizeof(__slot_t));
+
+    return s->ptr;
 err:
     return NULL;
 }
@@ -99,7 +105,17 @@ err:
 size_t u_array_count (u_array_t *a)
 {
     dbg_return_if (a == NULL, 0);
-
     return a->nelem;
 }
 
+size_t u_array_avail (u_array_t *a)
+{
+    dbg_return_if (a == NULL, 0);
+    return (a->sz - a->nelem);
+}
+
+size_t u_array_size (u_array_t *a)
+{
+    dbg_return_if (a == NULL, 0);
+    return a->sz;
+}

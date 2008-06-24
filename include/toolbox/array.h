@@ -22,6 +22,8 @@ int u_array_grow (u_array_t *a, size_t more);
 int u_array_add (u_array_t *a, void *elem);
 void *u_array_get_n (u_array_t *a, size_t idx);
 size_t u_array_count (u_array_t *a);
+size_t u_array_avail (u_array_t *a);
+size_t u_array_size (u_array_t *a);
 
 #ifdef __cplusplus
 }
