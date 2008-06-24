@@ -19,7 +19,8 @@ static int test_u_array_add_get (void)
 
     con_err_if (u_array_create(100, &a));
 
-    for (i = 0; i < 10000; i++)
+    /* force resize (4 times) */
+    for (i = 0; i < 1000; i++)
     {
         con_err_sif ((ip = u_zalloc(sizeof(int))) == NULL);
         con_err_if (u_array_add(a, (void *) ip));
@@ -41,37 +42,40 @@ err:
 
 static int test_u_array_set_get (void)
 {
-    int *ips, *ipg;
+    int *ips = NULL, *ipg = NULL;
     size_t j;
     u_array_t *a = NULL;
+    int __i = 5;
 
-    /* create 100-slots array */
-    con_err_if (u_array_create(100, &a));
+    /* create 10-slots array */
+    con_err_if (u_array_create(10, &a));
 
+    /* create element that will be inserted at 5th position */
     con_err_sif ((ips = u_zalloc(sizeof(int))) == NULL);
-    *ips = 10;
+    *ips = 5;
 
-    /* set at 10th slot */
-    con_err_if (u_array_set_n(a, ips, 9));
+    /* set at 5th slot */
+    con_err_if (u_array_set_n(a, &__i, 5));
 
-    /* get at 10th slot */
-    ipg = (int *) u_array_get_n(a, 9);
+    /* get at 5th slot */
+    ipg = (int *) u_array_get_n(a, 5);
     con_err_if (*ipg != *ips);
 
-    /* try to set at 101th slot (out of bounds) */
-    con_err_if (!u_array_set_n(a, ips, 100));
+    /* try to set at 11th slot (out of bounds) */
+    con_err_if (!u_array_set_n(a, ips, 10));
 
-    /* override an element */
-    *ips = 11;
-    con_err_if (u_array_set_n(a, ips, 9));
+    /* override element at 5th slot (i.e. s/5/6) -- should show up in log  */
+    *ips = 6;
+    con_err_if (u_array_set_n(a, ips, 5));
 
-    /* get at 10th slot */
-    ipg = (int *) u_array_get_n(a, 9);
+    /* get at 5th slot */
+    ipg = (int *) u_array_get_n(a, 5);
     con_err_if (*ipg != *ips);
 
-    /* free */
-    for (j = 0; j < u_array_count(a); ++j)
-        u_free((int *) u_array_get_n(a, j));
+    /* free - since array has sparse values, we shall scan it through 
+     * (i.e. use u_array_size instead of u_array_count) */
+    for (j = 0; j < u_array_size(a); ++j)
+        u_free(u_array_get_n(a, j));
     u_array_free(a);
 
     return 0;

@@ -115,7 +115,7 @@ int u_array_add (u_array_t *a, void *elem)
         warn_err_if (u_array_grow(a, U_ARRAY_GROW_AUTO));
     
     /* stick the supplied element on top and increment nelem counter */
-    s = a->base + (a->nelem * sizeof(__slot_t));
+    s = a->base + a->nelem;
     s->ptr = elem;
     a->nelem += 1;
 
@@ -142,7 +142,7 @@ void *u_array_get_n (u_array_t *a, size_t idx)
     warn_err_ifm (idx >= a->sz,
             "trying to get an element out of array boundaries");
 
-    s = a->base + (idx * sizeof(__slot_t));
+    s = a->base + idx;
 
     return s->ptr;
 err:
@@ -167,7 +167,7 @@ int u_array_set_n (u_array_t *a, void *elem, size_t idx)
     warn_err_ifm (idx >= a->sz, 
             "trying to set an element past array boundaries");
 
-    s = a->base + (idx * sizeof(__slot_t));
+    s = a->base + idx;
 
     /* catch override and wail */
     if (s->ptr != NULL)
@@ -223,3 +223,17 @@ size_t u_array_size (u_array_t *a)
 /**
  *  \}
  */
+
+/* debug only */
+void u_array_print (u_array_t *a)
+{
+    size_t j;
+
+    dbg_return_if (a == NULL, );
+
+    con("a(%p)", a);
+    for (j = 0; j < u_array_size(a); ++j)
+        con("   %p[%zu] = %p", a->base + j, j, u_array_get_n(a, j));
+
+    return;
+}
