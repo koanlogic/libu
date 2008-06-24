@@ -14,6 +14,20 @@ struct u_array_s
     size_t sz, nelem;
 };
 
+/**
+ *  \defgroup array Dynamic Arrays
+ *  \{
+ */
+
+/**
+ *  \brief  Create a new array object
+ *
+ *  \param sz   the initial number of slots to be created  (set it to \c 0 if 
+ *              you don't want to specify an initial array size)
+ *  \param pa   the newly created array object as a result argument
+ *
+ *  \return \c 0 on success, \c ~0 on error
+ */
 int u_array_create (size_t sz, u_array_t **pa)
 {
     u_array_t *a = NULL;
@@ -36,6 +50,14 @@ err:
     return ~0;
 }
 
+/**
+ *  \brief  Free the array object: the array does not own the pointers in it,
+ *          the client must free them explicitly
+ *
+ *  \param a    the array object that has to be disposed
+ *
+ *  \return nothing 
+ */
 void u_array_free (u_array_t *a)
 {
     dbg_return_if (a == NULL, );
@@ -46,6 +68,14 @@ void u_array_free (u_array_t *a)
     return;
 }
 
+/**
+ *  \brief  Add the supplied number of slots to the array
+ *
+ *  \param a    the array object
+ *  \param more the number of elements that shall be added
+ *
+ *  \return \c 0 on success, \c ~0 on error
+ */
 /* if realloc fails the memory at a->base is still valid */
 int u_array_grow (u_array_t *a, size_t more)
 {
@@ -66,6 +96,14 @@ err:
     return ~0;
 }
 
+/**
+ *  \brief  Push an element to the array
+ *
+ *  \param a    the array object
+ *  \param elem the element that has to be push'd
+ *
+ *  \return \c 0 on success, \c ~0 on error
+ */
 int u_array_add (u_array_t *a, void *elem)
 {
     __slot_t *s;
@@ -86,6 +124,15 @@ err:
     return ~0;
 }
 
+/**
+ *  \brief  Get an element at a given slot
+ *
+ *  \param a    the array object
+ *  \param idx  the index of the element that should be retrieved
+ *
+ *  \return the pointer to the n-th element or \c NULL if no n-th element has
+ *          been found
+ */
 void *u_array_get_n (u_array_t *a, size_t idx)
 {
     __slot_t *s;
@@ -102,20 +149,45 @@ err:
     return NULL;
 }
 
+/**
+ *  \brief  Count elements in array
+ *
+ *  \param a    the array object
+ *
+ *  \return the number of elements in \p a
+ */
 size_t u_array_count (u_array_t *a)
 {
     dbg_return_if (a == NULL, 0);
     return a->nelem;
 }
 
+/**
+ *  \brief  Count the number of available slots in array
+ *
+ *  \param a    the array object
+ *
+ *  \return the number of available elements in \p a
+ */
 size_t u_array_avail (u_array_t *a)
 {
     dbg_return_if (a == NULL, 0);
     return (a->sz - a->nelem);
 }
 
+/**
+ *  \brief  Get the total number of slots (used and/or available) in array
+ *
+ *  \param a    the array object
+ *
+ *  \return the total number of slots in \p a
+ */
 size_t u_array_size (u_array_t *a)
 {
     dbg_return_if (a == NULL, 0);
     return a->sz;
 }
+
+/**
+ *  \}
+ */

@@ -2,9 +2,6 @@
  * Copyright (c) 2005-2008 by KoanLogic s.r.l. - All rights reserved.  
  */
 
-static const char rcsid[] =
-    "$Id: uri.c,v 1.3 2008/03/10 16:51:44 tho Exp $";
-
 #include <stdlib.h>
 #include <string.h>
 

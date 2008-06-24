@@ -2,9 +2,6 @@
  * Copyright (c) 2005-2008 by KoanLogic s.r.l. - All rights reserved.  
  */
 
-static const char rcsid[] =
-    "$Id: hmap.c,v 1.18 2008/03/11 07:14:16 tho Exp $";
-
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>

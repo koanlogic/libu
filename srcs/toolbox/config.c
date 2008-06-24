@@ -2,9 +2,6 @@
  * Copyright (c) 2005-2008 by KoanLogic s.r.l. - All rights reserved.  
  */
 
-static const char rcsid[] =
-    "$Id: config.c,v 1.16 2008/06/21 11:21:18 tat Exp $";
-
 #include <sys/types.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -92,7 +89,8 @@ void u_config_print_to_fp(u_config_t *c, FILE *fp, int lev)
  */
 void u_config_print(u_config_t *c, int lev)
 {
-    return u_config_print_to_fp(c, stdout, lev);
+    u_config_print_to_fp(c, stdout, lev);
+    return;
 }
 
 int u_config_add_child(u_config_t *c, const char *key, u_config_t **pc)
@@ -894,7 +892,7 @@ static char* u_config_buf_gets(void *arg, char *buf, size_t size)
 {
     struct u_config_buf_s *g = (struct u_config_buf_s*)arg;
     char *s = buf;
-    int i, c;
+    int c;
 
     dbg_err_if(arg == NULL);
     dbg_err_if(buf == NULL);

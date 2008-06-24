@@ -2,9 +2,6 @@
  * Copyright (c) 2005-2008 by KoanLogic s.r.l. - All rights reserved.  
  */
 
-static const char rcsid[] =
-    "$Id: list.c,v 1.5 2008/06/21 11:21:18 tat Exp $";
-
 #include <u/libu_conf.h>
 #include <u/libu.h>
 #include <toolbox/list.h>
@@ -80,7 +77,7 @@ void u_list_free(u_list_t *list)
 /**
  *  \brief  Push an element to the list
  *
- *  \param list    the partent list object (created via u_list_new)
+ *  \param list    the parent list object (created via u_list_new)
  *  \param ptr     the element that has to be push'd
  *
  *  \return \c 0 on success, \c ~0 on error
@@ -93,7 +90,7 @@ int u_list_add(u_list_t *list, void *ptr)
 /**
  *  \brief  Pop an element from the list
  *
- *  \param list    the partent list object (created via u_list_new)
+ *  \param list    the parent list object (created via u_list_new)
  *  \param ptr     the element that has to be pop'd
  *
  *  \return \c 0 if \p ptr has been removed, \c ~0 if \p ptr was not found
@@ -157,9 +154,9 @@ void* u_list_get_n(u_list_t *list, size_t n)
 /**
  *  \brief  Insert an element at the given position
  *
- *  \param list    the partent list object (created via u_list_new)
+ *  \param list    the parent list object (created via u_list_new)
  *  \param ptr     the element that has to be push'd
- *  \param idx     the position in the list (from zero to N)
+ *  \param n       the position in the list (from zero to N)
  *
  *  \return \c 0 on success, \c ~0 on error
  */ 
@@ -203,12 +200,13 @@ err:
 /**
  *  \brief  Delete an element given its position in the list
  *
- *  \param list    the partent list object (created via u_list_new)
+ *  \param list    the parent list object (created via u_list_new)
  *  \param n       element position in the list
+ *  \param pptr    element original pointer
  *
  *  \return \c 0 if \p ptr has been removed, \c ~0 if \p ptr was not found
  */ 
-int u_list_del_n(u_list_t *list, size_t n, void**pptr)
+int u_list_del_n(u_list_t *list, size_t n, void **pptr)
 {
     u_list_item_t *item = NULL;
 
@@ -231,8 +229,6 @@ int u_list_del_n(u_list_t *list, size_t n, void**pptr)
     u_free(item);
 
     return 0;
-err:
-    return ~0;
 }
 
 /**

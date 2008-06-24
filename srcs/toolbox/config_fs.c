@@ -2,9 +2,6 @@
  * Copyright (c) 2005-2008 by KoanLogic s.r.l. - All rights reserved.  
  */
 
-static const char rcsid[] =
-    "$Id: config_fs.c,v 1.2 2008/05/08 16:44:56 tat Exp $";
-
 #include <sys/types.h>
 #include <stdlib.h>
 #include <unistd.h>

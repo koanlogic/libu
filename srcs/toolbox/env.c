@@ -2,9 +2,6 @@
  * Copyright (c) 2005-2008 by KoanLogic s.r.l. - All rights reserved.
  */
 
-static const char rcsid[] =
-    "$Id: env.c,v 1.5 2008/03/10 16:51:44 tho Exp $";
-
 #include <sys/types.h>
 #include <sys/stat.h>
 

@@ -2,9 +2,6 @@
  * Copyright (c) 2005-2008 by KoanLogic s.r.l. - All rights reserved.  
  */
 
-static const char rcsid[] =
-    "$Id: net.c,v 1.8 2008/05/30 19:33:48 tho Exp $";
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>

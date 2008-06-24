@@ -2,9 +2,6 @@
  * Copyright (c) 2005-2008 by KoanLogic s.r.l. - All rights reserved.  
  */
 
-static const char rcsid[] =
-    "$Id: log.c,v 1.4 2008/03/10 16:51:44 tho Exp $";
-
 #include <sys/types.h>
 #include <errno.h>
 #include <stdio.h>
