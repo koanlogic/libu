@@ -11,7 +11,7 @@
 
 U_TEST_MODULE(array);
 
-static int test_u_array_add_get (void)
+static int test_u_array_push_get (void)
 {
     int *ip, i;
     size_t j;
@@ -23,7 +23,7 @@ static int test_u_array_add_get (void)
     for (i = 0; i < 1000; i++)
     {
         con_err_sif ((ip = u_zalloc(sizeof(int))) == NULL);
-        con_err_if (u_array_add(a, (void *) ip));
+        con_err_if (u_array_push(a, (void *) ip));
         /* caller still owns 'ip' */
     }
 
@@ -31,7 +31,7 @@ static int test_u_array_add_get (void)
     con("used slots: %zu", u_array_count(a));
     con("slots still available: %zu", u_array_avail(a));
 
-    for (j = 0; j < u_array_count(a); ++j)
+    for (j = 0; j < u_array_top(a); ++j)
         u_free((int *) u_array_get_n(a, j));
     u_array_free(a);
 
@@ -71,9 +71,8 @@ static int test_u_array_set_get (void)
     ipg = (int *) u_array_get_n(a, 5);
     con_err_if (*ipg != *ips);
 
-    /* free - since array has sparse values, we shall scan it through 
-     * (i.e. use u_array_size instead of u_array_count) */
-    for (j = 0; j < u_array_size(a); ++j)
+    /* free */
+    for (j = 0; j < u_array_top(a); ++j)
         u_free(u_array_get_n(a, j));
     u_array_free(a);
 
@@ -84,7 +83,7 @@ err:
 
 U_TEST_MODULE( array )
 {
-    U_TEST_RUN( test_u_array_add_get );
+    U_TEST_RUN( test_u_array_push_get );
     U_TEST_RUN( test_u_array_set_get );
 
     return 0;                                                

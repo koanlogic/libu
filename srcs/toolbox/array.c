@@ -11,7 +11,7 @@ typedef struct __slot_s { void *ptr; } __slot_t;
 struct u_array_s
 {
     __slot_t *base;
-    size_t sz, nelem;
+    size_t sz, nelem, top;
 };
 
 /**
@@ -72,7 +72,9 @@ void u_array_free (u_array_t *a)
  *  \brief  Add the supplied number of slots to the array
  *
  *  \param a    the array object
- *  \param more the number of elements that shall be added
+ *  \param more the number of elements that shall be added. 
+ *              If \c U_ARRAY_GROW_AUTO is supplied, the default resize
+ *              strategy is used (i.e. size is doubled)
  *
  *  \return \c 0 on success, \c ~0 on error
  */
@@ -97,14 +99,14 @@ err:
 }
 
 /**
- *  \brief  Push an element to the array
+ *  \brief  Push an element on top of the array
  *
  *  \param a    the array object
  *  \param elem the element that has to be push'd
  *
  *  \return \c 0 on success, \c ~0 on error
  */
-int u_array_add (u_array_t *a, void *elem)
+int u_array_push (u_array_t *a, void *elem)
 {
     __slot_t *s;
 
@@ -114,10 +116,11 @@ int u_array_add (u_array_t *a, void *elem)
     if (a->nelem == a->sz)
         warn_err_if (u_array_grow(a, U_ARRAY_GROW_AUTO));
     
-    /* stick the supplied element on top and increment nelem counter */
-    s = a->base + a->nelem;
+    /* stick the supplied element on top and increment counters */
+    s = a->base + a->top;
     s->ptr = elem;
     a->nelem += 1;
+    a->top += 1;
 
     return 0;
 err:
@@ -175,6 +178,8 @@ int u_array_set_n (u_array_t *a, void *elem, size_t idx)
 
     s->ptr = elem;
     a->nelem += 1;
+    if (idx > a->top)   /* set 'top' indicator if needed */
+       a->top = idx; 
 
     return 0;
 err:
@@ -218,6 +223,19 @@ size_t u_array_size (u_array_t *a)
 {
     dbg_return_if (a == NULL, 0);
     return a->sz;
+}
+
+/**
+ *  \brief  Get the index of the top element in the array
+ *
+ *  \param a    the array object
+ *
+ *  \return the total number of slots in \p a
+ */
+size_t u_array_top (u_array_t *a)
+{
+    dbg_return_if (a == NULL, 0);
+    return a->top;
 }
 
 /**
