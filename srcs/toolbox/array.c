@@ -11,7 +11,9 @@ typedef struct __slot_s { void *ptr; } __slot_t;
 struct u_array_s
 {
     __slot_t *base;
-    size_t sz, nelem, top;
+    size_t sz;      /* total number of slots (0..n) */
+    size_t nelem;   /* number of busy slots (0..n)  */
+    size_t top;     /* top element index: (0..n-1)  */
 };
 
 /**
@@ -42,6 +44,7 @@ int u_array_create (size_t sz, u_array_t **pa)
         warn_err_sif ((a->base = u_zalloc(sz * sizeof(__slot_t))) == NULL);
 
     a->nelem = 0;
+    a->top = 0;
 
     *pa = a;
     
@@ -114,8 +117,9 @@ int u_array_push (u_array_t *a, void *elem)
 
     dbg_return_if (a == NULL, ~0);
 
-    /* if no space is available, grow the array by the default factor */
-    if (a->nelem == a->sz)
+    /* if all slots are busy or we've reached the top, grow the array by the 
+     * default factor */
+    if (a->nelem == a->sz || a->top == a->sz - 1)
         warn_err_if (u_array_grow(a, U_ARRAY_GROW_AUTO));
     
     /* stick the supplied element on top and increment counters */
@@ -169,23 +173,47 @@ int u_array_set_n (u_array_t *a, void *elem, size_t idx)
 
     dbg_return_if (a == NULL, ~0);
 
-    warn_err_ifm (idx >= a->sz, 
+    warn_err_ifm (idx >= a->sz,
             "trying to set an element past array boundaries");
 
     s = a->base + idx;
 
     /* catch override and wail */
     if (s->ptr != NULL)
-        warn("overriding element (%p) at %p[%d]", s->ptr, a->base, idx);
+        warn("overriding element (%p) at %p[%d] with %p (mem leakage ?)", 
+                s->ptr, a->base, idx, elem);
 
     s->ptr = elem;
     a->nelem += 1;
-    if (idx > a->top)   /* set 'top' indicator if needed */
-       a->top = idx; 
+    /* adjust 'top' indicator if needed */
+    a->top = (idx > a->top) ? idx : a->top;
 
     return 0;
 err:
     return ~0;
+}
+
+/**
+ *  \brief  Get the index of the lower free slot which can be used for a
+ *          subsequent u_array_set_n invocation.  This function must be called
+ *          only if (u_array_avail(a) > 0) condition is satisfied.
+ *
+ *  \param a    the array object
+ *
+ *  \return the index of the lower free slot if any, or u_array_size() in case
+ *          no free slot were found
+ */
+size_t u_array_lower_free_slot (u_array_t *a)
+{
+    size_t j;
+
+    for (j = 0; j < u_array_size(a); ++j)
+        if (u_array_get_n(a, j) == NULL)
+            return j;
+
+    /* in case no slot is found, which is equivalent to u_array_avail(a) == 0, 
+     * return the size of the array (i.e. an invalid slot index) */
+    return u_array_size(a);
 }
 
 /**
@@ -197,7 +225,7 @@ err:
  */
 size_t u_array_count (u_array_t *a)
 {
-    dbg_return_if (a == NULL, 0);
+    /* don't check 'a', let it segfault */
     return a->nelem;
 }
 
@@ -210,7 +238,7 @@ size_t u_array_count (u_array_t *a)
  */
 size_t u_array_avail (u_array_t *a)
 {
-    dbg_return_if (a == NULL, 0);
+    /* don't check 'a', let it segfault */
     return (a->sz - a->nelem);
 }
 
@@ -223,7 +251,7 @@ size_t u_array_avail (u_array_t *a)
  */
 size_t u_array_size (u_array_t *a)
 {
-    dbg_return_if (a == NULL, 0);
+    /* don't check 'a', let it segfault */
     return a->sz;
 }
 
@@ -236,7 +264,7 @@ size_t u_array_size (u_array_t *a)
  */
 size_t u_array_top (u_array_t *a)
 {
-    dbg_return_if (a == NULL, 0);
+    /* don't check 'a', let it segfault */
     return a->top;
 }
 

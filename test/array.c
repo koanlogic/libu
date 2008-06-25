@@ -11,9 +11,57 @@
 
 U_TEST_MODULE(array);
 
+static int test_u_array_sparse (void)
+{
+    int odd, *ips = NULL;
+    size_t j, even;
+    u_array_t *a = NULL;
+    enum { A_SZ = 10 };
+
+    con_err_if (u_array_create(A_SZ, &a));
+    
+    /* fill even slots with the corresponding int */
+    for (even = 0; even < A_SZ; even += 2)
+    {
+        con_err_sif ((ips = u_zalloc(sizeof(int))) == NULL);
+        *ips = even;
+
+        con_err_if (u_array_set_n(a, ips, even));
+
+        ips = NULL;
+    }
+
+    /* fill remaining slots (i.e. odds) with the corresponding int */
+    for (odd = 1; u_array_avail(a); odd += 2)
+    {
+        con_err_sif ((ips = u_zalloc(sizeof(int))) == NULL);
+        *ips = odd;
+
+        /* if u_array_avail condition is satisfied, it is safe to use 
+         * u_array_lower_free_slot without checking the ret code */
+        con_err_if (u_array_set_n(a, ips, u_array_lower_free_slot(a)));
+
+        ips = NULL;
+    }
+
+    /* check inserted values (and free'em) */
+    for (j = 0; j <= u_array_top(a); ++j)
+    {
+        int *p = (int *) u_array_get_n(a, j);
+        con_err_if ((size_t) *p != j);
+        u_free(p);
+    }
+
+    u_array_free(a);
+
+    return 0;
+err:
+    return ~0;
+}
+
 static int test_u_array_push_get (void)
 {
-    int *ip, i;
+    int *ip, *p, i;
     size_t j;
     u_array_t *a = NULL;
 
@@ -31,8 +79,11 @@ static int test_u_array_push_get (void)
     con("used slots: %zu", u_array_count(a));
     con("slots still available: %zu", u_array_avail(a));
 
-    for (j = 0; j < u_array_top(a); ++j)
-        u_free((int *) u_array_get_n(a, j));
+    for (j = 0; j <= u_array_top(a); ++j)
+    {
+        p = (int *) u_array_get_n(a, j);
+        U_FREE(p);
+    }
     u_array_free(a);
 
     return 0;
@@ -72,8 +123,11 @@ static int test_u_array_set_get (void)
     con_err_if (*ipg != *ips);
 
     /* free */
-    for (j = 0; j < u_array_top(a); ++j)
-        u_free(u_array_get_n(a, j));
+    for (j = 0; j <= u_array_top(a); ++j)
+    {
+        int *p = u_array_get_n(a, j);
+        U_FREE(p);
+    }
     u_array_free(a);
 
     return 0;
@@ -85,6 +139,7 @@ U_TEST_MODULE( array )
 {
     U_TEST_RUN( test_u_array_push_get );
     U_TEST_RUN( test_u_array_set_get );
+    U_TEST_RUN( test_u_array_sparse );
 
     return 0;                                                
 }
