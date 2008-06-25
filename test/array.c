@@ -76,10 +76,6 @@ static int test_u_array_push_get (void)
         ip = NULL;
     }
 
-    con("total number of slots: %zu", u_array_size(a));
-    con("used slots: %zu", u_array_count(a));
-    con("slots still available: %zu", u_array_avail(a));
-
     for (j = 0; j <= u_array_top(a); ++j)
     {
         int *p = u_array_get_n(a, j);
