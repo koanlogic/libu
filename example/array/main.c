@@ -18,7 +18,7 @@ int main (void)
 {
     int i;
     size_t j;
-    enum { A_INITIAL_SZ = 5, ADD_SOME_OTHER = 2 } ;
+    enum { A_INITIAL_SZ = 3, ADD_SOME_OTHER = 2 } ;
     u_array_t *a = NULL;
     data_t *d = NULL;
 
@@ -30,29 +30,32 @@ int main (void)
     for (i = 0; i < A_INITIAL_SZ; ++i)
     {
         con_err_if (data_new(i, &d));
-        con_err_if (u_array_add(a, (void *) d));
-        /* caller still owns 'd' */
+        con_err_if (u_array_push(a, (void *) d));
+        d = NULL;
     }
 
     /* dump dynarray contents */
-    for (j = 0; j < u_array_count(a); ++j)
+    for (j = 0; j < u_array_top(a); ++j)
         data_print((data_t *) u_array_get_n(a, j));
 
+
+    con("%zu pushed, now adding other %zu elements (force resize)", 
+            A_INITIAL_SZ, ADD_SOME_OTHER);
     /* 
      * add more elements (force resize) 
      */
     for (i = A_INITIAL_SZ; i <= A_INITIAL_SZ + ADD_SOME_OTHER; ++i)
     {
         con_err_if (data_new(i, &d));
-        con_err_if (u_array_add(a, (void *) d));
+        con_err_if (u_array_push(a, (void *) d));
     }
 
     /* again, dump dynarray contents */
-    for (j = 0; j < u_array_count(a); ++j)
+    for (j = 0; j < u_array_top(a); ++j)
         data_print((data_t *) u_array_get_n(a, j));
 
     /* delete data slots and dyn array */
-    for (j = 0; j < u_array_count(a); ++j)
+    for (j = 0; j < u_array_top(a); ++j)
         data_free((data_t *) u_array_get_n(a, j));
     u_array_free(a);
 

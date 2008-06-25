@@ -78,19 +78,21 @@ void u_array_free (u_array_t *a)
  *
  *  \return \c 0 on success, \c ~0 on error
  */
-/* if realloc fails the memory at a->base is still valid */
 int u_array_grow (u_array_t *a, size_t more)
 {
     size_t new_sz;
+    __slot_t *new_base;
 
     dbg_return_if (a == NULL, ~0);
 
     /* auto resize strategy is to double the current size */
     new_sz = (more == U_ARRAY_GROW_AUTO) ? a->sz * 2 : a->sz + more;
 
-    a->base = u_realloc(a->base, new_sz);
-    warn_err_sif (a->base == NULL);
+    /* if realloc fails the memory at a->base is still valid */
+    new_base = u_realloc(a->base, new_sz * sizeof(__slot_t));
+    warn_err_sif (new_base == NULL);
 
+    a->base = new_base;
     a->sz = new_sz;
 
     return 0; 
