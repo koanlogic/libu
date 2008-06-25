@@ -61,18 +61,19 @@ err:
 
 static int test_u_array_push_get (void)
 {
-    int *ip, *p, i;
+    int *ip, i;
     size_t j;
     u_array_t *a = NULL;
+    enum { A_SZ = 100 };
 
-    con_err_if (u_array_create(100, &a));
+    con_err_if (u_array_create(A_SZ, &a));
 
-    /* force resize (4 times) */
-    for (i = 0; i < 1000; i++)
+    /* force four resize (2^n > 10 <=> n > 3) */
+    for (i = 0; i < A_SZ * 10; i++)
     {
         con_err_sif ((ip = u_zalloc(sizeof(int))) == NULL);
         con_err_if (u_array_push(a, (void *) ip));
-        /* caller still owns 'ip' */
+        ip = NULL;
     }
 
     con("total number of slots: %zu", u_array_size(a));
@@ -81,7 +82,7 @@ static int test_u_array_push_get (void)
 
     for (j = 0; j <= u_array_top(a); ++j)
     {
-        p = (int *) u_array_get_n(a, j);
+        int *p = u_array_get_n(a, j);
         U_FREE(p);
     }
     u_array_free(a);
@@ -96,30 +97,31 @@ static int test_u_array_set_get (void)
     int *ips = NULL, *ipg = NULL;
     size_t j;
     u_array_t *a = NULL;
+    enum { A_SZ = 10 };
 
     /* create 10-slots array */
-    con_err_if (u_array_create(10, &a));
+    con_err_if (u_array_create(A_SZ, &a));
 
-    /* create element that will be inserted at 5th position */
+    /* create element that will be inserted at a median position */
     con_err_sif ((ips = u_zalloc(sizeof(int))) == NULL);
     *ips = 5;
 
-    /* set at 5th slot */
-    con_err_if (u_array_set_n(a, ips, 5));
+    /* set at median slot */
+    con_err_if (u_array_set_n(a, ips, A_SZ / 2));
 
-    /* get at 5th slot */
-    ipg = (int *) u_array_get_n(a, 5);
+    /* get at median slot */
+    ipg = (int *) u_array_get_n(a, A_SZ / 2);
     con_err_if (*ipg != *ips);
 
-    /* try to set at 11th slot (out of bounds) */
-    con_err_if (!u_array_set_n(a, ips, 10));
+    /* try to set off-by-one */
+    con_err_if (!u_array_set_n(a, ips, A_SZ));
 
-    /* override element at 5th slot (i.e. s/5/6) -- should show up in log  */
+    /* override element at median slot (i.e. s/5/6) -- should show up in log  */
     *ips = 6;
-    con_err_if (u_array_set_n(a, ips, 5));
+    con_err_if (u_array_set_n(a, ips, A_SZ / 2));
 
-    /* get at 5th slot */
-    ipg = (int *) u_array_get_n(a, 5);
+    /* get at median slot */
+    ipg = (int *) u_array_get_n(a, A_SZ / 2);
     con_err_if (*ipg != *ips);
 
     /* free */
