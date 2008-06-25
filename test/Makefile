@@ -16,9 +16,6 @@ ifndef NO_ARRAY
 SRCS += array.c 
 endif
 
-CFLAGS += -I../include
-CFLAGS += -g -DDEBUG
-
 LDADD += ../srcs/libu.a
 
 include prog.mk
