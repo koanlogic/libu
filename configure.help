@@ -54,6 +54,9 @@ OPTION can be defined as follows:
 --no_ipv6           disable IPv6 support
 --no_unixsock       disable Unix socket support
 
+--no_docs           don't build/install documentation
+--do_test           build and run unit tests
+
 Legend:
   <*>: required dependency
   <?>: optional dependency

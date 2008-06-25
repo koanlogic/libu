@@ -22,3 +22,6 @@ CFLAGS += -g -DDEBUG
 LDADD += ../srcs/libu.a
 
 include prog.mk
+
+all-hook-post:
+	@./$(PROG) || echo "some test failed !"

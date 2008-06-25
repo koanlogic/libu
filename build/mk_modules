@@ -1,4 +1,4 @@
-# $Id: mk_modules,v 1.4 2008/06/23 16:27:35 tho Exp $
+# $Id: mk_modules,v 1.5 2008/06/25 10:10:15 tho Exp $
 
 #
 # --no_hmap
@@ -102,4 +102,30 @@ makl_args_def   \
 __makl_no_array () 
 { 
     makl_set_var "NO_ARRAY" ; 
+}
+
+#
+# --no_docs
+#
+makl_args_def   \
+    "no_docs"   \
+    "" ""       \
+    "avoid documentation"
+
+__makl_no_docs () 
+{ 
+    makl_set_var "NO_DOCS" ; 
+}
+
+#
+# --do_test
+#
+makl_args_def   \
+    "do_test"   \
+    "" ""       \
+    "run unit test"
+
+__makl_do_test () 
+{
+    makl_set_var "DO_TEST" ; 
 }

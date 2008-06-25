@@ -1,14 +1,16 @@
-# $Id: Makefile,v 1.6 2008/06/25 07:07:20 tho Exp $
+# $Id: Makefile,v 1.7 2008/06/25 10:10:15 tho Exp $
+
+include Makefile.conf
 
 SUBDIR += include 
 SUBDIR += srcs 
 
-ifndef NO_LIBU_DOCS
+ifndef NO_DOCS
 SUBDIR += doc
 endif
 
-ifdef LIBU_TEST
-SUBDIR += doc
+ifdef DO_TEST
+SUBDIR += test
 endif
 
 include subdir.mk
