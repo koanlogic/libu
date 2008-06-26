@@ -87,7 +87,8 @@ int u_array_set_n (u_array_t *a, size_t idx, const void *elem, void **oelem)
     else
         warn_err_sif ((s->data = u_zalloc(a->type_sz)) == NULL);
 
-    memcpy(s->data, elem, a->type_sz);
+    /* copyin data */
+    s->data = elem;
     s->set = 1;
 
     a->nelem += 1;
@@ -109,8 +110,8 @@ err:
  */
 int u_array_grow (u_array_t *a, size_t more)
 {
+    __slot_t *new_base;
     size_t new_nslot;
-    void *new_base;
 
     dbg_return_if (a == NULL, ~0);
 
