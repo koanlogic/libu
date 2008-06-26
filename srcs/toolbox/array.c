@@ -66,28 +66,28 @@ err:
  *
  *  \return \c 0 on success, \c ~0 on error
  */
-int u_array_set_n (u_array_t *a, size_t idx, const void *elem, void **oelem)
+int u_array_set_n (u_array_t *a, size_t idx, void *elem, void **oelem)
 {
     __slot_t *s;
 
     dbg_return_if (a == NULL, ~0);
 
-    if (idx > a->nslot)
+    if (idx >= a->nslot)
         warn_err_if (u_array_grow(a, U_ARRAY_GROW_AUTO));
 
-    /* get slot location and copy elem there */
+    /* get slot location */
     s = a->base + idx;
 
+    /* test if slot is busy, in which case the old value is returned via
+     * 'oelem' */
     if (s->set)
     {
-        warn("overriding an already set slot");
+        warn("overriding a slot which has been already set");
         if (oelem)
             *oelem = s->data;
     }
-    else
-        warn_err_sif ((s->data = u_zalloc(a->type_sz)) == NULL);
 
-    /* copyin data */
+    /* copyin data (scalar - MUST fit sizeof(void*) ! - or pointer) */
     s->data = elem;
     s->set = 1;
 
@@ -165,7 +165,7 @@ int u_array_get_n (u_array_t *a, size_t idx, void **pelem)
  *
  *  \return \c 0 on success, \c ~0 on error (i.e. an invalid array object 
  *          were supplied)
- */ 
+ */
 int u_array_set_cb_free (u_array_t *a, void (*cb_free)(void *))
 {
     dbg_return_if (a == NULL, ~0);

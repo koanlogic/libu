@@ -49,7 +49,7 @@ static int array_of_int (void)
         con("get %d at %zu", d2, j);
     }
 
-    /* put another number of values */
+    /* put another bit of values (to force realloc) */
     for (j = A_INITIAL_SLOTS; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
     {
         d = (int) j;
