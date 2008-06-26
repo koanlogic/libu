@@ -14,49 +14,102 @@ static int data_new (int i, data_t **pd);
 static void data_free (data_t *d);
 static void data_print (data_t *d);
 
+static int array_of_double (void);
+static int array_of_int (void);
+
 int main (void)
 {
-    int i;
+    con_err_if (array_of_int());
+    return 0;
+err:
+    return 1;
+}
+
+static int array_of_int (void)
+{
     size_t j;
-    enum { A_INITIAL_SZ = 3, ADD_SOME_OTHER = 2 } ;
+    int d, d2;
+    enum { A_INITIAL_SLOTS = 3, ADD_SOME_OTHER = 2 } ;
     u_array_t *a = NULL;
-    data_t *d = NULL;
 
-    con_err_if (u_array_create(A_INITIAL_SZ, &a));
+    con_err_if (u_array_create(sizeof(int), A_INITIAL_SLOTS, &a));
 
-    /* 
-     * load first slot (which fits in original allocation) 
-     */
-    for (i = 0; i < A_INITIAL_SZ; ++i)
+    /* put values at specified locations */
+    for (j = 0; j < A_INITIAL_SLOTS; ++j)
     {
-        con_err_if (data_new(i, &d));
-        con_err_if (u_array_push(a, (void *) d));
-        d = NULL;
+        d = (int) j;
+        con("put %d at %zu", d, j);
+        con_err_if (u_array_set_n(a, j, (void *) d, NULL));
     }
 
-    /* dump dynarray contents */
-    for (j = 0; j < u_array_top(a); ++j)
-        data_print((data_t *) u_array_get_n(a, j));
-
-
-    con("%zu pushed, now adding other %zu elements (force resize)", 
-            A_INITIAL_SZ, ADD_SOME_OTHER);
-    /* 
-     * add more elements (force resize) 
-     */
-    for (i = A_INITIAL_SZ; i <= A_INITIAL_SZ + ADD_SOME_OTHER; ++i)
+    /* get values and print'em */
+    for (j = 0; j < A_INITIAL_SLOTS; ++j)
     {
-        con_err_if (data_new(i, &d));
-        con_err_if (u_array_push(a, (void *) d));
+        con_err_if (u_array_get_n(a, j, (void **) &d2));
+        con("get %d at %zu", d2, j);
     }
 
-    /* again, dump dynarray contents */
-    for (j = 0; j < u_array_top(a); ++j)
-        data_print((data_t *) u_array_get_n(a, j));
+    /* put another number of values */
+    for (j = A_INITIAL_SLOTS; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
+    {
+        d = (int) j;
+        con("put %d at %zu", d, j);
+        con_err_if (u_array_set_n(a, j, (void *) d, NULL));
+    }
 
-    /* delete data slots and dyn array */
-    for (j = 0; j < u_array_top(a); ++j)
-        data_free((data_t *) u_array_get_n(a, j));
+    /* get values and print'em */
+    for (j = A_INITIAL_SLOTS; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
+    {
+        con_err_if (u_array_get_n(a, j, (void **) &d2));
+        con("get %d at %zu", d2, j);
+    }
+
+    u_array_free(a);
+
+    return 0;
+err:
+    return 1;
+}
+
+static int array_of_double (void)
+{
+    size_t j;
+    double d, *dp;
+    enum { A_INITIAL_SLOTS = 3, ADD_SOME_OTHER = 2 } ;
+    u_array_t *a = NULL;
+
+    con_err_if (u_array_create(sizeof(double), A_INITIAL_SLOTS, &a));
+
+    /* put values at specified locations */
+    for (j = 0; j < A_INITIAL_SLOTS; ++j)
+    {
+        d = 0.123456 + (double) j;
+        con("put %g at %zu", d, j);
+        con_err_if (u_array_set_n(a, j, (void *) &d, NULL));
+    }
+
+    /* get values and print'em */
+    for (j = 0; j < A_INITIAL_SLOTS; ++j)
+    {
+        con_err_if (u_array_get_n(a, j, (void **) &dp));
+        con("get %g at %zu", *dp, j);
+    }
+
+    /* put another number of values */
+    for (j = A_INITIAL_SLOTS; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
+    {
+        d = 0.123456 + (double) j;
+        con("put %g at %zu", d, j);
+        con_err_if (u_array_set_n(a, j, (void *) &d, NULL));
+    }
+
+    /* get values and print'em */
+    for (j = A_INITIAL_SLOTS; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
+    {
+        con_err_if (u_array_get_n(a, j, (void **) &dp));
+        con("get %g at %zu", *dp, j);
+    }
+
     u_array_free(a);
 
     return 0;
