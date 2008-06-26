@@ -6,14 +6,15 @@
 #include <u/libu.h>
 #include <toolbox/array.h>
 
-typedef struct __slot_s { void *ptr; } __slot_t;
+typedef struct __slot_s { int set; void *data; } __slot_t;
 
 struct u_array_s
 {
     __slot_t *base;
-    size_t sz;      /* total number of slots (0..n) */
-    size_t nelem;   /* number of busy slots (0..n)  */
-    size_t top;     /* top element index: (0..n-1)  */
+    size_t nslot;               /* total number of slots (0..n) */
+    size_t nelem;               /* number of busy slots (0..n)  */
+    size_t type_sz;             /* size of the hosted type */
+    void (*cb_free)(void *);    /* optional free function for hosted elements */
 };
 
 /**
@@ -24,28 +25,31 @@ struct u_array_s
 /**
  *  \brief  Create a new array object
  *
- *  \param sz   the initial number of slots to be created  (set it to \c 0 if 
- *              you don't want to specify an initial array size)
- *  \param pa   the newly created array object as a result argument
+ *  \param type_sz  the size of the hosted type in bytes
+ *  \param nslot    the initial number of slots to be created  (set it to \c 0 
+ *                  if you don't want to specify an initial array size)
+ *  \param pa       the newly created array object as a result argument
  *
  *  \return \c 0 on success, \c ~0 on error
  */
-int u_array_create (size_t sz, u_array_t **pa)
+int u_array_create (size_t type_sz, size_t nslot, u_array_t **pa)
 {
     u_array_t *a = NULL;
 
-    dbg_return_if (pa == NULL, ~0); 
+    dbg_return_if (pa == NULL, ~0);
+    dbg_return_if (type_sz == 0, ~0);
 
     a = u_zalloc(sizeof(u_array_t));
     warn_err_sif (a == NULL);
 
     /* if we've been requested to allocate some slot, do it now */
-    if ((a->sz = sz) != 0)
-        warn_err_sif ((a->base = u_zalloc(sz * sizeof(__slot_t))) == NULL);
+    if ((a->nslot = nslot) != 0)
+        warn_err_sif ((a->base = u_zalloc(nslot * sizeof(__slot_t))) == NULL);
 
     a->nelem = 0;
-    a->top = 0;
-
+    a->type_sz = type_sz;
+    a->cb_free = NULL;
+ 
     *pa = a;
     
     return 0;
@@ -54,21 +58,43 @@ err:
 }
 
 /**
- *  \brief  Free the array object: the array does not own the pointers in it,
- *          the client must free them explicitly
+ *  \brief  Set an element at a given slot
  *
- *  \param a    the array object that has to be disposed
+ *  \param a    the array object
+ *  \param idx  the index at which \p elem is to be inserted
+ *  \param elem the element that shall be inserted
  *
- *  \return nothing 
+ *  \return \c 0 on success, \c ~0 on error
  */
-void u_array_free (u_array_t *a)
+int u_array_set_n (u_array_t *a, size_t idx, const void *elem, void **oelem)
 {
-    dbg_return_if (a == NULL, );
+    __slot_t *s;
 
-    U_FREE(a->base);
-    u_free(a);
+    dbg_return_if (a == NULL, ~0);
 
-    return;
+    if (idx > a->nslot)
+        warn_err_if (u_array_grow(a, U_ARRAY_GROW_AUTO));
+
+    /* get slot location and copy elem there */
+    s = a->base + idx;
+
+    if (s->set)
+    {
+        warn("overriding an already set slot");
+        if (oelem)
+            *oelem = s->data;
+    }
+    else
+        warn_err_sif ((s->data = u_zalloc(a->type_sz)) == NULL);
+
+    memcpy(s->data, elem, a->type_sz);
+    s->set = 1;
+
+    a->nelem += 1;
+
+    return 0;
+err:
+    return ~0;
 }
 
 /**
@@ -83,25 +109,105 @@ void u_array_free (u_array_t *a)
  */
 int u_array_grow (u_array_t *a, size_t more)
 {
-    size_t new_sz;
-    __slot_t *new_base;
+    size_t new_nslot;
+    void *new_base;
 
     dbg_return_if (a == NULL, ~0);
 
     /* auto resize strategy is to double the current size */
-    new_sz = (more == U_ARRAY_GROW_AUTO) ? a->sz * 2 : a->sz + more;
+    new_nslot = (more == U_ARRAY_GROW_AUTO) ? a->nslot * 2 : a->nslot + more;
 
     /* if realloc fails the memory at a->base is still valid */
-    new_base = u_realloc(a->base, new_sz * sizeof(__slot_t));
+    new_base = u_realloc(a->base, new_nslot * sizeof(__slot_t));
     warn_err_sif (new_base == NULL);
 
     a->base = new_base;
-    a->sz = new_sz;
+    a->nslot = new_nslot;
 
     return 0; 
 err:
     return ~0;
+} 
+
+/**
+ *  \brief  Get an element at a given slot
+ *
+ *  \param a        array object
+ *  \param idx      index of the element that should be retrieved
+ *  \param pelem    reference to the retrieved element
+ *
+ *  \return \c 0 on success (element was found), \c ~0 on failure
+ */
+int u_array_get_n (u_array_t *a, size_t idx, void **pelem)
+{
+    __slot_t *s;
+
+    dbg_return_if (a == NULL, ~0);
+    dbg_return_if (pelem == NULL, ~0);
+    dbg_return_if (idx >= a->nslot, ~0);
+
+    s = a->base + idx;
+
+    if (!s->set)
+        return ~0;
+
+    *pelem = s->data;
+
+    return 0;
 }
+
+/**
+ *  \brief  Set a free(3)-like function to delete array elements 
+ *
+ *  \param  a       an array object
+ *  \param  cb_free the free-like function
+ *
+ *  \return \c 0 on success, \c ~0 on error (i.e. an invalid array object 
+ *          were supplied)
+ */ 
+int u_array_set_cb_free (u_array_t *a, void (*cb_free)(void *))
+{
+    dbg_return_if (a == NULL, ~0);
+
+    a->cb_free = cb_free;
+
+    return 0;
+}
+
+/**
+ *  \brief  Free the array object: the array does not own the pointers in it,
+ *          the client must free them explicitly
+ *
+ *  \param a    the array object that has to be disposed
+ *
+ *  \return nothing 
+ */
+void u_array_free (u_array_t *a)
+{
+    size_t j;
+
+    dbg_return_if (a == NULL, );
+
+    /* if user has set a free(3)-like function (via u_array_set_cb_free(), 
+     * use it to delete elements */
+    if (a->cb_free)
+    {
+        void *elem;
+
+        for (j = 0; j < u_array_nslot(a); ++j)
+        {
+            if (u_array_get_n(a, j, &elem) == 0)
+                a->cb_free(elem);
+        }
+    }
+
+    U_FREE(a->base);
+    u_free(a);
+
+    return;
+}
+
+#if 0
 
 /**
  *  \brief  Push an element on top of the array
@@ -113,7 +219,7 @@ err:
  */
 int u_array_push (u_array_t *a, void *elem)
 {
-    __slot_t *s;
+    void *s;
 
     dbg_return_if (a == NULL, ~0);
 
@@ -124,7 +230,7 @@ int u_array_push (u_array_t *a, void *elem)
     
     /* stick the supplied element on top and increment counters */
     s = a->base + a->top;
-    s->ptr = elem;
+    memcpy(s, elem, sizeof s);
     a->nelem += 1;
     a->top += 1;
 
@@ -132,89 +238,7 @@ int u_array_push (u_array_t *a, void *elem)
 err:
     return ~0;
 }
-
-/**
- *  \brief  Get an element at a given slot
- *
- *  \param a    the array object
- *  \param idx  the index of the element that should be retrieved
- *
- *  \return the pointer to the n-th element or \c NULL if no n-th element has
- *          been found
- */
-void *u_array_get_n (u_array_t *a, size_t idx)
-{
-    __slot_t *s;
-
-    dbg_return_if (a == NULL, NULL);
-
-    warn_err_ifm (idx >= a->sz,
-            "trying to get an element out of array boundaries");
-
-    s = a->base + idx;
-
-    return s->ptr;
-err:
-    return NULL;
-}
-
-/**
- *  \brief  Set an element at a given slot
- *
- *  \param a    the array object
- *  \param elem the element that shall be inserted
- *  \param idx  the index at which \p elem is to be inserted
- *
- *  \return \c 0 on success, \c ~0 on error
- */
-int u_array_set_n (u_array_t *a, void *elem, size_t idx)
-{
-    __slot_t *s;
-
-    dbg_return_if (a == NULL, ~0);
-
-    warn_err_ifm (idx >= a->sz,
-            "trying to set an element past array boundaries");
-
-    s = a->base + idx;
-
-    /* catch override and wail */
-    if (s->ptr != NULL)
-        warn("overriding element (%p) at %p[%d] with %p (mem leakage ?)", 
-                s->ptr, a->base, idx, elem);
-
-    s->ptr = elem;
-    a->nelem += 1;
-    /* adjust 'top' indicator if needed */
-    a->top = (idx > a->top) ? idx : a->top;
-
-    return 0;
-err:
-    return ~0;
-}
-
-/**
- *  \brief  Get the index of the lower free slot which can be used for a
- *          subsequent u_array_set_n invocation.  This function must be called
- *          only if (u_array_avail(a) > 0) condition is satisfied.
- *
- *  \param a    the array object
- *
- *  \return the index of the lower free slot if any, or u_array_size() in case
- *          no free slot were found
- */
-size_t u_array_lower_free_slot (u_array_t *a)
-{
-    size_t j;
-
-    for (j = 0; j < u_array_size(a); ++j)
-        if (u_array_get_n(a, j) == NULL)
-            return j;
-
-    /* in case no slot is found, which is equivalent to u_array_avail(a) == 0, 
-     * return the size of the array (i.e. an invalid slot index) */
-    return u_array_size(a);
-}
+#endif
 
 /**
  *  \brief  Count elements in array
@@ -239,7 +263,7 @@ size_t u_array_count (u_array_t *a)
 size_t u_array_avail (u_array_t *a)
 {
     /* don't check 'a', let it segfault */
-    return (a->sz - a->nelem);
+    return (a->nslot - a->nelem);
 }
 
 /**
@@ -249,28 +273,11 @@ size_t u_array_avail (u_array_t *a)
  *
  *  \return the total number of slots in \p a
  */
-size_t u_array_size (u_array_t *a)
+size_t u_array_nslot (u_array_t *a)
 {
     /* don't check 'a', let it segfault */
-    return a->sz;
+    return a->nslot;
 }
-
-/**
- *  \brief  Get the index of the top element in the array
- *
- *  \param a    the array object
- *
- *  \return the total number of slots in \p a
- */
-size_t u_array_top (u_array_t *a)
-{
-    /* don't check 'a', let it segfault */
-    return a->top;
-}
-
-/**
- *  \}
- */
 
 /* debug only */
 void u_array_print (u_array_t *a)
@@ -280,8 +287,18 @@ void u_array_print (u_array_t *a)
     dbg_return_if (a == NULL, );
 
     con("a(%p)", a);
-    for (j = 0; j < u_array_size(a); ++j)
-        con("   %p[%zu] = %p", a->base + j, j, u_array_get_n(a, j));
+
+    for (j = 0; j < u_array_nslot(a); ++j)
+    {
+        void *elem;
+
+        con("   %p[%zu] = %p", a->base + j, j, 
+                u_array_get_n(a, j, &elem) == 0 ? elem : 0x00);
+    }
 
     return;
 }
+
+/**
+ *  \}
+ */
