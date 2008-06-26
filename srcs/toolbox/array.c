@@ -13,7 +13,6 @@ struct u_array_s
     __slot_t *base;
     size_t nslot;               /* total number of slots (0..n) */
     size_t nelem;               /* number of busy slots (0..n)  */
-    size_t type_sz;             /* size of the hosted type */
     void (*cb_free)(void *);    /* optional free function for hosted elements */
 };
 
@@ -25,19 +24,17 @@ struct u_array_s
 /**
  *  \brief  Create a new array object
  *
- *  \param type_sz  the size of the hosted type in bytes
  *  \param nslot    the initial number of slots to be created  (set it to \c 0 
  *                  if you don't want to specify an initial array size)
  *  \param pa       the newly created array object as a result argument
  *
  *  \return \c 0 on success, \c ~0 on error
  */
-int u_array_create (size_t type_sz, size_t nslot, u_array_t **pa)
+int u_array_create (size_t nslot, u_array_t **pa)
 {
     u_array_t *a = NULL;
 
     dbg_return_if (pa == NULL, ~0);
-    dbg_return_if (type_sz == 0, ~0);
 
     a = u_zalloc(sizeof(u_array_t));
     warn_err_sif (a == NULL);
@@ -47,7 +44,6 @@ int u_array_create (size_t type_sz, size_t nslot, u_array_t **pa)
         warn_err_sif ((a->base = u_zalloc(nslot * sizeof(__slot_t))) == NULL);
 
     a->nelem = 0;
-    a->type_sz = type_sz;
     a->cb_free = NULL;
  
     *pa = a;

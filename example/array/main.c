@@ -2,6 +2,8 @@
 
 int facility = LOG_LOCAL0;
 
+#define PR_HEADER   con("\n((%s))", __FUNCTION__);
+
 struct data_s
 {
     int i;
@@ -14,107 +16,133 @@ static int data_new (int i, data_t **pd);
 static void data_free (data_t *d);
 static void data_print (data_t *d);
 
-static int array_of_double (void);
-static int array_of_int (void);
+static int scalar_int_array (void);
+static int ptr_double_array (void);
 
 int main (void)
 {
-    con_err_if (array_of_int());
+    con_err_if (scalar_int_array());
+    con_err_if (ptr_double_array());
     return 0;
 err:
     return 1;
 }
 
-static int array_of_int (void)
+/* with int's and in general when dealing with scalar types whose size is less
+ * then sizeof(void *) - i.e. 4 bytes - we can simply push the scalar value
+ * at a specific location, e.g.: 
+ *      u_array_set_n(a, 3, (void *) 1234)) 
+ */
+static int scalar_int_array (void)
 {
     size_t j;
     int d, d2;
     enum { A_INITIAL_SLOTS = 3, ADD_SOME_OTHER = 2 } ;
     u_array_t *a = NULL;
 
-    con_err_if (u_array_create(sizeof(int), A_INITIAL_SLOTS, &a));
+    PR_HEADER
 
-    /* put values at specified locations */
+    con_err_if (u_array_create(A_INITIAL_SLOTS, &a));
+
+    /* 
+     * put/get at slots 0..A_INITIAL_SLOTS-1 
+     */ 
     for (j = 0; j < A_INITIAL_SLOTS; ++j)
     {
         d = (int) j;
-        con("put %d at %zu", d, j);
+        con("put %d at [%zu]", d, j);
         con_err_if (u_array_set_n(a, j, (void *) d, NULL));
     }
 
-    /* get values and print'em */
     for (j = 0; j < A_INITIAL_SLOTS; ++j)
     {
         con_err_if (u_array_get_n(a, j, (void **) &d2));
-        con("get %d at %zu", d2, j);
+        con("  got %d at [%zu] : <%s>", d2, j, (d2 != (int) j) ? "ko" : "ok");
     }
 
-    /* put another bit of values (to force realloc) */
+    /* 
+     * put/get at slots A_INITIAL_SLOTS..A_INITIAL_SLOTS+ADD_SOME_OTHER-1 
+     */
     for (j = A_INITIAL_SLOTS; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
     {
         d = (int) j;
-        con("put %d at %zu", d, j);
+        con("put %d at [%zu]", d, j);
         con_err_if (u_array_set_n(a, j, (void *) d, NULL));
     }
 
-    /* get values and print'em */
     for (j = A_INITIAL_SLOTS; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
     {
         con_err_if (u_array_get_n(a, j, (void **) &d2));
-        con("get %d at %zu", d2, j);
+        con("  got %d at [%zu] : <%s>", d2, j, (d2 != (int) j) ? "ko" : "ok");
     }
 
     u_array_free(a);
 
     return 0;
 err:
-    return 1;
+    u_array_free(a);
+    return ~0;
 }
 
-static int array_of_double (void)
+/* sizeof(double) is 8 (i.e. > sizeof(void *)), so we are forced to use the
+ * put/get by pointer strategy.
+ */
+static int ptr_double_array (void)
 {
+#define F   0.1234
     size_t j;
-    double d, *dp;
+    double *d, *dp;
     enum { A_INITIAL_SLOTS = 3, ADD_SOME_OTHER = 2 } ;
     u_array_t *a = NULL;
 
-    con_err_if (u_array_create(sizeof(double), A_INITIAL_SLOTS, &a));
+    PR_HEADER
 
-    /* put values at specified locations */
+    con_err_if (u_array_create(A_INITIAL_SLOTS, &a));
+    con_err_if (u_array_set_cb_free(a, u_free));
+
+    /* 
+     * put/get at slots 0..A_INITIAL_SLOTS-1 
+     */ 
     for (j = 0; j < A_INITIAL_SLOTS; ++j)
     {
-        d = 0.123456 + (double) j;
-        con("put %g at %zu", d, j);
-        con_err_if (u_array_set_n(a, j, (void *) &d, NULL));
+        con_err_if ((d = u_zalloc(sizeof(double))) == NULL);
+        *d = F + (double) j;
+        con("put %g at [%zu]", *d, j);
+        con_err_if (u_array_set_n(a, j, (void *) d, NULL));
     }
 
-    /* get values and print'em */
     for (j = 0; j < A_INITIAL_SLOTS; ++j)
     {
         con_err_if (u_array_get_n(a, j, (void **) &dp));
-        con("get %g at %zu", *dp, j);
+        con("  got %g at [%zu] : <%s>", 
+                *dp, j, ((*dp - F) != (double) j) ? "ko" : "ok");
     }
 
-    /* put another number of values */
+    /* 
+     * put/get at slots A_INITIAL_SLOTS..A_INITIAL_SLOTS+ADD_SOME_OTHER-1 
+     */
     for (j = A_INITIAL_SLOTS; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
     {
-        d = 0.123456 + (double) j;
-        con("put %g at %zu", d, j);
-        con_err_if (u_array_set_n(a, j, (void *) &d, NULL));
+        con_err_if ((d = u_zalloc(sizeof(double))) == NULL);
+        *d = F + (double) j;
+        con("put %g at [%zu]", *d, j);
+        con_err_if (u_array_set_n(a, j, (void *) d, NULL));
     }
 
-    /* get values and print'em */
     for (j = A_INITIAL_SLOTS; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
     {
         con_err_if (u_array_get_n(a, j, (void **) &dp));
-        con("get %g at %zu", *dp, j);
+        con("  got %g at [%zu] : <%s>", 
+                *dp, j, ((*dp - F) != (double) j) ? "ko" : "ok");
     }
 
     u_array_free(a);
 
     return 0;
 err:
-    return 1;
+    u_array_free(a);
+    return ~0;
+#undef F
 }
 
 static int data_new (int i, data_t **pd)
