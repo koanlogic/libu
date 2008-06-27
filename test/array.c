@@ -11,133 +11,244 @@
 
 U_TEST_MODULE(array);
 
-static int test_u_array_sparse (void)
+#define PR_HEADER   con("\n((%s))", __FUNCTION__);
+
+struct data_s
 {
-    int odd, *ips = NULL;
-    size_t j, even;
+    int i;
+    char s[1024];
+};
+
+typedef struct data_s data_t;
+
+static int data_new (int i, data_t **pd);
+static void data_free (data_t *d);
+static void data_print (data_t *d);
+static void __data_free (void *d);
+
+static int scalar_int_array (void);
+static int ptr_double_array (void);
+static int ptr_custom_array (void);
+
+
+/* with int's and in general when dealing with scalar types whose size is less
+ * then sizeof(void *) - i.e. 4 bytes - we can simply push the scalar value
+ * at a specific location, e.g.: 
+ *      u_array_set_n(a, 3, (void *) 1234)) 
+ */
+static int scalar_int_array (void)
+{
+    size_t j;
+    int d, d2;
+    enum { A_INITIAL_SLOTS = 3, ADD_SOME_OTHER = 2, TOT_ELEM = 10 } ;
     u_array_t *a = NULL;
-    enum { A_SZ = 10 };
 
-    con_err_if (u_array_create(A_SZ, &a));
-    
-    /* fill even slots with the corresponding int */
-    for (even = 0; even < A_SZ; even += 2)
+    PR_HEADER
+
+    con_err_if (u_array_create(A_INITIAL_SLOTS, &a));
+
+    /* 
+     * put/get at slots 0..A_INITIAL_SLOTS-1 
+     */ 
+    for (j = 0; j < A_INITIAL_SLOTS; ++j)
     {
-        con_err_sif ((ips = u_zalloc(sizeof(int))) == NULL);
-        *ips = even;
+        d = (int) j;
+        con("put %d at [%zu]", d, j);
 
-        con_err_if (u_array_set_n(a, ips, even));
-
-        ips = NULL;
+        con_err_if (u_array_set_n(a, j, (void *) d, NULL));
     }
 
-    /* fill remaining slots (i.e. odds) with the corresponding int */
-    for (odd = 1; u_array_avail(a); odd += 2)
+    for (j = 0; j < A_INITIAL_SLOTS; ++j)
     {
-        con_err_sif ((ips = u_zalloc(sizeof(int))) == NULL);
-        *ips = odd;
+        con_err_if (u_array_get_n(a, j, (void **) &d2));
 
-        /* if u_array_avail condition is satisfied, it is safe to use 
-         * u_array_lower_free_slot without checking the ret code */
-        con_err_if (u_array_set_n(a, ips, u_array_lower_free_slot(a)));
-
-        ips = NULL;
+        con("  got %d at [%zu] : <%s>", d2, j, (d2 != (int) j) ? "ko" : "ok");
     }
 
-    /* check inserted values (and free'em) */
-    for (j = 0; j <= u_array_top(a); ++j)
+    /* 
+     * put/get at slots A_INITIAL_SLOTS..A_INITIAL_SLOTS+ADD_SOME_OTHER-1 
+     */
+    for (j = A_INITIAL_SLOTS; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
     {
-        int *p = (int *) u_array_get_n(a, j);
-        con_err_if ((size_t) *p != j);
-        u_free(p);
+        d = (int) j;
+        con("put %d at [%zu]", d, j);
+
+        con_err_if (u_array_set_n(a, j, (void *) d, NULL));
+    }
+
+    for (j = A_INITIAL_SLOTS; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
+    {
+        con_err_if (u_array_get_n(a, j, (void **) &d2));
+
+        con("  got %d at [%zu] : <%s>", d2, j, (d2 != (int) j) ? "ko" : "ok");
+    }
+
+    /* 
+     * push cycle (force resize)
+     */
+    for (j = A_INITIAL_SLOTS + ADD_SOME_OTHER; j < TOT_ELEM; ++j)
+    {
+        d = (int) j;
+
+        con_err_if (u_array_push(a, (void *) d));
+
+        con("push %d on top (%zu)", d, j, u_array_top(a));
     }
 
     u_array_free(a);
 
     return 0;
 err:
+    u_array_free(a);
     return ~0;
 }
 
-static int test_u_array_push_get (void)
+/* sizeof(double) is 8 (i.e. > sizeof(void *)), so we are forced to use the
+ * put/get by pointer strategy.
+ */
+static int ptr_double_array (void)
 {
-    int *ip, i;
+#define F   0.1234
     size_t j;
+    double *d, *dp;
+    enum { A_INITIAL_SLOTS = 3, ADD_SOME_OTHER = 2 } ;
     u_array_t *a = NULL;
-    enum { A_SZ = 100 };
 
-    con_err_if (u_array_create(A_SZ, &a));
+    PR_HEADER
 
-    /* force four resize (2^n > 10 <=> n > 3) */
-    for (i = 0; i < A_SZ * 10; i++)
+    con_err_if (u_array_create(A_INITIAL_SLOTS, &a));
+    con_err_if (u_array_set_cb_free(a, u_free));
+
+    /* 
+     * put/get at slots 0..A_INITIAL_SLOTS-1 
+     */ 
+    for (j = 0; j < A_INITIAL_SLOTS; ++j)
     {
-        con_err_sif ((ip = u_zalloc(sizeof(int))) == NULL);
-        con_err_if (u_array_push(a, (void *) ip));
-        ip = NULL;
+        con_err_if ((d = u_zalloc(sizeof(double))) == NULL);
+        *d = F + (double) j;
+        con("put %g at [%zu]", *d, j);
+
+        con_err_if (u_array_set_n(a, j, d, NULL));
     }
 
-    for (j = 0; j <= u_array_top(a); ++j)
+    for (j = 0; j < A_INITIAL_SLOTS; ++j)
     {
-        int *p = u_array_get_n(a, j);
-        U_FREE(p);
+        con_err_if (u_array_get_n(a, j, (void **) &dp));
+
+        con("  got %g at [%zu] : <%s>", 
+                *dp, j, ((*dp - F) != (double) j) ? "ko" : "ok");
     }
+
+    /* 
+     * put/get at slots A_INITIAL_SLOTS..A_INITIAL_SLOTS+ADD_SOME_OTHER-1 
+     */
+    for (j = A_INITIAL_SLOTS; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
+    {
+        con_err_if ((d = u_zalloc(sizeof(double))) == NULL);
+        *d = F + (double) j;
+        con("put %g at [%zu]", *d, j);
+
+        con_err_if (u_array_set_n(a, j, d, NULL));
+    }
+
+    for (j = A_INITIAL_SLOTS; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
+    {
+        con_err_if (u_array_get_n(a, j, (void **) &dp));
+
+        con("  got %g at [%zu] : <%s>", 
+                *dp, j, ((*dp - F) != (double) j) ? "ko" : "ok");
+    }
+
     u_array_free(a);
 
     return 0;
 err:
+    u_array_free(a);
+    return ~0;
+#undef F
+}
+
+static int ptr_custom_array (void)
+{
+    size_t j;
+    data_t *d = NULL, *d2;
+    u_array_t *a = NULL;
+    enum { A_INITIAL_SLOTS = 3, ADD_SOME_OTHER = 2 } ;
+
+    PR_HEADER
+
+    con_err_if (u_array_create(A_INITIAL_SLOTS, &a));
+    con_err_if (u_array_set_cb_free(a, __data_free));
+
+    for (j = 0; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
+    {
+        con_err_if (data_new(j, &d));
+
+        con_err_if (u_array_set_n(a, j, d, NULL));
+    }
+
+    for (j = 0; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
+    {
+        con_err_if (u_array_get_n(a, j, (void **) &d2));
+
+        data_print(d2);
+    }
+
+    u_array_free(a);
+
+    return 0;
+err:
+    u_array_free(a);
     return ~0;
 }
 
-static int test_u_array_set_get (void)
+static int data_new (int i, data_t **pd)
 {
-    int *ips = NULL, *ipg = NULL;
-    size_t j;
-    u_array_t *a = NULL;
-    enum { A_SZ = 10 };
+    data_t *d = NULL;
 
-    /* create 10-slots array */
-    con_err_if (u_array_create(A_SZ, &a));
+    con_return_if (pd == NULL, ~0);
 
-    /* create element that will be inserted at a median position */
-    con_err_sif ((ips = u_zalloc(sizeof(int))) == NULL);
-    *ips = 5;
+    con_return_sif ((d = u_zalloc(sizeof(data_t))) == NULL, ~0);
 
-    /* set at median slot */
-    con_err_if (u_array_set_n(a, ips, A_SZ / 2));
+    d->i = i;
+    u_snprintf(d->s, sizeof d->s, "%d", i);
 
-    /* get at median slot */
-    ipg = (int *) u_array_get_n(a, A_SZ / 2);
-    con_err_if (*ipg != *ips);
-
-    /* try to set off-by-one */
-    con_err_if (!u_array_set_n(a, ips, A_SZ));
-
-    /* override element at median slot (i.e. s/5/6) -- should show up in log  */
-    *ips = 6;
-    con_err_if (u_array_set_n(a, ips, A_SZ / 2));
-
-    /* get at median slot */
-    ipg = (int *) u_array_get_n(a, A_SZ / 2);
-    con_err_if (*ipg != *ips);
-
-    /* free */
-    for (j = 0; j <= u_array_top(a); ++j)
-    {
-        int *p = u_array_get_n(a, j);
-        U_FREE(p);
-    }
-    u_array_free(a);
+    *pd = d;
 
     return 0;
-err:
-    return ~0;
+}
+
+static void __data_free (void *d)
+{
+    data_free((data_t *) d);
+    return;
+}
+
+static void data_free (data_t *d)
+{
+    U_FREE(d);
+    return;
+}
+
+static void data_print (data_t *d)
+{
+    if (d == NULL)
+        con("d(<NULL>)");
+    else
+    {
+        con("d(%p)", d);
+        con("   .i = %u", d->i);
+        con("   .s = \'%s\'", d->s);
+    }
+
+    return;
 }
 
 U_TEST_MODULE( array )
 {
-    U_TEST_RUN( test_u_array_push_get );
-    U_TEST_RUN( test_u_array_set_get );
-    U_TEST_RUN( test_u_array_sparse );
+    U_TEST_RUN( scalar_int_array );
+    U_TEST_RUN( ptr_double_array );
+    U_TEST_RUN( ptr_custom_array );
 
     return 0;                                                
 }

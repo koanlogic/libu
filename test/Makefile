@@ -23,5 +23,7 @@ LDADD += ../srcs/libu.a
 
 include prog.mk
 
+ifndef NO_RUN_TEST
 all-hook-post:
 	@./$(PROG) || echo "unit test execution failed"
+endif
