@@ -13,6 +13,7 @@ struct u_array_s
     __slot_t *base;
     size_t nslot;               /* total number of slots (0..n) */
     size_t nelem;               /* number of busy slots (0..n)  */
+    size_t top;                 /* top element index: (0..n-1)  */
     void (*cb_free)(void *);    /* optional free function for hosted elements */
 };
 
@@ -44,6 +45,7 @@ int u_array_create (size_t nslot, u_array_t **pa)
         warn_err_sif ((a->base = u_zalloc(nslot * sizeof(__slot_t))) == NULL);
 
     a->nelem = 0;
+    a->top = 0;
     a->cb_free = NULL;
  
     *pa = a;
@@ -88,6 +90,8 @@ int u_array_set_n (u_array_t *a, size_t idx, void *elem, void **oelem)
     s->set = 1;
 
     a->nelem += 1;
+    /* adjust 'top' indicator if needed */
+    a->top = (idx > a->top) ? idx : a->top;
 
     return 0;
 err:
@@ -204,7 +208,6 @@ void u_array_free (u_array_t *a)
     return;
 }
 
-#if 0
 
 /**
  *  \brief  Push an element on top of the array
@@ -216,26 +219,8 @@ void u_array_free (u_array_t *a)
  */
 int u_array_push (u_array_t *a, void *elem)
 {
-    void *s;
-
-    dbg_return_if (a == NULL, ~0);
-
-    /* if all slots are busy or we've reached the top, grow the array by the 
-     * default factor */
-    if (a->nelem == a->sz || a->top == a->sz - 1)
-        warn_err_if (u_array_grow(a, U_ARRAY_GROW_AUTO));
-    
-    /* stick the supplied element on top and increment counters */
-    s = a->base + a->top;
-    memcpy(s, elem, sizeof s);
-    a->nelem += 1;
-    a->top += 1;
-
-    return 0;
-err:
-    return ~0;
+    return u_array_set_n(a, u_array_top(a), elem, NULL);
 }
-#endif
 
 /**
  *  \brief  Count elements in array
@@ -274,6 +259,19 @@ size_t u_array_nslot (u_array_t *a)
 {
     /* don't check 'a', let it segfault */
     return a->nslot;
+}
+
+/**
+ *  \brief  Get the index of the top element in the array
+ *
+ *  \param a    the array object
+ *
+ *  \return the total number of slots in \p a
+ */
+size_t u_array_top (u_array_t *a)
+{
+    /* don't check 'a', let it segfault */
+    return a->top;
 }
 
 /* debug only */

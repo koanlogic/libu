@@ -15,14 +15,17 @@ typedef struct data_s data_t;
 static int data_new (int i, data_t **pd);
 static void data_free (data_t *d);
 static void data_print (data_t *d);
+static void __data_free (void *d);
 
 static int scalar_int_array (void);
 static int ptr_double_array (void);
+static int ptr_custom_array (void);
 
 int main (void)
 {
     con_err_if (scalar_int_array());
     con_err_if (ptr_double_array());
+    con_err_if (ptr_custom_array());
     return 0;
 err:
     return 1;
@@ -37,7 +40,7 @@ static int scalar_int_array (void)
 {
     size_t j;
     int d, d2;
-    enum { A_INITIAL_SLOTS = 3, ADD_SOME_OTHER = 2 } ;
+    enum { A_INITIAL_SLOTS = 3, ADD_SOME_OTHER = 2, TOT_ELEM = 10 } ;
     u_array_t *a = NULL;
 
     PR_HEADER
@@ -51,12 +54,14 @@ static int scalar_int_array (void)
     {
         d = (int) j;
         con("put %d at [%zu]", d, j);
+
         con_err_if (u_array_set_n(a, j, (void *) d, NULL));
     }
 
     for (j = 0; j < A_INITIAL_SLOTS; ++j)
     {
         con_err_if (u_array_get_n(a, j, (void **) &d2));
+
         con("  got %d at [%zu] : <%s>", d2, j, (d2 != (int) j) ? "ko" : "ok");
     }
 
@@ -67,13 +72,27 @@ static int scalar_int_array (void)
     {
         d = (int) j;
         con("put %d at [%zu]", d, j);
+
         con_err_if (u_array_set_n(a, j, (void *) d, NULL));
     }
 
     for (j = A_INITIAL_SLOTS; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
     {
         con_err_if (u_array_get_n(a, j, (void **) &d2));
+
         con("  got %d at [%zu] : <%s>", d2, j, (d2 != (int) j) ? "ko" : "ok");
+    }
+
+    /* 
+     * push cycle (force resize)
+     */
+    for (j = A_INITIAL_SLOTS + ADD_SOME_OTHER; j < TOT_ELEM; ++j)
+    {
+        d = (int) j;
+
+        con_err_if (u_array_push(a, (void *) d));
+
+        con("push %d on top (%zu)", d, j, u_array_top(a));
     }
 
     u_array_free(a);
@@ -108,12 +127,14 @@ static int ptr_double_array (void)
         con_err_if ((d = u_zalloc(sizeof(double))) == NULL);
         *d = F + (double) j;
         con("put %g at [%zu]", *d, j);
-        con_err_if (u_array_set_n(a, j, (void *) d, NULL));
+
+        con_err_if (u_array_set_n(a, j, d, NULL));
     }
 
     for (j = 0; j < A_INITIAL_SLOTS; ++j)
     {
         con_err_if (u_array_get_n(a, j, (void **) &dp));
+
         con("  got %g at [%zu] : <%s>", 
                 *dp, j, ((*dp - F) != (double) j) ? "ko" : "ok");
     }
@@ -126,12 +147,14 @@ static int ptr_double_array (void)
         con_err_if ((d = u_zalloc(sizeof(double))) == NULL);
         *d = F + (double) j;
         con("put %g at [%zu]", *d, j);
-        con_err_if (u_array_set_n(a, j, (void *) d, NULL));
+
+        con_err_if (u_array_set_n(a, j, d, NULL));
     }
 
     for (j = A_INITIAL_SLOTS; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
     {
         con_err_if (u_array_get_n(a, j, (void **) &dp));
+
         con("  got %g at [%zu] : <%s>", 
                 *dp, j, ((*dp - F) != (double) j) ? "ko" : "ok");
     }
@@ -143,6 +166,40 @@ err:
     u_array_free(a);
     return ~0;
 #undef F
+}
+
+static int ptr_custom_array (void)
+{
+    size_t j;
+    data_t *d = NULL, *d2;
+    u_array_t *a = NULL;
+    enum { A_INITIAL_SLOTS = 3, ADD_SOME_OTHER = 2 } ;
+
+    PR_HEADER
+
+    con_err_if (u_array_create(A_INITIAL_SLOTS, &a));
+    con_err_if (u_array_set_cb_free(a, __data_free));
+
+    for (j = 0; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
+    {
+        con_err_if (data_new(j, &d));
+
+        con_err_if (u_array_set_n(a, j, d, NULL));
+    }
+
+    for (j = 0; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
+    {
+        con_err_if (u_array_get_n(a, j, (void **) &d2));
+
+        data_print(d2);
+    }
+
+    u_array_free(a);
+
+    return 0;
+err:
+    u_array_free(a);
+    return ~0;
 }
 
 static int data_new (int i, data_t **pd)
@@ -159,6 +216,12 @@ static int data_new (int i, data_t **pd)
     *pd = d;
 
     return 0;
+}
+
+static void __data_free (void *d)
+{
+    data_free((data_t *) d);
+    return;
 }
 
 static void data_free (data_t *d)

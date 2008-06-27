@@ -25,10 +25,9 @@ void u_array_free (u_array_t *a);
 size_t u_array_count (u_array_t *a);
 size_t u_array_avail (u_array_t *a);
 size_t u_array_nslot (u_array_t *a);
+size_t u_array_top (u_array_t *a);
 void u_array_print (u_array_t *a);
-#if 0
 int u_array_push (u_array_t *a, void *elem);
-#endif
 
 #ifdef __cplusplus
 }
