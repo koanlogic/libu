@@ -11,9 +11,9 @@ typedef struct __slot_s { int set; void *data; } __slot_t;
 struct u_array_s
 {
     __slot_t *base;
-    size_t nslot;               /* total number of slots (0..n) */
-    size_t nelem;               /* number of busy slots (0..n)  */
-    size_t top;                 /* top element index: (0..n-1)  */
+    size_t nslot;               /* total number of slots (0..n=N) */
+    size_t nelem;               /* number of busy slots (0..N)  */
+    size_t top;                 /* top element index: (0..N-1)  */
     void (*cb_free)(void *);    /* optional free function for hosted elements */
 };
 
@@ -224,7 +224,6 @@ void u_array_free (u_array_t *a)
     return;
 }
 
-
 /**
  *  \brief  Push an element on top of the array
  *
@@ -235,7 +234,7 @@ void u_array_free (u_array_t *a)
  */
 int u_array_push (u_array_t *a, void *elem)
 {
-    return u_array_set_n(a, u_array_top(a), elem, NULL);
+    return u_array_set_n(a, u_array_top(a) + 1, elem, NULL);
 }
 
 /**
