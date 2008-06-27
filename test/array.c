@@ -171,7 +171,7 @@ err:
 static int ptr_custom_array (void)
 {
     size_t j;
-    data_t *d = NULL, *d2;
+    data_t *d = NULL, *d2, *drepl = NULL, *dnew;
     u_array_t *a = NULL;
     enum { A_INITIAL_SLOTS = 3, ADD_SOME_OTHER = 2 } ;
 
@@ -188,6 +188,22 @@ static int ptr_custom_array (void)
     }
 
     for (j = 0; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
+    {
+        con_err_if (u_array_get_n(a, j, (void **) &d2));
+
+        data_print(d2);
+    }
+
+    /* replace an already set slot (idx=3) */
+    con_err_if (data_new(9999, &dnew));
+    con_err_if (u_array_set_n(a, A_INITIAL_SLOTS, dnew, (void **) &drepl));
+    /* free the replaced data (otherwise it would be lost) */
+    data_free(drepl);
+
+    /*
+     * print whole array content
+     */
+    for (j = 0; j <= u_array_top(a); ++j)
     {
         con_err_if (u_array_get_n(a, j, (void **) &d2));
 

@@ -70,9 +70,12 @@ err:
 /**
  *  \brief  Set an element at a given slot
  *
- *  \param a    the array object
- *  \param idx  the index at which \p elem is to be inserted
- *  \param elem the element that shall be inserted
+ *  \param a        the array object
+ *  \param idx      the index at which \p elem is to be inserted
+ *  \param elem     the element that shall be inserted
+ *  \param oelem    contains a reference to the replaced element in case the
+ *                  assigned slot were already in use (set it to \c NULL if 
+ *                  you're sure that \p idx was empty)
  *
  *  \return \c 0 on success, \c ~0 on error
  */
