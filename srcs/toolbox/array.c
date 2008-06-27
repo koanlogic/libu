@@ -42,7 +42,19 @@ int u_array_create (size_t nslot, u_array_t **pa)
 
     /* if we've been requested to allocate some slot, do it now */
     if ((a->nslot = nslot) != 0)
+    {
+        size_t idx;
+        __slot_t *s;
+
         warn_err_sif ((a->base = u_zalloc(nslot * sizeof(__slot_t))) == NULL);
+
+        for (idx = 0; idx < nslot; ++idx)
+        {
+            s = a->base + idx;
+            s->data = NULL;
+            s->set = 0;
+        }
+    }
 
     a->nelem = 0;
     a->top = 0;
@@ -118,9 +130,13 @@ int u_array_grow (u_array_t *a, size_t more)
     /* auto resize strategy is to double the current size */
     new_nslot = (more == U_ARRAY_GROW_AUTO) ? a->nslot * 2 : a->nslot + more;
 
-    /* if realloc fails the memory at a->base is still valid */
+    /* NOTE: if realloc fails the memory at a->base is still valid */
     new_base = u_realloc(a->base, new_nslot * sizeof(__slot_t));
     warn_err_sif (new_base == NULL);
+
+    /* zero-ize newly alloc'd memory (needed because of s->set tests for
+     * catching overrides) */
+    memset(new_base + a->nslot, 0, (new_nslot - a->nslot) * sizeof(__slot_t));
 
     a->base = new_base;
     a->nslot = new_nslot;
