@@ -42,19 +42,7 @@ int u_array_create (size_t nslot, u_array_t **pa)
 
     /* if we've been requested to allocate some slot, do it now */
     if ((a->nslot = nslot) != 0)
-    {
-        size_t idx;
-        __slot_t *s;
-
         warn_err_sif ((a->base = u_zalloc(nslot * sizeof(__slot_t))) == NULL);
-
-        for (idx = 0; idx < nslot; ++idx)
-        {
-            s = a->base + idx;
-            s->data = NULL;
-            s->set = 0;
-        }
-    }
 
     a->nelem = 0;
     a->top = 0;
@@ -138,6 +126,8 @@ int u_array_grow (u_array_t *a, size_t more)
     dbg_return_if (a == NULL, ~0);
 
     /* auto resize strategy is to double the current size */
+    /* XXX if the resize strategy is changed, also change the "auto-grow"
+     * XXX branch in u_array_set_n (circa line 81) */
     new_nslot = (more == U_ARRAY_GROW_AUTO) ? a->nslot * 2 : a->nslot + more;
 
     /* NOTE: if realloc fails the memory at a->base is still valid */
@@ -163,7 +153,8 @@ err:
  *  \param idx      index of the element that should be retrieved
  *  \param pelem    reference to the retrieved element
  *
- *  \return \c 0 on success (element was found), \c ~0 on failure
+ *  \return \c 0 on success (element was found), \c ~0 on failure (element not 
+ *          set or bad parameter supplied)
  */
 int u_array_get_n (u_array_t *a, size_t idx, void **pelem)
 {
