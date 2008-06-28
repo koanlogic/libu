@@ -82,11 +82,17 @@ err:
 int u_array_set_n (u_array_t *a, size_t idx, void *elem, void **oelem)
 {
     __slot_t *s;
+    size_t more;
 
     dbg_return_if (a == NULL, ~0);
 
     if (idx >= a->nslot)
-        warn_err_if (u_array_grow(a, U_ARRAY_GROW_AUTO));
+    {
+        /* next line assumes auto resize strategy is doubling the  
+         * current number of slots */ 
+        more = (idx > a->nslot * 2) ? idx - a->nslot + 1 : U_ARRAY_GROW_AUTO ;
+        warn_err_if (u_array_grow(a, more));
+    }
 
     /* get slot location */
     s = a->base + idx;
@@ -95,9 +101,10 @@ int u_array_set_n (u_array_t *a, size_t idx, void *elem, void **oelem)
      * 'oelem' */
     if (s->set)
     {
-        warn("overriding a slot which has been already set");
         if (oelem)
             *oelem = s->data;
+        else
+            warn("%p definitely lost at a[i]=%p[%zu]", s->data, a, idx);
     }
 
     /* copyin data (scalar - MUST fit sizeof(void*) ! - or pointer) */
