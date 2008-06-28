@@ -90,7 +90,7 @@ int u_array_set_n (u_array_t *a, size_t idx, void *elem, void **oelem)
     {
         /* next line assumes auto resize strategy is doubling the  
          * current number of slots */ 
-        more = (idx > a->nslot * 2) ? idx - a->nslot + 1 : U_ARRAY_GROW_AUTO ;
+        more = (idx >= a->nslot * 2) ? idx - a->nslot + 1 : U_ARRAY_GROW_AUTO ;
         warn_err_if (u_array_grow(a, more));
     }
 

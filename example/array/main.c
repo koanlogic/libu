@@ -7,7 +7,9 @@ int main (void)
     u_array_t *a = NULL;
 
     con_err_if (u_array_create(10, &a));
-    con_err_if (u_array_set_n(a, 10000, (void *) 1234, NULL));
+    con_err_if (u_array_set_n(a, 12, (void *) 1234, NULL));
+    con_err_if (u_array_set_n(a, 20, (void *) 1234, NULL));
+    con_err_if (u_array_set_n(a, 100, (void *) 1234, NULL));
     u_array_free(a);
 
     return 0;
