@@ -28,6 +28,7 @@ size_t u_array_nslot (u_array_t *a);
 size_t u_array_top (u_array_t *a);
 void u_array_print (u_array_t *a);
 int u_array_push (u_array_t *a, void *elem);
+size_t u_array_max_nslot (void);
 
 #ifdef __cplusplus
 }

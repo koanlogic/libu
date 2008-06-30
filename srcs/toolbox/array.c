@@ -8,14 +8,25 @@
 
 typedef struct __slot_s { int set; void *data; } __slot_t;
 
+#define U_ARRAY_NSLOT_MAX       (((size_t) ~0) / sizeof(__slot_t))
+#define U_ARRAY_DFLT_GROW       100
+#define U_ARRAY_VALID_IDX(idx)  (idx < U_ARRAY_NSLOT_MAX)
+
 struct u_array_s
 {
     __slot_t *base;
-    size_t nslot;               /* total number of slots (0..n=N) */
-    size_t nelem;               /* number of busy slots (0..N)  */
-    size_t top;                 /* top element index: (0..N-1)  */
+    size_t nslot;               /* total # of slots (0..U_ARRAY_NSLOT_MAX) */
+    size_t nelem;               /* # of busy slots (0..U_ARRAY_NSLOT_MAX) */
+    size_t top;                 /* top element idx: (0..U_ARRAY_NSLOT_MAX-1) */
     void (*cb_free)(void *);    /* optional free function for hosted elements */
 };
+
+/* use fixed increments */
+static size_t u_array_want_more (u_array_t *a)
+{
+    /* assume 'a' has been already sanitized */
+    return U_MIN(U_ARRAY_DFLT_GROW, U_ARRAY_NSLOT_MAX - a->nslot);
+}
 
 /**
  *  \defgroup array Dynamic Arrays
@@ -36,7 +47,11 @@ int u_array_create (size_t nslot, u_array_t **pa)
     u_array_t *a = NULL;
 
     dbg_return_if (pa == NULL, ~0);
+    warn_return_ifm (nslot > U_ARRAY_NSLOT_MAX, ~0, 
+            "the maximum number of slots an array can hold is %zu", 
+            U_ARRAY_NSLOT_MAX);
 
+    /* make root for the container */
     a = u_zalloc(sizeof(u_array_t));
     warn_err_sif (a == NULL);
 
@@ -46,12 +61,18 @@ int u_array_create (size_t nslot, u_array_t **pa)
 
     a->nelem = 0;
     a->top = 0;
-    a->cb_free = NULL;
+    a->cb_free = NULL;  /* can be set later on via u_array_set_cb_free() */
  
+    /* array obj is ready */
     *pa = a;
     
     return 0;
 err:
+    if (a)
+    {
+        u_free(a);
+        U_FREE(a->base);
+    }
     return ~0;
 }
 
@@ -73,12 +94,14 @@ int u_array_set_n (u_array_t *a, size_t idx, void *elem, void **oelem)
     size_t more;
 
     dbg_return_if (a == NULL, ~0);
+    dbg_return_if (!U_ARRAY_VALID_IDX(idx), ~0);
 
+    /* check if we're on or after array bounds */
     if (idx >= a->nslot)
     {
-        /* next line assumes auto resize strategy is doubling the  
-         * current number of slots */ 
-        more = (idx >= a->nslot * 2) ? idx - a->nslot + 1 : U_ARRAY_GROW_AUTO ;
+        more = (idx >= a->nslot + u_array_want_more(a)) ?
+            idx - a->nslot + 1 :    /* alloc exactly what is needed */
+            U_ARRAY_GROW_AUTO ;     /* alloc a block of new slots */
         warn_err_if (u_array_grow(a, more));
     }
 
@@ -95,7 +118,8 @@ int u_array_set_n (u_array_t *a, size_t idx, void *elem, void **oelem)
             warn("%p definitely lost at a[i]=%p[%zu]", s->data, a, idx);
     }
 
-    /* copyin data (scalar - MUST fit sizeof(void*) ! - or pointer) */
+    /* copy-in elem: scalar MUST fit sizeof(void *) - i.e. 'int' is ok, 
+     * 'double' is not - pointers have no restriction */
     s->data = elem;
     s->set = 1;
 
@@ -125,10 +149,20 @@ int u_array_grow (u_array_t *a, size_t more)
 
     dbg_return_if (a == NULL, ~0);
 
-    /* auto resize strategy is to double the current size */
-    /* XXX if the resize strategy is changed, also change the "auto-grow"
-     * XXX branch in u_array_set_n (circa line 81) */
-    new_nslot = (more == U_ARRAY_GROW_AUTO) ? a->nslot * 2 : a->nslot + more;
+    /* calc 'new_slot' depending on requested increment ('more') and actual 
+     * number of slots ('a->nslots') */
+    if (more == U_ARRAY_GROW_AUTO)
+        new_nslot = a->nslot + u_array_want_more(a);
+    else if (a->nslot <= U_ARRAY_NSLOT_MAX - more)
+        new_nslot = a->nslot + more;
+    else 
+    {
+        /* this branch intercepts overflows, i.e. the condition 
+         * a->nslot + more > U_ARRAY_NSLOT_MAX.  in case it happens 
+         * 'new_nslot' is rounded to U_ARRAY_NSLOT_MAX */
+        warn("requested amount of slot (%zu) would overflow array bounds");
+        new_nslot = U_ARRAY_NSLOT_MAX;
+    }
 
     /* NOTE: if realloc fails the memory at a->base is still valid */
     new_base = u_realloc(a->base, new_nslot * sizeof(__slot_t));
@@ -138,13 +172,14 @@ int u_array_grow (u_array_t *a, size_t more)
      * catching overrides) */
     memset(new_base + a->nslot, 0, (new_nslot - a->nslot) * sizeof(__slot_t));
 
+    /* reassing base in case realloc has changed it */
     a->base = new_base;
     a->nslot = new_nslot;
 
     return 0; 
 err:
     return ~0;
-} 
+}
 
 /**
  *  \brief  Get an element at a given slot
@@ -290,6 +325,15 @@ size_t u_array_top (u_array_t *a)
     return a->top;
 }
 
+/**
+ *  \brief  Get the maximum number of slots that an array object can 
+ *          (theoretically) hold
+ */
+size_t u_array_max_nslot (void)
+{
+    return U_ARRAY_NSLOT_MAX;
+}
+
 /* debug only */
 void u_array_print (u_array_t *a)
 {
@@ -313,3 +357,5 @@ void u_array_print (u_array_t *a)
 /**
  *  \}
  */
+
+
