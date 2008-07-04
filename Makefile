@@ -1,8 +1,8 @@
-# $Id: Makefile,v 1.7 2008/06/25 10:10:15 tho Exp $
+# $Id: Makefile,v 1.8 2008/07/04 10:55:37 tho Exp $
 
 include Makefile.conf
 
-SUBDIR += include 
+SUBDIR = include
 SUBDIR += srcs 
 
 ifndef NO_DOCS
