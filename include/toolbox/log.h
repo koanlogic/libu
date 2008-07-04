@@ -67,6 +67,44 @@ extern int facility;
 /** \brief log hook typedef */
 typedef int (*u_log_hook_t)(void *arg, int level, const char *str); 
 
+/** \brief thread lock callback typedef */
+typedef int (*u_log_lock_t)(void *arg);
+
+/** \brief thread unlock callback typedef */
+typedef int (*u_log_unlock_t)(void *arg);
+
+/** \brief set the lock function callback
+ *
+ * Set the lock function used by the log subsystem to work properly in 
+ * multi-thread environments (you must also set the unlock function).
+ *
+ * The lock primitive must allow recursive locking i.e. the thread that owns
+ * the lock can call the lock function more times without blocking (it must
+ * call the unlock function the same number of times).
+ *
+ * \param f         function that will be called to get the lock
+ * \param arg       an opaque argument that will be passed to the lock function
+ *
+ * \return 
+ *   0 on success, not zero on error
+ *
+ */
+int u_log_set_lock(u_log_lock_t f, void *arg);
+
+/** \brief set the unlock function callback 
+ *
+ * Set the unlock function used by the log subsystem to work properly in 
+ * multi-thread environments (you must also set the lock function);
+ *
+ * \param f         function that will be called to release the lock
+ * \param arg       an opaque argument that will be passed to the lock function
+ *
+ * \return 
+ *   0 on success, not zero on error
+ *
+ */
+int u_log_set_unlock(u_log_unlock_t f, void *arg);
+
 /** \brief set a log hook to redirect log messages
  *
  * Force the log subsystem to use user-provided function to write log messages.

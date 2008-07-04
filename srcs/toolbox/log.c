@@ -2,6 +2,9 @@
  * Copyright (c) 2005-2008 by KoanLogic s.r.l. - All rights reserved.  
  */
 
+static const char rcsid[] =
+    "$Id: log.c,v 1.6 2008/07/04 00:36:30 tat Exp $";
+
 #include <sys/types.h>
 #include <errno.h>
 #include <stdio.h>
@@ -22,6 +25,12 @@ extern int facility;
 static u_log_hook_t hook = NULL;
 static void *hook_arg = NULL;
 
+static u_log_lock_t f_lock = NULL;
+static void *f_lock_arg = NULL;
+
+static u_log_unlock_t f_unlock = NULL;;
+static void *f_unlock_arg = NULL;
+
 enum { STRERR_BUFSZ = 128, ERRMSG_BUFSZ = 256 };
 
 #ifdef OS_WIN
@@ -33,6 +42,34 @@ enum { STRERR_BUFSZ = 128, ERRMSG_BUFSZ = 256 };
 #define save_errno(var) var = errno;
 #define restore_errno(var) errno = var;
 #endif
+
+int u_log_set_lock(u_log_lock_t f, void *arg)
+{
+    f_lock = f;
+    f_lock_arg = arg;
+
+    return 0;
+}
+
+int u_log_set_unlock(u_log_unlock_t f, void *arg)
+{
+    f_unlock = f;
+    f_unlock_arg = arg;
+
+    return 0;
+}
+
+static inline void u_log_lock(void)
+{
+    if(f_lock)
+        f_lock(f_lock_arg);
+}
+
+static inline void u_log_unlock(void)
+{
+    if(f_unlock)
+        f_unlock(f_unlock_arg);
+}
 
 static inline const char* u_log_label(int lev)
 {
@@ -68,17 +105,22 @@ static int u_log(int fac, int level, const char *fmt, ...)
 
     va_start(ap, fmt); 
 
+    u_log_lock();
+
     if(hook)
     {
         if(vsnprintf(buf, U_MAX_LOG_LENGTH, fmt, ap) > U_MAX_LOG_LENGTH)
         {
             va_end(ap);
+            u_log_unlock();
             return ~0; /* buffer too small */
         }
         buf[U_MAX_LOG_LENGTH - 1] = 0; 
         hook(hook_arg, level, buf);
     } else 
         vsyslog(fac | level, fmt, ap);
+
+    u_log_unlock();
 
     va_end(ap);
 
@@ -87,6 +129,8 @@ static int u_log(int fac, int level, const char *fmt, ...)
 
 int u_log_set_hook(u_log_hook_t func, void *arg, u_log_hook_t *old, void **parg)
 {
+    u_log_lock();
+
     if(old)
         *old = hook;
     if(parg)
@@ -94,6 +138,8 @@ int u_log_set_hook(u_log_hook_t func, void *arg, u_log_hook_t *old, void **parg)
 
     hook = func;
     hook_arg = arg;
+
+    u_log_unlock();
 
     return 0;
 }
@@ -178,7 +224,6 @@ int u_console_write_ex(int err, const char* file, int line,
         fprintf(stderr, " %s\n", errmsg);
     } else
         fprintf(stderr, "\n");
-
 
     restore_errno(savederr);
     return 0;
