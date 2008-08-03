@@ -616,6 +616,34 @@ err:
 }
 
 /**
+ * \brief  Remove a child (and all its sub-children) from a config object
+ *
+ * Remove a child and  all its sub-children from a config object.
+ *
+ * \param c     configuration object
+ * \param child     child to remove
+ *
+ * \return \c 0 on success, not zero on failure
+ */
+int u_config_del_child(u_config_t *c, u_config_t *child)
+{
+    u_config_t *item;
+
+    TAILQ_FOREACH(item, &c->children, np)
+    {
+        if(item == child)
+        {   /* found */
+            u_config_del_key(c, child);
+            dbg_err_if(u_config_free(child));
+            return 0;
+        }
+    }
+
+err:
+    return ~0;
+}
+
+/**
  * \brief  Free a config object and all its children.
  *
  *  Free a config object and all its children.

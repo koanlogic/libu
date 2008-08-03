@@ -1,8 +1,9 @@
-$Id: ChangeLog,v 1.48 2008/07/04 10:55:37 tho Exp $
+$Id: ChangeLog,v 1.49 2008/08/03 21:44:12 tat Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
 LibU x.y.z:
+    - [config] u_config_del_child added
 	- [log] u_log_set_{lock,unlock} added to setup locking callbacks (needed on 
 	  multi-threading environments)
 	- [configure] added --no_docs and --do_test configure flags

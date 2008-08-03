@@ -58,6 +58,7 @@ int u_config_add_child(u_config_t *c, const char *key, u_config_t **pc);
 int u_config_set_value(u_config_t *c, const char *val);
 u_config_t* u_config_get_child_n(u_config_t *c, const char *key, int n);
 u_config_t* u_config_get_child(u_config_t *c, const char *key);
+int u_config_del_child(u_config_t *c, u_config_t *child);
 
 int u_config_has_children(u_config_t *c);
 int u_config_save_to_buf(u_config_t *c, char *buf, size_t size);
