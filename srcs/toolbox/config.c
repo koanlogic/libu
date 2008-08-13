@@ -49,6 +49,62 @@ extern u_config_driver_t u_config_drv_mem;
 static int u_config_include(u_config_t*, u_config_driver_t*, u_config_t*, int);
 
 /**
+ * \brief  Sort config children 
+ *
+ * Sort config children using the given comparison function. 
+ *
+ * The comparison function must return an integer less than, equal to, or
+ * greater than zero if the first argument is considered to be respectively
+ * less than, equal to, or greater than the second.
+ *
+ * \param c     configuration object
+ * \param cmp   comparison function
+ *
+ * \return \c 0 on success, not zero on failure
+ */
+int u_config_sort_children(u_config_t *c, 
+        int(*config_cmp)(u_config_t*, u_config_t*))
+{
+    u_config_t *child;
+    int i, count;
+    u_config_t **children = NULL;
+
+    /* count children */
+    count = 0;
+    TAILQ_FOREACH(child, &c->children, np)
+        count++;
+
+    /* create an array of pointers */
+    children = u_zalloc(count * sizeof(u_config_t*));
+    dbg_err_if(children == NULL);
+
+    /* populate the array of children */
+    i = 0;
+    TAILQ_FOREACH(child, &c->children, np)
+        children[i++] = child;
+
+    /* sort the list */
+    qsort(children, count, sizeof(u_config_t*), 
+            (int(*)(const void*,const void*))config_cmp);
+
+    /* remove all items from the list */
+    while((child = TAILQ_FIRST(&c->children)) != NULL)
+        TAILQ_REMOVE(&c->children, child, np);
+
+    /* reinsert sorted items */
+    for(i = 0; i < count; ++i)
+        TAILQ_INSERT_TAIL(&c->children, children[i], np);
+
+    U_FREE(children);
+
+    return 0;
+err:
+    if(children)
+        u_free(children);
+    return ~0;
+}
+
+/**
  * \brief  Print configuration to the given file descriptor
  *
  * Print a configuration object and its children to \c fp. For each config
