@@ -67,7 +67,7 @@ int u_config_load_from_buf(char *buf, size_t len, u_config_t **pc);
 void u_config_print_to_fp(u_config_t *c, FILE *fp, int lev);
 void u_config_print(u_config_t *c, int lev);
 
-int u_config_sort_children(u_config_t *c, int(*)(u_config_t*, u_config_t*));
+int u_config_sort_children(u_config_t *c, int(*)(u_config_t**, u_config_t**));
 
 #ifdef __cplusplus
 }

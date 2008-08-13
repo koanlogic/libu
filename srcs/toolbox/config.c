@@ -63,7 +63,7 @@ static int u_config_include(u_config_t*, u_config_driver_t*, u_config_t*, int);
  * \return \c 0 on success, not zero on failure
  */
 int u_config_sort_children(u_config_t *c, 
-        int(*config_cmp)(u_config_t*, u_config_t*))
+        int(*config_cmp)(u_config_t**, u_config_t**))
 {
     u_config_t *child;
     int i, count;

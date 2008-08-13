@@ -21,7 +21,6 @@ static int cmp_by_key(u_config_t **pa, u_config_t **pb)
         vb = "";
 
     return strcmp(va, vb);
-
 }
 
 int main(int argc, char **argv)
