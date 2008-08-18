@@ -260,11 +260,36 @@ static void data_print (data_t *d)
     return;
 }
 
+static int push_bug_test (void)
+{
+    u_array_t *a = NULL;
+    void *ptr;
+
+    PR_HEADER
+
+    con_err_if (u_array_create(0, &a));
+
+    /* should go into the slot number zero... */
+    con_err_if (u_array_push(a, 0xdeadbeef));
+
+    con_err_if (u_array_get_n(a, 0, &ptr));
+
+    con_err_if (ptr != 0xdeadbeef);
+
+    u_array_free(a);
+
+    return 0;
+err:
+    u_array_free(a);
+    return ~0;
+}
+
 U_TEST_MODULE( array )
 {
     U_TEST_RUN( scalar_int_array );
     U_TEST_RUN( ptr_double_array );
     U_TEST_RUN( ptr_custom_array );
+    U_TEST_RUN( push_bug_test );
 
     return 0;                                                
 }
