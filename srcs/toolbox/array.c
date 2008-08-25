@@ -60,7 +60,7 @@ int u_array_create (size_t nslot, u_array_t **pa)
         warn_err_sif ((a->base = u_zalloc(nslot * sizeof(__slot_t))) == NULL);
 
     a->nelem = 0;
-    a->top = 0;
+    a->top = U_ARRAY_TOP_INITIALIZER;
     a->cb_free = NULL;  /* can be set later on via u_array_set_cb_free() */
  
     /* array obj is ready */
@@ -125,7 +125,7 @@ int u_array_set_n (u_array_t *a, size_t idx, void *elem, void **oelem)
 
     a->nelem += 1;
     /* adjust 'top' indicator if needed */
-    a->top = (idx > a->top) ? idx : a->top;
+    a->top = (idx > a->top || a->top == U_ARRAY_TOP_INITIALIZER) ? idx : a->top;
 
     return 0;
 err:
@@ -317,7 +317,8 @@ size_t u_array_nslot (u_array_t *a)
  *
  *  \param a    the array object
  *
- *  \return the total number of slots in \p a
+ *  \return the index of the top element in \p a or \c U_ARRAY_TOP_INITIALIZER
+ *          in case \p a is empty
  */
 size_t u_array_top (u_array_t *a)
 {
