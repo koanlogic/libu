@@ -1,295 +1,181 @@
-#include <string.h>
-#include <syslog.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <string.h>
+#include <syslog.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <stdio.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <u/libu.h>
 
 U_TEST_MODULE(array);
 
-#define PR_HEADER   con("\n((%s))", __FUNCTION__);
+static int test_resize (void);
+static int test_short (void);
+static int test_custom (void);
+static int test_ushort (void);
+static int test_char (void);
+static int test_uchar (void);
 
-struct data_s
+static int test_resize (void)
 {
-    int i;
-    char s[1024];
-};
+    u_array_t *da = NULL;
+    size_t idx;
+    short s, s0;
 
-typedef struct data_s data_t;
+    con_err_if (u_array_create(U_ARRAY_TYPE_SHORT, 100, &da));
 
-static int data_new (int i, data_t **pd);
-static void data_free (data_t *d);
-static void data_print (data_t *d);
-static void __data_free (void *d);
-
-static int scalar_int_array (void);
-static int ptr_double_array (void);
-static int ptr_custom_array (void);
-
-
-/* with int's and in general when dealing with scalar types whose size is less
- * then sizeof(void *) - i.e. 4 bytes - we can simply push the scalar value
- * at a specific location, e.g.: 
- *      u_array_set_n(a, 3, (void *) 1234)) 
- */
-static int scalar_int_array (void)
-{
-    size_t j;
-    int d, d2;
-    enum { A_INITIAL_SLOTS = 3, ADD_SOME_OTHER = 2, TOT_ELEM = 10 } ;
-    u_array_t *a = NULL;
-
-    PR_HEADER
-
-    con_err_if (u_array_create(A_INITIAL_SLOTS, &a));
-
-    /* 
-     * put/get at slots 0..A_INITIAL_SLOTS-1 
-     */ 
-    for (j = 0; j < A_INITIAL_SLOTS; ++j)
+    for (s = SHRT_MIN, idx = 0; s < SHRT_MAX; s++, idx++)
     {
-        d = (int) j;
-        con("put %d at [%zu]", d, j);
-
-        con_err_if (u_array_set_n(a, j, (void *) d, NULL));
+        con_err_if (u_array_set_short(da, idx, s, NULL));
+        con_err_if (u_array_get_short(da, idx, &s0));
+        con_err_ifm (s != s0, "s = %d, s0 = %d, idx = %zu", s, s0, idx);
     }
 
-    for (j = 0; j < A_INITIAL_SLOTS; ++j)
-    {
-        con_err_if (u_array_get_n(a, j, (void **) &d2));
-
-        con("  got %d at [%zu] : <%s>", d2, j, (d2 != (int) j) ? "ko" : "ok");
-    }
-
-    /* 
-     * put/get at slots A_INITIAL_SLOTS..A_INITIAL_SLOTS+ADD_SOME_OTHER-1 
-     */
-    for (j = A_INITIAL_SLOTS; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
-    {
-        d = (int) j;
-        con("put %d at [%zu]", d, j);
-
-        con_err_if (u_array_set_n(a, j, (void *) d, NULL));
-    }
-
-    for (j = A_INITIAL_SLOTS; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
-    {
-        con_err_if (u_array_get_n(a, j, (void **) &d2));
-
-        con("  got %d at [%zu] : <%s>", d2, j, (d2 != (int) j) ? "ko" : "ok");
-    }
-
-    /* 
-     * push cycle (force resize)
-     */
-    for (j = A_INITIAL_SLOTS + ADD_SOME_OTHER; j < TOT_ELEM; ++j)
-    {
-        d = (int) j;
-
-        con_err_if (u_array_push(a, (void *) d));
-
-        con("push %d on top (%zu)", d, j, u_array_top(a));
-    }
-
-    u_array_free(a);
+    u_array_free(da);
 
     return 0;
 err:
-    u_array_free(a);
-    return ~0;
+    u_array_free(da);
+
+    return -1;
 }
 
-/* sizeof(double) is 8 (i.e. > sizeof(void *)), so we are forced to use the
- * put/get by pointer strategy.
- */
-static int ptr_double_array (void)
+static int test_short (void)
 {
-#define F   0.1234
-    size_t j;
-    double *d, *dp;
-    enum { A_INITIAL_SLOTS = 3, ADD_SOME_OTHER = 2 } ;
-    u_array_t *a = NULL;
+    u_array_t *da = NULL;
+    size_t idx;
+    short s, s0;
 
-    PR_HEADER
+    con_err_if (u_array_create(U_ARRAY_TYPE_SHORT, SHRT_MAX * 2 + 1, &da));
 
-    con_err_if (u_array_create(A_INITIAL_SLOTS, &a));
-    con_err_if (u_array_set_cb_free(a, u_free));
-
-    /* 
-     * put/get at slots 0..A_INITIAL_SLOTS-1 
-     */ 
-    for (j = 0; j < A_INITIAL_SLOTS; ++j)
+    for (s = SHRT_MIN, idx = 0; s < SHRT_MAX; s++, idx++)
     {
-        con_err_if ((d = u_zalloc(sizeof(double))) == NULL);
-        *d = F + (double) j;
-        con("put %g at [%zu]", *d, j);
-
-        con_err_if (u_array_set_n(a, j, d, NULL));
+        con_err_if (u_array_set_short(da, idx, s, NULL));
+        con_err_if (u_array_get_short(da, idx, &s0));
+        con_err_ifm (s != s0, "s = %d, s0 = %d, idx = %zu", s, s0, idx);
     }
 
-    for (j = 0; j < A_INITIAL_SLOTS; ++j)
-    {
-        con_err_if (u_array_get_n(a, j, (void **) &dp));
-
-        con("  got %g at [%zu] : <%s>", 
-                *dp, j, ((*dp - F) != (double) j) ? "ko" : "ok");
-    }
-
-    /* 
-     * put/get at slots A_INITIAL_SLOTS..A_INITIAL_SLOTS+ADD_SOME_OTHER-1 
-     */
-    for (j = A_INITIAL_SLOTS; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
-    {
-        con_err_if ((d = u_zalloc(sizeof(double))) == NULL);
-        *d = F + (double) j;
-        con("put %g at [%zu]", *d, j);
-
-        con_err_if (u_array_set_n(a, j, d, NULL));
-    }
-
-    for (j = A_INITIAL_SLOTS; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
-    {
-        con_err_if (u_array_get_n(a, j, (void **) &dp));
-
-        con("  got %g at [%zu] : <%s>", 
-                *dp, j, ((*dp - F) != (double) j) ? "ko" : "ok");
-    }
-
-    u_array_free(a);
+    u_array_free(da);
 
     return 0;
 err:
-    u_array_free(a);
-    return ~0;
-#undef F
+    u_array_free(da);
+
+    return -1;
 }
 
-static int ptr_custom_array (void)
+static int test_custom (void)
 {
-    size_t j;
-    data_t *d = NULL, *d2, *drepl = NULL, *dnew;
-    u_array_t *a = NULL;
-    enum { A_INITIAL_SLOTS = 3, ADD_SOME_OTHER = 2 } ;
+    u_array_t *da = NULL;
+    size_t idx;
+    struct S { int i; char c; } s, *s0;
 
-    PR_HEADER
+    con_err_if (u_array_create(U_ARRAY_TYPE_CUSTOM, 10, &da));
 
-    con_err_if (u_array_create(A_INITIAL_SLOTS, &a));
-    con_err_if (u_array_set_cb_free(a, __data_free));
-
-    for (j = 0; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
+    for (idx = 0; idx < 100; idx++)
     {
-        con_err_if (data_new(j, &d));
+        s.i = (int) idx;
+        s.c = (char) idx;
 
-        con_err_if (u_array_set_n(a, j, d, NULL));
+        con_err_if (u_array_set_custom(da, idx, (void *) &s, NULL));
+        con_err_if (u_array_get_custom(da, idx, (void **) &s0));
+
+        con_err_if (s.i != s0->i);
+        con_err_if (s.c != s0->c);
     }
 
-    for (j = 0; j < A_INITIAL_SLOTS + ADD_SOME_OTHER; ++j)
-    {
-        con_err_if (u_array_get_n(a, j, (void **) &d2));
-
-        data_print(d2);
-    }
-
-    /* replace an already set slot (idx=3) */
-    con_err_if (data_new(9999, &dnew));
-    con_err_if (u_array_set_n(a, A_INITIAL_SLOTS, dnew, (void **) &drepl));
-    /* free the replaced data (otherwise it would be lost) */
-    data_free(drepl);
-
-    /*
-     * print whole array content
-     */
-    for (j = 0; j <= u_array_top(a); ++j)
-    {
-        con_err_if (u_array_get_n(a, j, (void **) &d2));
-
-        data_print(d2);
-    }
-
-    u_array_free(a);
+    u_array_free(da);
 
     return 0;
 err:
-    u_array_free(a);
-    return ~0;
+    u_array_free(da);
+
+    return -1;
 }
 
-static int data_new (int i, data_t **pd)
+static int test_ushort (void)
 {
-    data_t *d = NULL;
+    u_array_t *da = NULL;
+    size_t idx;
+    unsigned short s, s0;
 
-    con_return_if (pd == NULL, ~0);
+    con_err_if (u_array_create(U_ARRAY_TYPE_USHORT, USHRT_MAX + 1, &da));
 
-    con_return_sif ((d = u_zalloc(sizeof(data_t))) == NULL, ~0);
-
-    d->i = i;
-    u_snprintf(d->s, sizeof d->s, "%d", i);
-
-    *pd = d;
-
-    return 0;
-}
-
-static void __data_free (void *d)
-{
-    data_free((data_t *) d);
-    return;
-}
-
-static void data_free (data_t *d)
-{
-    U_FREE(d);
-    return;
-}
-
-static void data_print (data_t *d)
-{
-    if (d == NULL)
-        con("d(<NULL>)");
-    else
+    for (s = 0, idx = 0; s < USHRT_MAX; s++, idx++)
     {
-        con("d(%p)", d);
-        con("   .i = %u", d->i);
-        con("   .s = \'%s\'", d->s);
+        con_err_if (u_array_set_ushort(da, idx, s, NULL));
+        con_err_if (u_array_get_ushort(da, idx, &s0));
+        con_err_ifm (s != s0, "s = %d, s0 = %d, idx = %zu", s, s0, idx);
     }
 
-    return;
-}
-
-static int push_bug_test (void)
-{
-    u_array_t *a = NULL;
-    void *ptr;
-
-    PR_HEADER
-
-    con_err_if (u_array_create(0, &a));
-
-    /* should go into the slot number zero... */
-    con_err_if (u_array_push(a, 0xdeadbeef));
-
-    con_err_if (u_array_get_n(a, 0, &ptr));
-
-    con_err_if (ptr != 0xdeadbeef);
-
-    u_array_free(a);
+    u_array_free(da);
 
     return 0;
 err:
-    u_array_free(a);
-    return ~0;
+    u_array_free(da);
+
+    return -1;
+}
+
+static int test_char (void)
+{
+    u_array_t *da = NULL;
+    size_t idx;
+    char s, s0;
+
+    con_err_if (u_array_create(U_ARRAY_TYPE_CHAR, CHAR_MAX * 2 + 1, &da));
+
+    for (s = CHAR_MIN, idx = 0; s < CHAR_MAX; s++, idx++)
+    {
+        con_err_if (u_array_set_char(da, idx, s, NULL));
+        con_err_if (u_array_get_char(da, idx, &s0));
+        con_err_ifm (s != s0, "s = %d, s0 = %d, idx = %zu", s, s0, idx);
+    }
+
+    u_array_free(da);
+
+    return 0;
+err:
+    u_array_free(da);
+
+    return -1;
+}
+
+static int test_uchar (void)
+{
+    u_array_t *da = NULL;
+    size_t idx;
+    unsigned char s, s0;
+
+    con_err_if (u_array_create(U_ARRAY_TYPE_UCHAR, UCHAR_MAX + 1, &da));
+
+    for (s = 0, idx = 0; s < UCHAR_MAX; s++, idx++)
+    {
+        con_err_if (u_array_set_uchar(da, idx, s, NULL));
+        con_err_if (u_array_get_uchar(da, idx, &s0));
+        con_err_ifm (s != s0, "s = %d, s0 = %d, idx = %zu", s, s0, idx);
+    }
+
+    u_array_free(da);
+
+    return 0;
+err:
+    u_array_free(da);
+
+    return -1;
 }
 
 U_TEST_MODULE( array )
 {
-    U_TEST_RUN( scalar_int_array );
-    U_TEST_RUN( ptr_double_array );
-    U_TEST_RUN( ptr_custom_array );
-    U_TEST_RUN( push_bug_test );
+    U_TEST_RUN( test_custom );
+    U_TEST_RUN( test_short );
+    U_TEST_RUN( test_ushort );
+    U_TEST_RUN( test_char );
+    U_TEST_RUN( test_uchar );
+    U_TEST_RUN( test_resize );
 
     return 0;                                                
 }

@@ -1,6 +1,6 @@
 #!/bin/sh 
 #
-# $Id: configure,v 1.63 2008/06/23 09:27:09 tho Exp $
+# $Id: configure,v 1.64 2008/08/29 20:32:14 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -55,6 +55,8 @@ makl_append_var_mk "CFLAGS" "-DHAVE_CONF_H -I`pwd`/include"
 makl_optional           1    "featx"   "doxygen"    "PATH_DOXYGEN"
 
 ## Function dependencies
+makl_checktype          0   "long double"
+makl_checktype          0   "long long"
 makl_checktype          0   "pid_t"     "<sys/types.h>" 
 makl_checktype          0   "ssize_t"   "<sys/types.h>" 
 makl_checktype          0   "in_addr_t"         \
