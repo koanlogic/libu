@@ -133,7 +133,7 @@ err:
  */
 
 #define U_ARRAY_GETSET_F(pfx, dtype, ctype)    \
-int u_array_set_##pfx (u_array_t *da, size_t idx, ctype v, ctype *pold)     \
+int u_array_set##pfx (u_array_t *da, size_t idx, ctype v, ctype *pold)      \
 {                                                                           \
     ctype *ep;                                                              \
                                                                             \
@@ -162,7 +162,7 @@ err:                                                                        \
     return -1;                                                              \
 }                                                                           \
                                                                             \
-int u_array_get_##pfx (u_array_t *da, size_t idx, ctype *pv)                \
+int u_array_get##pfx (u_array_t *da, size_t idx, ctype *pv)                 \
 {                                                                           \
     ctype *ep;                                                              \
                                                                             \
@@ -183,28 +183,28 @@ err:                                                                        \
     return -1;                                                              \
 }
 
-U_ARRAY_GETSET_F(char, U_ARRAY_TYPE_CHAR, char)
-U_ARRAY_GETSET_F(uchar, U_ARRAY_TYPE_UCHAR, unsigned char)
-U_ARRAY_GETSET_F(short, U_ARRAY_TYPE_SHORT, short)
-U_ARRAY_GETSET_F(ushort, U_ARRAY_TYPE_USHORT, unsigned short)
-U_ARRAY_GETSET_F(int, U_ARRAY_TYPE_INT, int)
-U_ARRAY_GETSET_F(uint, U_ARRAY_TYPE_UINT, unsigned int)
-U_ARRAY_GETSET_F(long, U_ARRAY_TYPE_LONG, long)
-U_ARRAY_GETSET_F(ulong, U_ARRAY_TYPE_ULONG, unsigned long)
-U_ARRAY_GETSET_F(float, U_ARRAY_TYPE_FLOAT, float)
-U_ARRAY_GETSET_F(double, U_ARRAY_TYPE_DOUBLE, double)
-U_ARRAY_GETSET_F(custom, U_ARRAY_TYPE_CUSTOM, void *)
+U_ARRAY_GETSET_F(_char, U_ARRAY_TYPE_CHAR, char)
+U_ARRAY_GETSET_F(_uchar, U_ARRAY_TYPE_UCHAR, unsigned char)
+U_ARRAY_GETSET_F(_short, U_ARRAY_TYPE_SHORT, short)
+U_ARRAY_GETSET_F(_ushort, U_ARRAY_TYPE_USHORT, unsigned short)
+U_ARRAY_GETSET_F(_int, U_ARRAY_TYPE_INT, int)
+U_ARRAY_GETSET_F(_uint, U_ARRAY_TYPE_UINT, unsigned int)
+U_ARRAY_GETSET_F(_long, U_ARRAY_TYPE_LONG, long)
+U_ARRAY_GETSET_F(_ulong, U_ARRAY_TYPE_ULONG, unsigned long)
+U_ARRAY_GETSET_F(_float, U_ARRAY_TYPE_FLOAT, float)
+U_ARRAY_GETSET_F(_double, U_ARRAY_TYPE_DOUBLE, double)
+U_ARRAY_GETSET_F(_custom, U_ARRAY_TYPE_CUSTOM, void *)
 
 #ifdef HAVE_BOOL
-U_ARRAY_GETSET_F(bool, U_ARRAY_TYPE_BOOL, bool)
+U_ARRAY_GETSET_F(_bool, U_ARRAY_TYPE_BOOL, bool)
 #endif  /* HAVE_BOOL */
 
 #ifdef HAVE_LONG_LONG
-U_ARRAY_GETSET_F(longlong, U_ARRAY_TYPE_LONGLONG, long long)
-U_ARRAY_GETSET_F(ulonglong, U_ARRAY_TYPE_ULONGLONG, unsigned long long)
+U_ARRAY_GETSET_F(_longlong, U_ARRAY_TYPE_LONGLONG, long long)
+U_ARRAY_GETSET_F(_ulonglong, U_ARRAY_TYPE_ULONGLONG, unsigned long long)
 #endif  /* HAVE_LONG_LONG */
 
 #ifdef HAVE_LONG_DOUBLE
-U_ARRAY_GETSET_F(longdouble, U_ARRAY_TYPE_LONGDOUBLE, long double)
+U_ARRAY_GETSET_F(_longdouble, U_ARRAY_TYPE_LONGDOUBLE, long double)
 #endif  /* HAVE_LONG_DOUBLE */
 
