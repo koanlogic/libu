@@ -15,6 +15,9 @@ struct u_array_s
 static size_t sizeof_type[U_ARRAY_TYPE_MAX + 1] =
 {
     0,                          /* U_ARRAY_TYPE_UNSET  = 0  */
+#ifdef HAVE_BOOL
+    sizeof(bool),               /* U_ARRAY_TYPE_BOOL        */
+#endif  /* HAVE_BOOL */
     sizeof(char),               /* U_ARRAY_TYPE_CHAR        */
     sizeof(unsigned char),      /* U_ARRAY_TYPE_UCHAR       */
     sizeof(short),              /* U_ARRAY_TYPE_SHORT       */
@@ -191,6 +194,10 @@ U_ARRAY_GETSET_F(ulong, U_ARRAY_TYPE_ULONG, unsigned long)
 U_ARRAY_GETSET_F(float, U_ARRAY_TYPE_FLOAT, float)
 U_ARRAY_GETSET_F(double, U_ARRAY_TYPE_DOUBLE, double)
 U_ARRAY_GETSET_F(custom, U_ARRAY_TYPE_CUSTOM, void *)
+
+#ifdef HAVE_BOOL
+U_ARRAY_GETSET_F(bool, U_ARRAY_TYPE_BOOL, bool)
+#endif  /* HAVE_BOOL */
 
 #ifdef HAVE_LONG_LONG
 U_ARRAY_GETSET_F(longlong, U_ARRAY_TYPE_LONGLONG, long long)

@@ -6,6 +6,9 @@
 #define _U_ARRAY_H_
 
 #include <u/libu_conf.h>
+#ifdef HAVE_BOOL
+#include <stdbool.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,6 +24,9 @@ extern "C" {
 
 typedef enum {
         U_ARRAY_TYPE_UNSET = 0,
+#ifdef HAVE_BOOL
+        U_ARRAY_TYPE_BOOL,
+#endif  /* HAVE_BOOL */
         U_ARRAY_TYPE_CHAR,
         U_ARRAY_TYPE_UCHAR,
         U_ARRAY_TYPE_SHORT,
@@ -84,6 +90,13 @@ int u_array_get_ulong (u_array_t *da, size_t idx, unsigned long *pv);
 int u_array_get_float (u_array_t *da, size_t idx, float *pv);
 int u_array_get_double (u_array_t *da, size_t idx, double *pv);
 int u_array_get_custom (u_array_t *da, size_t idx, void **pv);
+
+#ifdef HAVE_BOOL
+/* set */
+int u_array_set_bool (u_array_t *da, size_t idx, bool v, bool *pold);
+/* get */
+int u_array_get_bool (u_array_t *da, size_t idx, bool *pv);
+#endif  /* HAVE_BOOL */
 
 #ifdef HAVE_LONG_LONG
 /* set */
