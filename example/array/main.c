@@ -8,7 +8,7 @@ int main (void)
     size_t idx;
     long double complex c0, c1;
 
-    con_err_if (u_array_create(U_ARRAY_TYPE_LONG_DOUBLE_COMPLEX, 5, &a));
+    con_err_if (u_array_create(U_ARRAY_TYPE_LONG_DOUBLE_COMPLEX, 0, &a));
 
     for (idx = 0; idx < 10; idx++)
     {
@@ -29,6 +29,9 @@ int main (void)
         con_err_if (u_array_get_long_double_complex(a, idx, &c1));
         con_err_if (creal(c0) != creal(c1) || cimag(c0) != cimag(c1));
     }
+
+    /* index too high */
+    con_if (u_array_set_long_double_complex(a, 134217727, c0, NULL));
 
     u_array_free(a);
 

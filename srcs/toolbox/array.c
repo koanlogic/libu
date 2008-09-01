@@ -47,6 +47,8 @@ static size_t sizeof_type[U_ARRAY_TYPE_MAX + 1] =
     sizeof(void *)                  /* U_ARRAY_TYPE_PTR                 */
 };
 
+#define MAX_NSLOTS(da)  (SIZE_MAX / sizeof_type[da->type])
+
 /**
  *  \defgroup array Dynamic Arrays
  *  \{
@@ -68,6 +70,7 @@ static size_t sizeof_type[U_ARRAY_TYPE_MAX + 1] =
 int u_array_create (u_array_type_t t, size_t nslots, u_array_t **pda)
 {
     u_array_t *da = NULL;
+    size_t max_nslots;
 
     dbg_return_if (pda == NULL, -1);
     dbg_return_if (!U_ARRAY_TYPE_IS_VALID(t), -1);
@@ -76,9 +79,15 @@ int u_array_create (u_array_type_t t, size_t nslots, u_array_t **pda)
     warn_err_sif (da == NULL);
 
     da->type = t;
-    da->nslots = nslots ? nslots : U_ARRAY_NSLOTS_DFL;
 
-    da->base = u_calloc(da->nslots, sizeof_type[da->type]);
+    if (nslots == 0)
+        da->nslots = U_ARRAY_NSLOTS_DFL;
+    else if (nslots > (max_nslots = MAX_NSLOTS(da)))
+        da->nslots = max_nslots;
+    else
+        da->nslots = nslots;
+
+    da->base = u_zalloc(da->nslots * sizeof_type[da->type]);
     warn_err_sif (da->base == NULL);
 
     *pda = da;
@@ -101,7 +110,7 @@ void u_array_free (u_array_t *da)
 {
     nop_return_if (da == NULL, );
 
-    U_FREE(da->base);   
+    U_FREE(da->base);
     u_free(da);
 
     return;
@@ -111,21 +120,28 @@ void u_array_free (u_array_t *da)
  *  \brief  Grow the array so that the supplied index can be accomodated
  *
  *  \param da   the array object
- *  \param idx  the index that needs to be accomodated
+ *  \param idx  the index that needs to be accomodated/reached
  *
  *  \return \c 0 on success, \c -1 on error
  */
 int u_array_resize (u_array_t *da, size_t idx)
 {
     void *new_base;
-    size_t new_nslots;
+    size_t new_nslots, max_nslots;
 
     dbg_return_if (da == NULL, -1);
 
-    dbg_return_if (idx < da->nslots, 0);    /* no need to resize */
+    /* no need to resize, go out */
+    dbg_return_if (idx < da->nslots, 0);        
 
-    new_nslots = idx + 1 + U_ARRAY_RESIZE_PAD; /* XXX check overflow */
-    
+    /* can't go further, go out */
+    dbg_return_if (idx >= (max_nslots = MAX_NSLOTS(da)) - 1, 0);   
+
+    /* decide how many new slots are needed */
+    new_nslots = ((max_nslots - U_ARRAY_RESIZE_PAD - 1) >= idx) ?
+        idx + U_ARRAY_RESIZE_PAD + 1 : max_nslots;
+ 
+    /* try to realloc the array base pointer with the new size */
     new_base = u_realloc(da->base, new_nslots * sizeof_type[da->type]);
     warn_err_sif (new_base == NULL);
 
