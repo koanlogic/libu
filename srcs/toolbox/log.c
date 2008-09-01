@@ -3,13 +3,14 @@
  */
 
 static const char rcsid[] =
-    "$Id: log.c,v 1.6 2008/07/04 00:36:30 tat Exp $";
+    "$Id: log.c,v 1.7 2008/09/01 08:58:54 tho Exp $";
 
 #include <sys/types.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <signal.h>
 #include <unistd.h>
 #include <toolbox/log.h>
@@ -28,7 +29,7 @@ static void *hook_arg = NULL;
 static u_log_lock_t f_lock = NULL;
 static void *f_lock_arg = NULL;
 
-static u_log_unlock_t f_unlock = NULL;;
+static u_log_unlock_t f_unlock = NULL;
 static void *f_unlock_arg = NULL;
 
 enum { STRERR_BUFSZ = 128, ERRMSG_BUFSZ = 256 };
@@ -239,12 +240,10 @@ int u_strerror_r(int en, char *msg, size_t sz)
     enum { BUFSZ = 256 };
     char buf[BUFSZ] = { 0 };
 
-    /* on 64bit hosts a char* is 64bit long while a int is just 32bit so it 
-       is not safe to cast between those two types. longlong is always 64bits */
-    long long rc;
+    intptr_t rc;
 
     /* assume POSIX prototype */
-    rc = (long long)strerror_r(en, buf, BUFSZ);
+    rc = (intptr_t)strerror_r(en, buf, BUFSZ);
 
     if(rc == 0)
     {    /* posix version, success */
