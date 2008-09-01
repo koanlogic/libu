@@ -1,6 +1,6 @@
 #!/bin/sh 
 #
-# $Id: configure,v 1.65 2008/08/30 06:34:33 tho Exp $
+# $Id: configure,v 1.66 2008/09/01 12:58:12 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -57,9 +57,12 @@ makl_optional           1    "featx"   "doxygen"    "PATH_DOXYGEN"
 ## Function dependencies
 makl_checktype          0   "long double"
 makl_checktype          0   "long long"
-makl_checktype          0   "bool"      "<stdbool.h>"
-makl_checktype          0   "pid_t"     "<sys/types.h>" 
-makl_checktype          0   "ssize_t"   "<sys/types.h>" 
+makl_checktype          0   "bool"                  "<stdbool.h>"
+makl_checktype          0   "float complex"         "<complex.h>"
+makl_checktype          0   "double complex"        "<complex.h>"
+makl_checktype          0   "long double complex"   "<complex.h>"
+makl_checktype          0   "pid_t"                 "<sys/types.h>"
+makl_checktype          0   "ssize_t"               "<sys/types.h>"
 makl_checktype          0   "in_addr_t"         \
                             "<sys/types.h>"     \
                             "<sys/socket.h>"    \
@@ -82,6 +85,7 @@ makl_checkfunc          0   "gettimeofday"
 makl_checkfunc          0   "daemon"
 makl_checkfunc          0   "mkstemps"
 makl_func_strerror_r    0
+makl_checkheader        0   "complex"   "<complex.h>"
 makl_checkheader        0   "unistd"    "<unistd.h>"
 makl_checkheader        0   "stdlib"    "<stdlib.h>"
 makl_checkheader        0   "paths"     "<paths.h>"

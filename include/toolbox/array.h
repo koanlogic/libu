@@ -9,6 +9,9 @@
 #ifdef HAVE_BOOL
 #include <stdbool.h>
 #endif
+#ifdef HAVE_COMPLEX
+#include <complex.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,22 +31,31 @@ typedef enum {
         U_ARRAY_TYPE_BOOL,
 #endif  /* HAVE_BOOL */
         U_ARRAY_TYPE_CHAR,
-        U_ARRAY_TYPE_UCHAR,
+        U_ARRAY_TYPE_U_CHAR,
         U_ARRAY_TYPE_SHORT,
-        U_ARRAY_TYPE_USHORT,
+        U_ARRAY_TYPE_U_SHORT,
         U_ARRAY_TYPE_INT,
-        U_ARRAY_TYPE_UINT,
+        U_ARRAY_TYPE_U_INT,
         U_ARRAY_TYPE_LONG,
-        U_ARRAY_TYPE_ULONG,
+        U_ARRAY_TYPE_U_LONG,
 #ifdef HAVE_LONG_LONG
-        U_ARRAY_TYPE_LONGLONG,
-        U_ARRAY_TYPE_ULONGLONG,
+        U_ARRAY_TYPE_LONG_LONG,
+        U_ARRAY_TYPE_U_LONG_LONG,
 #endif  /* HAVE_LONG_LONG */
         U_ARRAY_TYPE_FLOAT,
         U_ARRAY_TYPE_DOUBLE,
 #ifdef HAVE_LONG_DOUBLE
-        U_ARRAY_TYPE_LONGDOUBLE,
+        U_ARRAY_TYPE_LONG_DOUBLE,
 #endif  /* HAVE_LONG_DOUBLE */
+#ifdef HAVE_FLOAT_COMPLEX
+        U_ARRAY_TYPE_FLOAT_COMPLEX,
+#endif  /* HAVE_FLOAT_COMPLEX */
+#ifdef HAVE_DOUBLE_COMPLEX
+        U_ARRAY_TYPE_DOUBLE_COMPLEX,
+#endif  /* HAVE_DOUBLE_COMPLEX */
+#ifdef HAVE_LONG_DOUBLE_COMPLEX
+        U_ARRAY_TYPE_LONG_DOUBLE_COMPLEX,
+#endif  /* HAVE_LONG_DOUBLE_COMPLEX */
         U_ARRAY_TYPE_PTR,
         U_ARRAY_TYPE_MAX = U_ARRAY_TYPE_PTR
 } u_array_type_t;
@@ -55,7 +67,7 @@ struct u_array_s;
 typedef struct u_array_s u_array_t;
 
 /* [cd]tor */
-int u_array_create (u_array_type_t t, size_t nslots, u_array_t **pda, ...);
+int u_array_create (u_array_type_t t, size_t nslots, u_array_t **pda);
 void u_array_free (u_array_t *da);
 
 /* dyn resize */
@@ -63,16 +75,16 @@ int u_array_resize (u_array_t *da, size_t req_idx);
 
 /* set */
 int u_array_set_char (u_array_t *da, size_t idx, char v, char *pold);
-int u_array_set_uchar (u_array_t *da, size_t idx, unsigned char v, 
+int u_array_set_u_char (u_array_t *da, size_t idx, unsigned char v, 
         unsigned char *pold);
 int u_array_set_short (u_array_t *da, size_t idx, short v, short *pold);
-int u_array_set_ushort (u_array_t *da, size_t idx, unsigned short v, 
+int u_array_set_u_short (u_array_t *da, size_t idx, unsigned short v, 
         unsigned short *pold);
 int u_array_set_int (u_array_t *da, size_t idx, int v, int *pold);
-int u_array_set_uint (u_array_t *da, size_t idx, unsigned int v, 
+int u_array_set_u_int (u_array_t *da, size_t idx, unsigned int v, 
         unsigned int *pold);
 int u_array_set_long (u_array_t *da, size_t idx, long v, long *pold);
-int u_array_set_ulong (u_array_t *da, size_t idx, unsigned long v, 
+int u_array_set_u_long (u_array_t *da, size_t idx, unsigned long v, 
         unsigned long *pold);
 int u_array_set_float (u_array_t *da, size_t idx, float v, float *pold);
 int u_array_set_double (u_array_t *da, size_t idx, double v, double *pold);
@@ -80,13 +92,13 @@ int u_array_set_ptr (u_array_t *da, size_t idx, void *v, void **pold);
 
 /* get */
 int u_array_get_char (u_array_t *da, size_t idx, char *pv);
-int u_array_get_uchar (u_array_t *da, size_t idx, unsigned char *pv);
+int u_array_get_u_char (u_array_t *da, size_t idx, unsigned char *pv);
 int u_array_get_short (u_array_t *da, size_t idx, short *pv);
-int u_array_get_ushort (u_array_t *da, size_t idx, unsigned short *pv);
+int u_array_get_u_short (u_array_t *da, size_t idx, unsigned short *pv);
 int u_array_get_int (u_array_t *da, size_t idx, int *pv);
-int u_array_get_uint (u_array_t *da, size_t idx, unsigned int *pv);
+int u_array_get_u_int (u_array_t *da, size_t idx, unsigned int *pv);
 int u_array_get_long (u_array_t *da, size_t idx, long *pv);
-int u_array_get_ulong (u_array_t *da, size_t idx, unsigned long *pv);
+int u_array_get_u_long (u_array_t *da, size_t idx, unsigned long *pv);
 int u_array_get_float (u_array_t *da, size_t idx, float *pv);
 int u_array_get_double (u_array_t *da, size_t idx, double *pv);
 int u_array_get_ptr (u_array_t *da, size_t idx, void **pv);
@@ -100,22 +112,47 @@ int u_array_get_bool (u_array_t *da, size_t idx, bool *pv);
 
 #ifdef HAVE_LONG_LONG
 /* set */
-int u_array_set_longlong (u_array_t *da, size_t idx, long long v, 
+int u_array_set_long_long (u_array_t *da, size_t idx, long long v, 
         long long *pold);
-int u_array_set_ulonglong (u_array_t *da, size_t idx, unsigned long long v, 
+int u_array_set_u_long_long (u_array_t *da, size_t idx, unsigned long long v, 
         unsigned long long *pold);
 /* get */
-int u_array_get_longlong (u_array_t *da, size_t idx, long long *pv);
-int u_array_get_ulonglong (u_array_t *da, size_t idx, unsigned long long *pv);
+int u_array_get_long_long (u_array_t *da, size_t idx, long long *pv);
+int u_array_get_u_long_long (u_array_t *da, size_t idx, unsigned long long *pv);
 #endif  /* HAVE_LONG_LONG */
 
 #ifdef HAVE_LONG_DOUBLE
 /* set */
-int u_array_set_longdouble (u_array_t *da, size_t idx, long double v, 
+int u_array_set_long_double (u_array_t *da, size_t idx, long double v, 
         long double *pold);
 /* get */
-int u_array_get_longdouble (u_array_t *da, size_t idx, long double *pv);
+int u_array_get_long_double (u_array_t *da, size_t idx, long double *pv);
 #endif  /* HAVE_LONG_DOUBLE */
+
+#ifdef HAVE_FLOAT_COMPLEX
+/* set */
+int u_array_set_float_complex (u_array_t *da, size_t idx, float complex v, 
+        float complex *pold);
+/* get */
+int u_array_get_float_complex (u_array_t *da, size_t idx, float complex *pv);
+#endif  /* HAVE_FLOAT_COMPLEX */
+
+#ifdef HAVE_DOUBLE_COMPLEX
+/* set */
+int u_array_set_double_complex (u_array_t *da, size_t idx, double complex v, 
+        double complex *pold);
+/* get */
+int u_array_get_double_complex (u_array_t *da, size_t idx, double complex *pv);
+#endif  /* HAVE_DOUBLE_COMPLEX */
+
+#ifdef HAVE_LONG_DOUBLE_COMPLEX
+/* set */
+int u_array_set_long_double_complex (u_array_t *da, size_t idx, 
+        long double complex v, long double complex *pold);
+/* get */
+int u_array_get_long_double_complex (u_array_t *da, size_t idx, 
+        long double complex *pv);
+#endif  /* HAVE_LONG_DOUBLE_COMPLEX */
 
 #ifdef __cplusplus
 }

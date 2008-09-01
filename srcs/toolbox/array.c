@@ -14,28 +14,37 @@ struct u_array_s
 
 static size_t sizeof_type[U_ARRAY_TYPE_MAX + 1] =
 {
-    0,                          /* U_ARRAY_TYPE_UNSET  = 0  */
+    0,                              /* U_ARRAY_TYPE_UNSET  = 0          */
 #ifdef HAVE_BOOL
-    sizeof(bool),               /* U_ARRAY_TYPE_BOOL        */
+    sizeof(bool),                   /* U_ARRAY_TYPE_BOOL                */
 #endif  /* HAVE_BOOL */
-    sizeof(char),               /* U_ARRAY_TYPE_CHAR        */
-    sizeof(unsigned char),      /* U_ARRAY_TYPE_UCHAR       */
-    sizeof(short),              /* U_ARRAY_TYPE_SHORT       */
-    sizeof(unsigned short),     /* U_ARRAY_TYPE_USHORT      */
-    sizeof(int),                /* U_ARRAY_TYPE_INT         */
-    sizeof(unsigned int),       /* U_ARRAY_TYPE_UINT        */
-    sizeof(long),               /* U_ARRAY_TYPE_LONG        */
-    sizeof(unsigned long),      /* U_ARRAY_TYPE_ULONG       */
+    sizeof(char),                   /* U_ARRAY_TYPE_CHAR                */
+    sizeof(unsigned char),          /* U_ARRAY_TYPE_U_CHAR              */
+    sizeof(short),                  /* U_ARRAY_TYPE_SHORT               */
+    sizeof(unsigned short),         /* U_ARRAY_TYPE_U_SHORT             */
+    sizeof(int),                    /* U_ARRAY_TYPE_INT                 */
+    sizeof(unsigned int),           /* U_ARRAY_TYPE_U_INT               */
+    sizeof(long),                   /* U_ARRAY_TYPE_LONG                */
+    sizeof(unsigned long),          /* U_ARRAY_TYPE_U_LONG              */
 #ifdef HAVE_LONG_LONG
-    sizeof(long long),          /* U_ARRAY_TYPE_LONGLONG    */
-    sizeof(unsigned long long), /* U_ARRAY_TYPE_ULONGLONG   */
+    sizeof(long long),              /* U_ARRAY_TYPE_LONG_LONG           */
+    sizeof(unsigned long long),     /* U_ARRAY_TYPE_U_LONG_LONG         */
 #endif  /* HAVE_LONG_LONG */
-    sizeof(float),              /* U_ARRAY_TYPE_FLOAT       */
-    sizeof(double),             /* U_ARRAY_TYPE_DOUBLE      */
+    sizeof(float),                  /* U_ARRAY_TYPE_FLOAT               */
+    sizeof(double),                 /* U_ARRAY_TYPE_DOUBLE              */
 #ifdef HAVE_LONG_DOUBLE
-    sizeof(long double),        /* U_ARRAY_TYPE_LONGDOUBLE  */
+    sizeof(long double),            /* U_ARRAY_TYPE_LONG_DOUBLE         */
 #endif  /* HAVE_LONG_DOUBLE */
-    sizeof(void *)              /* U_ARRAY_TYPE_PTR         */
+#ifdef HAVE_FLOAT_COMPLEX
+    sizeof(float complex),          /* U_ARRAY_TYPE_FLOAT_COMPLEX       */
+#endif  /* HAVE_FLOAT_COMPLEX */
+#ifdef HAVE_DOUBLE_COMPLEX
+    sizeof(double complex),         /* U_ARRAY_TYPE_DOUBLE_COMPLEX      */
+#endif  /* HAVE_DOUBLE_COMPLEX */
+#ifdef HAVE_LONG_DOUBLE_COMPLEX
+    sizeof(long double complex),    /* U_ARRAY_TYPE_LONG_DOUBLE_COMPLEX */
+#endif  /* HAVE_LONG_DOUBLE_COMPLEX */
+    sizeof(void *)                  /* U_ARRAY_TYPE_PTR                 */
 };
 
 /**
@@ -184,13 +193,13 @@ err:                                                                        \
 }
 
 U_ARRAY_GETSET_F(_char, U_ARRAY_TYPE_CHAR, char)
-U_ARRAY_GETSET_F(_uchar, U_ARRAY_TYPE_UCHAR, unsigned char)
+U_ARRAY_GETSET_F(_u_char, U_ARRAY_TYPE_U_CHAR, unsigned char)
 U_ARRAY_GETSET_F(_short, U_ARRAY_TYPE_SHORT, short)
-U_ARRAY_GETSET_F(_ushort, U_ARRAY_TYPE_USHORT, unsigned short)
+U_ARRAY_GETSET_F(_u_short, U_ARRAY_TYPE_U_SHORT, unsigned short)
 U_ARRAY_GETSET_F(_int, U_ARRAY_TYPE_INT, int)
-U_ARRAY_GETSET_F(_uint, U_ARRAY_TYPE_UINT, unsigned int)
+U_ARRAY_GETSET_F(_u_int, U_ARRAY_TYPE_U_INT, unsigned int)
 U_ARRAY_GETSET_F(_long, U_ARRAY_TYPE_LONG, long)
-U_ARRAY_GETSET_F(_ulong, U_ARRAY_TYPE_ULONG, unsigned long)
+U_ARRAY_GETSET_F(_u_long, U_ARRAY_TYPE_U_LONG, unsigned long)
 U_ARRAY_GETSET_F(_float, U_ARRAY_TYPE_FLOAT, float)
 U_ARRAY_GETSET_F(_double, U_ARRAY_TYPE_DOUBLE, double)
 U_ARRAY_GETSET_F(_ptr, U_ARRAY_TYPE_PTR, void *)
@@ -200,11 +209,22 @@ U_ARRAY_GETSET_F(_bool, U_ARRAY_TYPE_BOOL, bool)
 #endif  /* HAVE_BOOL */
 
 #ifdef HAVE_LONG_LONG
-U_ARRAY_GETSET_F(_longlong, U_ARRAY_TYPE_LONGLONG, long long)
-U_ARRAY_GETSET_F(_ulonglong, U_ARRAY_TYPE_ULONGLONG, unsigned long long)
+U_ARRAY_GETSET_F(_long_long, U_ARRAY_TYPE_LONG_LONG, long long)
+U_ARRAY_GETSET_F(_u_long_long, U_ARRAY_TYPE_U_LONG_LONG, unsigned long long)
 #endif  /* HAVE_LONG_LONG */
 
 #ifdef HAVE_LONG_DOUBLE
-U_ARRAY_GETSET_F(_longdouble, U_ARRAY_TYPE_LONGDOUBLE, long double)
+U_ARRAY_GETSET_F(_long_double, U_ARRAY_TYPE_LONG_DOUBLE, long double)
 #endif  /* HAVE_LONG_DOUBLE */
 
+#ifdef HAVE_FLOAT_COMPLEX
+U_ARRAY_GETSET_F(_float_complex, U_ARRAY_TYPE_FLOAT_COMPLEX, float complex)
+#endif  /* HAVE_FLOAT_COMPLEX */
+
+#ifdef HAVE_DOUBLE_COMPLEX
+U_ARRAY_GETSET_F(_double_complex, U_ARRAY_TYPE_DOUBLE_COMPLEX, double complex)
+#endif  /* HAVE_DOUBLE_COMPLEX */
+
+#ifdef HAVE_LONG_DOUBLE_COMPLEX
+U_ARRAY_GETSET_F(_long_double_complex, U_ARRAY_TYPE_LONG_DOUBLE_COMPLEX, long double complex)
+#endif  /* HAVE_LONG_DOUBLE_COMPLEX */

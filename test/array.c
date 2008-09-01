@@ -15,9 +15,9 @@ U_TEST_MODULE(array);
 static int test_resize (void);
 static int test_short (void);
 static int test_ptr (void);
-static int test_ushort (void);
+static int test_u_short (void);
 static int test_char (void);
-static int test_uchar (void);
+static int test_u_char (void);
 
 static int test_resize (void)
 {
@@ -96,18 +96,18 @@ err:
     return -1;
 }
 
-static int test_ushort (void)
+static int test_u_short (void)
 {
     u_array_t *da = NULL;
     size_t idx;
     unsigned short s, s0;
 
-    con_err_if (u_array_create(U_ARRAY_TYPE_USHORT, USHRT_MAX + 1, &da));
+    con_err_if (u_array_create(U_ARRAY_TYPE_U_SHORT, USHRT_MAX + 1, &da));
 
     for (s = 0, idx = 0; s < USHRT_MAX; s++, idx++)
     {
-        con_err_if (u_array_set_ushort(da, idx, s, NULL));
-        con_err_if (u_array_get_ushort(da, idx, &s0));
+        con_err_if (u_array_set_u_short(da, idx, s, NULL));
+        con_err_if (u_array_get_u_short(da, idx, &s0));
         con_err_ifm (s != s0, "s = %d, s0 = %d, idx = %zu", s, s0, idx);
     }
 
@@ -144,18 +144,18 @@ err:
     return -1;
 }
 
-static int test_uchar (void)
+static int test_u_char (void)
 {
-    u_array_t *da = NULL;
     size_t idx;
+    u_array_t *da = NULL;
     unsigned char s, s0;
 
-    con_err_if (u_array_create(U_ARRAY_TYPE_UCHAR, UCHAR_MAX + 1, &da));
+    con_err_if (u_array_create(U_ARRAY_TYPE_U_CHAR, UCHAR_MAX + 1, &da));
 
     for (s = 0, idx = 0; s < UCHAR_MAX; s++, idx++)
     {
-        con_err_if (u_array_set_uchar(da, idx, s, NULL));
-        con_err_if (u_array_get_uchar(da, idx, &s0));
+        con_err_if (u_array_set_u_char(da, idx, s, NULL));
+        con_err_if (u_array_get_u_char(da, idx, &s0));
         con_err_ifm (s != s0, "s = %d, s0 = %d, idx = %zu", s, s0, idx);
     }
 
@@ -172,9 +172,9 @@ U_TEST_MODULE( array )
 {
     U_TEST_RUN( test_ptr );
     U_TEST_RUN( test_short );
-    U_TEST_RUN( test_ushort );
+    U_TEST_RUN( test_u_short );
     U_TEST_RUN( test_char );
-    U_TEST_RUN( test_uchar );
+    U_TEST_RUN( test_u_char );
     U_TEST_RUN( test_resize );
 
     return 0;                                                
