@@ -14,7 +14,7 @@ U_TEST_MODULE(array);
 
 static int test_resize (void);
 static int test_short (void);
-static int test_custom (void);
+static int test_ptr (void);
 static int test_ushort (void);
 static int test_char (void);
 static int test_uchar (void);
@@ -67,21 +67,21 @@ err:
     return -1;
 }
 
-static int test_custom (void)
+static int test_ptr (void)
 {
     u_array_t *da = NULL;
     size_t idx;
     struct S { int i; char c; } s, *s0;
 
-    con_err_if (u_array_create(U_ARRAY_TYPE_CUSTOM, 10, &da));
+    con_err_if (u_array_create(U_ARRAY_TYPE_PTR, 10, &da));
 
     for (idx = 0; idx < 100; idx++)
     {
         s.i = (int) idx;
         s.c = (char) idx;
 
-        con_err_if (u_array_set_custom(da, idx, (void *) &s, NULL));
-        con_err_if (u_array_get_custom(da, idx, (void **) &s0));
+        con_err_if (u_array_set_ptr(da, idx, (void *) &s, NULL));
+        con_err_if (u_array_get_ptr(da, idx, (void **) &s0));
 
         con_err_if (s.i != s0->i);
         con_err_if (s.c != s0->c);
@@ -170,7 +170,7 @@ err:
 
 U_TEST_MODULE( array )
 {
-    U_TEST_RUN( test_custom );
+    U_TEST_RUN( test_ptr );
     U_TEST_RUN( test_short );
     U_TEST_RUN( test_ushort );
     U_TEST_RUN( test_char );

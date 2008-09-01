@@ -35,7 +35,7 @@ static size_t sizeof_type[U_ARRAY_TYPE_MAX + 1] =
 #ifdef HAVE_LONG_DOUBLE
     sizeof(long double),        /* U_ARRAY_TYPE_LONGDOUBLE  */
 #endif  /* HAVE_LONG_DOUBLE */
-    sizeof(void *)              /* U_ARRAY_TYPE_CUSTOM      */
+    sizeof(void *)              /* U_ARRAY_TYPE_PTR         */
 };
 
 /**
@@ -48,8 +48,8 @@ static size_t sizeof_type[U_ARRAY_TYPE_MAX + 1] =
  *
  *  \param t        the type of the elements in this array, i.e. one of 
  *                  the standard C types (which have 1:1 mapping with 
- *                  \c U_ARRAY_TYPE_*'s) or one which has been user defined 
- *                  (select \c U_ARRAY_TYPE_CUSTOM in this case)
+ *                  \c U_ARRAY_TYPE_*'s) or a pointer type (select 
+ *                  \c U_ARRAY_TYPE_PTR in this case)
  *  \param nslots   the initial number of slots to be created  (set it to \c 0 
  *                  if you want the default)
  *  \param pda      the newly created array object as a result argument
@@ -193,7 +193,7 @@ U_ARRAY_GETSET_F(_long, U_ARRAY_TYPE_LONG, long)
 U_ARRAY_GETSET_F(_ulong, U_ARRAY_TYPE_ULONG, unsigned long)
 U_ARRAY_GETSET_F(_float, U_ARRAY_TYPE_FLOAT, float)
 U_ARRAY_GETSET_F(_double, U_ARRAY_TYPE_DOUBLE, double)
-U_ARRAY_GETSET_F(_custom, U_ARRAY_TYPE_CUSTOM, void *)
+U_ARRAY_GETSET_F(_ptr, U_ARRAY_TYPE_PTR, void *)
 
 #ifdef HAVE_BOOL
 U_ARRAY_GETSET_F(_bool, U_ARRAY_TYPE_BOOL, bool)

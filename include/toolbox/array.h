@@ -44,18 +44,18 @@ typedef enum {
 #ifdef HAVE_LONG_DOUBLE
         U_ARRAY_TYPE_LONGDOUBLE,
 #endif  /* HAVE_LONG_DOUBLE */
-        U_ARRAY_TYPE_CUSTOM,
-        U_ARRAY_TYPE_MAX = U_ARRAY_TYPE_CUSTOM
+        U_ARRAY_TYPE_PTR,
+        U_ARRAY_TYPE_MAX = U_ARRAY_TYPE_PTR
 } u_array_type_t;
          
 #define U_ARRAY_TYPE_IS_VALID(t) \
-    (t > U_ARRAY_TYPE_UNSET && t <= U_ARRAY_TYPE_CUSTOM)
+    (t > U_ARRAY_TYPE_UNSET && t <= U_ARRAY_TYPE_MAX)
 
 struct u_array_s;
 typedef struct u_array_s u_array_t;
 
 /* [cd]tor */
-int u_array_create (u_array_type_t t, size_t nslots, u_array_t **pda);
+int u_array_create (u_array_type_t t, size_t nslots, u_array_t **pda, ...);
 void u_array_free (u_array_t *da);
 
 /* dyn resize */
@@ -76,7 +76,7 @@ int u_array_set_ulong (u_array_t *da, size_t idx, unsigned long v,
         unsigned long *pold);
 int u_array_set_float (u_array_t *da, size_t idx, float v, float *pold);
 int u_array_set_double (u_array_t *da, size_t idx, double v, double *pold);
-int u_array_set_custom (u_array_t *da, size_t idx, void *v, void **pold);
+int u_array_set_ptr (u_array_t *da, size_t idx, void *v, void **pold);
 
 /* get */
 int u_array_get_char (u_array_t *da, size_t idx, char *pv);
@@ -89,7 +89,7 @@ int u_array_get_long (u_array_t *da, size_t idx, long *pv);
 int u_array_get_ulong (u_array_t *da, size_t idx, unsigned long *pv);
 int u_array_get_float (u_array_t *da, size_t idx, float *pv);
 int u_array_get_double (u_array_t *da, size_t idx, double *pv);
-int u_array_get_custom (u_array_t *da, size_t idx, void **pv);
+int u_array_get_ptr (u_array_t *da, size_t idx, void **pv);
 
 #ifdef HAVE_BOOL
 /* set */
