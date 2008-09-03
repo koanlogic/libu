@@ -908,12 +908,7 @@ err:
 
 int u_config_has_children(u_config_t *c)
 {
-    u_config_t *item;
-
-    TAILQ_FOREACH(item, &c->children, np)
-        return 1;
-
-    return 0;
+    return (TAILQ_FIRST(&c->children) != NULL);
 }
 
 static int u_config_to_str(u_config_t *c, u_string_t *s)
