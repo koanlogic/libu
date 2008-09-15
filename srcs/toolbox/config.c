@@ -57,8 +57,8 @@ static int u_config_include(u_config_t*, u_config_driver_t*, u_config_t*, int);
  * greater than zero if the first argument is considered to be respectively
  * less than, equal to, or greater than the second.
  *
- * \param c     configuration object
- * \param cmp   comparison function
+ * \param c             configuration object
+ * \param config_cmp    comparison function
  *
  * \return \c 0 on success, not zero on failure
  */
