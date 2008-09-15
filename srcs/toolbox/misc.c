@@ -458,7 +458,7 @@ ssize_t u_write(int fd, void *buf, size_t size)
 /** \brief  try to convert the string \p nptr into the integer at \p pi */
 int u_atoi (const char *nptr, int *pi)
 {
-    int tmp, saved_errno = errno;
+    long int tmp, saved_errno = errno;
 
     dbg_return_if (nptr == NULL, ~0);
     dbg_return_if (pi == NULL, ~0);
