@@ -75,7 +75,7 @@ ssize_t u_read(int fd, void *buf, size_t size);
 ssize_t u_write(int fd, void *buf, size_t size);
 int u_accept(int s, struct sockaddr *addr, int *addrlen);
 int u_sleep(unsigned int secs);
-
+int u_atoi (const char *nptr, int *pi);
 
 #ifdef __cplusplus
 }

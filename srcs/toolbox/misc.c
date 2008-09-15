@@ -455,6 +455,27 @@ ssize_t u_write(int fd, void *buf, size_t size)
     return size;
 }
 
+/** \brief  try to convert the string \p nptr into the integer at \p pi */
+int u_atoi (const char *nptr, int *pi)
+{
+    int tmp, saved_errno = errno;
+
+    dbg_return_if (nptr == NULL, ~0);
+    dbg_return_if (pi == NULL, ~0);
+ 
+    tmp = strtol(nptr, (char **) NULL, 10);
+    
+    dbg_err_if ((tmp == LONG_MIN || tmp == LONG_MAX) && errno == ERANGE);
+        
+    *pi = (int) tmp;
+    
+    errno = saved_errno;
+    return 0;
+err:
+    errno = saved_errno;
+    return ~0;
+}
+
 /**
  *      \}
  */
