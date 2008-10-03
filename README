@@ -48,6 +48,7 @@ The following modules can be left out through the given configure option:
     - fs                (--no_fs)
     - pwd               (--no_pwd)
     - list              (--no_list)
+    - array             (--no_array)
 
 == Extra configuration flags
 
