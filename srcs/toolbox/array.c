@@ -52,6 +52,13 @@ static size_t sizeof_type[U_ARRAY_TYPE_MAX + 1] =
 /**
  *  \defgroup array Dynamic Arrays
  *  \{
+ *      A dynamic array has a type, which is the type of its elements.
+ *      The type of the dynamic array is declared when creating a new
+ *      array instance via u_array_create() and must be one of the types 
+ *      in u_array_type_t.  Available type are the standard C types supported 
+ *      by the target platform, plus a generic pointer type for user defined
+ *      types. A couple of getter/setter methods is provided for each 
+ *      u_array_type_t entry.
  */
 
 /**
@@ -244,3 +251,4 @@ U_ARRAY_GETSET_F(_double_complex, U_ARRAY_TYPE_DOUBLE_COMPLEX, double complex)
 #ifdef HAVE_LONG_DOUBLE_COMPLEX
 U_ARRAY_GETSET_F(_long_double_complex, U_ARRAY_TYPE_LONG_DOUBLE_COMPLEX, long double complex)
 #endif  /* HAVE_LONG_DOUBLE_COMPLEX */
+
