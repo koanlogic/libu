@@ -83,7 +83,7 @@ typedef struct u_net_addr_s u_net_addr_t;
 enum { U_NET_SSOCK, U_NET_CSOCK };
 
 /**
- * \ingroup net
+ * \addtogroup net
  *  \{
  */
 

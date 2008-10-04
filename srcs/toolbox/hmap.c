@@ -1101,6 +1101,10 @@ void u_hmap_o_free (u_hmap_o_t *obj)
     u_free(obj);
 }
 
+/**
+ *      \}
+ */
+
 /* Free a data object including content if U_HMAP_OPTS_OWNSDATA */
 static void _o_free (u_hmap_t *hmap, u_hmap_o_t *obj)
 {
@@ -1243,11 +1247,3 @@ err:
     return ~0;
 }
 
-/**
- *      \}
- */
-
-
-/**
- *      \}
- */

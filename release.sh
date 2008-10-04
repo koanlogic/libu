@@ -3,8 +3,8 @@
 # LibU release script
 
 # set these !
-REL_TAG="LIBU_REL_1_2_1"
-REL_VERSION="1.2.1"
+REL_TAG="LIBU_REL_1_3_0"
+REL_VERSION="1.3.0"
 
 # cvs 
 REL_ROOT="KL/libu"
