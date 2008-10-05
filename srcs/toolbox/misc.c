@@ -465,6 +465,7 @@ int u_atoi (const char *nptr, int *pi)
  
     tmp = strtol(nptr, (char **) NULL, 10);
     
+    dbg_err_if (tmp == 0 && errno == EINVAL);
     dbg_err_if ((tmp == LONG_MIN || tmp == LONG_MAX) && errno == ERANGE);
         
     *pi = (int) tmp;
