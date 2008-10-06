@@ -144,16 +144,30 @@ void* u_memdup(const void *src, size_t size)
  *
  * Tokenize the \p delim separated string \p s and place its \p *pnelems pieces
  * into the string array \p *ptv.  The \p *ptv result argument contains all the
- * pieces at increasing indices (0..*pnelems-1) in the order they've been found
- * in string \p s.  At index \p *pnelems -- i.e. \p *ptv[*pnelems] the pointer
- * to a duplicate of \p s is stored, which must be free'd along with the string
- * array result \p *ptv once the caller is done with it.
+ * pieces at increasing indices [0..\p *pnelems-1] in the order they've been 
+ * found in string \p s.  At index \p *pnelems - i.e. \p *ptv[\p *pnelems] - the
+ * pointer to a (clobbered) duplicate of \p s is stored, which must be free'd 
+ * along with the string array result \p *ptv once the caller is done with it:
+ * 
  * \code
- *      u_strtok("this is a string", " ", &tv, &nelems);
- *      ... do something with tv ...
- *      u_free(tv[nelems]);
+ *      size_t nelems, i;
+ *      char **tv = NULL;
+ *          
+ *      // break string into pieces
+ *      dbg_err_if (u_strtok("white spaces separated s", " ", &tv, &nelems));
+ *
+ *      // use found tokens
+ *      for (i = 0; i < nelems; i++)
+ *          con("%s", tv[i]);
+ *
+ *      // free memory
+ *      u_free(tv[nelems]); // u_free(tv) alone is not enough !
  *      u_free(tv);
  * \endcode
+ *
+ * The aforementioned disposal must be carried out every time that function 
+ * returns successfully, even if the number of tokens is zero (i.e. \p s
+ * contains separator chars only, or is an empty string).
  *
  * \param   s       the string that shall be broken up
  * \param   delim   the set of allowed delimiters as a string
