@@ -316,8 +316,6 @@ static int test_u_strtok (void)
                 "got %zu tokens from u_strtok, need some more (tv idx=%zu)", 
                 nelems, i);
 
-        con("tv idx=%zu => nelems=%zu", i, nelems);
-
         u_free(tv[nelems]), tv[nelems] = NULL;
         u_free(tv), tv = NULL;
     }
@@ -375,8 +373,8 @@ err:
 
 U_TEST_MODULE(misc)
 {
-//    U_TEST_RUN( test_u_rdwr );
-//    U_TEST_RUN( test_u_path_snprintf );
+    U_TEST_RUN( test_u_rdwr );
+    U_TEST_RUN( test_u_path_snprintf );
     U_TEST_RUN( test_u_strtok );
 
     return 0;                                                
