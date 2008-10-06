@@ -161,8 +161,7 @@ void* u_memdup(const void *src, size_t size)
  *          con("%s", tv[i]);
  *
  *      // free memory
- *      u_free(tv[nelems]); // u_free(tv) alone is not enough !
- *      u_free(tv);
+ *      u_strtok_cleanup(tv, nelems);
  * \endcode
  *
  * The aforementioned disposal must be carried out every time the function 
@@ -236,10 +235,30 @@ err:
 }
 
 /**
- * \brief   tokenize the supplied \p wlist string
+ * \brief   Cleanup the strings vector created by u_strtok
+ *
+ * \param   tv      the strings vector created by a previous call to u_strtok
+ * \param   nelems  number of elements in tv (as returned by u_strtok)
+ *
+ * \return nothing
+ */
+void u_strtok_cleanup (char **tv, size_t nelems)
+{
+    if (tv)
+    {
+        U_FREE(tv[nelems]);
+        u_free(tv);
+    }
+
+    return;
+}
+
+/**
+ * \brief   tokenize the supplied \p wlist string (DEPRECATED: use u_strtok)
  *
  * Tokenize the \p delim separated string \p wlist and place its
  * pieces (at most \p tokv_sz - 1) into \p tokv.
+ * DEPRECATED: use u_strtok instead
  *
  * \param wlist     list of strings possibily separated by chars in \p delim 
  * \param delim     set of token separators

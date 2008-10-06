@@ -1,6 +1,10 @@
-$Id: ChangeLog,v 1.57 2008/10/06 13:33:09 tho Exp $
+$Id: ChangeLog,v 1.58 2008/10/06 14:24:41 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
+
+LibU x.y.z
+	- [misc] added u_strtok_cleanup facility 
+	- [misc] deprecate u_tokenize in favour of u_strtok
 
 LibU 1.3.1:
 	- [array] add needed #include <stdint.h>
