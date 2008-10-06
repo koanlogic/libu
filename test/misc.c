@@ -316,14 +316,13 @@ static int test_u_strtok (void)
                 "got %zu tokens from u_strtok, need some more (tv idx=%zu)", 
                 nelems, i);
 
-        u_free(tv[nelems]), tv[nelems] = NULL;
-        u_free(tv), tv = NULL;
+        u_strtok_cleanup(tv, nelems);
+        tv = NULL;
     }
 
     return 0;
 err:
-    U_FREE(tv[nelems]);
-    U_FREE(tv);
+    u_strtok_cleanup(tv, nelems);
     return ~0;
 }
 
