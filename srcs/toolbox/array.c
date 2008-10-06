@@ -2,8 +2,14 @@
  * Copyright (c) 2005-2008 by KoanLogic s.r.l. - All rights reserved.  
  */
 
+#include <stdint.h>
 #include <u/libu.h>
 #include <toolbox/array.h>
+
+/* for C89 implementations */
+#ifndef SIZE_MAX
+#define SIZE_MAX ((size_t) -1)
+#endif
 
 struct u_array_s
 {
