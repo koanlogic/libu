@@ -1,11 +1,11 @@
-$Id: ChangeLog,v 1.55 2008/10/06 13:10:53 tho Exp $
+$Id: ChangeLog,v 1.56 2008/10/06 13:21:41 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
-LibU x.y.z:
+LibU 1.3.1:
 	- [misc] u_atoi fix
 	- [misc] u_strtok added
-	- [config] fix u_string_aprintf calls
+	- [config] fix u_string_aprintf calls (build fix)
 
 LibU 1.3.0:
 	- [config] u_config_sort_children added
