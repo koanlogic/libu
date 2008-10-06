@@ -139,6 +139,63 @@ void* u_memdup(const void *src, size_t size)
     return p;
 }
 
+int u_strtok (const char *s, const char *delim, char ***ptv, size_t *pnelems)
+{
+    enum { TV_NSLOTS_DFLT = 10, TV_NSLOTS_INCR = 10 };
+    char **ap, **tv = NULL, **ntv = NULL;
+    size_t nelems, tv_slots = TV_NSLOTS_DFLT;
+    char *p, *sdup = NULL;
+
+    dbg_return_if (s == NULL, ~0);
+    dbg_return_if (delim == NULL, ~0);
+    dbg_return_if (ptv == NULL, ~0);
+    dbg_return_if (pnelems == NULL, ~0);
+    
+    sdup = u_strdup(s);
+    dbg_err_if (sdup == NULL);
+
+    p = sdup;
+    ap = tv;
+    nelems = 1;
+
+expand:
+    ntv = u_realloc(tv, tv_slots * sizeof(char *));
+    dbg_err_sif (ntv == NULL);
+
+    /* recalc 'ap' in case realloc has changed the base pointer */
+    if (ntv != tv)
+        ap = ntv + (ap - tv);
+
+    tv = ntv;
+
+    for (; (*ap = strsep(&p, delim)) != NULL; ++nelems)
+    {
+        /* skip empty field */
+        if (**ap == '\0')
+            continue;
+
+        /* when we reach the last slot, request new slots */
+        if (++ap == &tv[tv_slots - 1])
+        {
+            tv_slots += TV_NSLOTS_INCR;
+            goto expand;
+        }
+    }
+
+    /* save the dup'd string on the last slot */
+    *ap = sdup;
+
+    /* copy out */
+    *ptv = tv;
+    *pnelems = nelems;
+
+    return 0;
+err:
+    U_FREE(sdup);
+    U_FREE(tv);
+    return ~0;
+}
+
 /**
  * \brief   tokenize the supplied \p wlist string
  *

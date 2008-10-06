@@ -29,7 +29,7 @@ static int test_u_str(void)
     con_err_if(u_string_ncat(s, "6777", 2));
     con_err_if(strcmp(u_string_c(s), "1234567"));
 
-    con_err_if(u_string_sprintf(s, "reset"));
+    con_err_if(u_string_sprintf(s, "%s", "reset"));
     con_err_if(strcmp(u_string_c(s), "reset"));
 
     u_string_free(s);

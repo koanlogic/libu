@@ -184,6 +184,86 @@ err:
     return 1;
 }
 
+static int test_u_strtok (void)
+{
+    char **tv = NULL;
+    size_t nelems, i, j;
+    enum { MAX_TOKENS = 100 };
+
+    struct vt_s
+    {
+        const char *in; 
+        const char *delim; 
+        const char *exp[MAX_TOKENS];
+    } vt[] = {
+        { 
+            "this . is , a : test ; string |", 
+            " \t", 
+            { 
+                "this", 
+                ".", 
+                "is", 
+                ",", 
+                "a", 
+                ":", 
+                "test", 
+                ";", 
+                "string", 
+                "|", 
+                NULL 
+            }
+        },
+        {
+            "this . is , a : test ; string |", 
+            ".",
+            {
+                "this ",
+                " is , a : test ; string |",
+                NULL 
+            }
+        },
+        {
+            "this . is , a : test ; string |", 
+            ",",
+            {
+                "this . is ",
+                " a : test ; string |",
+                NULL 
+            }
+        },
+        { 
+             NULL, 
+             NULL, 
+             { NULL }
+        }
+    };
+
+    for (i = 0; vt[i].in; i++)
+    {
+        dbg_err_if (u_strtok(vt[i].in, vt[i].delim, &tv, &nelems));
+
+        for (j = 0; j < nelems; j++)
+        {
+            con_err_ifm (strcmp(tv[j], vt[i].exp[j]), 
+                    "%s != %s", tv[j], vt[i].exp[j]);
+        }
+
+        con_err_ifm (vt[i].exp[j] != NULL, 
+                "got %zu tokens from u_strtok, need some more", nelems);
+
+        con("\'%s\' tokens ok", vt[i].in);
+
+        u_free(tv[nelems]);
+        u_free(tv);
+    }
+
+    return 0;
+err:
+    U_FREE(tv[nelems]);
+    U_FREE(tv);
+    return ~0;
+}
+
 static int test_u_path_snprintf(void)
 {
     struct vt_s
@@ -230,8 +310,9 @@ err:
 
 U_TEST_MODULE(misc)
 {
-    U_TEST_RUN( test_u_rdwr );
-    U_TEST_RUN( test_u_path_snprintf );
+//    U_TEST_RUN( test_u_rdwr );
+//    U_TEST_RUN( test_u_path_snprintf );
+    U_TEST_RUN( test_u_strtok );
 
     return 0;                                                
 }
