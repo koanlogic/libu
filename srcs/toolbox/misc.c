@@ -165,8 +165,8 @@ void* u_memdup(const void *src, size_t size)
  *      u_free(tv);
  * \endcode
  *
- * The aforementioned disposal must be carried out every time that function 
- * returns successfully, even if the number of tokens is zero (i.e. \p s
+ * The aforementioned disposal must be carried out every time the function 
+ * returns successfully, even if the number of found tokens is zero (i.e. \p s
  * contains separator chars only, or is an empty string).
  *
  * \param   s       the string that shall be broken up
