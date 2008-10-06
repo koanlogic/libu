@@ -197,6 +197,7 @@ static int test_u_strtok (void)
         const char *exp[MAX_TOKENS];
     } vt[] = {
         { 
+            /* tv idx 0 */
             "this . is , a : test ; string |", 
             " \t", 
             { 
@@ -214,6 +215,7 @@ static int test_u_strtok (void)
             }
         },
         {
+            /* tv idx 1 */
             "this . is , a : test ; string |", 
             ".",
             {
@@ -223,11 +225,61 @@ static int test_u_strtok (void)
             }
         },
         {
+            /* tv idx 2 */
             "this . is , a : test ; string |", 
             ",",
             {
                 "this . is ",
                 " a : test ; string |",
+                NULL 
+            }
+        },
+        {
+            /* tv idx 3 */
+            "this .. is ,, a : test ; string |", 
+            ",.:",
+            {
+                "this ",
+                " is ",
+                " a ",
+                " test ; string |",
+                NULL 
+            }
+        },
+        {
+            /* tv idx 4 */
+            "is .. this ,, a : test ; string ||? |", 
+            ",.:;|",
+            {
+                "is ",
+                " this ",
+                " a ",
+                " test ",
+                " string ",
+                "? ",
+                NULL 
+            }
+        },
+        {
+            /* tv idx 5 */
+            "       is .. this ,, a : test ; string ||? |", 
+            " ,.:;|",
+            {
+                "is",
+                "this",
+                "a",
+                "test",
+                "string",
+                "?",
+                NULL 
+            }
+        },
+        {
+            /* tv idx 6 */
+            "       is .. this ,, a : test ; string ||? |", 
+            "-",
+            {
+                "       is .. this ,, a : test ; string ||? |",
                 NULL 
             }
         },
@@ -245,16 +297,15 @@ static int test_u_strtok (void)
         for (j = 0; j < nelems; j++)
         {
             con_err_ifm (strcmp(tv[j], vt[i].exp[j]), 
-                    "%s != %s", tv[j], vt[i].exp[j]);
+                    "%s != %s (tv idx=%zu)", tv[j], vt[i].exp[j], i);
         }
 
         con_err_ifm (vt[i].exp[j] != NULL, 
-                "got %zu tokens from u_strtok, need some more", nelems);
+                "got %zu tokens from u_strtok, need some more (tv idx=%zu)", 
+                nelems, i);
 
-        con("\'%s\' tokens ok", vt[i].in);
-
-        u_free(tv[nelems]);
-        u_free(tv);
+        u_free(tv[nelems]), tv[nelems] = NULL;
+        u_free(tv), tv = NULL;
     }
 
     return 0;
@@ -310,12 +361,9 @@ err:
 
 U_TEST_MODULE(misc)
 {
-//    U_TEST_RUN( test_u_rdwr );
-//    U_TEST_RUN( test_u_path_snprintf );
+    U_TEST_RUN( test_u_rdwr );
+    U_TEST_RUN( test_u_path_snprintf );
     U_TEST_RUN( test_u_strtok );
 
     return 0;                                                
 }
-
-
-

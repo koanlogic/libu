@@ -139,6 +139,29 @@ void* u_memdup(const void *src, size_t size)
     return p;
 }
 
+/**
+ * \brief   Break a string into pieces separated by a given set of characters
+ *
+ * Tokenize the \p delim separated string \p s and place its \p *pnelems pieces
+ * into the string array \p *ptv.  The \p *ptv result argument contains all the
+ * pieces at increasing indices (0..*pnelems-1) in the order they've been found
+ * in string \p s.  At index \p *pnelems -- i.e. \p *ptv[*pnelems] the pointer
+ * to a duplicate of \p s is stored, which must be free'd along with the string
+ * array result \p *ptv once the caller is done with it.
+ * \code
+ *      u_strtok("this is a string", " ", &tv, &nelems);
+ *      ... do something with tv ...
+ *      u_free(tv[nelems]);
+ *      u_free(tv);
+ * \endcode
+ *
+ * \param   s       the string that shall be broken up
+ * \param   delim   the set of allowed delimiters as a string
+ * \param   ptv     the pieces as a result string array
+ * \param   pnelems the number of tokens actually separated
+ *
+ * \return \c 0 on success, \c ~0 on error.
+ */ 
 int u_strtok (const char *s, const char *delim, char ***ptv, size_t *pnelems)
 {
     enum { TV_NSLOTS_DFLT = 10, TV_NSLOTS_INCR = 10 };
@@ -156,7 +179,7 @@ int u_strtok (const char *s, const char *delim, char ***ptv, size_t *pnelems)
 
     p = sdup;
     ap = tv;
-    nelems = 1;
+    nelems = 0;
 
 expand:
     ntv = u_realloc(tv, tv_slots * sizeof(char *));
@@ -168,11 +191,13 @@ expand:
 
     tv = ntv;
 
-    for (; (*ap = strsep(&p, delim)) != NULL; ++nelems)
+    for (; (*ap = strsep(&p, delim)) != NULL; )
     {
         /* skip empty field */
         if (**ap == '\0')
             continue;
+
+        ++nelems;
 
         /* when we reach the last slot, request new slots */
         if (++ap == &tv[tv_slots - 1])
@@ -207,6 +232,7 @@ err:
  * \param tokv      pre-allocated string array
  * \param tokv_sz   number of cells in \p tokv array
  *
+ * \return \c 0 on success, \c ~0 on error.
  */
 int u_tokenize (char *wlist, const char *delim, char **tokv, size_t tokv_sz)
 {
