@@ -924,13 +924,13 @@ static int u_config_to_str(u_config_t *c, u_string_t *s)
     if(u_config_has_children(c))
     {
         if(c->parent)
-            u_string_aprintf(s, "{\n");
+            u_string_aprintf(s, "%s", "{\n");
 
         TAILQ_FOREACH(item, &c->children, np)
             u_config_to_str(item, s);
 
         if(c->parent)
-            u_string_aprintf(s, "}\n");
+            u_string_aprintf(s, "%s", "}\n");
     }
 
     return 0;
