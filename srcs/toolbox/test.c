@@ -98,6 +98,10 @@ int u_test_run(int argc, char **argv)
             (*p)();
     }
 
+    /* free strdup'd module names */
+    for(p = _mods_nm; p != _top_nm; ++p)
+        u_free(*p), *p = NULL;
+
     printf("%d test run, %d failed\n", _test_cnt, _test_fail);
 
     return 0;
