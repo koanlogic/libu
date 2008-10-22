@@ -175,6 +175,8 @@ int u_pwd_auth_user (u_pwd_t *pwd, const char *user, const char *password)
     u_pwd_rec_t *rec = NULL;
     char *__p = NULL, __pstack[U_PWD_LINE_MAX];
 
+    dbg_return_if (password == NULL, ~0);
+
     /* retrieve the pwd record */
     dbg_err_if (u_pwd_retr(pwd, user, &rec));
 
