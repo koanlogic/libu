@@ -1,4 +1,4 @@
-# $Id: mk_cflags,v 1.1 2007/12/15 17:21:46 tho Exp $
+# $Id: mk_cflags,v 1.2 2008/11/02 07:41:29 tho Exp $
 
 #
 # --enable_debug
@@ -43,4 +43,17 @@ __makl_enable_warns ()
                                 "-Wwrite-strings -Wswitch -Wshadow "        \
                                 "-Wunreachable-code -Wunused "              \
                                 "-Wcast-qual -pedantic "
+}
+
+#
+# --enable_icc_warns
+#
+makl_args_def           \
+    "enable_icc_warns"  \
+    "" ""               \
+    "set CFLAGS for extra warnings by ICC"
+
+__makl_enable_icc_warns ()
+{
+    makl_append_var_mk "CFLAGS" "-w2"
 }
