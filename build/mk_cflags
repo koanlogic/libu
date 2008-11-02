@@ -1,4 +1,4 @@
-# $Id: mk_cflags,v 1.2 2008/11/02 07:41:29 tho Exp $
+# $Id: mk_cflags,v 1.3 2008/11/02 21:18:49 tho Exp $
 
 #
 # --enable_debug
@@ -56,4 +56,17 @@ makl_args_def           \
 __makl_enable_icc_warns ()
 {
     makl_append_var_mk "CFLAGS" "-w2"
+}
+
+#
+# --extra_cflags
+#
+makl_args_def       \
+    "extra_cflags"  \
+    "" ""           \
+    "add to CFLAGS"
+
+__makl_extra_cflags ()
+{
+    makl_append_var_mk "CFLAGS" "$@"
 }
