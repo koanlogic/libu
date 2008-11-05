@@ -1,6 +1,6 @@
 #!/bin/sh 
 #
-# $Id: configure,v 1.66 2008/09/01 12:58:12 tho Exp $
+# $Id: configure,v 1.67 2008/11/05 22:19:02 stewy Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -69,21 +69,21 @@ makl_checktype          0   "in_addr_t"         \
                             "<netinet/in.h>"    \
                             "<arpa/inet.h>"
 makl_checksymbol        0   "TCP_NODELAY"   "<sys/types.h>" "<netinet/tcp.h>"
-makl_checkfunc          0   "setsockopt"
-makl_checkfunc          0   "getpid"
-makl_checkfunc          0   "link"
-makl_checkfunc          0   "unlink"
-makl_checkfunc          0   "syslog"
-makl_checkfunc          0   "sleep"
-makl_checkfunc          0   "strtok_r"
-makl_checkfunc          0   "fnmatch"
-makl_checkfunc          0   "timegm"
-makl_checkfunc          0   "strsep"
-makl_checkfunc          0   "strlcpy"
-makl_checkfunc          0   "strlcat"
-makl_checkfunc          0   "gettimeofday"
-makl_checkfunc          0   "daemon"
-makl_checkfunc          0   "mkstemps"
+makl_checkfunc          0   "daemon"        ""  "<stdlib.h>"
+makl_checkfunc          0   "setsockopt"    ""  "<sys/socket.h>" 
+makl_checkfunc          0   "getpid"        ""  "<unistd.h>"
+makl_checkfunc          0   "link"          ""  "<unistd.h>"
+makl_checkfunc          0   "unlink"        ""  "<unistd.h>"
+makl_checkfunc          0   "sleep"         ""  "<unistd.h>"
+makl_checkfunc          0   "mkstemps"      ""  "<unistd.h>"
+makl_checkfunc          0   "fnmatch"       ""  "<fnmatch.h>"
+makl_checkfunc          0   "strtok_r"      ""  "<string.h>"
+makl_checkfunc          0   "strsep"        ""  "<string.h>"
+makl_checkfunc          0   "strlcpy"       ""  "<string.h>"
+makl_checkfunc          0   "strlcat"       ""  "<string.h>"
+makl_checkfunc          0   "gettimeofday"  ""  "<sys/time.h>"
+makl_checkfunc          0   "timegm"        ""  "<time.h>"
+makl_checkfunc          0   "syslog"        ""  "<syslog.h>"
 makl_func_strerror_r    0
 makl_checkheader        0   "complex"   "<complex.h>"
 makl_checkheader        0   "unistd"    "<unistd.h>"
