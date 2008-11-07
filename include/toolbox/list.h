@@ -14,6 +14,12 @@ extern "C" {
 struct u_list_s;
 typedef struct u_list_s u_list_t;
 
+#define u_list_foreach(list, n, it) \
+    for(n = u_list_first(list, &it); n; n = u_list_next(list, &it))
+
+#define u_list_iforeach(list, n, it, i) \
+    for(i = 0, n = u_list_first(list, &it); n; n = u_list_next(list, &it), ++i)
+
 int u_list_create(u_list_t **plist);
 void u_list_free(u_list_t *list);
 int u_list_add(u_list_t *list, void *ptr);
