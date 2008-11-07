@@ -22,6 +22,8 @@ int u_list_del(u_list_t *list, void *ptr);
 int u_list_del_n(u_list_t *list, size_t n, void **pptr);
 size_t u_list_count(u_list_t *list);
 void* u_list_get_n(u_list_t *list, size_t n);
+void* u_list_first(u_list_t *list, void**);
+void* u_list_next(u_list_t *list, void**);
 
 #ifdef __cplusplus
 }

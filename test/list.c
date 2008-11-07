@@ -11,6 +11,60 @@
 
 U_TEST_MODULE(list);
 
+static int test_list_iterator(void)
+{
+    enum { ITERS = 300 };
+    u_list_t *l = NULL;
+    int i, tot0, tot1;
+    void *it;
+    int v;
+
+    con_err_if(u_list_create(&l));
+
+    for(v = (int)u_list_first(l, &it); v; v = (int)u_list_next(l, &it))
+    {
+        con_err("no items!");
+    }
+
+    tot0 = 0;
+    for(i = 1; i < ITERS; ++i)
+    {
+        con_err_if(u_list_add(l, (void*)i));
+        tot0 += i;
+    }
+
+    for(i = 1; i < ITERS; ++i)
+    {
+        con_err_if(u_list_insert(l, (void*)i, i));
+        tot0 += i;
+    }
+
+    tot1 = 0;
+    for(v = (int)u_list_first(l, &it); v; v = (int)u_list_next(l, &it))
+        tot1 += v;
+
+    con_err_if(tot0 != tot1);
+
+    /* remove some items */
+    size_t c = u_list_count(l)/2;
+    for(i = 0; i < c; ++i)
+    {
+        u_list_del_n(l, 0, (void*)&v);
+        tot0 -= v;
+    }
+
+    tot1 = 0;
+    for(v = (int)u_list_first(l, &it); v; v = (int)u_list_next(l, &it))
+        tot1 += v;
+    con_err_if(tot0 != tot1);
+
+    u_list_free(l);
+
+    return 0;
+err:
+    return ~0;
+}
+
 static int test_list_ins (void)
 {
     enum { ITERS = 3 };
@@ -64,6 +118,7 @@ err:
 U_TEST_MODULE( list )
 {
     U_TEST_RUN( test_list_ins );
+    U_TEST_RUN( test_list_iterator );
 
     return 0;                                                
 }

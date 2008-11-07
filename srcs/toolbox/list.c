@@ -198,6 +198,62 @@ err:
 }
 
 /**
+ *  \brief  Return the first item of the list (use to iterate)
+ *
+ *  \param list    the list object (created via u_list_new)
+ *
+ *  \return \c the first item or NULL if the list is empty 
+ */ 
+void* u_list_first(u_list_t *list, void **it)
+{
+    u_list_item_t *item;
+
+    dbg_return_if (list == NULL, NULL);
+    dbg_return_if (it == NULL, NULL);
+
+    item = TAILQ_FIRST(&list->head);
+
+    *it = item;
+   
+    if(item)
+        return item->ptr;
+
+    return NULL;
+}
+
+/**
+ *  \brief  Return the list element next to the given one
+ *
+ *  \param list     the list object (created via u_list_new)
+ *  \param item     the item that preceding the requested one
+ *
+ *  Example: iterate on a u_list
+ *
+ *  void *elem;
+ *  for(elem = u_list_first(list); elem; elem = u_list_next(list, elem))
+ *      ...
+ * 
+ *  \return \c the requested item or NULL if \c item is the last one
+ */ 
+void* u_list_next(u_list_t *list, void **it)
+{
+    u_list_item_t *item;
+
+    dbg_return_if (list == NULL, NULL);
+    dbg_return_if (it == NULL, NULL);
+    dbg_return_if (*it == NULL, NULL);
+
+    item = *it;
+
+    *it = item = TAILQ_NEXT(item, np);
+
+    if(item)
+        return item->ptr;
+
+    return NULL;
+}
+
+/**
  *  \brief  Delete an element given its position in the list
  *
  *  \param list    the parent list object (created via u_list_new)
