@@ -20,10 +20,10 @@ static int test_list_iterator(void)
     int v;
 
     con_err_if(u_list_create(&l));
-
-    for(v = (int)u_list_first(l, &it); v; v = (int)u_list_next(l, &it))
+    
+    u_list_foreach(l, v, it)
     {
-        con_err("no items!");
+        con_err("expecting no items!");
     }
 
     tot0 = 0;
@@ -40,7 +40,7 @@ static int test_list_iterator(void)
     }
 
     tot1 = 0;
-    for(v = (int)u_list_first(l, &it); v; v = (int)u_list_next(l, &it))
+    u_list_foreach(l, v, it)
         tot1 += v;
 
     con_err_if(tot0 != tot1);
@@ -54,7 +54,7 @@ static int test_list_iterator(void)
     }
 
     tot1 = 0;
-    for(v = (int)u_list_first(l, &it); v; v = (int)u_list_next(l, &it))
+    u_list_foreach(l, v, it)
         tot1 += v;
     con_err_if(tot0 != tot1);
 

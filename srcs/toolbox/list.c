@@ -198,9 +198,10 @@ err:
 }
 
 /**
- *  \brief  Return the first item of the list (use to iterate)
+ *  \brief  Return the first item of the list and initialize the iterator
  *
- *  \param list    the list object (created via u_list_new)
+ *  \param list     the list object (created via u_list_new)
+ *  \param it       opaque iterator object
  *
  *  \return \c the first item or NULL if the list is empty 
  */ 
@@ -212,9 +213,11 @@ void* u_list_first(u_list_t *list, void **it)
 
     item = TAILQ_FIRST(&list->head);
 
-    if(it)
-        *it = item;
-   
+    if(it && item)
+        *it = TAILQ_NEXT(item, np);
+    else if(it)
+        *it = NULL;
+
     if(item)
         return item->ptr;
 
@@ -222,18 +225,21 @@ void* u_list_first(u_list_t *list, void **it)
 }
 
 /**
- *  \brief  Return the list element next to the given one
+ *  \brief  Return the next element while iterating over a list 
  *
  *  \param list     the list object (created via u_list_new)
- *  \param item     the item that preceding the requested one
+ *  \param it       opaque iterator object
  *
  *  Example: iterate on a u_list
  *
- *  void *elem;
- *  for(elem = u_list_first(list); elem; elem = u_list_next(list, elem))
+ *  void *it;
+ *  my_t *my;
+ *  for(my = u_list_first(list, &it); my; my = u_list_next(list, &ut))
  *      ...
  * 
  *  \return \c the requested item or NULL if \c item is the last one
+ *  \see u_list_foreach
+ *  \see u_list_iforeach
  */ 
 void* u_list_next(u_list_t *list, void **it)
 {
@@ -245,7 +251,10 @@ void* u_list_next(u_list_t *list, void **it)
 
     item = *it;
 
-    *it = item = TAILQ_NEXT(item, np);
+    if(it && item)
+        *it = TAILQ_NEXT(item, np);
+    else if(it)
+        *it = NULL;
 
     if(item)
         return item->ptr;
