@@ -1,6 +1,6 @@
 #!/bin/sh 
 #
-# $Id: configure,v 1.67 2008/11/05 22:19:02 stewy Exp $
+# $Id: configure,v 1.68 2008/11/07 14:53:00 stewy Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -16,7 +16,7 @@ if [ -z "${MAKL_DIR}" ]; then
 fi
 
 # MaKL preamble
-. ${MAKL_DIR}/cf/makl.init
+. "${MAKL_DIR}"/cf/makl.init
 
 makl_args_init "$@"
 
@@ -144,4 +144,4 @@ fi
 makl_set_var "INCDIR" "`makl_get_var_mk \"INCDIR\"`/u"
 
 # MaKL closing
-. ${MAKL_DIR}/cf/makl.term
+. "${MAKL_DIR}"/cf/makl.term
