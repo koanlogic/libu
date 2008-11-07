@@ -247,7 +247,7 @@ void* u_list_next(u_list_t *list, void **it)
 
     dbg_return_if (list == NULL, NULL);
     dbg_return_if (it == NULL, NULL);
-    dbg_return_if (*it == NULL, NULL);
+    nop_return_if (*it == NULL, NULL);
 
     item = *it;
 
