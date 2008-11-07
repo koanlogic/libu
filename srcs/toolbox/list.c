@@ -209,11 +209,11 @@ void* u_list_first(u_list_t *list, void **it)
     u_list_item_t *item;
 
     dbg_return_if (list == NULL, NULL);
-    dbg_return_if (it == NULL, NULL);
 
     item = TAILQ_FIRST(&list->head);
 
-    *it = item;
+    if(it)
+        *it = item;
    
     if(item)
         return item->ptr;
