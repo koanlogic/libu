@@ -1,6 +1,6 @@
-#!/bin/sh 
+#!/bin/sh
 #
-# $Id: configure,v 1.68 2008/11/07 14:53:00 stewy Exp $
+# $Id: configure,v 1.69 2008/11/12 11:22:16 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -29,7 +29,9 @@ makl_args_init "$@"
 makl_pkg_name "libu"
 makl_pkg_version
 
-# Set variables depending on host OS
+# Set variables depending on host OS (assume UNIX by default)
+makl_set_var_h "OS_UNIX"
+makl_set_var_h "U_PATH_SEPARATOR" "'/'"
 target=`makl_target_name`
 case ${target} in
     *mingw* | *MINGW*)
@@ -37,14 +39,12 @@ case ${target} in
         # use the hex value to avoid backspace escaping madness
         makl_set_var_h "U_PATH_SEPARATOR" "0x5c"
         ;;
-    *)
-        makl_set_var_h "OS_UNIX"
-        makl_set_var_h "U_PATH_SEPARATOR" "'/'"
-        if [ `echo $target | grep darwin` ]; then
-            makl_set_var_mk "OS_DARWIN" "true"
-            makl_set_var_mk "SHLIB_LDFLAGS" \
-                "-undefined suppress -flat_namespace"
-        fi
+    sunos*)
+        makl_add_var_mk "LDFLAGS" "-lsocket -lnsl"
+        ;;
+    darwin*)
+        makl_set_var_mk "OS_DARWIN" "true"
+        makl_set_var_mk "SHLIB_LDFLAGS" "-undefined suppress -flat_namespace"
         ;;
 esac
 
@@ -117,19 +117,19 @@ then
             "<sys/types.h> <sys/socket.h> <netinet/in.h>" 
     fi
 
+    makl_set_var "NO_UNIXSOCK" 0
+    makl_set_var "NO_IPV6" 0
+
     # check for IPv6 support
     makl_checktype          0   "struct sockaddr_in6"   \
         "<sys/types.h> <sys/socket.h> <netinet/in.h>" 
-    if [ $? -ne 0 ]; then
-        makl_set_var "NO_IPV6" 
-    fi
+    [ $? -ne 0 ] && makl_set_var "NO_IPV6" 
 
     # check for Unix socket support
     makl_checktype          0   "struct sockaddr_un"    \
         "<sys/types.h> <sys/socket.h> <netinet/in.h> <sys/un.h>" 
-    if [ $? -ne 0 ]; then
-        makl_set_var "NO_UNIXSOCK" 
-    fi
+    [ $? -ne 0 ] && makl_set_var "NO_UNIXSOCK" 
+
 else
     # user supplied the --no_net argument
     makl_set_var "NO_UNIXSOCK"
