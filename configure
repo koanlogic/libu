@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.71 2008/11/13 12:28:13 tho Exp $
+# $Id: configure,v 1.72 2008/11/13 13:46:35 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -35,7 +35,8 @@ makl_set_var_h "U_PATH_SEPARATOR" "'/'"
 target=`makl_target_name`
 case ${target} in
     *mingw*)
-        makl_set_var_h "OS_WIN"
+        makl_unset_var "OS_UNIX"
+        makl_set_var "OS_WIN"
         # use the hex value to avoid backspace escaping madness
         makl_set_var_h "U_PATH_SEPARATOR" "0x5c"
         makl_set_var_mk "SHLIB_NO_UNDEFINED_SYMS"
