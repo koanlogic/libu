@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.73 2008/11/13 14:24:33 tho Exp $
+# $Id: configure,v 1.74 2008/11/13 17:44:25 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -82,6 +82,7 @@ makl_checkfunc          0   "link"          ""  "<unistd.h>"
 makl_checkfunc          0   "unlink"        ""  "<unistd.h>"
 makl_checkfunc          0   "sleep"         ""  "<unistd.h>"
 makl_checkfunc          0   "mkstemps"      ""  "<unistd.h>"
+makl_checkfunc          0   "setenv"        ""  "<stdlib.h>"
 makl_checkfunc          0   "fnmatch"       ""  "<fnmatch.h>"
 makl_checkfunc          0   "strtok_r"      ""  "<string.h>"
 makl_checkfunc          0   "strsep"        ""  "<string.h>"
