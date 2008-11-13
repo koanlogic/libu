@@ -46,6 +46,7 @@
 #ifdef OS_WIN
 #include <windows.h>
 #define _mkdir(dir, perm) CreateDirectory(dir, NULL)
+#define lstat(path, buf) stat(path, buf)
 #else
 #define _mkdir(dir, perm) mkdir(dir, perm)
 #endif
