@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.72 2008/11/13 13:46:35 tho Exp $
+# $Id: configure,v 1.73 2008/11/13 14:24:33 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -40,6 +40,7 @@ case ${target} in
         # use the hex value to avoid backspace escaping madness
         makl_set_var_h "U_PATH_SEPARATOR" "0x5c"
         makl_set_var_mk "SHLIB_NO_UNDEFINED_SYMS"
+        makl_add_var_mk "LDFLAGS" "-lwsock32"
         ;;
     *cygwin*)
         makl_set_var_mk "SHLIB_NO_UNDEFINED_SYMS"
