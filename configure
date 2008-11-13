@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.70 2008/11/12 15:06:30 tho Exp $
+# $Id: configure,v 1.71 2008/11/13 12:28:13 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -34,10 +34,14 @@ makl_set_var_h "OS_UNIX"
 makl_set_var_h "U_PATH_SEPARATOR" "'/'"
 target=`makl_target_name`
 case ${target} in
-    *mingw* | *MINGW*)
+    *mingw*)
         makl_set_var_h "OS_WIN"
         # use the hex value to avoid backspace escaping madness
         makl_set_var_h "U_PATH_SEPARATOR" "0x5c"
+        makl_set_var_mk "SHLIB_NO_UNDEFINED_SYMS"
+        ;;
+    *cygwin*)
+        makl_set_var_mk "SHLIB_NO_UNDEFINED_SYMS"
         ;;
     sunos*)
         makl_add_var_mk "LDFLAGS" "-lsocket -lnsl"
@@ -138,19 +142,6 @@ fi
 
 if [ -z "`makl_get_var_mk "LIBU_DEBUG"`" ]; then
     makl_append_var_mk "CFLAGS" "-O2"
-fi
-
-# cygwin can't produce a shared library because of the "facility" symbol
-# which can't be resolved at link time (no "-undefined suppress" available as 
-# under Mac OS X).
-if [ -n "`makl_get_var_mk "SHLIB"`" ]
-then
-    echo "`makl_target_name`" | grep "cygwin" > /dev/null
-    if [ $? -eq 0 ]
-    then
-        makl_info "shared lib support is disabled on Cygwin"
-        makl_unset_var_mk "SHLIB"
-    fi
 fi
 
 # Install headers in a private subdir

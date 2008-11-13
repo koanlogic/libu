@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.12 2008/06/23 16:27:35 tho Exp $
+# $Id: Makefile,v 1.13 2008/11/13 12:28:13 tho Exp $
 
 include common.mk
 include ../Makefile.conf
@@ -41,6 +41,9 @@ SRCS += toolbox/list.c
 endif
 ifndef NO_ARRAY
 SRCS += toolbox/array.c
+endif
+ifdef SHLIB_NO_UNDEFINED_SYMS
+SRCS += toolbox/facility.c
 endif
 
 # missing sources
