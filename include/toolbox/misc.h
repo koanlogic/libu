@@ -78,6 +78,8 @@ ssize_t u_write(int fd, void *buf, size_t size);
 int u_accept(int s, struct sockaddr *addr, int *addrlen);
 int u_sleep(unsigned int secs);
 int u_atoi (const char *nptr, int *pi);
+int u_strlcpy(char *dst, const char *src, size_t size);
+int u_strlcat(char *dst, const char *src, size_t size);
 
 #ifdef __cplusplus
 }

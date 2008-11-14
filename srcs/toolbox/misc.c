@@ -593,6 +593,16 @@ err:
     return ~0;
 }
 
+inline int u_strlcpy(char *dst, const char *src, size_t size)
+{
+    return (strlcpy(dst, src, size) >= size ? ~0 : 0);
+}
+
+inline int u_strlcat(char *dst, const char *src, size_t size)
+{
+    return (strlcat(dst, src, size) >= size ? ~0 : 0);
+}
+
 /**
  *      \}
  */
