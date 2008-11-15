@@ -62,12 +62,7 @@ void u_list_free(u_list_t *list)
 
     dbg_return_if(list == NULL, );
 
-    while((item = TAILQ_FIRST(&list->head)) != NULL)
-    {
-        TAILQ_REMOVE(&list->head, item, np);
-
-        u_free(item);
-    }
+    u_list_clear(list);
 
     u_free(list);
 
@@ -294,6 +289,31 @@ int u_list_del_n(u_list_t *list, size_t n, void **pptr)
     u_free(item);
 
     return 0;
+}
+
+/**
+ *  \brief  Remove all elements from the list
+ *
+ *  \param list    the list object 
+ *
+ *  \return \c 0 on success, \c ~0 on error
+ */ 
+int u_list_clear(u_list_t *list)
+{
+    u_list_item_t *item = NULL;
+
+    dbg_return_if(list == NULL, ~0);
+
+    while((item = TAILQ_FIRST(&list->head)) != NULL)
+    {
+        TAILQ_REMOVE(&list->head, item, np);
+
+        u_free(item);
+    }
+
+    return 0;
+err:
+    return ~0;
 }
 
 /**
