@@ -58,8 +58,6 @@ err:
  */ 
 void u_list_free(u_list_t *list)
 {
-    u_list_item_t *item = NULL;
-
     dbg_return_if(list == NULL, );
 
     u_list_clear(list);
@@ -300,9 +298,9 @@ int u_list_del_n(u_list_t *list, size_t n, void **pptr)
  */ 
 int u_list_clear(u_list_t *list)
 {
-    u_list_item_t *item = NULL;
+    u_list_item_t *item;
 
-    dbg_return_if(list == NULL, ~0);
+    dbg_err_if(list == NULL);
 
     while((item = TAILQ_FIRST(&list->head)) != NULL)
     {
