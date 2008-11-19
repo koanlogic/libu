@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.74 2008/11/13 17:44:25 tho Exp $
+# $Id: configure,v 1.75 2008/11/19 11:37:18 stewy Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -75,22 +75,22 @@ makl_checktype          0   "in_addr_t"         \
                             "<netinet/in.h>"    \
                             "<arpa/inet.h>"
 makl_checksymbol        0   "TCP_NODELAY"   "<sys/types.h>" "<netinet/tcp.h>"
-makl_checkfunc          0   "daemon"        ""  "<stdlib.h>"
-makl_checkfunc          0   "setsockopt"    ""  "<sys/socket.h>" 
-makl_checkfunc          0   "getpid"        ""  "<unistd.h>"
-makl_checkfunc          0   "link"          ""  "<unistd.h>"
-makl_checkfunc          0   "unlink"        ""  "<unistd.h>"
-makl_checkfunc          0   "sleep"         ""  "<unistd.h>"
-makl_checkfunc          0   "mkstemps"      ""  "<unistd.h>"
-makl_checkfunc          0   "setenv"        ""  "<stdlib.h>"
-makl_checkfunc          0   "fnmatch"       ""  "<fnmatch.h>"
-makl_checkfunc          0   "strtok_r"      ""  "<string.h>"
-makl_checkfunc          0   "strsep"        ""  "<string.h>"
-makl_checkfunc          0   "strlcpy"       ""  "<string.h>"
-makl_checkfunc          0   "strlcat"       ""  "<string.h>"
-makl_checkfunc          0   "gettimeofday"  ""  "<sys/time.h>"
-makl_checkfunc          0   "timegm"        ""  "<time.h>"
-makl_checkfunc          0   "syslog"        ""  "<syslog.h>"
+makl_checkfunc          0   "daemon"        2   ""  "<stdlib.h>"
+makl_checkfunc          0   "setsockopt"    5   ""  "<sys/socket.h>" 
+makl_checkfunc          0   "getpid"        0   ""  "<unistd.h>"
+makl_checkfunc          0   "link"          2   ""  "<unistd.h>"
+makl_checkfunc          0   "unlink"        1   ""  "<unistd.h>"
+makl_checkfunc          0   "sleep"         1   ""  "<unistd.h>"
+makl_checkfunc          0   "mkstemps"      2   ""  "<unistd.h>"
+makl_checkfunc          0   "setenv"        3   ""  "<stdlib.h>"
+makl_checkfunc          0   "fnmatch"       3   ""  "<fnmatch.h>"
+makl_checkfunc          0   "strtok_r"      3   ""  "<string.h>"
+makl_checkfunc          0   "strsep"        2   ""  "<string.h>"
+makl_checkfunc          0   "strlcpy"       3   ""  "<string.h>"
+makl_checkfunc          0   "strlcat"       3   ""  "<string.h>"
+makl_checkfunc          0   "gettimeofday"  2   ""  "<sys/time.h>"
+makl_checkfunc          0   "timegm"        1   ""  "<time.h>"
+makl_checkfunc          0   "syslog"        2   ""  "<syslog.h>"
 makl_func_strerror_r    0
 makl_checkheader        0   "complex"   "<complex.h>"
 makl_checkheader        0   "unistd"    "<unistd.h>"
