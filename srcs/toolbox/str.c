@@ -26,6 +26,8 @@ struct u_string_s
     size_t data_sz, data_len, shift_cnt;
 };
 
+static int u_string_do_vprintf(u_string_t *, int, const char *, va_list);
+
 /**
  * \brief  Remove leading and trailing blanks
  *
@@ -244,10 +246,9 @@ err:
 }
 
 
-/* internal */
-int u_string_do_printf(u_string_t *s, int clear, const char *fmt, ...)
+static int u_string_do_vprintf(u_string_t *s, int clear, const char *fmt, 
+        va_list ap)
 {
-    va_list ap;
     size_t sz, avail;
 
     dbg_return_if(s == NULL, ~0);
@@ -257,38 +258,44 @@ int u_string_do_printf(u_string_t *s, int clear, const char *fmt, ...)
         u_string_clear(s);
 
 again:
-    va_start(ap, fmt); 
-
     avail = s->data_sz - s->data_len; /* avail may be zero */
 
-    /* write to the internal buffer of the string */
-    dbg_err_if(( sz = vsnprintf(s->data + s->data_len, avail, fmt, ap)) <= 0);
-
-    if(sz >= avail)
+    /* write to the internal buffer of the string.
+     * if the return value is greater than or equal to the size argument, 
+     * the string was too short and some of the printed characters were 
+     * discarded, in which case add some bytes to the buffer and retry */
+    if ((sz = vsnprintf(s->data + s->data_len, avail, fmt, ap)) >= avail)
     {
-        /* enlarge the buffer (make it at least 128 bytes bigger) */
         dbg_err_if(u_string_reserve(s, s->data_sz + s->data_len + 2*sz + 1));
 
-        /* zero-term the buffer (vsnprintf has removed the last \0!) */
+        /* trunc the buffer again since vsnprintf could have overwritten '\0' */
         s->data[s->data_len] = 0;
 
-        va_end(ap);
-
-        /* try again with a bigger buffer */
         goto again;
     }
 
     /* update string length */
     s->data_len += sz; 
-    s->data[s->data_len] = 0;
 
+    return 0;
+err:
+    return ~0;
+}
+
+int u_string_do_printf(u_string_t *s, int clear, const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    dbg_err_if (u_string_do_vprintf(s, clear, fmt, ap));
     va_end(ap);
 
     return 0;
 err:
     va_end(ap);
-    return ~0; /* error */
+    return ~0;
 }
+
 
 /**
  * \brief  Append a char* to a string
@@ -329,8 +336,6 @@ err:
     return ~0;
 }
 
-/* defines documentation */
-
 /**
  * \def u_string_sprintf
  * \brief  Set the string from sprintf-style arguments
@@ -343,9 +348,22 @@ err:
  *
  * \return \c 0 on success, not zero on failure
  */
+int u_string_sprintf(u_string_t *s, const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    dbg_err_if (u_string_do_vprintf(s, 1, fmt, ap));
+    va_end(ap);
+
+    return 0;
+err:
+    va_end(ap);
+    return ~0;
+}
+
 
 /**
- * \def u_string_aprintf
  * \brief  Append a printf-style format string to the given string
  *
  * Append a printf-style format string to the given string.
@@ -356,6 +374,20 @@ err:
  *
  * \return \c 0 on success, not zero on failure
  */
+int u_string_aprintf(u_string_t *s, const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    dbg_err_if (u_string_do_vprintf(s, 0, fmt, ap));
+    va_end(ap);
+
+    return 0;
+err:
+    va_end(ap);
+    return ~0;
+}
+
 
 /**
  * \def u_string_ncat
