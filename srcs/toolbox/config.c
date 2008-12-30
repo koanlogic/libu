@@ -845,6 +845,7 @@ int u_config_get_subkey_value_b(u_config_t *c, const char *subkey, int def,
     const char *true_words[]  = { "yes", "enable", "1", "on", NULL };
     const char *false_words[] = { "no", "disable", "0", "off", NULL };
     const char *v, *w;
+    int i;
 
     if((v = u_config_get_subkey_value(c, subkey)) == NULL)
     {
@@ -852,7 +853,7 @@ int u_config_get_subkey_value_b(u_config_t *c, const char *subkey, int def,
         return 0;
     }
 
-    for(w = *true_words; *w; ++w)
+    for(i = 0; (w = true_words[i]) != NULL; ++i)
     {
         if(!strcasecmp(v, w))
         {
@@ -861,7 +862,7 @@ int u_config_get_subkey_value_b(u_config_t *c, const char *subkey, int def,
         }
     }
 
-    for(w = *false_words; *w; ++w)
+    for(i = 0; (w = false_words[i]) != NULL; ++i)
     {
         if(!strcasecmp(v, w))
         {
