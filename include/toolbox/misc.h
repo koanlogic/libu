@@ -81,6 +81,11 @@ int u_atoi (const char *nptr, int *pi);
 int u_strlcpy(char *dst, const char *src, size_t size);
 int u_strlcat(char *dst, const char *src, size_t size);
 
+#ifdef HAVE_STRTOUMAX
+#include <inttypes.h>
+int u_atoumax (const char *nptr, uintmax_t *pumax);
+#endif  /* HAVE_STRTOUMAX */
+
 #ifdef __cplusplus
 }
 #endif

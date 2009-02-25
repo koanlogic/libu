@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.75 2008/11/19 11:37:18 stewy Exp $
+# $Id: configure,v 1.76 2009/02/25 15:38:35 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -91,6 +91,7 @@ makl_checkfunc          0   "strlcat"       3   ""  "<string.h>"
 makl_checkfunc          0   "gettimeofday"  2   ""  "<sys/time.h>"
 makl_checkfunc          0   "timegm"        1   ""  "<time.h>"
 makl_checkfunc          0   "syslog"        2   ""  "<syslog.h>"
+makl_checkfunc          0   "strtoumax"     3   ""  "<inttypes.h>"
 makl_func_strerror_r    0
 makl_checkheader        0   "complex"   "<complex.h>"
 makl_checkheader        0   "unistd"    "<unistd.h>"

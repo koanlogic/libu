@@ -593,6 +593,31 @@ err:
     return ~0;
 }
 
+#ifdef HAVE_STRTOUMAX
+/** \brief  try to convert the string \p nptr into the long integer at \p pl */
+int u_atoumax (const char *nptr, uintmax_t *pumax)
+{
+    uintmax_t tmp; 
+    int saved_errno = errno;
+
+    dbg_return_if (nptr == NULL, ~0);
+    dbg_return_if (pumax == NULL, ~0);
+ 
+    tmp = strtoumax(nptr, (char **) NULL, 10);
+    
+    dbg_err_if (tmp == 0 && errno == EINVAL);
+    dbg_err_if (tmp == UINTMAX_MAX && errno == ERANGE);
+        
+    *pumax = tmp;
+    
+    errno = saved_errno;
+    return 0;
+err:
+    errno = saved_errno;
+    return ~0;
+}
+#endif  /* HAVE_STRTOUMAX */
+
 inline int u_strlcpy(char *dst, const char *src, size_t size)
 {
     return (strlcpy(dst, src, size) >= size ? ~0 : 0);
