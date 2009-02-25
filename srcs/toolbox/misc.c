@@ -594,7 +594,7 @@ err:
 }
 
 #ifdef HAVE_STRTOUMAX
-/** \brief  try to convert the string \p nptr into the long integer at \p pl */
+/** \brief  try to convert the string \p nptr into the maximum unsigned integer at \p pumax */
 int u_atoumax (const char *nptr, uintmax_t *pumax)
 {
     uintmax_t tmp; 
