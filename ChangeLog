@@ -1,8 +1,8 @@
-$Id: ChangeLog,v 1.64 2008/12/30 13:03:00 tat Exp $
+$Id: ChangeLog,v 1.65 2009/03/06 14:55:30 stewy Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
-LibU 1.x.y
+LibU 1.4.0
 	- [config] u_config_get_subkey_value_b bug fix
 	- [list] u_list_clear added
 	- [misc] u_strlcpy and u_strlcat added
