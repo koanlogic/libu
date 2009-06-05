@@ -250,6 +250,7 @@ static int u_string_do_vprintf(u_string_t *s, int clear, const char *fmt,
         va_list ap)
 {
     size_t sz, avail;
+    va_list apcpy;
 
     dbg_return_if(s == NULL, ~0);
     dbg_return_if(fmt == NULL, ~0);
@@ -260,12 +261,20 @@ static int u_string_do_vprintf(u_string_t *s, int clear, const char *fmt,
 again:
     avail = s->data_sz - s->data_len; /* avail may be zero */
 
+    /* copy ap to avoid using it twice when realloc'ing */
+    u_va_copy(apcpy, ap); 
+
     /* write to the internal buffer of the string.
      * if the return value is greater than or equal to the size argument, 
      * the string was too short and some of the printed characters were 
-     * discarded, in which case add some bytes to the buffer and retry */
-    if ((sz = vsnprintf(s->data + s->data_len, avail, fmt, ap)) >= avail)
+     * discarded; in that case realloc a bigger buffer and retry */
+    sz = vsnprintf(s->data + s->data_len, avail, fmt, apcpy);
+
+    va_end(apcpy);
+
+    if (sz >= avail)
     {
+
         dbg_err_if(u_string_reserve(s, s->data_sz + s->data_len + 2*sz + 1));
 
         /* trunc the buffer again since vsnprintf could have overwritten '\0' */

@@ -18,6 +18,7 @@
 #include <u/missing/strlcat.h>
 #include <u/missing/gettimeofday.h>
 #include <u/missing/daemon.h>
+#include <u/missing/va.h>
 
 #ifdef OS_WIN
 #include <windows.h>
