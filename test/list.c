@@ -69,7 +69,8 @@ static int test_list_ins (void)
 {
     enum { ITERS = 3 };
     u_list_t *l = NULL;
-    int i, prev;
+    int i;
+    void* prev;
 
     con_err_if(u_list_create(&l));
     con_err_if(u_list_add(l, (void*)1));
@@ -86,11 +87,11 @@ static int test_list_ins (void)
     con_err_if(u_list_insert(l, (void*)99, 0));
     con_err_if(u_list_insert(l, (void*)99, u_list_count(l)));
 
-    con_err_if(u_list_del_n(l, 0, (void**)&prev));
-    con_err_if(prev != 99);
+    con_err_if(u_list_del_n(l, 0, &prev));
+    con_err_if((int)prev != 99);
 
-    con_err_if(u_list_del_n(l, u_list_count(l)-1, (void**)&prev));
-    con_err_if(prev != 99);
+    con_err_if(u_list_del_n(l, u_list_count(l)-1, &prev));
+    con_err_if((int)prev != 99);
 
     for(i = 0; i < ITERS; ++i)
         con_err_if(u_list_insert(l, (void*)99, 2));
@@ -99,10 +100,11 @@ static int test_list_ins (void)
 
     for(i = 0; i < ITERS; ++i)
         con_err_if(u_list_insert(l, (void*)99, 2));
+
     for(i = 0; i < ITERS; ++i)
     {
-        con_err_if(u_list_del_n(l, 2, (void**)&prev));
-        con_err_if(prev != 99);
+        con_err_if(u_list_del_n(l, 2, &prev));
+        con_err_if((int)prev != 99);
     }
 
     for(i = 0; i < u_list_count(l); ++i)
