@@ -1097,7 +1097,7 @@ err:
 void u_hmap_o_free (u_hmap_o_t *obj)
 {
     dbg_ifb (obj == NULL) return;
-    
+
     u_free(obj);
 }
 
@@ -1115,9 +1115,9 @@ static void _o_free (u_hmap_t *hmap, u_hmap_o_t *obj)
     {
         if (hmap->opts->f_free)
             hmap->opts->f_free(obj);
-
-        u_hmap_o_free(obj); 
     }
+
+    u_hmap_o_free(obj); 
 }
 
 /* Allocate a new queue data object */
