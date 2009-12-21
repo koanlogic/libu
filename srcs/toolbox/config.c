@@ -119,7 +119,7 @@ err:
 void u_config_print_to_fp(u_config_t *c, FILE *fp, int lev)
 {
 #define U_CONFIG_INDENT(fp, l)  \
-    do { int i; for(i = 0; i < l; ++i) fprintf(fp, "  "); } while (0);
+    do { int i; for(i = 1; i < l; ++i) fputs("  ", fp); } while (0);
 
     u_config_t *item;
 
