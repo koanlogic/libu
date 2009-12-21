@@ -118,18 +118,37 @@ err:
  */
 void u_config_print_to_fp(u_config_t *c, FILE *fp, int lev)
 {
-    u_config_t *item;
-    int i;
+#define U_CONFIG_INDENT(fp, l)  \
+    do { int i; for(i = 0; i < l; ++i) fprintf(fp, "  "); } while (0);
 
-    for(i = 0; i < lev; ++i)
-        fprintf(fp, "  ");
+    u_config_t *item;
+
+    U_CONFIG_INDENT(fp, lev);
 
     if (c->key)
         fprintf(fp, "%s  %s\n", c->key, c->value == NULL ? "" : c->value);
 
     ++lev;
-    TAILQ_FOREACH(item, &c->children, np)
-        u_config_print_to_fp(item, fp, lev);
+
+    if(u_config_has_children(c))
+    {
+        if(c->parent)
+        {
+            /* align braces to the previous level */
+            U_CONFIG_INDENT(fp, lev - 1);
+            fprintf(fp, "{\n");
+        }
+
+        TAILQ_FOREACH(item, &c->children, np)
+            u_config_print_to_fp(item, fp, lev);
+
+        if(c->parent)
+        {
+            U_CONFIG_INDENT(fp, lev - 1);
+            fprintf(fp, "}\n");
+        }
+    }
+#undef U_CONFIG_INDENT
 }
 
 /**
