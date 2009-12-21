@@ -114,7 +114,7 @@ err:
  * \param fp    output file descriptor
  * \param lev   nesting level; must be zero
  *
- * \return \c 0 on success, not zero on failure
+ * \return nothing
  */
 void u_config_print_to_fp(u_config_t *c, FILE *fp, int lev)
 {
@@ -141,7 +141,7 @@ void u_config_print_to_fp(u_config_t *c, FILE *fp, int lev)
  * \param c     configuration object
  * \param lev   nesting level; must be zero
  *
- * \return \c 0 on success, not zero on failure
+ * \return nothing
  */
 void u_config_print(u_config_t *c, int lev)
 {
