@@ -78,10 +78,10 @@ int u_net_sock (const char *uri, int mode)
            dbg_err("access method not implemented");
     }
 
-    dbg_if (sd == -1);
+    dbg_err_sif (sd == -1);
     u_net_addr_free(addr);
-    return sd;
 
+    return sd;
 err:
     if (addr)
         u_net_addr_free(addr);
@@ -91,16 +91,17 @@ err:
 static int u_net_sock_tcp4 (u_net_addr_t *a,  int mode)
 {
     dbg_return_if (a == NULL, -1);
-    dbg_return_if (a->type != U_NET_TCP4 && a->type != U_NET_TCP6, -1);
+    dbg_return_if (a->type != U_NET_TCP4, -1);
 
     switch (mode)
     {
         case U_NET_CSOCK:
             return u_net_tcp4_csock(&a->sa.sin);
         case U_NET_SSOCK:
+            /* default is to reuse the address */
             return u_net_tcp4_ssock(&a->sa.sin, 1, U_NET_BACKLOG);
         default:
-            //warn("unknown socket mode");
+            warn("internal error"); /* should never happen */
             return -1;
     }
 }
@@ -109,22 +110,22 @@ static int u_net_sock_tcp4 (u_net_addr_t *a,  int mode)
 static int u_net_sock_tcp6 (u_net_addr_t *a,  int mode)
 {
     dbg_return_if (a == NULL, -1);
-    dbg_return_if (a->type != U_NET_TCP4 && a->type != U_NET_TCP6, -1);
+    dbg_return_if (a->type != U_NET_TCP6, -1);
 
     switch (mode)
     {
         case U_NET_CSOCK:
-                return u_net_tcp6_csock(&a->sa.sin6);
+            return u_net_tcp6_csock(&a->sa.sin6);
         case U_NET_SSOCK:
-                return u_net_tcp6_ssock(&a->sa.sin6, 1, U_NET_BACKLOG);
+            return u_net_tcp6_ssock(&a->sa.sin6, 1, U_NET_BACKLOG);
         default:
-            warn("unknown socket mode");
+            warn("internal error");
             return -1;
     }
 }
 #endif
 
-int u_net_sock_tcp (u_net_addr_t *a,  int mode)
+int u_net_sock_tcp (u_net_addr_t *a, int mode)
 {
     dbg_return_if (a == NULL, -1);
     dbg_return_if (a->type != U_NET_TCP4 && a->type != U_NET_TCP6, -1);
@@ -168,14 +169,13 @@ int u_net_unix_csock (struct sockaddr_un *sad)
     dbg_return_if (sad == NULL, -1);
 
     csd = socket(AF_UNIX, SOCK_STREAM, 0); 
-    dbg_err_if (csd == -1);
+    dbg_err_sif (csd == -1);
 
-    rv = connect(csd, (struct sockaddr *) sad, sizeof *sad);
-    dbg_err_if (rv == -1);
+    rv = connect(csd, (struct sockaddr *) sad, sizeof(struct sockaddr_un));
+    dbg_err_sif (rv == -1);
 
     return csd;
 err:
-    dbg_strerror(errno);
     U_CLOSE(csd);
     return -1;
 }
@@ -187,31 +187,36 @@ int u_net_unix_ssock (struct sockaddr_un *sad, int backlog)
     dbg_return_if (sad == NULL, -1);
 
     rv = unlink(sad->sun_path);
-    dbg_err_if (rv == -1 && errno != ENOENT);
+    dbg_err_sif (rv == -1 && errno != ENOENT);
 
     lsd = socket(AF_UNIX, SOCK_STREAM, 0);
-    dbg_err_if (lsd == -1);
+    dbg_err_sif (lsd == -1);
 
-    rv = bind(lsd, (struct sockaddr *) sad, sizeof *sad);
-    dbg_err_if (rv == -1);
+    rv = bind(lsd, (struct sockaddr *) sad, sizeof(struct sockaddr_un));
+    dbg_err_sif (rv == -1);
 
     rv = listen(lsd, backlog);
-    dbg_err_if (rv == -1);
+    dbg_err_sif (rv == -1);
 
     return lsd;
 err:
-    dbg_strerror(errno);
     U_CLOSE(lsd);
-    return -1;    
+    return -1;
 }
-
 #endif /* NO_UNIXSOCK */
 
 int u_net_sock_udp (u_net_addr_t *a, int mode)
 {
     dbg_return_if (a == NULL, -1);
     dbg_return_if (a->type != U_NET_UDP4 && a->type != U_NET_UDP6, -1);
-    switch (mode) { default: break; }  /* TODO */
+
+    switch (mode)
+    {
+        default:
+            warn("TODO");
+            break;
+    }
+
     return -1;
 }
 
@@ -228,44 +233,41 @@ int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int reuse, int backlog)
     dbg_return_if (sad == NULL, -1);
     
     lsd = socket(AF_INET6, SOCK_STREAM, 0);
-    dbg_err_if (lsd == -1);
+    dbg_err_sif (lsd == -1);
 
 #ifdef HAVE_SETSOCKOPT
     rv = setsockopt(lsd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on);
-    dbg_err_if (rv == -1);
+    dbg_err_sif (rv == -1);
+#else
+    warn("could not honour the reuse flag");
 #endif
 
-    rv = bind(lsd, (struct sockaddr *) sad, sizeof *sad);
-    dbg_err_if (rv == -1);
+    rv = bind(lsd, (struct sockaddr *) sad, sizeof(struct sockaddr_in6));
+    dbg_err_sif (rv == -1);
 
     rv = listen(lsd, backlog);
-    dbg_err_if (rv == -1);
+    dbg_err_sif (rv == -1);
 
     return lsd;
-
 err:
-    dbg_strerror(errno);
     U_CLOSE(lsd);
     return -1;
 }
 
 int u_net_tcp6_csock (struct sockaddr_in6 *sad)
 {
-    int csd = -1;
-    int rv;
+    int rv, csd = -1;
 
     dbg_return_if (sad == NULL, -1);
 
     csd = socket(AF_INET6, SOCK_STREAM, 0);
-    dbg_err_if (csd == -1);
+    dbg_err_sif (csd == -1);
 
-    rv = connect(csd, (struct sockaddr *) sad, sizeof *sad);
-    dbg_err_if (rv == -1);
+    rv = connect(csd, (struct sockaddr *) sad, sizeof(struct sockaddr_in6));
+    dbg_err_sif (rv == -1);
 
     return csd;
-
 err:
-    dbg_strerror(errno);
     U_CLOSE(csd);
     return -1;
 }
@@ -283,42 +285,41 @@ int u_net_tcp4_ssock (struct sockaddr_in *sad, int reuse, int backlog)
     dbg_return_if (sad == NULL, -1);
     
     lsd = socket(AF_INET, SOCK_STREAM, 0);
-    dbg_err_if (lsd == -1);
+    dbg_err_sif (lsd == -1);
 
 #ifdef HAVE_SETSOCKOPT
-    rv = setsockopt(lsd, SOL_SOCKET, SO_REUSEADDR, (const char*)&on, sizeof on);
-    dbg_err_if (rv == -1);
+    rv = setsockopt(lsd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on);
+    dbg_err_sif (rv == -1);
+#else
+    warn("could not honour the reuse flag");
 #endif
 
-    rv = bind(lsd, (struct sockaddr *) sad, sizeof *sad);
-    dbg_err_if (rv == -1);
+    rv = bind(lsd, (struct sockaddr *) sad, sizeof(struct sockaddr_in));
+    dbg_err_sif (rv == -1);
 
     rv = listen(lsd, backlog);
-    dbg_err_if (rv == -1);
+    dbg_err_sif (rv == -1);
 
     return lsd;
-
 err:
-    dbg_strerror(errno);
     U_CLOSE(lsd);
     return -1;
 }
 
 int u_net_tcp4_csock (struct sockaddr_in *sad)
 {
-    int csd = -1;
+    int rv, csd = -1;
 
     dbg_return_if (sad == NULL, -1);
 
     csd = socket(AF_INET, SOCK_STREAM, 0);
-    dbg_err_if (csd == -1);
+    dbg_err_sif (csd == -1);
 
-    dbg_err_if (connect(csd, (struct sockaddr *) sad, sizeof *sad) == -1);
+    rv = connect(csd, (struct sockaddr *) sad, sizeof(struct sockaddr_in));
+    dbg_err_sif (rv == -1);
 
     return csd;
-
 err:
-    dbg_strerror(errno);
     U_CLOSE(csd);
     return -1;
 }
@@ -352,10 +353,13 @@ int u_net_uri2addr (const char *uri, u_net_addr_t **pa)
     
     *pa = a;
     u_uri_free(u);
+
     return 0;
 err:
-    if (a) u_net_addr_free(a);
-    if (u) u_uri_free(u);
+    if (a) 
+        u_net_addr_free(a);
+    if (u) 
+        u_uri_free(u);
     return ~0;
 }
 
@@ -385,9 +389,9 @@ int u_net_addr_new (int type, u_net_addr_t **pa)
     *pa = a;
 
     return 0;
-
 err:
-    if (a) u_net_addr_free(a);
+    if (a) 
+        u_net_addr_free(a);
     return ~0;
 }
 
@@ -459,7 +463,7 @@ int u_net_nagle_off (int sd)
 
     dbg_return_if (sd < 0, ~0);
 
-    rc = setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *) &on, sizeof on);
+    rc = setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof on);
     dbg_err_sifm (rc == -1, "error disabling Nagle algorithm on sd %d", sd);
 
     return 0;
@@ -467,7 +471,7 @@ err:
     return ~0;
 #else /* !HAVE_TCP_NODELAY || !HAVE_SETSOCKOPT */
     u_unused_args(sd);
-    dbg("%s is not implemented on this platform", __FUNCTION__);
+    dbg("u_net_nagle_off is not implemented on this platform");
     return 0;
 #endif  /* !HAVE_TCP_NODELAY */
 }
