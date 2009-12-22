@@ -10,6 +10,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/* GNUC __attribute__((deprecated)) (gcc 3.1 and later) */
+#if defined(__GNUC__) && ((__GNUC__ >= 4) || \
+        ((__GNUC__ == 3) && (__GNUC_MINOR__ >= 1)))
+  #define __LIBU_DEPRECATED __attribute__((deprecated))
+#else
+  #define __LIBU_DEPRECATED
+#endif
+
 #include <u/missing.h>
 #include <u/toolbox.h>
 

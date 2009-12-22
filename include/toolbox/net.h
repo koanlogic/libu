@@ -1,48 +1,43 @@
 /*
- * Copyright (c) 2005-2008 by KoanLogic s.r.l. - All rights reserved.
+ * Copyright (c) 2005-2009 by KoanLogic s.r.l. - All rights reserved.
  */
 
 #ifndef _U_NET_H_
 #define _U_NET_H_
 
-#include <u/libu_conf.h>
+#include <u/libu.h>
 
 #ifdef OS_UNIX
-#include <sys/types.h>
-#ifdef HAVE_SYS_SOCKET
-#include <sys/socket.h>
-#endif
-#ifdef HAVE_NETINET_IN
-#include <netinet/in.h>
-#endif
-#ifdef HAVE_NETINET_TCP
-#include <netinet/tcp.h>
-#endif
-#ifdef HAVE_SYSUIO
-#include <sys/uio.h>
-#endif
-#include <arpa/inet.h>
-#include <netdb.h>
-#ifndef NO_UNIXSOCK
-#include <sys/un.h>
-#endif
-#endif
+  #include <sys/types.h>
+  #ifdef HAVE_SYS_SOCKET
+    #include <sys/socket.h>
+  #endif
+  #ifdef HAVE_NETINET_IN
+    #include <netinet/in.h>
+  #endif
+  #ifdef HAVE_NETINET_TCP
+    #include <netinet/tcp.h>
+  #endif
+  #ifdef HAVE_SYSUIO
+    #include <sys/uio.h>
+  #endif
+  #include <arpa/inet.h>
+  #include <netdb.h>
+  #ifndef NO_UNIXSOCK
+    #include <sys/un.h>
+  #endif
+#endif  /* OS_UNIX */
 
 #ifdef OS_WIN
-#include <windows.h>
-/* #include <winsock.h> not compatible with ws2tcpip.h */
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#endif
+  #include <windows.h>
+  /* #include <winsock.h> not compatible with ws2tcpip.h */
+  #include <winsock2.h>
+  #include <ws2tcpip.h>
+#endif  /* OS_WIN */
 
 #ifndef HAVE_IN_ADDR_T
-typedef unsigned long in_addr_t;
+  typedef unsigned long in_addr_t;
 #endif
-
-#include <stdio.h>
-#include <u/missing.h>
-#include <u/toolbox/uri.h>
-#include <u/toolbox/misc.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,16 +52,18 @@ extern "C" {
 struct u_net_addr_s
 {
     enum { 
-        U_NET_TYPE_MIN,
-        U_NET_TCP4,
-        U_NET_TCP6,
-        U_NET_UDP4,
-        U_NET_UDP6,
-        U_NET_UNIX,
-        U_NET_TYPE_MAX
+        U_NET_TYPE_MIN = 0,
+        U_NET_TCP4 = 1,
+        U_NET_TCP6 = 2,
+        U_NET_UDP4 = 3,
+        U_NET_UDP6 = 4,
+        U_NET_UNIX = 5,
+        U_NET_TYPE_MAX = 6
     } type;
+#define U_NET_IS_VALID_ADDR_TYPE(a) (a > U_NET_TYPE_MIN && a < U_NET_TYPE_MAX)
     union
     {
+        struct sockaddr     s;
         struct sockaddr_in  sin;
 #ifndef NO_IPV6
         struct sockaddr_in6 sin6;
@@ -80,7 +77,8 @@ struct u_net_addr_s
 typedef struct u_net_addr_s u_net_addr_t;
 
 /* socket creation semantics: server or client (the 'mode' in u_net_sock) */
-enum { U_NET_SSOCK, U_NET_CSOCK };
+enum { U_NET_SSOCK = 0, U_NET_CSOCK = 1 };
+#define U_NET_IS_MODE(m) (m == U_NET_SSOCK || m == U_NET_CSOCK)
 
 /**
  * \addtogroup net
@@ -105,41 +103,40 @@ enum { U_NET_SSOCK, U_NET_CSOCK };
 
 /**
  *  \}
- */ 
-
+ */
 
 /* hi-level socket creation */
 int u_net_sock (const char *uri, int mode);
-int u_net_sock_tcp (u_net_addr_t *addr, int mode);
-int u_net_sock_udp (u_net_addr_t *addr, int mode);
-#ifndef NO_UNIXSOCK
-int u_net_sock_unix (u_net_addr_t *addr, int mode);
-#endif
 
 /* low-level socket creation */
 int u_net_tcp4_ssock (struct sockaddr_in *sad, int reuse, int backlog);
 int u_net_tcp4_csock (struct sockaddr_in *sad);
+int u_net_uri2sin (u_uri_t *uri, struct sockaddr_in *sad);
+
 #ifndef NO_IPV6
 int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int reuse, int backlog);
 int u_net_tcp6_csock (struct sockaddr_in6 *sad);
-#endif
+int u_net_uri2sin6 (const char *uri, struct sockaddr_in6 *sad);
+#endif /* !NO_IPV6 */
+
 #ifndef NO_UNIXSOCK
 int u_net_unix_ssock (struct sockaddr_un *sad, int backlog);
 int u_net_unix_csock (struct sockaddr_un *sad);
-#endif
+int u_net_uri2sun (const char *uri, struct sockaddr_un *sad);
+#endif /* !NO_UNIXSOCK */
 
 /* address translation: uri string -> u_uri -> u_net_addr -> struct sockaddr */
 int u_net_uri2addr (const char *uri, u_net_addr_t **pa);
-int u_net_uri2sin (u_uri_t *uri, struct sockaddr_in *sad);
-#ifndef NO_UNIXSOCK
-int u_net_uri2sun (const char *uri, struct sockaddr_un *sad);
-#endif /* OS_UNIX */
-
-/* u_net_addr */
 int u_net_addr_new (int type, u_net_addr_t **pa);
 void u_net_addr_free (u_net_addr_t *addr);
 
+/* misc */
 int u_net_nagle_off (int sd);
+
+/* DEPRECATED OLD STUFF: use u_net_sock() instead */
+int u_net_sock_tcp (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
+int u_net_sock_udp (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
+int u_net_sock_unix (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
 
 #ifdef __cplusplus
 }
