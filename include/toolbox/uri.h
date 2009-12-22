@@ -17,7 +17,7 @@ struct u_uri_s
     char *user;
     char *pwd;
     char *host;
-    short port;
+    int port;
     char *path;
 };
 

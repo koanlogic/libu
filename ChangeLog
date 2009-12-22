@@ -1,4 +1,4 @@
-$Id: ChangeLog,v 1.71 2009/12/22 12:13:03 tho Exp $
+$Id: ChangeLog,v 1.72 2009/12/22 16:48:36 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
@@ -6,6 +6,7 @@ LibU X.Y.Z
 	- [config] u_config_print_to_fp with brace delimiters for
 	           children records + doxy fixes (by Mickael Auger)
 	- [hmap] added u_hmap_foreach_arg which accepts a user defined parameter
+	- [uri] parse IPv6 addresses as per rfc3986
 
 LibU 1.4.1
 	- [missing] u_va_copy added
