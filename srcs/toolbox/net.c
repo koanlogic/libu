@@ -1,4 +1,6 @@
-/* $Id: net.c,v 1.12 2009/12/22 21:15:24 tho Exp $ */
+/* 
+ * Copyright (c) 2005-2010 by KoanLogic s.r.l.
+ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -114,7 +116,7 @@ int u_net_sock (const char *uri, int mode)
     /* decode address ('addr' validation is done by u_net_sock_by_addr() */
     dbg_err_if (u_net_uri2addr(uri, &addr));
 
-    /* */
+    /* ask our worker to do the real job */
     s = u_net_sock_by_addr(addr, mode);
     u_net_addr_free(addr);
 
@@ -266,7 +268,7 @@ err:
 
 #endif /* !NO_UNIXSOCK */
 
-/** \brief  \c u_net_sock_by_addr specialisation for TCP sockets */
+/** \brief  Specialisation of \c u_net_sock_by_addr for TCP sockets */
 int u_net_sock_tcp (u_net_addr_t *addr, int mode)
 {
     dbg_return_if (addr == NULL, -1);
@@ -275,7 +277,7 @@ int u_net_sock_tcp (u_net_addr_t *addr, int mode)
     return u_net_sock_by_addr(addr, mode);
 }
 
-/** \brief  \c u_net_sock_by_addr specialisation for UNIX sockets */
+/** \brief  Specialisation of \c u_net_sock_by_addr for UNIX sockets */
 int u_net_sock_unix (u_net_addr_t *addr, int mode)
 {
     dbg_return_if (addr == NULL, -1);
@@ -284,7 +286,7 @@ int u_net_sock_unix (u_net_addr_t *addr, int mode)
     return u_net_sock_by_addr(addr, mode);
 }
 
-/** \brief  \c u_net_sock_by_addr specialisation for UDP sockets */
+/** \brief  Specialisation of \c u_net_sock_by_addr for UDP sockets */
 int u_net_sock_udp (u_net_addr_t *addr, int mode)
 {
     dbg_return_if (addr == NULL, -1);
@@ -416,6 +418,57 @@ static int ipv4_uri2sin (u_uri_t *uri, struct sockaddr_in *sad)
 err:
     return ~0;
 }
+
+/**
+ *  \brief  accept(2) wrapper that handles EINTR
+ *
+ *  \param  ld          file descriptor
+ *  \param  addr        see accept(2)   
+ *  \param  addrlen     size of addr struct
+ *
+ *  \return on success returns the socket descriptor; on failure returns -1
+ */ 
+int u_accept(int ld, struct sockaddr *addr, int *addrlen)
+{
+    int ad = -1;
+
+again:
+    if ((ad = accept(ld, addr, addrlen)) == -1 && (errno == EINTR))
+        goto again; /* interrupted */
+
+    return ad;
+}
+
+/**
+ *  \brief  Disable Nagle algorithm on the supplied TCP socket
+ *
+ *  \param  sd  a TCP socket descriptor
+ *
+ *  \return \c 0 if successful, \c ~0 on error
+ */ 
+int u_net_nagle_off (int sd)
+{
+#if defined(HAVE_TCP_NODELAY) && defined(HAVE_SETSOCKOPT)
+    int rc, on = 1;
+
+    dbg_return_if (sd < 0, ~0);
+
+    rc = setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof on);
+    dbg_err_sifm (rc == -1, "cannot disable Nagle algorithm on sd %d", sd);
+
+    return 0;
+err:
+    return ~0;
+#else /* !HAVE_TCP_NODELAY || !HAVE_SETSOCKOPT */
+    u_unused_args(sd);
+    dbg("u_net_nagle_off not supported on this platform");
+    return 0;
+#endif  /* !HAVE_TCP_NODELAY */
+}
+
+/**
+ *  \}
+ */
 
 /* 
  * all internal methods have a common layout to suit the dispatch table 
