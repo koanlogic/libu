@@ -49,35 +49,25 @@ extern "C" {
  *    {tc,ud}p[46]://<host>:<port> for TCP/UDP over IPv[46] addresses,
  *    unix://<abs_path> for UNIX IPC endpoints. 
  * Internally, they are translated into an u_net_addr_t structure. */
-struct u_net_addr_s
-{
-    enum { 
-        U_NET_TYPE_MIN = 0,
-        U_NET_TCP4 = 1,
-        U_NET_TCP6 = 2,
-        U_NET_UDP4 = 3,
-        U_NET_UDP6 = 4,
-        U_NET_UNIX = 5,
-        U_NET_TYPE_MAX = 6
-    } type;
-#define U_NET_IS_VALID_ADDR_TYPE(a) (a > U_NET_TYPE_MIN && a < U_NET_TYPE_MAX)
-    union
-    {
-        struct sockaddr     s;
-        struct sockaddr_in  sin;
-#ifndef NO_IPV6
-        struct sockaddr_in6 sin6;
-#endif
-#ifndef NO_UNIXSOCK
-        struct sockaddr_un  sun;
-#endif /* OS_UNIX */
-    } sa;
-};
-
+struct u_net_addr_s;
 typedef struct u_net_addr_s u_net_addr_t;
 
+enum { 
+    U_NET_TYPE_MIN = 0,
+    U_NET_TCP4 = 1,
+    U_NET_TCP6 = 2,
+    U_NET_UDP4 = 3,
+    U_NET_UDP6 = 4,
+    U_NET_UNIX = 5,
+    U_NET_TYPE_MAX = 6
+};
+#define U_NET_IS_VALID_ADDR_TYPE(a) (a > U_NET_TYPE_MIN && a < U_NET_TYPE_MAX)
+
 /* socket creation semantics: server or client (the 'mode' in u_net_sock) */
-enum { U_NET_SSOCK = 0, U_NET_CSOCK = 1 };
+enum { 
+    U_NET_SSOCK = 0, 
+    U_NET_CSOCK = 1 
+};
 #define U_NET_IS_MODE(m) (m == U_NET_SSOCK || m == U_NET_CSOCK)
 
 /**
@@ -107,6 +97,11 @@ enum { U_NET_SSOCK = 0, U_NET_CSOCK = 1 };
 
 /* hi-level socket creation */
 int u_net_sock (const char *uri, int mode);
+int u_net_sock_by_addr (u_net_addr_t *addr, int mode);
+
+int u_net_sock_tcp (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
+int u_net_sock_udp (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
+int u_net_sock_unix (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
 
 /* low-level socket creation */
 int u_net_tcp4_ssock (struct sockaddr_in *sad, int reuse, int backlog);
@@ -132,11 +127,6 @@ void u_net_addr_free (u_net_addr_t *addr);
 
 /* misc */
 int u_net_nagle_off (int sd);
-
-/* DEPRECATED OLD STUFF: use u_net_sock() instead */
-int u_net_sock_tcp (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
-int u_net_sock_udp (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
-int u_net_sock_unix (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
 
 #ifdef __cplusplus
 }

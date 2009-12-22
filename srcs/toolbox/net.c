@@ -1,4 +1,4 @@
-/* $Id: net.c,v 1.11 2009/12/22 16:46:46 tho Exp $ */
+/* $Id: net.c,v 1.12 2009/12/22 21:15:24 tho Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -34,7 +34,7 @@ static int unix_ssock (struct sockaddr *sad, int dummy1, int backlog);
 static int unix_csock (struct sockaddr *sad, int dummy1, int dummy2);
 
 /* function table to dispatch by socket mode and address family */
-u_net_disp_f mode_disp[][2] = 
+u_net_disp_f disp_tbl[][2] = 
 {
     /* U_NET_SSOCK, U_NET_CSOCK */
     { NULL,         NULL },           /* U_NET_TYPE_MIN */
@@ -44,6 +44,31 @@ u_net_disp_f mode_disp[][2] =
     { udp6_ssock,   udp6_csock },     /* U_NET_UDP6 */
     { unix_ssock,   unix_csock },     /* U_NET_UNIX */
     { NULL,         NULL }            /* U_NET_TYPE_MAX */
+};
+
+/* internal uri-to-sockaddr translators */
+static int ipv4_uri2sin (u_uri_t *uri, struct sockaddr_in *sad);
+#ifndef NO_IPV6
+static int ipv6_uri_to_sin6 (u_uri_t *uri, struct sockaddr_in6 *sad);
+#endif  /* !NO_IPV6 */
+#ifndef NO_UNIXSOCK
+static int unix_uri_to_sun (u_uri_t *uri, struct sockaddr_un *sad);
+#endif  /* !NO_UNIXSOCK */
+
+struct u_net_addr_s
+{
+    int type;   /* one of U_NET_TYPE's */
+    union
+    {
+        struct sockaddr     s;
+        struct sockaddr_in  sin;
+#ifndef NO_IPV6
+        struct sockaddr_in6 sin6;
+#endif
+#ifndef NO_UNIXSOCK
+        struct sockaddr_un  sun;
+#endif /* OS_UNIX */
+    } sa;
 };
 
 /**
@@ -68,8 +93,8 @@ u_net_disp_f mode_disp[][2] =
  * translation functions for greater flexibility.
  *
  * \sa u_net_tcp4_ssock, u_net_tcp6_ssock, u_net_tcp4_csock, u_net_tcp6_csock,
- *     u_net_unix_ssock, u_net_unix_csock, u_net_uri2addr, u_net_uri2sin, 
- *     u_net_uri2sin6, u_net_uri2sun. 
+ *     u_net_unix_ssock, u_net_unix_csock, u_net_uri2addr, u_net_ipv4_to_sin, 
+ *     u_net_uri2sin6
  *
  * \param uri   the URI at which the socket shall be connected/bounded
  * \param mode  \c U_NET_SSOCK for server sockets, \c U_NET_CSOCK for clients.
@@ -81,29 +106,39 @@ u_net_disp_f mode_disp[][2] =
 int u_net_sock (const char *uri, int mode)
 {
     int s;
-    u_net_disp_f dfun;
     u_net_addr_t *addr = NULL;
 
+    /* 'mode' check is done by u_net_sock_by_addr() */
     dbg_return_if (uri == NULL, -1);
-    dbg_return_if (!U_NET_IS_MODE(mode), -1);
 
-    /* decode address */
+    /* decode address ('addr' validation is done by u_net_sock_by_addr() */
     dbg_err_if (u_net_uri2addr(uri, &addr));
-    dbg_err_if (!U_NET_IS_VALID_ADDR_TYPE(addr->type));
 
-    /* try to dispatch request based on the supplied address and mode */
-    if ((dfun = mode_disp[addr->type][mode]) != NULL)
-    {
-        s = dfun(&addr->sa.s, 1, U_NET_BACKLOG);
-        u_net_addr_free(addr);
-    }
-    else
-        dbg_err("address scheme not supported");
+    /* */
+    s = u_net_sock_by_addr(addr, mode);
+    u_net_addr_free(addr);
 
     return s;
 err:
     if (addr)
         u_net_addr_free(addr);
+    return -1;
+}
+
+/** \brief  Like \c u_net_sock but needing an already filled-in \p addr */
+int u_net_sock_by_addr (u_net_addr_t *addr, int mode)
+{
+    u_net_disp_f dfun;
+
+    dbg_return_if (addr == NULL, -1);
+    dbg_return_if (!U_NET_IS_VALID_ADDR_TYPE(addr->type), -1);
+    dbg_return_if (!U_NET_IS_MODE(mode), -1);
+
+    /* try to dispatch request based on the supplied address and mode */
+    if ((dfun = disp_tbl[addr->type][mode]) != NULL)
+        return dfun(&addr->sa.s, 1 /* reuse */, U_NET_BACKLOG);
+
+    info("address scheme not supported");
     return -1;
 }
 
@@ -122,6 +157,7 @@ int u_net_tcp4_csock (struct sockaddr_in *sad)
 }
 
 #ifndef NO_IPV6
+
 /** \brief  Return a TCP socket descriptor bound to the supplied IPv6 address */
 int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int reuse, int backlog)
 {
@@ -135,9 +171,44 @@ int u_net_tcp6_csock (struct sockaddr_in6 *sad)
 {
     return do_csock((struct sockaddr *) sad, sizeof *sad, AF_INET6);
 }
+
+/** \brief  Fill the supplied \c sockaddr_in6 object at \p *sad with addressing
+ *          information coming from the IPv6 \p uri string */
+int u_net_uri2sin6 (const char *uri, struct sockaddr_in6 *sad)
+{
+    int rc;
+    u_uri_t *u = NULL;
+
+    dbg_return_if (uri == NULL, ~0);
+    dbg_return_if (sad == NULL, ~0);
+    
+    dbg_err_if (u_uri_parse(uri, &u));
+    rc = ipv6_uri_to_sin6(u, sad);
+    u_uri_free(u);
+
+    return rc;
+err:
+    if (u)
+        u_uri_free(u);
+    return ~0;
+}
+
+static int ipv6_uri_to_sin6 (u_uri_t *uri, struct sockaddr_in6 *sad)
+{
+    dbg_return_if (uri == NULL, ~0);
+    dbg_return_if (strcasecmp(uri->scheme, "tcp6") && 
+            strcasecmp(uri->scheme, "udp6"), ~0);
+    dbg_return_if (sad == NULL, ~0);
+
+    /* TODO */
+
+    return 0;
+}
+
 #endif /* !NO_IPV6 */
 
 #ifndef NO_UNIXSOCK
+
 /** \brief  Return a TCP socket descriptor bound to the supplied UNIX path */
 int u_net_unix_ssock (struct sockaddr_un *sad, int backlog)
 {
@@ -156,24 +227,70 @@ int u_net_unix_csock (struct sockaddr_un *sad)
 {
     return do_csock((struct sockaddr *) sad, sizeof *sad, AF_UNIX);
 }
+
+/** \brief  Fill the supplied \c sockaddr_un object at \p *sad with addressing
+ *          information coming from the UNIX \p uri string */
+int u_net_uri2sun (const char *uri, struct sockaddr_un *sad)
+{
+    int rc;
+    u_uri_t *u = NULL;
+
+    dbg_return_if (uri == NULL, ~0);
+    dbg_return_if (sad == NULL, ~0);
+    
+    dbg_err_if (u_uri_parse(uri, &u));
+    rc = unix_uri_to_sun(u, sad);
+    u_uri_free(u);
+
+    return rc;
+err:
+    if (u)
+        u_uri_free(u);
+    return ~0;
+}
+
+static int unix_uri_to_sun (u_uri_t *uri, struct sockaddr_un *sad)
+{
+    dbg_return_if (uri == NULL, ~0);
+    dbg_return_if (strcasecmp(uri->scheme, "unix"), ~0);
+    dbg_return_if (sad == NULL, ~0);
+
+    sad->sun_family = AF_UNIX;
+    dbg_err_ifm (u_strlcpy(sad->sun_path, uri->path, sizeof sad->sun_path), 
+            "%s too long", uri);
+
+    return 0;
+err:
+    return ~0;
+}
+
 #endif /* !NO_UNIXSOCK */
 
+/** \brief  \c u_net_sock_by_addr specialisation for TCP sockets */
 int u_net_sock_tcp (u_net_addr_t *addr, int mode)
 {
-    u_unused_args(addr, mode);
-    info_return_ifm (1, -1, "%s: REMOVED: use u_net_sock()", __FUNCTION__);
+    dbg_return_if (addr == NULL, -1);
+    dbg_return_if (addr->type != U_NET_TCP4 && addr->type != U_NET_TCP6, -1);
+
+    return u_net_sock_by_addr(addr, mode);
 }
 
+/** \brief  \c u_net_sock_by_addr specialisation for UNIX sockets */
 int u_net_sock_unix (u_net_addr_t *addr, int mode)
 {
-    u_unused_args(addr, mode);
-    info_return_ifm (1, -1, "%s: REMOVED: use u_net_sock()", __FUNCTION__);
+    dbg_return_if (addr == NULL, -1);
+    dbg_return_if (addr->type != U_NET_UNIX, -1);
+
+    return u_net_sock_by_addr(addr, mode);
 }
 
+/** \brief  \c u_net_sock_by_addr specialisation for UDP sockets */
 int u_net_sock_udp (u_net_addr_t *addr, int mode)
 {
-    u_unused_args(addr, mode);
-    info_return_ifm (1, -1, "%s: REMOVED: use u_net_sock()", __FUNCTION__);
+    dbg_return_if (addr == NULL, -1);
+    dbg_return_if (addr->type != U_NET_UDP4 && addr->type != U_NET_UDP6, -1);
+
+    return u_net_sock_by_addr(addr, mode);
 }
 
 /** \brief  Create new \c u_net_addr_t object of the requested \p type */
@@ -241,13 +358,13 @@ int u_net_uri2addr (const char *uri, u_net_addr_t **pa)
             break;
 #ifndef NO_UNIXSOCK
         case U_NET_UNIX:
-            dbg_err_if (u_net_uri2sun(uri, &a->sa.sun));
+            dbg_err_if (unix_uri_to_sun(u, &a->sa.sun));
             break;
 #endif /* !NO_UNIXSOCK */
 #ifndef NO_IPV6
         case U_NET_TCP6:
         case U_NET_UDP6:
-            dbg_err_if (u_net_uri2sin6(uri, &a->sa.sin6));
+            dbg_err_if (ipv6_uri_to_sin6(u, &a->sa.sin6));
             break;
 #endif /* !NO_IPV6 */
         default:
@@ -266,44 +383,20 @@ err:
     return ~0;
 }
 
-#ifndef NO_UNIXSOCK
-/** \brief  Fill the supplied \c sockaddr_un object at \p *sad with addressing
- *          information coming from the UNIX \p uri string */
-int u_net_uri2sun (const char *uri, struct sockaddr_un *sad)
-{
-    dbg_return_if (uri == NULL, ~0);
-    dbg_return_if (sad == NULL, ~0);
-
-    sad->sun_family = AF_UNIX;
-    dbg_err_ifm (u_strlcpy(sad->sun_path, uri + strlen("unix://"), 
-                sizeof sad->sun_path), "%s too long", uri);
-
-    return 0;
-err:
-    return ~0;
-}
-#endif /* !NO_UNIXSOCK */
-
-#ifndef NO_IPV6
-/** \brief  Fill the supplied \c sockaddr_in6 object at \p *sad with addressing
- *          information coming from the IPv6 \p uri string */
-int u_net_uri2sin6 (const char *uri, struct sockaddr_in6 *sad)
-{
-    dbg_return_if (uri == NULL, ~0);
-    dbg_return_if (sad == NULL, ~0);
-
-    info("TODO");
-    return ~0;
-}
-#endif /* !NO_IPv6 */
-
 /* translate u_uri_t into struct sockaddr_in */
 int u_net_uri2sin (u_uri_t *uri, struct sockaddr_in *sad)
+{
+    return ipv4_uri2sin(uri, sad);
+}
+
+static int ipv4_uri2sin (u_uri_t *uri, struct sockaddr_in *sad)
 {
     in_addr_t saddr;
     struct hostent *hp = NULL;
 
     dbg_return_if (uri == NULL, ~0);
+    dbg_return_if (strcasecmp(uri->scheme, "tcp4") && 
+            strcasecmp(uri->scheme, "udp4"), ~0);
     dbg_return_if (sad == NULL, ~0);
 
     memset((char *) sad, 0, sizeof(struct sockaddr_in));
@@ -323,7 +416,6 @@ int u_net_uri2sin (u_uri_t *uri, struct sockaddr_in *sad)
 err:
     return ~0;
 }
-
 
 /* 
  * all internal methods have a common layout to suit the dispatch table 
