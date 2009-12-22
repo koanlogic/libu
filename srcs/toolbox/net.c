@@ -1,6 +1,4 @@
-/* 
- * Copyright (c) 2005-2008 by KoanLogic s.r.l. - All rights reserved.  
- */
+/* $Id: net.c,v 1.11 2009/12/22 16:46:46 tho Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -15,8 +13,38 @@
 #include <toolbox/memory.h>
 #include <u/missing.h>
 
-static int u_net_sock_tcp4 (u_net_addr_t *a,  int mode);
-static int u_net_sock_tcp6 (u_net_addr_t *a,  int mode);
+/* generic socket creation interface */
+typedef int (*u_net_disp_f) (struct sockaddr *, int, int);
+
+/* workers */
+static int do_csock (struct sockaddr *sad, int sad_len, int type);
+static int do_ssock (struct sockaddr *sad, int sad_len, int type, int reuse, 
+        int backlog);
+
+/* per family dispatchers */
+static int tcp4_ssock (struct sockaddr *sad, int reuse, int backlog);
+static int tcp4_csock (struct sockaddr *sad, int dummy1, int dummy2);
+static int tcp6_ssock (struct sockaddr *sad, int reuse, int backlog);
+static int tcp6_csock (struct sockaddr *sad, int dummy1, int dummy2);
+static int udp4_ssock (struct sockaddr *sad, int reuse, int backlog);
+static int udp4_csock (struct sockaddr *sad, int dummy1, int dummy2);
+static int udp6_ssock (struct sockaddr *sad, int reuse, int backlog);
+static int udp6_csock (struct sockaddr *sad, int dummy1, int dummy2);
+static int unix_ssock (struct sockaddr *sad, int dummy1, int backlog);
+static int unix_csock (struct sockaddr *sad, int dummy1, int dummy2);
+
+/* function table to dispatch by socket mode and address family */
+u_net_disp_f mode_disp[][2] = 
+{
+    /* U_NET_SSOCK, U_NET_CSOCK */
+    { NULL,         NULL },           /* U_NET_TYPE_MIN */
+    { tcp4_ssock,   tcp4_csock },     /* U_NET_TCP4 */
+    { tcp6_ssock,   tcp6_csock },     /* U_NET_TCP6 */
+    { udp4_ssock,   udp4_csock },     /* U_NET_UDP4 */
+    { udp6_ssock,   udp6_csock },     /* U_NET_UDP6 */
+    { unix_ssock,   unix_csock },     /* U_NET_UNIX */
+    { NULL,         NULL }            /* U_NET_TYPE_MAX */
+};
 
 /**
  *  \defgroup net Networking
@@ -37,10 +65,11 @@ static int u_net_sock_tcp6 (u_net_addr_t *a,  int mode);
  * After resolving the supplied URI, the control is passed to the appropriate
  * handler which carries out the real job (i.e. \c connect(2) or \c bind(2)).  
  * Per-protocol handlers can be used in combination with the URI resolver and
- * translation functions for greater flexibility.  
+ * translation functions for greater flexibility.
  *
  * \sa u_net_tcp4_ssock, u_net_tcp6_ssock, u_net_tcp4_csock, u_net_tcp6_csock,
- *     u_net_uri2addr, u_net_uri2sin, u_net_uri2sun. 
+ *     u_net_unix_ssock, u_net_unix_csock, u_net_uri2addr, u_net_uri2sin, 
+ *     u_net_uri2sin6, u_net_uri2sun. 
  *
  * \param uri   the URI at which the socket shall be connected/bounded
  * \param mode  \c U_NET_SSOCK for server sockets, \c U_NET_CSOCK for clients.
@@ -51,361 +80,228 @@ static int u_net_sock_tcp6 (u_net_addr_t *a,  int mode);
  */
 int u_net_sock (const char *uri, int mode)
 {
-    int sd = -1;
+    int s;
+    u_net_disp_f dfun;
     u_net_addr_t *addr = NULL;
 
     dbg_return_if (uri == NULL, -1);
-    dbg_return_if (mode != U_NET_SSOCK && mode != U_NET_CSOCK, -1);
-    
+    dbg_return_if (!U_NET_IS_MODE(mode), -1);
+
+    /* decode address */
     dbg_err_if (u_net_uri2addr(uri, &addr));
+    dbg_err_if (!U_NET_IS_VALID_ADDR_TYPE(addr->type));
 
-    switch (addr->type)
+    /* try to dispatch request based on the supplied address and mode */
+    if ((dfun = mode_disp[addr->type][mode]) != NULL)
     {
-        case U_NET_TCP4:
-#ifndef NO_IPV6
-        case U_NET_TCP6:
-#endif
-            sd = u_net_sock_tcp(addr, mode);
-            break;
-#ifndef NO_UNIXSOCK
-        case U_NET_UNIX:
-            sd = u_net_sock_unix(addr, mode);
-            break;
-#endif /* NO_UNIXSOCK */
-        case U_NET_UDP4:
-        case U_NET_UDP6:
-        default:
-           dbg_err("access method not implemented");
+        s = dfun(&addr->sa.s, 1, U_NET_BACKLOG);
+        u_net_addr_free(addr);
     }
+    else
+        dbg_err("address scheme not supported");
 
-    dbg_err_sif (sd == -1);
-    u_net_addr_free(addr);
-
-    return sd;
+    return s;
 err:
     if (addr)
         u_net_addr_free(addr);
     return -1;
 }
 
-static int u_net_sock_tcp4 (u_net_addr_t *a,  int mode)
-{
-    dbg_return_if (a == NULL, -1);
-    dbg_return_if (a->type != U_NET_TCP4, -1);
-
-    switch (mode)
-    {
-        case U_NET_CSOCK:
-            return u_net_tcp4_csock(&a->sa.sin);
-        case U_NET_SSOCK:
-            /* default is to reuse the address */
-            return u_net_tcp4_ssock(&a->sa.sin, 1, U_NET_BACKLOG);
-        default:
-            warn("internal error"); /* should never happen */
-            return -1;
-    }
-}
-
-#ifndef NO_IPV6
-static int u_net_sock_tcp6 (u_net_addr_t *a,  int mode)
-{
-    dbg_return_if (a == NULL, -1);
-    dbg_return_if (a->type != U_NET_TCP6, -1);
-
-    switch (mode)
-    {
-        case U_NET_CSOCK:
-            return u_net_tcp6_csock(&a->sa.sin6);
-        case U_NET_SSOCK:
-            return u_net_tcp6_ssock(&a->sa.sin6, 1, U_NET_BACKLOG);
-        default:
-            warn("internal error");
-            return -1;
-    }
-}
-#endif
-
-int u_net_sock_tcp (u_net_addr_t *a, int mode)
-{
-    dbg_return_if (a == NULL, -1);
-    dbg_return_if (a->type != U_NET_TCP4 && a->type != U_NET_TCP6, -1);
-
-    switch (a->type)
-    {
-        case U_NET_TCP4:
-            return u_net_sock_tcp4(a, mode);
-#ifndef NO_IPV6
-        case U_NET_TCP6:
-            return u_net_sock_tcp6(a, mode);
-#endif
-        default:
-            warn("unknown or unsupported socket type");
-            return -1;
-    }
-}
-
-#ifndef NO_UNIXSOCK
-int u_net_sock_unix (u_net_addr_t *a, int mode)
-{
-    dbg_return_if (a == NULL, -1);
-    dbg_return_if (a->type != U_NET_UNIX, -1);
-
-    switch (mode)
-    {
-        case U_NET_CSOCK:
-            return u_net_unix_csock(&a->sa.sun);
-        case U_NET_SSOCK:
-            return u_net_unix_ssock(&a->sa.sun, U_NET_BACKLOG);
-        default:
-            warn("unknown socket mode");
-            return -1;
-    }
-}
-
-int u_net_unix_csock (struct sockaddr_un *sad)
-{
-    int rv, csd = -1;
-
-    dbg_return_if (sad == NULL, -1);
-
-    csd = socket(AF_UNIX, SOCK_STREAM, 0); 
-    dbg_err_sif (csd == -1);
-
-    rv = connect(csd, (struct sockaddr *) sad, sizeof(struct sockaddr_un));
-    dbg_err_sif (rv == -1);
-
-    return csd;
-err:
-    U_CLOSE(csd);
-    return -1;
-}
-
-int u_net_unix_ssock (struct sockaddr_un *sad, int backlog)
-{
-    int rv, lsd = -1;
-
-    dbg_return_if (sad == NULL, -1);
-
-    rv = unlink(sad->sun_path);
-    dbg_err_sif (rv == -1 && errno != ENOENT);
-
-    lsd = socket(AF_UNIX, SOCK_STREAM, 0);
-    dbg_err_sif (lsd == -1);
-
-    rv = bind(lsd, (struct sockaddr *) sad, sizeof(struct sockaddr_un));
-    dbg_err_sif (rv == -1);
-
-    rv = listen(lsd, backlog);
-    dbg_err_sif (rv == -1);
-
-    return lsd;
-err:
-    U_CLOSE(lsd);
-    return -1;
-}
-#endif /* NO_UNIXSOCK */
-
-int u_net_sock_udp (u_net_addr_t *a, int mode)
-{
-    dbg_return_if (a == NULL, -1);
-    dbg_return_if (a->type != U_NET_UDP4 && a->type != U_NET_UDP6, -1);
-
-    switch (mode)
-    {
-        default:
-            warn("TODO");
-            break;
-    }
-
-    return -1;
-}
-
-#ifndef NO_IPV6
-int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int reuse, int backlog)
-{
-    int rv, lsd = -1;
-#ifdef HAVE_SETSOCKOPT
-    int on = reuse ? 1 : 0;
-#else
-    u_unused_args(reuse);
-#endif 
-
-    dbg_return_if (sad == NULL, -1);
-    
-    lsd = socket(AF_INET6, SOCK_STREAM, 0);
-    dbg_err_sif (lsd == -1);
-
-#ifdef HAVE_SETSOCKOPT
-    rv = setsockopt(lsd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on);
-    dbg_err_sif (rv == -1);
-#else
-    warn("could not honour the reuse flag");
-#endif
-
-    rv = bind(lsd, (struct sockaddr *) sad, sizeof(struct sockaddr_in6));
-    dbg_err_sif (rv == -1);
-
-    rv = listen(lsd, backlog);
-    dbg_err_sif (rv == -1);
-
-    return lsd;
-err:
-    U_CLOSE(lsd);
-    return -1;
-}
-
-int u_net_tcp6_csock (struct sockaddr_in6 *sad)
-{
-    int rv, csd = -1;
-
-    dbg_return_if (sad == NULL, -1);
-
-    csd = socket(AF_INET6, SOCK_STREAM, 0);
-    dbg_err_sif (csd == -1);
-
-    rv = connect(csd, (struct sockaddr *) sad, sizeof(struct sockaddr_in6));
-    dbg_err_sif (rv == -1);
-
-    return csd;
-err:
-    U_CLOSE(csd);
-    return -1;
-}
-#endif /* NO_IPV6 */
-
+/** \brief  Return a TCP socket descriptor bound to the supplied IPv4 address */
 int u_net_tcp4_ssock (struct sockaddr_in *sad, int reuse, int backlog)
-{
-    int rv, lsd = -1;
-#ifdef HAVE_SETSOCKOPT
-    int on = reuse ? 1 : 0;
-#else
-    u_unused_args(reuse);
-#endif
-
-    dbg_return_if (sad == NULL, -1);
-    
-    lsd = socket(AF_INET, SOCK_STREAM, 0);
-    dbg_err_sif (lsd == -1);
-
-#ifdef HAVE_SETSOCKOPT
-    rv = setsockopt(lsd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on);
-    dbg_err_sif (rv == -1);
-#else
-    warn("could not honour the reuse flag");
-#endif
-
-    rv = bind(lsd, (struct sockaddr *) sad, sizeof(struct sockaddr_in));
-    dbg_err_sif (rv == -1);
-
-    rv = listen(lsd, backlog);
-    dbg_err_sif (rv == -1);
-
-    return lsd;
-err:
-    U_CLOSE(lsd);
-    return -1;
+{ 
+    return do_ssock((struct sockaddr *) sad, sizeof *sad, 
+            AF_INET, reuse, backlog);
 }
 
+/** \brief  Return a TCP socket descriptor connected to the supplied IPv4
+ *          address */
 int u_net_tcp4_csock (struct sockaddr_in *sad)
 {
-    int rv, csd = -1;
-
-    dbg_return_if (sad == NULL, -1);
-
-    csd = socket(AF_INET, SOCK_STREAM, 0);
-    dbg_err_sif (csd == -1);
-
-    rv = connect(csd, (struct sockaddr *) sad, sizeof(struct sockaddr_in));
-    dbg_err_sif (rv == -1);
-
-    return csd;
-err:
-    U_CLOSE(csd);
-    return -1;
+    return do_csock((struct sockaddr *) sad, sizeof *sad, AF_INET);
 }
 
-int u_net_uri2addr (const char *uri, u_net_addr_t **pa)
+#ifndef NO_IPV6
+/** \brief  Return a TCP socket descriptor bound to the supplied IPv6 address */
+int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int reuse, int backlog)
 {
-    u_uri_t *u = NULL;
-    u_net_addr_t *a = NULL;
-    
-    dbg_return_if (uri == NULL, ~0);
-    dbg_return_if (pa == NULL, ~0);
+    return do_ssock((struct sockaddr *) sad, sizeof *sad, 
+            AF_INET6, reuse, backlog);
+}
 
-    *pa = NULL;
-    
-    dbg_err_if (u_uri_parse(uri, &u));
+/** \brief  Return a TCP socket descriptor connected to the supplied IPv6
+ *          address */
+int u_net_tcp6_csock (struct sockaddr_in6 *sad)
+{
+    return do_csock((struct sockaddr *) sad, sizeof *sad, AF_INET6);
+}
+#endif /* !NO_IPV6 */
 
-    if (!strcasecmp(u->scheme, "tcp4"))
-    {
-        dbg_err_if (u_net_addr_new(U_NET_TCP4, &a));
-        dbg_err_if (u_net_uri2sin(u, &a->sa.sin));
-    }
 #ifndef NO_UNIXSOCK
-    else if (!strcasecmp(u->scheme, "unix"))
-    {    
-        dbg_err_if (u_net_addr_new(U_NET_UNIX, &a));
-        dbg_err_if (u_net_uri2sun(uri, &a->sa.sun));
-    }
-#endif /* NO_UNIXSOCK */    
-    else /* tcp6, udp[46] unsupported */
-        dbg_err("unsupported URI scheme: %s", u->scheme); 
-    
+/** \brief  Return a TCP socket descriptor bound to the supplied UNIX path */
+int u_net_unix_ssock (struct sockaddr_un *sad, int backlog)
+{
+    dbg_return_if (sad == NULL, -1);
+
+    /* try to remove a dangling unix sock path (if any) */
+    dbg_return_sif (unlink(sad->sun_path) == -1 && errno != ENOENT, -1);
+
+    return do_ssock((struct sockaddr *) sad, sizeof *sad, 
+            AF_UNIX, 0 /* ignored for AF_UNIX */, backlog);
+}
+
+/** \brief  Return a TCP socket descriptor connected to the supplied UNIX 
+ *          path */
+int u_net_unix_csock (struct sockaddr_un *sad)
+{
+    return do_csock((struct sockaddr *) sad, sizeof *sad, AF_UNIX);
+}
+#endif /* !NO_UNIXSOCK */
+
+int u_net_sock_tcp (u_net_addr_t *addr, int mode)
+{
+    u_unused_args(addr, mode);
+    info_return_ifm (1, -1, "%s: REMOVED: use u_net_sock()", __FUNCTION__);
+}
+
+int u_net_sock_unix (u_net_addr_t *addr, int mode)
+{
+    u_unused_args(addr, mode);
+    info_return_ifm (1, -1, "%s: REMOVED: use u_net_sock()", __FUNCTION__);
+}
+
+int u_net_sock_udp (u_net_addr_t *addr, int mode)
+{
+    u_unused_args(addr, mode);
+    info_return_ifm (1, -1, "%s: REMOVED: use u_net_sock()", __FUNCTION__);
+}
+
+/** \brief  Create new \c u_net_addr_t object of the requested \p type */
+int u_net_addr_new (int type, u_net_addr_t **pa)
+{
+    u_net_addr_t *a = NULL;
+
+    dbg_return_if (pa == NULL, ~0);
+    dbg_return_if (!U_NET_IS_VALID_ADDR_TYPE(type), ~0);
+
+    dbg_err_sif ((a = u_zalloc(sizeof(u_net_addr_t))) == NULL);
+    a->type = type;
+
     *pa = a;
-    u_uri_free(u);
 
     return 0;
 err:
     if (a) 
         u_net_addr_free(a);
-    if (u) 
+    return ~0;
+}
+
+/** \brief  Free the supplied \c u_net_addr_t object */
+void u_net_addr_free (u_net_addr_t *a)
+{
+    U_FREE(a);
+    return;
+}
+
+/** \brief  Decode the supplied \p uri into an \c u_net_addr_t object */
+int u_net_uri2addr (const char *uri, u_net_addr_t **pa)
+{
+    u_uri_t *u = NULL;
+    u_net_addr_t *a = NULL;
+    int a_type = U_NET_TYPE_MIN;
+    
+    dbg_return_if (uri == NULL, ~0);
+    dbg_return_if (pa == NULL, ~0);
+
+    /* decode address */
+    dbg_err_if (u_uri_parse(uri, &u));
+
+    if (!strcasecmp(u->scheme, "tcp4"))
+        a_type = U_NET_TCP4;
+    else if (!strcasecmp(u->scheme, "udp4"))
+        a_type = U_NET_UDP4;
+    else if (!strcasecmp(u->scheme, "unix"))
+        a_type = U_NET_UNIX;
+    else if (!strcasecmp(u->scheme, "tcp6"))
+        a_type = U_NET_TCP6;
+    else if (!strcasecmp(u->scheme, "udp6"))
+        a_type = U_NET_UDP6;
+    else
+        dbg_err("unsupported URI scheme: %s", u->scheme); 
+
+    /* create address for the decoded type */
+    dbg_err_if (u_net_addr_new(a_type, &a));
+
+    /* fill it */
+    switch (a_type)
+    {
+        case U_NET_TCP4:
+        case U_NET_UDP4:
+            dbg_err_if (u_net_uri2sin(u, &a->sa.sin));
+            break;
+#ifndef NO_UNIXSOCK
+        case U_NET_UNIX:
+            dbg_err_if (u_net_uri2sun(uri, &a->sa.sun));
+            break;
+#endif /* !NO_UNIXSOCK */
+#ifndef NO_IPV6
+        case U_NET_TCP6:
+        case U_NET_UDP6:
+            dbg_err_if (u_net_uri2sin6(uri, &a->sa.sin6));
+            break;
+#endif /* !NO_IPV6 */
+        default:
+            dbg_err("unsupported address type");
+    }
+
+    u_uri_free(u);
+    *pa = a;
+
+    return 0;
+err:
+    if (a)
+        u_net_addr_free(a);
+    if (u)
         u_uri_free(u);
     return ~0;
 }
 
 #ifndef NO_UNIXSOCK
+/** \brief  Fill the supplied \c sockaddr_un object at \p *sad with addressing
+ *          information coming from the UNIX \p uri string */
 int u_net_uri2sun (const char *uri, struct sockaddr_un *sad)
 {
     dbg_return_if (uri == NULL, ~0);
     dbg_return_if (sad == NULL, ~0);
 
     sad->sun_family = AF_UNIX;
-    strlcpy(sad->sun_path, uri + strlen("unix://"), sizeof sad->sun_path);
-    
-    return 0;
-}
-#endif /* !NO_UNIXSOCK */
-
-int u_net_addr_new (int type, u_net_addr_t **pa)
-{
-    u_net_addr_t *a = NULL;
-
-    dbg_return_if (pa == NULL, ~0);
-    dbg_return_if (type <= U_NET_TYPE_MIN || type >= U_NET_TYPE_MAX, ~0);
-
-    a = u_zalloc(sizeof(u_net_addr_t));
-    dbg_err_if (a == NULL);
-    a->type = type;
-    *pa = a;
+    dbg_err_ifm (u_strlcpy(sad->sun_path, uri + strlen("unix://"), 
+                sizeof sad->sun_path), "%s too long", uri);
 
     return 0;
 err:
-    if (a) 
-        u_net_addr_free(a);
     return ~0;
 }
+#endif /* !NO_UNIXSOCK */
 
-void u_net_addr_free (u_net_addr_t *a)
+#ifndef NO_IPV6
+/** \brief  Fill the supplied \c sockaddr_in6 object at \p *sad with addressing
+ *          information coming from the IPv6 \p uri string */
+int u_net_uri2sin6 (const char *uri, struct sockaddr_in6 *sad)
 {
-    U_FREE(a);
-    return;
+    dbg_return_if (uri == NULL, ~0);
+    dbg_return_if (sad == NULL, ~0);
+
+    info("TODO");
+    return ~0;
 }
-   
+#endif /* !NO_IPv6 */
+
 /* translate u_uri_t into struct sockaddr_in */
 int u_net_uri2sin (u_uri_t *uri, struct sockaddr_in *sad)
 {
-    struct hostent *hp = NULL;
     in_addr_t saddr;
+    struct hostent *hp = NULL;
 
     dbg_return_if (uri == NULL, ~0);
     dbg_return_if (sad == NULL, ~0);
@@ -425,57 +321,140 @@ int u_net_uri2sin (u_uri_t *uri, struct sockaddr_in *sad)
 
     return 0;
 err:
-    return ~0;    
-}
-
-/**
- *  \brief  accept(2) wrapper that handles EINTR
- *
- *  \param  ld          file descriptor
- *  \param  addr        see accept(2)   
- *  \param  addrlen     size of addr struct
- *
- *  \return on success returns the socket descriptor; on failure returns -1
- */ 
-int u_accept(int ld, struct sockaddr *addr, int *addrlen)
-{
-    int ad = -1;
-
-again:
-    ad = accept(ld, addr, addrlen);
-    if(ad == -1 && (errno == EINTR))
-        goto again; /* interrupted */
-
-    return ad;
-}
-
-/**
- *  \brief  Disable Nagle algorithm on the supplied TCP socket
- *
- *  \param  sd  a TCP socket descriptor
- *
- *  \return \c 0 if successful, \c ~0 on error
- */ 
-int u_net_nagle_off (int sd)
-{
-#if defined(HAVE_TCP_NODELAY) && defined(HAVE_SETSOCKOPT)
-    int rc, on = 1;
-
-    dbg_return_if (sd < 0, ~0);
-
-    rc = setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof on);
-    dbg_err_sifm (rc == -1, "error disabling Nagle algorithm on sd %d", sd);
-
-    return 0;
-err:
     return ~0;
-#else /* !HAVE_TCP_NODELAY || !HAVE_SETSOCKOPT */
-    u_unused_args(sd);
-    dbg("u_net_nagle_off is not implemented on this platform");
-    return 0;
-#endif  /* !HAVE_TCP_NODELAY */
 }
 
-/**
- *  \}
+
+/* 
+ * all internal methods have a common layout to suit the dispatch table 
+ * interface (see u_net_disp_f typedef)
  */
+
+static int tcp4_ssock (struct sockaddr *sad, int reuse, int backlog)
+{
+    return u_net_tcp4_ssock((struct sockaddr_in *) sad, reuse, backlog);
+}
+
+static int tcp4_csock (struct sockaddr *sad, int dummy1, int dummy2)
+{ 
+    u_unused_args(dummy1, dummy2);
+
+    return u_net_tcp4_csock((struct sockaddr_in *) sad);
+} 
+
+static int tcp6_ssock (struct sockaddr *sad, int reuse, int backlog)
+{ 
+#ifndef NO_IPV6
+    return u_net_tcp6_ssock((struct sockaddr_in6 *) sad, reuse, backlog);
+#else
+    u_unused_args(sad, reuse, backlog);
+    info("tcp6 socket not supported");
+    return -1;
+#endif  /* !NO_IPV6 */
+}
+
+static int tcp6_csock (struct sockaddr *sad, int dummy1, int dummy2)
+{ 
+    u_unused_args(dummy1, dummy2);
+#ifndef NO_IPV6
+    return u_net_tcp6_csock((struct sockaddr_in6 *) sad);
+#else
+    u_unused_args(sad);
+    info("tcp6 socket not supported");
+    return -1;
+#endif  /* !NO_IPV6 */
+}
+
+static int unix_ssock (struct sockaddr *sad, int dummy1, int backlog)
+{
+    u_unused_args(dummy1);
+#ifndef NO_UNIXSOCK
+    return u_net_unix_ssock((struct sockaddr_un *) sad, backlog);
+#else
+    u_unused_args(sad, backlog);
+    info("unix socket not supported");
+    return -1;
+#endif  /* !NO_UNIXSOCK */
+}
+
+static int unix_csock (struct sockaddr *sad, int dummy1, int dummy2)
+{
+    u_unused_args(dummy1, dummy2);
+#ifndef NO_UNIXSOCK
+    return u_net_unix_csock((struct sockaddr_un *) sad);
+#else
+    u_unused_args(sad);
+    info("unix socket not supported");
+    return -1;
+#endif  /* !NO_UNIXSOCK */
+}
+
+static int udp4_ssock (struct sockaddr *sad, int reuse, int backlog)
+{ 
+    u_unused_args(sad, reuse, backlog);
+    info_return_ifm (1, -1, "%s: TODO", __FUNCTION__); 
+}
+
+static int udp4_csock (struct sockaddr *sad, int dummy1, int dummy2)
+{ 
+    u_unused_args(sad, dummy1, dummy2);
+    info_return_ifm (1, -1, "%s: TODO", __FUNCTION__); 
+}
+
+static int udp6_ssock (struct sockaddr *sad, int reuse, int backlog)
+{ 
+    u_unused_args(sad, reuse, backlog);
+    info_return_ifm (1, -1, "%s: TODO", __FUNCTION__); 
+}
+
+static int udp6_csock (struct sockaddr *sad, int dummy1, int dummy2)
+{ 
+    u_unused_args(sad, dummy1, dummy2);
+    info_return_ifm (1, -1, "%s: TODO", __FUNCTION__); 
+}
+
+static int do_csock (struct sockaddr *sad, int sad_len, int type)
+{
+    int s = -1;
+
+    dbg_return_if (sad == NULL, -1);
+
+    dbg_err_sif ((s = socket(type, SOCK_STREAM, 0)) == -1);
+    dbg_err_sif (connect(s, sad, sad_len) == -1);
+
+    return s;
+err:
+    U_CLOSE(s);
+    return -1;
+}
+
+static int do_ssock (struct sockaddr *sad, int sad_len, int type, int reuse, 
+        int backlog)
+{
+    int s = -1;
+#ifdef HAVE_SETSOCKOPT
+    int on = reuse ? 1 : 0;
+#else
+    u_unused_args(reuse);
+#endif  /* HAVE_SETSOCKOPT */
+
+    dbg_return_if (sad == NULL, -1);
+
+    dbg_err_sif ((s = socket(type, SOCK_STREAM, 0)) == -1);
+#ifdef HAVE_SETSOCKOPT
+    if (type != AF_UNIX)
+    {
+        dbg_err_sif (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, 
+                    &on, sizeof on) == -1);
+    }
+#else
+    info("could not honour the reuse flag");
+#endif
+    dbg_err_sif (bind(s, (struct sockaddr *) sad, sad_len) == -1);
+    dbg_err_sif (listen(s, backlog) == -1);
+
+    return s;
+err:
+    U_CLOSE(s);
+    return -1;
+}
