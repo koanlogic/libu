@@ -95,6 +95,7 @@ int u_hmap_copy (u_hmap_t *to, u_hmap_t *from);
 void u_hmap_free (u_hmap_t *hmap);
 int u_hmap_foreach (u_hmap_t *hmap, int f(void *val));
 int u_hmap_foreach_keyval (u_hmap_t *hmap, int f(void *key, void *val));
+int u_hmap_foreach_arg (u_hmap_t *hmap, int f(void *val, void *arg), void *arg);
 
 /* u_hmap_o_t */
 u_hmap_o_t *u_hmap_o_new (void *key, void *val);

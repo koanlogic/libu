@@ -860,7 +860,38 @@ int u_hmap_foreach (u_hmap_t *hmap, int f(void *val))
     }
 
     return U_HMAP_ERR_NONE;
+err:
+    return U_HMAP_ERR_FAIL;
+}
 
+/**
+ * \brief   \c u_hmap_foreach with user supplied parameter
+ * 
+ * Execute function \a f on all objects within \a hmap supplying \a arg
+ * as custom argument.  These functions should return \c U_HMAP_ERR_NONE on 
+ * success, and take an hmap object and \a arg as parameters.
+ * 
+ * \param hmap      hmap object
+ * \param f         function 
+ * \param arg       custom arg that will be supplied to \a f
+ * 
+ * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
+ */
+int u_hmap_foreach_arg (u_hmap_t *hmap, int f(void *val, void *arg), void *arg)
+{
+    size_t i;
+    u_hmap_o_t *obj;
+
+    dbg_err_if (hmap == NULL);
+    dbg_err_if (f == NULL);
+
+    for (i = 0; i < hmap->size; ++i) 
+    { 
+        LIST_FOREACH(obj, &hmap->hmap[i], next)
+            dbg_err_if (f(obj->val, arg));
+    }
+
+    return U_HMAP_ERR_NONE;
 err:
     return U_HMAP_ERR_FAIL;
 }
@@ -887,7 +918,7 @@ int u_hmap_foreach_keyval(u_hmap_t *hmap, int f(void *key, void *val))
     for (i = 0; i < hmap->size; ++i) 
     {
         LIST_FOREACH(obj, &hmap->hmap[i], next)
-                dbg_err_if (f(obj->key,obj->val));
+            dbg_err_if (f(obj->key, obj->val));
     }
 
     return U_HMAP_ERR_NONE;
