@@ -106,7 +106,7 @@ int u_net_sock_unix (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
 /* low-level socket creation */
 int u_net_tcp4_ssock (struct sockaddr_in *sad, int reuse, int backlog);
 int u_net_tcp4_csock (struct sockaddr_in *sad);
-int u_net_uri2sin (u_uri_t *uri, struct sockaddr_in *sad);
+int u_net_uri2sin (const char *uri, struct sockaddr_in *sad);
 
 #ifndef NO_IPV6
 int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int reuse, int backlog);

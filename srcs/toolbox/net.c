@@ -49,12 +49,14 @@ u_net_disp_f disp_tbl[][2] =
 };
 
 /* internal uri-to-sockaddr translators */
-static int ipv4_uri2sin (u_uri_t *uri, struct sockaddr_in *sad);
+static int uri2sockaddr (int f(u_uri_t *, struct sockaddr *), 
+        const char *uri, void *sad);
+static int ipv4_uri_to_sin (u_uri_t *uri, struct sockaddr *sad);
 #ifndef NO_IPV6
-static int ipv6_uri_to_sin6 (u_uri_t *uri, struct sockaddr_in6 *sad);
+static int ipv6_uri_to_sin6 (u_uri_t *uri, struct sockaddr *sad);
 #endif  /* !NO_IPV6 */
 #ifndef NO_UNIXSOCK
-static int unix_uri_to_sun (u_uri_t *uri, struct sockaddr_un *sad);
+static int unix_uri_to_sun (u_uri_t *uri, struct sockaddr *sad);
 #endif  /* !NO_UNIXSOCK */
 
 /* internal uri representation */
@@ -145,6 +147,33 @@ int u_net_sock_by_addr (u_net_addr_t *addr, int mode)
     return -1;
 }
 
+/** \brief  Specialisation of \c u_net_sock_by_addr for TCP sockets */
+int u_net_sock_tcp (u_net_addr_t *addr, int mode)
+{
+    dbg_return_if (addr == NULL, -1);
+    dbg_return_if (addr->type != U_NET_TCP4 && addr->type != U_NET_TCP6, -1);
+
+    return u_net_sock_by_addr(addr, mode);
+}
+
+/** \brief  Specialisation of \c u_net_sock_by_addr for UNIX sockets */
+int u_net_sock_unix (u_net_addr_t *addr, int mode)
+{
+    dbg_return_if (addr == NULL, -1);
+    dbg_return_if (addr->type != U_NET_UNIX, -1);
+
+    return u_net_sock_by_addr(addr, mode);
+}
+
+/** \brief  Specialisation of \c u_net_sock_by_addr for UDP sockets */
+int u_net_sock_udp (u_net_addr_t *addr, int mode)
+{
+    dbg_return_if (addr == NULL, -1);
+    dbg_return_if (addr->type != U_NET_UDP4 && addr->type != U_NET_UDP6, -1);
+
+    return u_net_sock_by_addr(addr, mode);
+}
+
 /** \brief  Return a TCP socket descriptor bound to the supplied IPv4 address */
 int u_net_tcp4_ssock (struct sockaddr_in *sad, int reuse, int backlog)
 { 
@@ -179,44 +208,31 @@ int u_net_tcp6_csock (struct sockaddr_in6 *sad)
  *          information coming from the IPv6 \p uri string */
 int u_net_uri2sin6 (const char *uri, struct sockaddr_in6 *sad)
 {
-    int rc;
-    u_uri_t *u = NULL;
-
-    dbg_return_if (uri == NULL, ~0);
-    dbg_return_if (sad == NULL, ~0);
-    
-    dbg_err_if (u_uri_parse(uri, &u));
-    rc = ipv6_uri_to_sin6(u, sad);
-    u_uri_free(u);
-
-    return rc;
-err:
-    if (u)
-        u_uri_free(u);
-    return ~0;
+    return uri2sockaddr(ipv6_uri_to_sin6, uri, sad);
 }
 
-static int ipv6_uri_to_sin6 (u_uri_t *uri, struct sockaddr_in6 *sad)
+static int ipv6_uri_to_sin6 (u_uri_t *uri, struct sockaddr *sad)
 {
     char *hnum;
     struct hostent *hp = NULL;
+    struct sockaddr_in6 *_sad;
 
     dbg_return_if (uri == NULL, ~0);
     dbg_return_if (strcasecmp(uri->scheme, "tcp6") && 
             strcasecmp(uri->scheme, "udp6"), ~0);
     dbg_return_if (uri->port <= 0 || uri->port > 65535, ~0);
-    dbg_return_if (sad == NULL, ~0);
+    dbg_return_if ((_sad = (struct sockaddr_in6 *) sad) == NULL, ~0);
 
-    memset((char *) sad, 0, sizeof(struct sockaddr_in6));
+    memset((char *) _sad, 0, sizeof(struct sockaddr_in6));
 
-    sad->sin6_len = sizeof(*sad);
-    sad->sin6_port = htons(uri->port);
-    sad->sin6_family = AF_INET6;
-    sad->sin6_flowinfo = 0;
+    _sad->sin6_len = sizeof(struct sockaddr_in6);
+    _sad->sin6_port = htons(uri->port);
+    _sad->sin6_family = AF_INET6;
+    _sad->sin6_flowinfo = 0;
 
     /* '*' is the wildcard address */
     if (!strcmp(uri->host, "*"))
-        sad->sin6_addr = in6addr_any;
+        _sad->sin6_addr = in6addr_any;
     else
     {
         /* try with the resolver first, if no result, fall back to numeric */
@@ -225,7 +241,7 @@ static int ipv6_uri_to_sin6 (u_uri_t *uri, struct sockaddr_in6 *sad)
         hnum = (hp && hp->h_addrtype == AF_INET6) ? hp->h_addr : uri->host;
 
         /* convert address from printable to network format */
-        switch (inet_pton(AF_INET6, hnum, &sad->sin6_addr))
+        switch (inet_pton(AF_INET6, hnum, &_sad->sin6_addr))
         {
             case -1:
                 dbg_strerror(errno); 
@@ -270,31 +286,19 @@ int u_net_unix_csock (struct sockaddr_un *sad)
  *          information coming from the UNIX \p uri string */
 int u_net_uri2sun (const char *uri, struct sockaddr_un *sad)
 {
-    int rc;
-    u_uri_t *u = NULL;
-
-    dbg_return_if (uri == NULL, ~0);
-    dbg_return_if (sad == NULL, ~0);
-    
-    dbg_err_if (u_uri_parse(uri, &u));
-    rc = unix_uri_to_sun(u, sad);
-    u_uri_free(u);
-
-    return rc;
-err:
-    if (u)
-        u_uri_free(u);
-    return ~0;
+    return uri2sockaddr(unix_uri_to_sun, uri, sad);
 }
 
-static int unix_uri_to_sun (u_uri_t *uri, struct sockaddr_un *sad)
+static int unix_uri_to_sun (u_uri_t *uri, struct sockaddr *sad)
 {
+    struct sockaddr_un *_sad;
+
     dbg_return_if (uri == NULL, ~0);
     dbg_return_if (strcasecmp(uri->scheme, "unix"), ~0);
-    dbg_return_if (sad == NULL, ~0);
+    dbg_return_if ((_sad = (struct sockaddr_un *) sad) == NULL, ~0);
 
-    sad->sun_family = AF_UNIX;
-    dbg_err_ifm (u_strlcpy(sad->sun_path, uri->path, sizeof sad->sun_path), 
+    _sad->sun_family = AF_UNIX;
+    dbg_err_ifm (u_strlcpy(_sad->sun_path, uri->path, sizeof _sad->sun_path), 
             "%s too long", uri);
 
     return 0;
@@ -303,33 +307,6 @@ err:
 }
 
 #endif /* !NO_UNIXSOCK */
-
-/** \brief  Specialisation of \c u_net_sock_by_addr for TCP sockets */
-int u_net_sock_tcp (u_net_addr_t *addr, int mode)
-{
-    dbg_return_if (addr == NULL, -1);
-    dbg_return_if (addr->type != U_NET_TCP4 && addr->type != U_NET_TCP6, -1);
-
-    return u_net_sock_by_addr(addr, mode);
-}
-
-/** \brief  Specialisation of \c u_net_sock_by_addr for UNIX sockets */
-int u_net_sock_unix (u_net_addr_t *addr, int mode)
-{
-    dbg_return_if (addr == NULL, -1);
-    dbg_return_if (addr->type != U_NET_UNIX, -1);
-
-    return u_net_sock_by_addr(addr, mode);
-}
-
-/** \brief  Specialisation of \c u_net_sock_by_addr for UDP sockets */
-int u_net_sock_udp (u_net_addr_t *addr, int mode)
-{
-    dbg_return_if (addr == NULL, -1);
-    dbg_return_if (addr->type != U_NET_UDP4 && addr->type != U_NET_UDP6, -1);
-
-    return u_net_sock_by_addr(addr, mode);
-}
 
 /** \brief  Create new \c u_net_addr_t object of the requested \p type */
 int u_net_addr_new (int type, u_net_addr_t **pa)
@@ -392,17 +369,17 @@ int u_net_uri2addr (const char *uri, u_net_addr_t **pa)
     {
         case U_NET_TCP4:
         case U_NET_UDP4:
-            dbg_err_if (u_net_uri2sin(u, &a->sa.sin));
+            dbg_err_if (ipv4_uri_to_sin(u, &a->sa.s));
             break;
 #ifndef NO_UNIXSOCK
         case U_NET_UNIX:
-            dbg_err_if (unix_uri_to_sun(u, &a->sa.sun));
+            dbg_err_if (unix_uri_to_sun(u, &a->sa.s));
             break;
 #endif /* !NO_UNIXSOCK */
 #ifndef NO_IPV6
         case U_NET_TCP6:
         case U_NET_UDP6:
-            dbg_err_if (ipv6_uri_to_sin6(u, &a->sa.sin6));
+            dbg_err_if (ipv6_uri_to_sin6(u, &a->sa.s));
             break;
 #endif /* !NO_IPV6 */
         default:
@@ -421,39 +398,61 @@ err:
     return ~0;
 }
 
-/* translate u_uri_t into struct sockaddr_in */
-int u_net_uri2sin (u_uri_t *uri, struct sockaddr_in *sad)
+static int uri2sockaddr (int f(u_uri_t *, struct sockaddr *), 
+        const char *uri, void *sad)
 {
-    return ipv4_uri2sin(uri, sad);
+    int rc;
+    u_uri_t *u = NULL;
+
+    dbg_return_if (uri == NULL, ~0);
+    dbg_return_if (sad == NULL, ~0);
+    
+    dbg_err_if (u_uri_parse(uri, &u));
+    rc = f(u, sad);
+    u_uri_free(u);
+
+    return rc;
+err:
+    if (u)
+        u_uri_free(u);
+    return ~0;
 }
 
-static int ipv4_uri2sin (u_uri_t *uri, struct sockaddr_in *sad)
+/** \brief  Fill the supplied \c sockaddr_in object at \p *sad with addressing
+ *          information coming from the IPv4 \p uri string */
+int u_net_uri2sin (const char *uri, struct sockaddr_in *sad)
+{
+    return uri2sockaddr(ipv4_uri_to_sin, uri, sad);
+}
+
+static int ipv4_uri_to_sin (u_uri_t *uri, struct sockaddr *sad)
 {
     in_addr_t saddr;
     struct hostent *hp = NULL;
+    struct sockaddr_in *_sad;
 
     dbg_return_if (uri == NULL, ~0);
     dbg_return_if (strcasecmp(uri->scheme, "tcp4") && 
             strcasecmp(uri->scheme, "udp4"), ~0);
     dbg_return_if (uri->port <= 0 || uri->port > 65535, ~0);
-    dbg_return_if (sad == NULL, ~0);
+    dbg_return_if ((_sad = (struct sockaddr_in *) sad) == NULL, ~0);
 
-    memset((char *) sad, 0, sizeof(struct sockaddr_in));
-    sad->sin_port = htons(uri->port);
-    sad->sin_family = AF_INET;
+    memset((char *) _sad, 0, sizeof(struct sockaddr_in));
+    _sad->sin_port = htons(uri->port);
+    _sad->sin_family = AF_INET;
 
     /* '*' is the wildcard address */
     if (!strcmp(uri->host, "*"))
-        sad->sin_addr.s_addr = htonl(INADDR_ANY);
+        _sad->sin_addr.s_addr = htonl(INADDR_ANY);
     else
     {
         /* try with the resolver first, if no result, fall back to numeric */
         hp = gethostbyname(uri->host);
 
         if (hp && hp->h_addrtype == AF_INET)
-            memcpy(&sad->sin_addr.s_addr, hp->h_addr, sizeof(in_addr_t));
+            memcpy(&_sad->sin_addr.s_addr, hp->h_addr, sizeof(in_addr_t));
         else if ((saddr = inet_addr(uri->host)) != INADDR_NONE)
-            sad->sin_addr.s_addr = saddr;
+            _sad->sin_addr.s_addr = saddr;
         else
             dbg_err("invalid host name: \'%s\'", uri->host);
     }
