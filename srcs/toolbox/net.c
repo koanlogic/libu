@@ -19,9 +19,9 @@
 typedef int (*u_net_disp_f) (struct sockaddr *, int, int);
 
 /* workers */
-static int do_csock (struct sockaddr *sad, int sad_len, int type);
-static int do_ssock (struct sockaddr *sad, int sad_len, int type, int reuse, 
-        int backlog);
+static int do_csock (struct sockaddr *sad, int sad_len, int domain, int type);
+static int do_ssock (struct sockaddr *sad, int sad_len, int domain, int type, 
+        int reuse, int backlog);
 
 /* per family dispatchers */
 static int tcp4_ssock (struct sockaddr *sad, int reuse, int backlog);
@@ -178,14 +178,14 @@ int u_net_sock_udp (u_net_addr_t *addr, int mode)
 int u_net_tcp4_ssock (struct sockaddr_in *sad, int reuse, int backlog)
 { 
     return do_ssock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET, reuse, backlog);
+            AF_INET, SOCK_STREAM, reuse, backlog);
 }
 
 /** \brief  Return a TCP socket descriptor connected to the supplied IPv4
  *          address */
 int u_net_tcp4_csock (struct sockaddr_in *sad)
 {
-    return do_csock((struct sockaddr *) sad, sizeof *sad, AF_INET);
+    return do_csock((struct sockaddr *) sad, sizeof *sad, AF_INET, SOCK_STREAM);
 }
 
 #ifndef NO_IPV6
@@ -194,14 +194,15 @@ int u_net_tcp4_csock (struct sockaddr_in *sad)
 int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int reuse, int backlog)
 {
     return do_ssock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET6, reuse, backlog);
+            AF_INET6, SOCK_STREAM, reuse, backlog);
 }
 
 /** \brief  Return a TCP socket descriptor connected to the supplied IPv6
  *          address */
 int u_net_tcp6_csock (struct sockaddr_in6 *sad)
 {
-    return do_csock((struct sockaddr *) sad, sizeof *sad, AF_INET6);
+    return do_csock((struct sockaddr *) sad, sizeof *sad, 
+            AF_INET6, SOCK_STREAM);
 }
 
 /** \brief  Fill the supplied \c sockaddr_in6 object at \p *sad with addressing
@@ -272,14 +273,14 @@ int u_net_unix_ssock (struct sockaddr_un *sad, int backlog)
     dbg_return_sif (unlink(sad->sun_path) == -1 && errno != ENOENT, -1);
 
     return do_ssock((struct sockaddr *) sad, sizeof *sad, 
-            AF_UNIX, 0 /* ignored for AF_UNIX */, backlog);
+            AF_UNIX, SOCK_STREAM, 0 /* ignored for AF_UNIX */, backlog);
 }
 
 /** \brief  Return a TCP socket descriptor connected to the supplied UNIX 
  *          path */
 int u_net_unix_csock (struct sockaddr_un *sad)
 {
-    return do_csock((struct sockaddr *) sad, sizeof *sad, AF_UNIX);
+    return do_csock((struct sockaddr *) sad, sizeof *sad, AF_UNIX, SOCK_STREAM);
 }
 
 /** \brief  Fill the supplied \c sockaddr_un object at \p *sad with addressing
@@ -471,7 +472,11 @@ err:
  *
  *  \return on success returns the socket descriptor; on failure returns -1
  */ 
+#ifdef HAVE_SOCKLEN_T
+int u_accept(int ld, struct sockaddr *addr, socklen_t *addrlen)
+#else
 int u_accept(int ld, struct sockaddr *addr, int *addrlen)
+#endif  /* HAVE_SOCKLEN_T */
 {
     int ad = -1;
 
@@ -601,13 +606,13 @@ static int udp6_csock (struct sockaddr *sad, int dummy1, int dummy2)
     info_return_ifm (1, -1, "%s: TODO", __FUNCTION__); 
 }
 
-static int do_csock (struct sockaddr *sad, int sad_len, int type)
+static int do_csock (struct sockaddr *sad, int sad_len, int domain, int type)
 {
     int s = -1;
 
     dbg_return_if (sad == NULL, -1);
 
-    dbg_err_sif ((s = socket(type, SOCK_STREAM, 0)) == -1);
+    dbg_err_sif ((s = socket(domain, type, 0)) == -1);
     dbg_err_sif (connect(s, sad, sad_len) == -1);
 
     return s;
@@ -616,8 +621,8 @@ err:
     return -1;
 }
 
-static int do_ssock (struct sockaddr *sad, int sad_len, int type, int reuse, 
-        int backlog)
+static int do_ssock (struct sockaddr *sad, int sad_len, int domain, int type, 
+        int reuse, int backlog)
 {
     int s = -1;
 #ifdef HAVE_SETSOCKOPT
@@ -628,9 +633,9 @@ static int do_ssock (struct sockaddr *sad, int sad_len, int type, int reuse,
 
     dbg_return_if (sad == NULL, -1);
 
-    dbg_err_sif ((s = socket(type, SOCK_STREAM, 0)) == -1);
+    dbg_err_sif ((s = socket(domain, type, 0)) == -1);
 #ifdef HAVE_SETSOCKOPT
-    if (type != AF_UNIX)
+    if (domain != AF_UNIX)
     {
         dbg_err_sif (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, 
                     &on, sizeof on) == -1);

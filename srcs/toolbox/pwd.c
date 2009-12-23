@@ -354,9 +354,9 @@ err:
 static int u_pwd_retr_res (u_pwd_t *pwd, const char *user, 
         u_pwd_rec_t **prec)
 {
-    size_t lc, got_it = 0;
+    size_t lc, got_it = 0, ntoks;
     char ln[U_PWD_LINE_MAX], uu[U_PWD_LINE_MAX];
-    char *toks[3 + 1];  /* line fmt is: "name:password[:opaque]\n" */
+    char **toks = NULL;  /* expected line fmt is: "name:password[:opaque]\n" */
     u_pwd_rec_t *rec = NULL;
 
     dbg_return_if (pwd->res_uri == NULL, ~0);
@@ -394,12 +394,16 @@ static int u_pwd_retr_res (u_pwd_t *pwd, const char *user,
     if (ln[strlen(ln) - 1] == '\n')
         ln[strlen(ln) - 1] = '\0';
 
-    /* tokenize line */
-    dbg_err_ifm (u_tokenize(ln, ":", toks, 3), 
+    /* tokenize line: expect at least 2 fields: user and password */
+    dbg_err_ifm (u_strtok(ln, ":", &toks, &ntoks) || ntoks < 2,
             "bad syntax at line %zu (%s)", lc, ln);
 
-    /* create new record to be given back */
-    dbg_err_if (u_pwd_rec_new(toks[0], toks[1], toks[2], &rec));
+    /* create new record */
+    dbg_err_if (u_pwd_rec_new(toks[0], toks[1], ntoks < 3 ? NULL : toks[2], 
+                &rec));
+
+    /* dispose u_strtok rubbish */
+    u_strtok_cleanup(toks, ntoks);
 
     /* dispose resource handler (if a 'close' method has been set) */
     u_pwd_res_close(pwd);
@@ -411,6 +415,9 @@ static int u_pwd_retr_res (u_pwd_t *pwd, const char *user,
 err:
     if (rec)
         u_pwd_rec_free(pwd, rec);
+
+    if (toks)
+        u_strtok_cleanup(toks, ntoks);
 
     u_pwd_res_close(pwd);
 
@@ -547,9 +554,9 @@ static int u_pwd_db_term (u_pwd_t *pwd)
 
 static int u_pwd_db_load (u_pwd_t *pwd)
 {
-    size_t lc;
+    size_t lc, ntoks;
     char ln[U_PWD_LINE_MAX];
-    char *toks[3 + 1];  /* line fmt is: "name:password[:hint]\n" */
+    char **toks = NULL;  /* line fmt is: "name:password[:hint]\n" */
     u_pwd_rec_t *rec = NULL;
     
     dbg_return_if (pwd->res_uri == NULL, ~0);
@@ -561,6 +568,13 @@ static int u_pwd_db_load (u_pwd_t *pwd)
 
     for (lc = 1; pwd->cb_load(ln, sizeof ln, pwd->res_handler) != NULL; lc++)
     {
+        /* cleanup strtok rubbish from the previous loop */
+        if (toks)
+        {
+            u_strtok_cleanup(toks, ntoks);
+            toks = NULL;
+        }
+
         /* skip comment lines */
         if (ln[0] == '#')
             continue;
@@ -570,14 +584,15 @@ static int u_pwd_db_load (u_pwd_t *pwd)
             ln[strlen(ln) - 1] = '\0';
 
         /* tokenize line */
-        dbg_ifb (u_tokenize(ln, ":", toks, 3))
+        dbg_ifb (u_strtok(ln, ":", &toks, &ntoks) || ntoks < 2)
         {
             info("bad syntax at line %zu (%s)", lc, ln);
             continue;
         }
 
         /* create u_pwd_rec_t from tokens */
-        dbg_ifb (u_pwd_rec_new(toks[0], toks[1], toks[2], &rec))
+        dbg_ifb (u_pwd_rec_new(toks[0], toks[1], ntoks < 3 ? NULL : toks[2], 
+                    &rec))
         {
             info("could not create record for entry at line %zu", lc);
             continue;
@@ -593,6 +608,9 @@ static int u_pwd_db_load (u_pwd_t *pwd)
         rec = NULL;
     }
 
+    if (toks)
+        u_strtok_cleanup(toks, ntoks);
+ 
     if (rec)
         u_pwd_rec_free(pwd, rec);
 
@@ -603,6 +621,9 @@ err:
     if (rec)
         u_pwd_rec_free(pwd, rec);
 
+    if (toks)
+        u_strtok_cleanup(toks, ntoks);
+ 
     u_pwd_res_close(pwd);
 
     return ~0;

@@ -5,7 +5,7 @@
 #ifndef _U_MISC_H_
 #define _U_MISC_H_
 
-#include <u/libu_conf.h>
+#include <u/libu.h>
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -21,20 +21,20 @@ struct sockaddr; /* forward declaration */
 
 /* define U_PATH_MAX */
 #ifndef PATH_MAX
-#define U_PATH_MAX 4096
+  #define U_PATH_MAX 4096
 #else
-#define U_PATH_MAX PATH_MAX
+  #define U_PATH_MAX PATH_MAX
 #endif
 
 /* define U_NAME_MAX */
 #ifdef NAME_MAX
-#define U_NAME_MAX NAME_MAX
+  #define U_NAME_MAX NAME_MAX
 #else
-#ifdef FILENAME_MAX
-#define U_NAME_MAX FILENAME_MAX
-#else
-#define U_NAME_MAX 512
-#endif 
+  #ifdef FILENAME_MAX
+    #define U_NAME_MAX FILENAME_MAX
+  #else
+    #define U_NAME_MAX 512
+  #endif 
 #endif
 
 /* define U_FILENAME_MAX (path + name) */
@@ -64,7 +64,6 @@ char *u_strdup (const char *s);
 int u_savepid (const char *pf);
 char *u_sstrncpy (char *dst, const char *src, size_t size);
 void* u_memdup (const void *src, size_t size);
-int u_tokenize (char *wlist, const char *delim, char **tokv, size_t tokv_sz);
 int u_strtok (const char *s, const char *delim, char ***ptv, size_t *pnelems);
 void u_strtok_cleanup (char **tv, size_t nelems);
 int u_snprintf (char *str, size_t size, const char *fmt, ...);
@@ -75,11 +74,14 @@ int u_data_dump (char *data, size_t sz, const char *file);
 int u_load_file (const char *path, size_t sz_max, char **pbuf, size_t *psz);
 ssize_t u_read(int fd, void *buf, size_t size);
 ssize_t u_write(int fd, void *buf, size_t size);
-int u_accept(int s, struct sockaddr *addr, int *addrlen);
 int u_sleep(unsigned int secs);
 int u_atoi (const char *nptr, int *pi);
 int u_strlcpy(char *dst, const char *src, size_t size);
 int u_strlcat(char *dst, const char *src, size_t size);
+
+/* depreacated interfaces */
+int u_tokenize (char *wlist, const char *delim, char **tokv, size_t tokv_sz) \
+    __LIBU_DEPRECATED;
 
 #ifdef HAVE_STRTOUMAX
 #include <inttypes.h>

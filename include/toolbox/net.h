@@ -127,7 +127,12 @@ void u_net_addr_free (u_net_addr_t *addr);
 
 /* misc */
 int u_net_nagle_off (int sd);
+
+#ifdef HAVE_SOCKLEN_T
+int u_accept(int ld, struct sockaddr *addr, socklen_t *addrlen);
+#else
 int u_accept(int ld, struct sockaddr *addr, int *addrlen);
+#endif  /* HAVE_SOCKLEN_T */
 
 #ifdef __cplusplus
 }

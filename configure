@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.77 2009/12/21 22:16:30 tho Exp $
+# $Id: configure,v 1.78 2009/12/23 15:48:35 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -69,6 +69,9 @@ makl_checktype          0   "double complex"        "<complex.h>"
 makl_checktype          0   "long double complex"   "<complex.h>"
 makl_checktype          0   "pid_t"                 "<sys/types.h>"
 makl_checktype          0   "ssize_t"               "<sys/types.h>"
+makl_checktype          0   "socklen_t"         \
+                            "<sys/types.h>"     \
+                            "<sys/socket.h>"
 makl_checktype          0   "in_addr_t"         \
                             "<sys/types.h>"     \
                             "<sys/socket.h>"    \
