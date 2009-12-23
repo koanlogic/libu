@@ -8,7 +8,10 @@
 #include <u/libu_conf.h>
 
 #include <stdio.h>
-#include <stdlib.h>
+
+#ifdef HAVE_STDLIB
+  #include <stdlib.h>
+#endif
 
 /* GNUC __attribute__((deprecated)) (gcc 3.1 and later) */
 #if defined(__GNUC__) && ((__GNUC__ >= 4) || \

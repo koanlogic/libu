@@ -12,12 +12,9 @@
 #include <stdio.h>
 #include <limits.h>
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-struct sockaddr; /* forward declaration */
 
 /* define U_PATH_MAX */
 #ifndef PATH_MAX

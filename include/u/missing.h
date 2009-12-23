@@ -21,13 +21,13 @@
 #include <u/missing/va.h>
 
 #ifdef OS_WIN
-#include <windows.h>
-#define strcasecmp _stricmp
-#define sleep(secs) Sleep( (secs) * 1000 )
+  #include <windows.h>
+  #define strcasecmp _stricmp
+  #define sleep(secs) Sleep( (secs) * 1000 )
 #endif
 
 #ifndef HAVE_SSIZE_T
-typedef int ssize_t;
+  typedef int ssize_t;
 #endif
 
 /* on VxWorks/DCC there's not extern declaration (even if the var is available

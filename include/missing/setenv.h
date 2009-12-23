@@ -8,8 +8,8 @@
 #include <u/libu_conf.h>
 
 #ifdef HAVE_SETENV
-#include <stdlib.h>
-#else
+  #include <stdlib.h>
+#else   /* !HAVE_SETENV */
 
 #ifdef __cplusplus
 extern "C" {

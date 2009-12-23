@@ -18,32 +18,38 @@
 #include <u/toolbox/test.h>
 
 #ifndef NO_NET
-    /* XXX was: always include net.h even if NO_NET is set */
-    #include <u/toolbox/net.h>
+  #include <u/toolbox/net.h>
 #endif
+
 #ifndef NO_ENV
-    #include <u/toolbox/env.h>
+  #include <u/toolbox/env.h>
 #endif
+
 #ifndef NO_HMAP
-    #include <u/toolbox/hmap.h>
+  #include <u/toolbox/hmap.h>
 #endif
+
 #ifndef NO_CONFIG
-    #include <u/toolbox/config.h>
+  #include <u/toolbox/config.h>
 #endif
+
 #ifndef NO_FS
-#include <u/toolbox/fs.h>
+  #include <u/toolbox/fs.h>
 #endif
+
 #ifndef NO_PWD
-#ifdef NO_HMAP
+  #ifdef NO_HMAP
     #include <u/toolbox/hmap.h>
+  #endif
+  #include <u/toolbox/pwd.h>
 #endif
-    #include <u/toolbox/pwd.h>
-#endif
+
 #ifndef NO_LIST
-#include <u/toolbox/list.h>
+  #include <u/toolbox/list.h>
 #endif
+
 #ifndef NO_ARRAY
-#include <u/toolbox/array.h>
+  #include <u/toolbox/array.h>
 #endif
 
 #endif  /* !_LIBU_TOOLBOX_H_ */

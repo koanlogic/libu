@@ -10,6 +10,12 @@
 #include <u/libu.h>
 #include <toolbox/buf.h>
 
+struct u_buf_s
+{
+    char *data;
+    size_t size, len;
+};
+
 /**
  *  \defgroup buf Buf
  *  \{

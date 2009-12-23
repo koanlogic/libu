@@ -1,4 +1,4 @@
-/* $Id: buf.h,v 1.1 2006/11/20 13:36:12 tho Exp $ */
+/* $Id: buf.h,v 1.2 2009/12/23 21:40:55 tho Exp $ */
 
 #ifndef _U_LIBU_BUF_H_
 #define _U_LIBU_BUF_H_
@@ -12,12 +12,7 @@
 extern "C" {
 #endif
 
-struct u_buf_s
-{
-    char *data;
-    size_t size, len;
-};
-
+struct u_buf_s;
 typedef struct u_buf_s u_buf_t;
 
 int u_buf_append(u_buf_t *buf, const void *data, size_t size);
