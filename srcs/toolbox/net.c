@@ -57,6 +57,7 @@ static int ipv6_uri_to_sin6 (u_uri_t *uri, struct sockaddr_in6 *sad);
 static int unix_uri_to_sun (u_uri_t *uri, struct sockaddr_un *sad);
 #endif  /* !NO_UNIXSOCK */
 
+/* internal uri representation */
 struct u_net_addr_s
 {
     int type;   /* one of U_NET_TYPE's */
@@ -94,9 +95,7 @@ struct u_net_addr_s
  * Per-protocol handlers can be used in combination with the URI resolver and
  * translation functions for greater flexibility.
  *
- * \sa u_net_tcp4_ssock, u_net_tcp6_ssock, u_net_tcp4_csock, u_net_tcp6_csock,
- *     u_net_unix_ssock, u_net_unix_csock, u_net_uri2addr, u_net_ipv4_to_sin, 
- *     u_net_uri2sin6
+ * \sa u_net_sock_by_addr
  *
  * \param uri   the URI at which the socket shall be connected/bounded
  * \param mode  \c U_NET_SSOCK for server sockets, \c U_NET_CSOCK for clients.
@@ -127,7 +126,9 @@ err:
     return -1;
 }
 
-/** \brief  Like \c u_net_sock but needing an already filled-in \p addr */
+/** \brief  Like \c u_net_sock but need an already filled-in \p addr.  You
+ *          can use it whenever you need to reuse a given address: call 
+ *          \c u_net_uri2addr once and \c u_net_sock_by_addr repeatedly.  */
 int u_net_sock_by_addr (u_net_addr_t *addr, int mode)
 {
     u_net_disp_f dfun;
@@ -197,14 +198,49 @@ err:
 
 static int ipv6_uri_to_sin6 (u_uri_t *uri, struct sockaddr_in6 *sad)
 {
+    char *hnum;
+    struct hostent *hp = NULL;
+
     dbg_return_if (uri == NULL, ~0);
     dbg_return_if (strcasecmp(uri->scheme, "tcp6") && 
             strcasecmp(uri->scheme, "udp6"), ~0);
+    dbg_return_if (uri->port <= 0 || uri->port > 65535, ~0);
     dbg_return_if (sad == NULL, ~0);
 
-    /* TODO */
+    memset((char *) sad, 0, sizeof(struct sockaddr_in6));
+
+    sad->sin6_len = sizeof(*sad);
+    sad->sin6_port = htons(uri->port);
+    sad->sin6_family = AF_INET6;
+    sad->sin6_flowinfo = 0;
+
+    /* '*' is the wildcard address */
+    if (!strcmp(uri->host, "*"))
+        sad->sin6_addr = in6addr_any;
+    else
+    {
+        /* try with the resolver first, if no result, fall back to numeric */
+        hp = gethostbyname(uri->host);
+
+        hnum = (hp && hp->h_addrtype == AF_INET6) ? hp->h_addr : uri->host;
+
+        /* convert address from printable to network format */
+        switch (inet_pton(AF_INET6, hnum, &sad->sin6_addr))
+        {
+            case -1:
+                dbg_strerror(errno); 
+                /* log errno and fall through */
+            case 0:
+                dbg_err("invalid IPv6 host name: \'%s\'", uri->host);
+                /* log hostname and jump to err: */
+            default:
+                break;
+        }
+    }
 
     return 0;
+err:
+    return ~0;
 }
 
 #endif /* !NO_IPV6 */
@@ -399,20 +435,28 @@ static int ipv4_uri2sin (u_uri_t *uri, struct sockaddr_in *sad)
     dbg_return_if (uri == NULL, ~0);
     dbg_return_if (strcasecmp(uri->scheme, "tcp4") && 
             strcasecmp(uri->scheme, "udp4"), ~0);
+    dbg_return_if (uri->port <= 0 || uri->port > 65535, ~0);
     dbg_return_if (sad == NULL, ~0);
 
     memset((char *) sad, 0, sizeof(struct sockaddr_in));
     sad->sin_port = htons(uri->port);
     sad->sin_family = AF_INET;
 
-    hp = gethostbyname(uri->host);
-
-    if (hp && hp->h_addrtype == AF_INET)
-        memcpy(&sad->sin_addr.s_addr, hp->h_addr, sizeof(in_addr_t));
-    else if ((saddr = inet_addr(uri->host)) != INADDR_NONE)
-        sad->sin_addr.s_addr = saddr;
+    /* '*' is the wildcard address */
+    if (!strcmp(uri->host, "*"))
+        sad->sin_addr.s_addr = htonl(INADDR_ANY);
     else
-        dbg_err("invalid host name: \'%s\'", uri->host);
+    {
+        /* try with the resolver first, if no result, fall back to numeric */
+        hp = gethostbyname(uri->host);
+
+        if (hp && hp->h_addrtype == AF_INET)
+            memcpy(&sad->sin_addr.s_addr, hp->h_addr, sizeof(in_addr_t));
+        else if ((saddr = inet_addr(uri->host)) != INADDR_NONE)
+            sad->sin_addr.s_addr = saddr;
+        else
+            dbg_err("invalid host name: \'%s\'", uri->host);
+    }
 
     return 0;
 err:
