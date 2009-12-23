@@ -1,7 +1,7 @@
 include common.mk
 include ../../../Makefile.conf
 
-PROG = net_c
+PROG = net_s
 SRCS = main.c
 
 CFLAGS += -I$(SRCDIR)/include

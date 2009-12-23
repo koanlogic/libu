@@ -536,7 +536,9 @@ int u_sleep(unsigned int secs)
  *  \param  buf     buffer to read into
  *  \param  size    size of the buffer
  *
- *  \return \c on success returns the number of bytes read (that will be always 'size' except on eof); on failure returns -1
+ *  \return on success the number of read bytes (that will always 
+ *          be \p size except that on EOF) is returned; on failure \c -1 is
+ *          returned
  */ 
 ssize_t u_read(int fd, void *buf, size_t size)
 {

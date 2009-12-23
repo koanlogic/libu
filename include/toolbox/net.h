@@ -80,16 +80,16 @@ enum {
     u_io((iof_t) write, sd, buf, nbytes, nw, iseof)
 
 /** \brief u_io specialisation for input ops */
-#define u_net_read(sd, buf, nbytes, nw, iseof) \
-    u_io(read, sd, buf, nbytes, nw, iseof)
+#define u_net_read(sd, buf, nbytes, nr, iseof) \
+    u_io(read, sd, buf, nbytes, nr, iseof)
 
 /** \brief  Try to write a chunk of \p nbytes data to descriptor \p sd */
 #define u_net_writen(sd, buf, nbytes) \
-    u_io((iof_t) write, sd, buf, nbytes, 0, 0)
+    u_io((iof_t) write, sd, buf, nbytes, NULL, NULL)
 
 /** \brief  Try to read a chunk of \p nbytes data from descriptor \p sd */
 #define u_net_readn(sd, buf, nbytes) \
-    u_io(read, sd, buf, nbytes, 0, 0)
+    u_io(read, sd, buf, nbytes, NULL, NULL)
 
 /**
  *  \}
