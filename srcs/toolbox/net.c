@@ -188,6 +188,20 @@ int u_net_tcp4_csock (struct sockaddr_in *sad)
     return do_csock((struct sockaddr *) sad, sizeof *sad, AF_INET, SOCK_STREAM);
 }
 
+/** \brief  Return a UDP socket descriptor bound to the supplied IPv4 address */
+int u_net_udp4_ssock (struct sockaddr_in *sad, int reuse)
+{ 
+    return do_ssock((struct sockaddr *) sad, sizeof *sad, 
+            AF_INET, SOCK_DGRAM, reuse, 0 /* backlog is ignored by UDP */);
+}
+
+/** \brief  Return a UDP socket descriptor connected (the UDP way) to the 
+ *          supplied IPv4 address */
+int u_net_udp4_csock (struct sockaddr_in *sad)
+{
+    return do_csock((struct sockaddr *) sad, sizeof *sad, AF_INET, SOCK_DGRAM);
+}
+
 #ifndef NO_IPV6
 
 /** \brief  Return a TCP socket descriptor bound to the supplied IPv6 address */
@@ -203,6 +217,20 @@ int u_net_tcp6_csock (struct sockaddr_in6 *sad)
 {
     return do_csock((struct sockaddr *) sad, sizeof *sad, 
             AF_INET6, SOCK_STREAM);
+}
+
+/** \brief  Return a UDP socket descriptor bound to the supplied IPv6 address */
+int u_net_udp6_ssock (struct sockaddr_in6 *sad, int reuse)
+{ 
+    return do_ssock((struct sockaddr *) sad, sizeof *sad, 
+            AF_INET6, SOCK_DGRAM, reuse, 0 /* backlog is ignored by UDP */);
+}
+
+/** \brief  Return a UDP socket descriptor connected (the UDP way) to the 
+ *          supplied IPv6 address */
+int u_net_udp6_csock (struct sockaddr_in6 *sad)
+{
+    return do_csock((struct sockaddr *) sad, sizeof *sad, AF_INET6, SOCK_DGRAM);
 }
 
 /** \brief  Fill the supplied \c sockaddr_in6 object at \p *sad with addressing
@@ -584,26 +612,29 @@ static int unix_csock (struct sockaddr *sad, int dummy1, int dummy2)
 
 static int udp4_ssock (struct sockaddr *sad, int reuse, int backlog)
 { 
-    u_unused_args(sad, reuse, backlog);
-    info_return_ifm (1, -1, "%s: TODO", __FUNCTION__); 
+    u_unused_args(backlog);
+
+    return u_net_udp4_ssock((struct sockaddr_in *) sad, reuse);
 }
 
 static int udp4_csock (struct sockaddr *sad, int dummy1, int dummy2)
 { 
-    u_unused_args(sad, dummy1, dummy2);
-    info_return_ifm (1, -1, "%s: TODO", __FUNCTION__); 
+    u_unused_args(dummy1, dummy2);
+
+    return u_net_udp4_csock((struct sockaddr_in *) sad);
 }
 
 static int udp6_ssock (struct sockaddr *sad, int reuse, int backlog)
 { 
-    u_unused_args(sad, reuse, backlog);
-    info_return_ifm (1, -1, "%s: TODO", __FUNCTION__); 
+    return do_ssock((struct sockaddr *) sad, sizeof(struct sockaddr_in6),
+            AF_INET6, SOCK_DGRAM, reuse, backlog /* ignored by UDP */);
 }
 
 static int udp6_csock (struct sockaddr *sad, int dummy1, int dummy2)
 { 
-    u_unused_args(sad, dummy1, dummy2);
-    info_return_ifm (1, -1, "%s: TODO", __FUNCTION__); 
+    u_unused_args(dummy1, dummy2);
+
+    return do_csock((struct sockaddr *) sad, sizeof *sad, AF_INET6, SOCK_DGRAM);
 }
 
 static int do_csock (struct sockaddr *sad, int sad_len, int domain, int type)
@@ -613,6 +644,12 @@ static int do_csock (struct sockaddr *sad, int sad_len, int domain, int type)
     dbg_return_if (sad == NULL, -1);
 
     dbg_err_sif ((s = socket(domain, type, 0)) == -1);
+
+    /* NOTE that also UDP sockets (not only TCP and UNIX) are connected.
+     * This has a couple of important implications:
+     * 1) the caller must use u_net_read/u_net_write for I/O instead of 
+     *    recvfrom/sendto;
+     * 2) async errors are returned to the process. */
     dbg_err_sif (connect(s, sad, sad_len) == -1);
 
     return s;
@@ -644,7 +681,10 @@ static int do_ssock (struct sockaddr *sad, int sad_len, int domain, int type,
     info("could not honour the reuse flag");
 #endif
     dbg_err_sif (bind(s, (struct sockaddr *) sad, sad_len) == -1);
-    dbg_err_sif (listen(s, backlog) == -1);
+
+    /* only stream sockets enter the LISTEN state */
+    if (type == SOCK_STREAM)
+        dbg_err_sif (listen(s, backlog) == -1);
 
     return s;
 err:
