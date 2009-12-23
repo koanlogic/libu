@@ -626,15 +626,26 @@ static int udp4_csock (struct sockaddr *sad, int dummy1, int dummy2)
 
 static int udp6_ssock (struct sockaddr *sad, int reuse, int backlog)
 { 
+#ifndef NO_IPV6
     return do_ssock((struct sockaddr *) sad, sizeof(struct sockaddr_in6),
             AF_INET6, SOCK_DGRAM, reuse, backlog /* ignored by UDP */);
+#else
+    u_unused_args(sad, reuse, backlog);
+    info("udp6 socket not supported");
+    return -1;
+#endif  /* !NO_IPV6 */
 }
 
 static int udp6_csock (struct sockaddr *sad, int dummy1, int dummy2)
 { 
     u_unused_args(dummy1, dummy2);
-
+#ifndef NO_IPV6
     return do_csock((struct sockaddr *) sad, sizeof *sad, AF_INET6, SOCK_DGRAM);
+#else
+    u_unused_args(sad);
+    info("udp6 socket not supported");
+    return -1;
+#endif  /* !NO_IPV6 */
 }
 
 static int do_csock (struct sockaddr *sad, int sad_len, int domain, int type)
