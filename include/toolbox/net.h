@@ -75,10 +75,10 @@ enum {
 };
 #define U_NET_IS_MODE(m) (m == U_NET_SSOCK || m == U_NET_CSOCK)
 
-/* flags for u_net_addr_set_flag() */
-#define U_NET_FLAG_DONT_REUSE_ADDR  (1 << 0)
-#define U_NET_FLAG_DONT_CONNECT_UDP (1 << 1)
-#define U_NET_FLAG_SCTP_EVENTS      (1 << 2)
+/* opts for u_net_addr_{set,add}_opts() */
+#define U_NET_OPT_DONT_REUSE_ADDR  (1 << 0)
+#define U_NET_OPT_DONT_CONNECT_UDP (1 << 1)
+#define U_NET_OPT_SCTP_ONE_TO_MANY (1 << 2)
 
 /**
  * \addtogroup net
@@ -116,31 +116,31 @@ int u_net_sock_sctp (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
 int u_net_sock_unix (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
 
 /* low-level socket creation */
-int u_net_tcp4_ssock (struct sockaddr_in *sad, int flags, int backlog);
-int u_net_tcp4_csock (struct sockaddr_in *sad, int flags);
-int u_net_udp4_ssock (struct sockaddr_in *sad, int flags);
-int u_net_udp4_csock (struct sockaddr_in *sad, int flags);
+int u_net_tcp4_ssock (struct sockaddr_in *sad, int opts, int backlog);
+int u_net_tcp4_csock (struct sockaddr_in *sad, int opts);
+int u_net_udp4_ssock (struct sockaddr_in *sad, int opts);
+int u_net_udp4_csock (struct sockaddr_in *sad, int opts);
 #ifndef NO_SCTP
-int u_net_sctp4_ssock (struct sockaddr_in *sad, int flags, int backlog);
-int u_net_sctp4_csock (struct sockaddr_in *sad, int flags);
+int u_net_sctp4_ssock (struct sockaddr_in *sad, int opts, int backlog);
+int u_net_sctp4_csock (struct sockaddr_in *sad, int opts);
 #endif /* !NO_SCTP */
 int u_net_uri2sin (const char *uri, struct sockaddr_in *sad);
 
 #ifndef NO_IPV6
-int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int flags, int backlog);
-int u_net_tcp6_csock (struct sockaddr_in6 *sad, int flags);
-int u_net_udp6_ssock (struct sockaddr_in6 *sad, int flags);
-int u_net_udp6_csock (struct sockaddr_in6 *sad, int flags);
+int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int opts, int backlog);
+int u_net_tcp6_csock (struct sockaddr_in6 *sad, int opts);
+int u_net_udp6_ssock (struct sockaddr_in6 *sad, int opts);
+int u_net_udp6_csock (struct sockaddr_in6 *sad, int opts);
 #ifndef NO_SCTP
-int u_net_sctp6_ssock (struct sockaddr_in6 *sad, int flags, int backlog);
-int u_net_sctp6_csock (struct sockaddr_in6 *sad, int flags);
+int u_net_sctp6_ssock (struct sockaddr_in6 *sad, int opts, int backlog);
+int u_net_sctp6_csock (struct sockaddr_in6 *sad, int opts);
 #endif /* !NO_SCTP */
 int u_net_uri2sin6 (const char *uri, struct sockaddr_in6 *sad);
 #endif /* !NO_IPV6 */
 
 #ifndef NO_UNIXSOCK
-int u_net_unix_ssock (struct sockaddr_un *sad, int flags, int backlog);
-int u_net_unix_csock (struct sockaddr_un *sad, int flags);
+int u_net_unix_ssock (struct sockaddr_un *sad, int opts, int backlog);
+int u_net_unix_csock (struct sockaddr_un *sad, int opts);
 int u_net_uri2sun (const char *uri, struct sockaddr_un *sad);
 #endif /* !NO_UNIXSOCK */
 
@@ -149,9 +149,9 @@ int u_net_uri2addr (const char *uri, u_net_addr_t **pa);
 int u_net_addr_new (int type, u_net_addr_t **pa);
 void u_net_addr_free (u_net_addr_t *addr);
 
-/* address flags manipulation (applies to socket creation) */
-void u_net_addr_set_flags (u_net_addr_t *addr, int flags);
-void u_net_addr_add_flags (u_net_addr_t *addr, int flags);
+/* address opts manipulation (applies to socket creation) */
+void u_net_addr_set_opts (u_net_addr_t *addr, int opts);
+void u_net_addr_add_opts (u_net_addr_t *addr, int opts);
 
 /* misc */
 int u_net_nagle_off (int sd);
