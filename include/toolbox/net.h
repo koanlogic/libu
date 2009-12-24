@@ -18,6 +18,9 @@
   #ifdef HAVE_NETINET_TCP
     #include <netinet/tcp.h>
   #endif
+  #ifdef HAVE_NETINET_SCTP
+    #include <netinet/sctp.h>
+  #endif
   #ifdef HAVE_SYSUIO
     #include <sys/uio.h>
   #endif
@@ -46,7 +49,7 @@ extern "C" {
 #define U_NET_BACKLOG 300
 
 /* The Net module defines the following (private) URI types: 
- *    {tc,ud}p[46]://<host>:<port> for TCP/UDP over IPv[46] addresses,
+ *    {tc,ud,sct}p[46]://<host>:<port> for TCP/UDP/SCTP over IPv[46] addresses,
  *    unix://<abs_path> for UNIX IPC endpoints. 
  * Internally, they are translated into an u_net_addr_t structure. */
 struct u_net_addr_s;
@@ -59,7 +62,9 @@ enum {
     U_NET_UDP4 = 3,
     U_NET_UDP6 = 4,
     U_NET_UNIX = 5,
-    U_NET_TYPE_MAX = 6
+    U_NET_SCTP4 = 6,
+    U_NET_SCTP6 = 7,
+    U_NET_TYPE_MAX = 8
 };
 #define U_NET_IS_VALID_ADDR_TYPE(a) (a > U_NET_TYPE_MIN && a < U_NET_TYPE_MAX)
 
@@ -71,8 +76,9 @@ enum {
 #define U_NET_IS_MODE(m) (m == U_NET_SSOCK || m == U_NET_CSOCK)
 
 /* flags for u_net_addr_set_flag() */
-#define U_NET_FLAG_REUSE_ADDR       (1 << 0)
+#define U_NET_FLAG_DONT_REUSE_ADDR  (1 << 0)
 #define U_NET_FLAG_DONT_CONNECT_UDP (1 << 1)
+#define U_NET_FLAG_SCTP_EVENTS      (1 << 2)
 
 /**
  * \addtogroup net
@@ -106,6 +112,7 @@ int u_net_sock_by_addr (u_net_addr_t *addr, int mode);
 /* deprecated: use u_net_sock_by_addr instead */
 int u_net_sock_tcp (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
 int u_net_sock_udp (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
+int u_net_sock_sctp (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
 int u_net_sock_unix (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
 
 /* low-level socket creation */
@@ -113,6 +120,10 @@ int u_net_tcp4_ssock (struct sockaddr_in *sad, int flags, int backlog);
 int u_net_tcp4_csock (struct sockaddr_in *sad, int flags);
 int u_net_udp4_ssock (struct sockaddr_in *sad, int flags);
 int u_net_udp4_csock (struct sockaddr_in *sad, int flags);
+#ifndef NO_SCTP
+int u_net_sctp4_ssock (struct sockaddr_in *sad, int flags, int backlog);
+int u_net_sctp4_csock (struct sockaddr_in *sad, int flags);
+#endif /* !NO_SCTP */
 int u_net_uri2sin (const char *uri, struct sockaddr_in *sad);
 
 #ifndef NO_IPV6
@@ -120,6 +131,10 @@ int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int flags, int backlog);
 int u_net_tcp6_csock (struct sockaddr_in6 *sad, int flags);
 int u_net_udp6_ssock (struct sockaddr_in6 *sad, int flags);
 int u_net_udp6_csock (struct sockaddr_in6 *sad, int flags);
+#ifndef NO_SCTP
+int u_net_sctp6_ssock (struct sockaddr_in6 *sad, int flags, int backlog);
+int u_net_sctp6_csock (struct sockaddr_in6 *sad, int flags);
+#endif /* !NO_SCTP */
 int u_net_uri2sin6 (const char *uri, struct sockaddr_in6 *sad);
 #endif /* !NO_IPV6 */
 

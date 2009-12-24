@@ -1,4 +1,4 @@
-# $Id: mk_support,v 1.1 2007/12/15 17:21:47 tho Exp $
+# $Id: mk_support,v 1.2 2009/12/24 18:04:36 tho Exp $
 
 #
 # --no_ipv6
@@ -10,7 +10,7 @@ makl_args_def   \
 
 __makl_no_ipv6 () 
 { 
-    makl_set_var "NO_IPV6" ; 
+    makl_set_var "NO_IPV6" ;
 }
 
 #
@@ -23,5 +23,18 @@ makl_args_def       \
 
 __makl_no_unixsock () 
 { 
-    makl_set_var "NO_UNIXSOCK" ; 
+    makl_set_var "NO_UNIXSOCK" ;
+}
+
+#
+# --no_sctp
+#
+makl_args_def   \
+    "no_sctp"   \
+    "" ""       \
+    "disable SCTP protocol support"
+
+__makl_no_sctp () 
+{ 
+    makl_set_var "NO_SCTP" ;
 }

@@ -35,6 +35,10 @@ static int udp6_ssock (struct sockaddr *sad, int flags, int backlog);
 static int udp6_csock (struct sockaddr *sad, int flags, int dummy);
 static int unix_ssock (struct sockaddr *sad, int flags, int backlog);
 static int unix_csock (struct sockaddr *sad, int flags, int dummy);
+static int sctp4_ssock (struct sockaddr *sad, int flags, int backlog);
+static int sctp4_csock (struct sockaddr *sad, int flags, int dummy);
+static int sctp6_ssock (struct sockaddr *sad, int flags, int backlog);
+static int sctp6_csock (struct sockaddr *sad, int flags, int dummy);
 
 /* function table to dispatch by socket mode and address family */
 u_net_disp_f disp_tbl[][2] = 
@@ -46,6 +50,8 @@ u_net_disp_f disp_tbl[][2] =
     { udp4_ssock,   udp4_csock },     /* U_NET_UDP4 */
     { udp6_ssock,   udp6_csock },     /* U_NET_UDP6 */
     { unix_ssock,   unix_csock },     /* U_NET_UNIX */
+    { sctp4_ssock,  sctp4_csock },    /* U_NET_SCTP4 */
+    { sctp6_ssock,  sctp6_csock },    /* U_NET_SCTP6 */
     { NULL,         NULL }            /* U_NET_TYPE_MAX */
 };
 
@@ -118,9 +124,6 @@ int u_net_sock (const char *uri, int mode)
 
     /* decode address ('addr' validation is done by u_net_sock_by_addr() */
     dbg_err_if (u_net_uri2addr(uri, &addr));
-
-    /* set default flags */
-    addr->flags = U_NET_FLAG_REUSE_ADDR;
 
     /* ask our worker to do the real job */
     s = u_net_sock_by_addr(addr, mode);
@@ -209,6 +212,22 @@ int u_net_udp4_csock (struct sockaddr_in *sad, int flags)
             AF_INET, SOCK_DGRAM, flags);
 }
 
+/** \brief  Return a SCTP socket descriptor bound to the supplied IPv4 
+ *          address */
+int u_net_sctp4_ssock (struct sockaddr_in *sad, int flags, int backlog)
+{ 
+    return do_ssock((struct sockaddr *) sad, sizeof *sad, 
+            AF_INET, SOCK_SEQPACKET, flags, backlog);
+}
+
+/** \brief  Return a TCP socket descriptor connected to the supplied IPv4
+ *          address */
+int u_net_sctp4_csock (struct sockaddr_in *sad, int flags)
+{
+    return do_csock((struct sockaddr *) sad, sizeof *sad, 
+            AF_INET, SOCK_SEQPACKET, flags);
+}
+
 #ifndef NO_IPV6
 
 /** \brief  Return a TCP socket descriptor bound to the supplied IPv6 address */
@@ -240,6 +259,22 @@ int u_net_udp6_csock (struct sockaddr_in6 *sad, int flags)
 {
     return do_csock((struct sockaddr *) sad, sizeof *sad, 
             AF_INET6, SOCK_DGRAM, flags);
+}
+
+/** \brief  Return a SCTP socket descriptor bound to the supplied IPv6 
+ *          address */
+int u_net_sctp6_ssock (struct sockaddr_in6 *sad, int flags, int backlog)
+{
+    return do_ssock((struct sockaddr *) sad, sizeof *sad, 
+            AF_INET6, SOCK_SEQPACKET, flags, backlog);
+}
+
+/** \brief  Return a SCTP socket descriptor connected to the supplied IPv6
+ *          address */
+int u_net_sctp6_csock (struct sockaddr_in6 *sad, int flags)
+{
+    return do_csock((struct sockaddr *) sad, sizeof *sad, 
+            AF_INET6, SOCK_SEQPACKET, flags);
 }
 
 /** \brief  Fill the supplied \c sockaddr_in6 object at \p *sad with addressing
@@ -357,6 +392,7 @@ int u_net_addr_new (int type, u_net_addr_t **pa)
 
     dbg_err_sif ((a = u_zalloc(sizeof(u_net_addr_t))) == NULL);
     a->type = type;
+    a->flags = 0;
 
     *pa = a;
 
@@ -391,12 +427,16 @@ int u_net_uri2addr (const char *uri, u_net_addr_t **pa)
         a_type = U_NET_TCP4;
     else if (!strcasecmp(u->scheme, "udp4"))
         a_type = U_NET_UDP4;
+    else if (!strcasecmp(u->scheme, "sctp4"))
+        a_type = U_NET_SCTP4;
     else if (!strcasecmp(u->scheme, "unix"))
         a_type = U_NET_UNIX;
     else if (!strcasecmp(u->scheme, "tcp6"))
         a_type = U_NET_TCP6;
     else if (!strcasecmp(u->scheme, "udp6"))
         a_type = U_NET_UDP6;
+    else if (!strcasecmp(u->scheme, "sctp6"))
+        a_type = U_NET_SCTP6;
     else
         dbg_err("unsupported URI scheme: %s", u->scheme); 
 
@@ -408,6 +448,7 @@ int u_net_uri2addr (const char *uri, u_net_addr_t **pa)
     {
         case U_NET_TCP4:
         case U_NET_UDP4:
+        case U_NET_SCTP4:
             dbg_err_if (ipv4_uri_to_sin(u, &a->sa.s));
             break;
 #ifndef NO_UNIXSOCK
@@ -418,6 +459,7 @@ int u_net_uri2addr (const char *uri, u_net_addr_t **pa)
 #ifndef NO_IPV6
         case U_NET_TCP6:
         case U_NET_UDP6:
+        case U_NET_SCTP6:
             dbg_err_if (ipv6_uri_to_sin6(u, &a->sa.s));
             break;
 #endif /* !NO_IPV6 */
@@ -613,6 +655,52 @@ static int tcp6_csock (struct sockaddr *sad, int flags, int dummy)
 #endif  /* !NO_IPV6 */
 }
 
+static int sctp4_ssock (struct sockaddr *sad, int flags, int backlog)
+{
+#ifndef NO_SCTP
+    return u_net_sctp4_ssock((struct sockaddr_in *) sad, flags, backlog);
+#else
+    u_unused_args(sad, flags, backlog);
+    info("sctp4 socket not supported");
+    return -1;
+#endif /* !NO_SCTP */
+}
+
+static int sctp4_csock (struct sockaddr *sad, int flags, int dummy)
+{ 
+    u_unused_args(dummy);
+#ifndef NO_SCTP
+    return u_net_sctp4_csock((struct sockaddr_in *) sad, flags);
+#else
+    u_unused_args(sad, flags);
+    info("sctp4 socket not supported");
+    return -1;
+#endif /* !NO_SCTP */
+} 
+
+static int sctp6_ssock (struct sockaddr *sad, int flags, int backlog)
+{ 
+#if !defined(NO_IPV6) && !defined(NO_SCTP)
+    return u_net_sctp6_ssock((struct sockaddr_in6 *) sad, flags, backlog);
+#else
+    u_unused_args(sad, flags, backlog);
+    info("sctp6 socket not supported");
+    return -1;
+#endif  /* !NO_IPV6 && !NO_SCTP */
+}
+
+static int sctp6_csock (struct sockaddr *sad, int flags, int dummy)
+{ 
+    u_unused_args(dummy);
+#if !defined(NO_IPV6) && !defined(NO_SCTP)
+    return u_net_sctp6_csock((struct sockaddr_in6 *) sad, flags);
+#else
+    u_unused_args(sad, flags);
+    info("sctp6 socket not supported");
+    return -1;
+#endif  /* !NO_IPV6 && !NO_SCTP */
+}
+
 static int unix_ssock (struct sockaddr *sad, int flags, int backlog)
 {
 #ifndef NO_UNIXSOCK
@@ -703,7 +791,7 @@ static int do_ssock (struct sockaddr *sad, int sad_len, int domain, int type,
 {
     int s = -1;
 #ifdef HAVE_SETSOCKOPT
-    int on = (flags & U_NET_FLAG_REUSE_ADDR) ? 1 : 0;
+    int on = (flags & U_NET_FLAG_DONT_REUSE_ADDR) ? 0 : 1;
 #else
     u_unused_args(flags);
 #endif  /* HAVE_SETSOCKOPT */
