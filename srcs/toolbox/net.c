@@ -387,6 +387,22 @@ err:
 
 #endif /* !NO_UNIXSOCK */
 
+/** \brief  Return a pointer to sockaddr structure of the supplied address */
+struct sockaddr *u_net_addr_get_sa (u_net_addr_t *a)
+{
+    dbg_return_if (a == NULL, NULL);
+
+    return &a->sa.s;
+}
+
+/** \brief  Return the type of the supplied address (U_NET_TYPE_MIN on error) */
+int u_net_addr_get_type (u_net_addr_t *a)
+{
+    dbg_return_if (a == NULL, U_NET_TYPE_MIN);
+
+    return a->type;
+}
+
 /** \brief  Create new \c u_net_addr_t object of the requested \p type */
 int u_net_addr_new (int type, u_net_addr_t **pa)
 {

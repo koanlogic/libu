@@ -149,6 +149,10 @@ int u_net_uri2addr (const char *uri, u_net_addr_t **pa);
 int u_net_addr_new (int type, u_net_addr_t **pa);
 void u_net_addr_free (u_net_addr_t *addr);
 
+/* address accessors */
+int u_net_addr_get_type (u_net_addr_t *a);
+struct sockaddr *u_net_addr_get_sa (u_net_addr_t *a);
+
 /* address opts manipulation (applies to socket creation) */
 void u_net_addr_set_opts (u_net_addr_t *addr, int opts);
 void u_net_addr_add_opts (u_net_addr_t *addr, int opts);
