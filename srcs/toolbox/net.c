@@ -19,21 +19,22 @@
 typedef int (*u_net_disp_f) (struct sockaddr *, int, int);
 
 /* workers */
-static int do_csock (struct sockaddr *sad, int sad_len, int domain, int type);
+static int do_csock (struct sockaddr *sad, int sad_len, int domain, int type,
+        int flags);
 static int do_ssock (struct sockaddr *sad, int sad_len, int domain, int type, 
-        int reuse, int backlog);
+        int flags, int backlog);
 
 /* per family dispatchers */
-static int tcp4_ssock (struct sockaddr *sad, int reuse, int backlog);
-static int tcp4_csock (struct sockaddr *sad, int dummy1, int dummy2);
-static int tcp6_ssock (struct sockaddr *sad, int reuse, int backlog);
-static int tcp6_csock (struct sockaddr *sad, int dummy1, int dummy2);
-static int udp4_ssock (struct sockaddr *sad, int reuse, int backlog);
-static int udp4_csock (struct sockaddr *sad, int dummy1, int dummy2);
-static int udp6_ssock (struct sockaddr *sad, int reuse, int backlog);
-static int udp6_csock (struct sockaddr *sad, int dummy1, int dummy2);
-static int unix_ssock (struct sockaddr *sad, int dummy1, int backlog);
-static int unix_csock (struct sockaddr *sad, int dummy1, int dummy2);
+static int tcp4_ssock (struct sockaddr *sad, int flags, int backlog);
+static int tcp4_csock (struct sockaddr *sad, int flags, int dummy);
+static int tcp6_ssock (struct sockaddr *sad, int flags, int backlog);
+static int tcp6_csock (struct sockaddr *sad, int flags, int dummy);
+static int udp4_ssock (struct sockaddr *sad, int flags, int backlog);
+static int udp4_csock (struct sockaddr *sad, int flags, int dummy);
+static int udp6_ssock (struct sockaddr *sad, int flags, int backlog);
+static int udp6_csock (struct sockaddr *sad, int flags, int dummy);
+static int unix_ssock (struct sockaddr *sad, int flags, int backlog);
+static int unix_csock (struct sockaddr *sad, int flags, int dummy);
 
 /* function table to dispatch by socket mode and address family */
 u_net_disp_f disp_tbl[][2] = 
@@ -63,6 +64,7 @@ static int unix_uri_to_sun (u_uri_t *uri, struct sockaddr *sad);
 struct u_net_addr_s
 {
     int type;   /* one of U_NET_TYPE's */
+    int flags;  /* one of U_NET_FLAG's */
     union
     {
         struct sockaddr     s;
@@ -117,6 +119,9 @@ int u_net_sock (const char *uri, int mode)
     /* decode address ('addr' validation is done by u_net_sock_by_addr() */
     dbg_err_if (u_net_uri2addr(uri, &addr));
 
+    /* set default flags */
+    addr->flags = U_NET_FLAG_REUSE_ADDR;
+
     /* ask our worker to do the real job */
     s = u_net_sock_by_addr(addr, mode);
     u_net_addr_free(addr);
@@ -141,7 +146,7 @@ int u_net_sock_by_addr (u_net_addr_t *addr, int mode)
 
     /* try to dispatch request based on the supplied address and mode */
     if ((dfun = disp_tbl[addr->type][mode]) != NULL)
-        return dfun(&addr->sa.s, 1 /* reuse */, U_NET_BACKLOG);
+        return dfun(&addr->sa.s, addr->flags, U_NET_BACKLOG);
 
     info("address scheme not supported");
     return -1;
@@ -175,62 +180,66 @@ int u_net_sock_udp (u_net_addr_t *addr, int mode)
 }
 
 /** \brief  Return a TCP socket descriptor bound to the supplied IPv4 address */
-int u_net_tcp4_ssock (struct sockaddr_in *sad, int reuse, int backlog)
+int u_net_tcp4_ssock (struct sockaddr_in *sad, int flags, int backlog)
 { 
     return do_ssock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET, SOCK_STREAM, reuse, backlog);
+            AF_INET, SOCK_STREAM, flags, backlog);
 }
 
 /** \brief  Return a TCP socket descriptor connected to the supplied IPv4
  *          address */
-int u_net_tcp4_csock (struct sockaddr_in *sad)
+int u_net_tcp4_csock (struct sockaddr_in *sad, int flags)
 {
-    return do_csock((struct sockaddr *) sad, sizeof *sad, AF_INET, SOCK_STREAM);
+    return do_csock((struct sockaddr *) sad, sizeof *sad, 
+            AF_INET, SOCK_STREAM, flags);
 }
 
 /** \brief  Return a UDP socket descriptor bound to the supplied IPv4 address */
-int u_net_udp4_ssock (struct sockaddr_in *sad, int reuse)
+int u_net_udp4_ssock (struct sockaddr_in *sad, int flags)
 { 
     return do_ssock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET, SOCK_DGRAM, reuse, 0 /* backlog is ignored by UDP */);
+            AF_INET, SOCK_DGRAM, flags, 0 /* backlog is ignored by UDP */);
 }
 
 /** \brief  Return a UDP socket descriptor connected (the UDP way) to the 
  *          supplied IPv4 address */
-int u_net_udp4_csock (struct sockaddr_in *sad)
+int u_net_udp4_csock (struct sockaddr_in *sad, int flags)
 {
-    return do_csock((struct sockaddr *) sad, sizeof *sad, AF_INET, SOCK_DGRAM);
+    return do_csock((struct sockaddr *) sad, sizeof *sad, 
+            AF_INET, SOCK_DGRAM, flags);
 }
 
 #ifndef NO_IPV6
 
 /** \brief  Return a TCP socket descriptor bound to the supplied IPv6 address */
-int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int reuse, int backlog)
+int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int flags, int backlog)
 {
     return do_ssock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET6, SOCK_STREAM, reuse, backlog);
+            AF_INET6, SOCK_STREAM, flags, backlog);
 }
 
 /** \brief  Return a TCP socket descriptor connected to the supplied IPv6
  *          address */
-int u_net_tcp6_csock (struct sockaddr_in6 *sad)
+int u_net_tcp6_csock (struct sockaddr_in6 *sad, int flags)
 {
     return do_csock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET6, SOCK_STREAM);
+            AF_INET6, SOCK_STREAM, flags);
 }
 
 /** \brief  Return a UDP socket descriptor bound to the supplied IPv6 address */
-int u_net_udp6_ssock (struct sockaddr_in6 *sad, int reuse)
+int u_net_udp6_ssock (struct sockaddr_in6 *sad, int flags)
 { 
     return do_ssock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET6, SOCK_DGRAM, reuse, 0 /* backlog is ignored by UDP */);
+            AF_INET6, SOCK_DGRAM, flags, 0 /* backlog is ignored by UDP */);
 }
 
-/** \brief  Return a UDP socket descriptor connected (the UDP way) to the 
- *          supplied IPv6 address */
-int u_net_udp6_csock (struct sockaddr_in6 *sad)
+/** \brief  Return a UDP socket descriptorconnected (the UDP way) to the 
+ *          supplied IPv6 address.  In case you need to avoid connection,
+ *          assert \c U_NET_FLAG_DONT_CONNECT_UDP in the \p flags parameter. */
+int u_net_udp6_csock (struct sockaddr_in6 *sad, int flags)
 {
-    return do_csock((struct sockaddr *) sad, sizeof *sad, AF_INET6, SOCK_DGRAM);
+    return do_csock((struct sockaddr *) sad, sizeof *sad, 
+            AF_INET6, SOCK_DGRAM, flags);
 }
 
 /** \brief  Fill the supplied \c sockaddr_in6 object at \p *sad with addressing
@@ -244,24 +253,24 @@ static int ipv6_uri_to_sin6 (u_uri_t *uri, struct sockaddr *sad)
 {
     char *hnum;
     struct hostent *hp = NULL;
-    struct sockaddr_in6 *_sad;
+    struct sockaddr_in6 *sin6;
 
     dbg_return_if (uri == NULL, ~0);
     dbg_return_if (strcasecmp(uri->scheme, "tcp6") && 
             strcasecmp(uri->scheme, "udp6"), ~0);
     dbg_return_if (uri->port <= 0 || uri->port > 65535, ~0);
-    dbg_return_if ((_sad = (struct sockaddr_in6 *) sad) == NULL, ~0);
+    dbg_return_if ((sin6 = (struct sockaddr_in6 *) sad) == NULL, ~0);
 
-    memset((char *) _sad, 0, sizeof(struct sockaddr_in6));
+    memset(sin6, 0, sizeof(struct sockaddr_in6));
 
-    _sad->sin6_len = sizeof(struct sockaddr_in6);
-    _sad->sin6_port = htons(uri->port);
-    _sad->sin6_family = AF_INET6;
-    _sad->sin6_flowinfo = 0;
+    sin6->sin6_len = sizeof(struct sockaddr_in6);
+    sin6->sin6_port = htons(uri->port);
+    sin6->sin6_family = AF_INET6;
+    sin6->sin6_flowinfo = 0;
 
     /* '*' is the wildcard address */
     if (!strcmp(uri->host, "*"))
-        _sad->sin6_addr = in6addr_any;
+        sin6->sin6_addr = in6addr_any;
     else
     {
         /* try with the resolver first, if no result, fall back to numeric */
@@ -270,7 +279,7 @@ static int ipv6_uri_to_sin6 (u_uri_t *uri, struct sockaddr *sad)
         hnum = (hp && hp->h_addrtype == AF_INET6) ? hp->h_addr : uri->host;
 
         /* convert address from printable to network format */
-        switch (inet_pton(AF_INET6, hnum, &_sad->sin6_addr))
+        switch (inet_pton(AF_INET6, hnum, &sin6->sin6_addr))
         {
             case -1:
                 dbg_strerror(errno); 
@@ -293,7 +302,7 @@ err:
 #ifndef NO_UNIXSOCK
 
 /** \brief  Return a TCP socket descriptor bound to the supplied UNIX path */
-int u_net_unix_ssock (struct sockaddr_un *sad, int backlog)
+int u_net_unix_ssock (struct sockaddr_un *sad, int flags, int backlog)
 {
     dbg_return_if (sad == NULL, -1);
 
@@ -301,14 +310,15 @@ int u_net_unix_ssock (struct sockaddr_un *sad, int backlog)
     dbg_return_sif (unlink(sad->sun_path) == -1 && errno != ENOENT, -1);
 
     return do_ssock((struct sockaddr *) sad, sizeof *sad, 
-            AF_UNIX, SOCK_STREAM, 0 /* ignored for AF_UNIX */, backlog);
+            AF_UNIX, SOCK_STREAM, flags, backlog);
 }
 
 /** \brief  Return a TCP socket descriptor connected to the supplied UNIX 
  *          path */
-int u_net_unix_csock (struct sockaddr_un *sad)
+int u_net_unix_csock (struct sockaddr_un *sad, int flags)
 {
-    return do_csock((struct sockaddr *) sad, sizeof *sad, AF_UNIX, SOCK_STREAM);
+    return do_csock((struct sockaddr *) sad, sizeof *sad, 
+            AF_UNIX, SOCK_STREAM, flags);
 }
 
 /** \brief  Fill the supplied \c sockaddr_un object at \p *sad with addressing
@@ -320,14 +330,14 @@ int u_net_uri2sun (const char *uri, struct sockaddr_un *sad)
 
 static int unix_uri_to_sun (u_uri_t *uri, struct sockaddr *sad)
 {
-    struct sockaddr_un *_sad;
+    struct sockaddr_un *sun;
 
     dbg_return_if (uri == NULL, ~0);
     dbg_return_if (strcasecmp(uri->scheme, "unix"), ~0);
-    dbg_return_if ((_sad = (struct sockaddr_un *) sad) == NULL, ~0);
+    dbg_return_if ((sun = (struct sockaddr_un *) sad) == NULL, ~0);
 
-    _sad->sun_family = AF_UNIX;
-    dbg_err_ifm (u_strlcpy(_sad->sun_path, uri->path, sizeof _sad->sun_path), 
+    sun->sun_family = AF_UNIX;
+    dbg_err_ifm (u_strlcpy(sun->sun_path, uri->path, sizeof sun->sun_path), 
             "%s too long", uri);
 
     return 0;
@@ -458,30 +468,31 @@ static int ipv4_uri_to_sin (u_uri_t *uri, struct sockaddr *sad)
 {
     in_addr_t saddr;
     struct hostent *hp = NULL;
-    struct sockaddr_in *_sad;
+    struct sockaddr_in *sin;
 
     dbg_return_if (uri == NULL, ~0);
     dbg_return_if (strcasecmp(uri->scheme, "tcp4") && 
             strcasecmp(uri->scheme, "udp4"), ~0);
     dbg_return_if (uri->port <= 0 || uri->port > 65535, ~0);
-    dbg_return_if ((_sad = (struct sockaddr_in *) sad) == NULL, ~0);
+    dbg_return_if ((sin = (struct sockaddr_in *) sad) == NULL, ~0);
 
-    memset((char *) _sad, 0, sizeof(struct sockaddr_in));
-    _sad->sin_port = htons(uri->port);
-    _sad->sin_family = AF_INET;
+    memset(sin, 0, sizeof(struct sockaddr_in));
+
+    sin->sin_port = htons(uri->port);
+    sin->sin_family = AF_INET;
 
     /* '*' is the wildcard address */
     if (!strcmp(uri->host, "*"))
-        _sad->sin_addr.s_addr = htonl(INADDR_ANY);
+        sin->sin_addr.s_addr = htonl(INADDR_ANY);
     else
     {
         /* try with the resolver first, if no result, fall back to numeric */
         hp = gethostbyname(uri->host);
 
         if (hp && hp->h_addrtype == AF_INET)
-            memcpy(&_sad->sin_addr.s_addr, hp->h_addr, sizeof(in_addr_t));
+            memcpy(&sin->sin_addr.s_addr, hp->h_addr, sizeof(in_addr_t));
         else if ((saddr = inet_addr(uri->host)) != INADDR_NONE)
-            _sad->sin_addr.s_addr = saddr;
+            sin->sin_addr.s_addr = saddr;
         else
             dbg_err("invalid host name: \'%s\'", uri->host);
     }
@@ -489,6 +500,22 @@ static int ipv4_uri_to_sin (u_uri_t *uri, struct sockaddr *sad)
     return 0;
 err:
     return ~0;
+}
+
+/** \brief  Set the supplied address flags set to \p flags */
+void u_net_addr_set_flags (u_net_addr_t *addr, int flags)
+{
+    dbg_return_if (addr == NULL, );
+    addr->flags = flags;
+    return;
+}
+
+/** \brief  Add the \p flags subset to the supplied address flags set */
+void u_net_addr_add_flags (u_net_addr_t *addr, int flags)
+{
+    dbg_return_if (addr == NULL, );
+    addr->flags |= flags;
+    return;
 }
 
 /**
@@ -551,104 +578,105 @@ err:
  * interface (see u_net_disp_f typedef)
  */
 
-static int tcp4_ssock (struct sockaddr *sad, int reuse, int backlog)
+static int tcp4_ssock (struct sockaddr *sad, int flags, int backlog)
 {
-    return u_net_tcp4_ssock((struct sockaddr_in *) sad, reuse, backlog);
+    return u_net_tcp4_ssock((struct sockaddr_in *) sad, flags, backlog);
 }
 
-static int tcp4_csock (struct sockaddr *sad, int dummy1, int dummy2)
+static int tcp4_csock (struct sockaddr *sad, int flags, int dummy)
 { 
-    u_unused_args(dummy1, dummy2);
+    u_unused_args(dummy);
 
-    return u_net_tcp4_csock((struct sockaddr_in *) sad);
+    return u_net_tcp4_csock((struct sockaddr_in *) sad, flags);
 } 
 
-static int tcp6_ssock (struct sockaddr *sad, int reuse, int backlog)
+static int tcp6_ssock (struct sockaddr *sad, int flags, int backlog)
 { 
 #ifndef NO_IPV6
-    return u_net_tcp6_ssock((struct sockaddr_in6 *) sad, reuse, backlog);
+    return u_net_tcp6_ssock((struct sockaddr_in6 *) sad, flags, backlog);
 #else
-    u_unused_args(sad, reuse, backlog);
+    u_unused_args(sad, flags, backlog);
     info("tcp6 socket not supported");
     return -1;
 #endif  /* !NO_IPV6 */
 }
 
-static int tcp6_csock (struct sockaddr *sad, int dummy1, int dummy2)
+static int tcp6_csock (struct sockaddr *sad, int flags, int dummy)
 { 
-    u_unused_args(dummy1, dummy2);
+    u_unused_args(dummy);
 #ifndef NO_IPV6
-    return u_net_tcp6_csock((struct sockaddr_in6 *) sad);
+    return u_net_tcp6_csock((struct sockaddr_in6 *) sad, flags);
 #else
-    u_unused_args(sad);
+    u_unused_args(sad, flags);
     info("tcp6 socket not supported");
     return -1;
 #endif  /* !NO_IPV6 */
 }
 
-static int unix_ssock (struct sockaddr *sad, int dummy1, int backlog)
+static int unix_ssock (struct sockaddr *sad, int flags, int backlog)
 {
-    u_unused_args(dummy1);
 #ifndef NO_UNIXSOCK
-    return u_net_unix_ssock((struct sockaddr_un *) sad, backlog);
+    return u_net_unix_ssock((struct sockaddr_un *) sad, flags, backlog);
 #else
-    u_unused_args(sad, backlog);
+    u_unused_args(sad, flags, backlog);
     info("unix socket not supported");
     return -1;
 #endif  /* !NO_UNIXSOCK */
 }
 
-static int unix_csock (struct sockaddr *sad, int dummy1, int dummy2)
+static int unix_csock (struct sockaddr *sad, int flags, int dummy)
 {
-    u_unused_args(dummy1, dummy2);
+    u_unused_args(dummy);
 #ifndef NO_UNIXSOCK
-    return u_net_unix_csock((struct sockaddr_un *) sad);
+    return u_net_unix_csock((struct sockaddr_un *) sad, flags);
 #else
-    u_unused_args(sad);
+    u_unused_args(sad, flags);
     info("unix socket not supported");
     return -1;
 #endif  /* !NO_UNIXSOCK */
 }
 
-static int udp4_ssock (struct sockaddr *sad, int reuse, int backlog)
+static int udp4_ssock (struct sockaddr *sad, int flags, int backlog)
 { 
     u_unused_args(backlog);
 
-    return u_net_udp4_ssock((struct sockaddr_in *) sad, reuse);
+    return u_net_udp4_ssock((struct sockaddr_in *) sad, flags);
 }
 
-static int udp4_csock (struct sockaddr *sad, int dummy1, int dummy2)
+static int udp4_csock (struct sockaddr *sad, int flags, int dummy)
 { 
-    u_unused_args(dummy1, dummy2);
+    u_unused_args(dummy);
 
-    return u_net_udp4_csock((struct sockaddr_in *) sad);
+    return u_net_udp4_csock((struct sockaddr_in *) sad, flags);
 }
 
-static int udp6_ssock (struct sockaddr *sad, int reuse, int backlog)
+static int udp6_ssock (struct sockaddr *sad, int flags, int backlog)
 { 
 #ifndef NO_IPV6
     return do_ssock((struct sockaddr *) sad, sizeof(struct sockaddr_in6),
-            AF_INET6, SOCK_DGRAM, reuse, backlog /* ignored by UDP */);
+            AF_INET6, SOCK_DGRAM, flags, backlog /* ignored by UDP */);
 #else
-    u_unused_args(sad, reuse, backlog);
+    u_unused_args(sad, flags, backlog);
     info("udp6 socket not supported");
     return -1;
 #endif  /* !NO_IPV6 */
 }
 
-static int udp6_csock (struct sockaddr *sad, int dummy1, int dummy2)
+static int udp6_csock (struct sockaddr *sad, int flags, int dummy)
 { 
-    u_unused_args(dummy1, dummy2);
+    u_unused_args(dummy);
 #ifndef NO_IPV6
-    return do_csock((struct sockaddr *) sad, sizeof *sad, AF_INET6, SOCK_DGRAM);
+    return do_csock((struct sockaddr *) sad, sizeof *sad, 
+            AF_INET6, SOCK_DGRAM, flags);
 #else
-    u_unused_args(sad);
+    u_unused_args(sad, flags);
     info("udp6 socket not supported");
     return -1;
 #endif  /* !NO_IPV6 */
 }
 
-static int do_csock (struct sockaddr *sad, int sad_len, int domain, int type)
+static int do_csock (struct sockaddr *sad, int sad_len, int domain, int type,
+        int flags)
 {
     int s = -1;
 
@@ -656,12 +684,13 @@ static int do_csock (struct sockaddr *sad, int sad_len, int domain, int type)
 
     dbg_err_sif ((s = socket(domain, type, 0)) == -1);
 
-    /* NOTE that also UDP sockets (not only TCP and UNIX) are connected.
+    /* NOTE that by default UDP sockets (not only TCP and UNIX) are connected.
      * This has a couple of important implications:
-     * 1) the caller must use u_net_read/u_net_write for I/O instead of 
+     * 1) the caller must use u{,_net}_read/u{,_net}_write for I/O instead of 
      *    recvfrom/sendto;
      * 2) async errors are returned to the process. */
-    dbg_err_sif (connect(s, sad, sad_len) == -1);
+    if (!(flags & U_NET_FLAG_DONT_CONNECT_UDP))
+        dbg_err_sif (connect(s, sad, sad_len) == -1);
 
     return s;
 err:
@@ -670,13 +699,13 @@ err:
 }
 
 static int do_ssock (struct sockaddr *sad, int sad_len, int domain, int type, 
-        int reuse, int backlog)
+        int flags, int backlog)
 {
     int s = -1;
 #ifdef HAVE_SETSOCKOPT
-    int on = reuse ? 1 : 0;
+    int on = (flags & U_NET_FLAG_REUSE_ADDR) ? 1 : 0;
 #else
-    u_unused_args(reuse);
+    u_unused_args(flags);
 #endif  /* HAVE_SETSOCKOPT */
 
     dbg_return_if (sad == NULL, -1);
@@ -689,7 +718,7 @@ static int do_ssock (struct sockaddr *sad, int sad_len, int domain, int type,
                     &on, sizeof on) == -1);
     }
 #else
-    info("could not honour the reuse flag");
+    info("could not honour the address reuse request");
 #endif
     dbg_err_sif (bind(s, (struct sockaddr *) sad, sad_len) == -1);
 

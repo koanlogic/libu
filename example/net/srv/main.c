@@ -1,4 +1,4 @@
-/* $Id: main.c,v 1.1 2009/12/23 18:14:10 tho Exp $ */
+/* $Id: main.c,v 1.2 2009/12/24 16:39:00 tho Exp $ */
 
 #include <stdlib.h>
 #include <u/libu.h>
@@ -20,10 +20,12 @@ int main (int argc, char *argv[])
     con_err_sif ((rb = u_read(asd, buf, sizeof(buf))) == -1);
     con("read: %s", buf);
 
+    (void) close(sd);
     (void) close(asd);
     
     return EXIT_SUCCESS;
 err:
+    U_CLOSE(sd);
     U_CLOSE(asd);
     return EXIT_FAILURE;
 }

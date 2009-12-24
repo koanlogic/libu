@@ -1,8 +1,8 @@
-$Id: ChangeLog,v 1.79 2009/12/23 22:26:47 tho Exp $
+$Id: ChangeLog,v 1.80 2009/12/24 16:39:00 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
-LibU 1.5.0
+LibU 1.5.0 (?)
 	- [config] u_config_print_to_fp with brace delimiters for children records;
 	  documentation fixes by Mickael Auger
 	- [hmap] added u_hmap_foreach_arg which accepts a user defined parameter
@@ -12,7 +12,10 @@ LibU 1.5.0
 	  wildcard address (i.e. '*') in uri; IPv6 uri to address translator;
 	  u_net_uri2sin footprint aligned to other u_net_uri2* interfaces;
 	  u_accept prototype fixed for platforms supporting socklen_t type; 
-	  added support for IPv[46] UDP sockets
+	  added support for IPv[46] UDP sockets; added u_net_addr_{set,add}_flags
+	  interfaces for explicit socket flags manipulation; add explicit flags
+	  parameter to all u_net_*sock interfaces
+
 	- fix configure bug which prevented IPv6 and UNIX sockets bits inclusion;
 	  also bring back to life --no_ipv6 and --no_unixsock configure flags
 	- [pwd] use u_strtok instead of deprecated u_tokenize internally
