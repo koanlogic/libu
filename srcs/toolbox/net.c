@@ -212,6 +212,7 @@ int u_net_udp4_csock (struct sockaddr_in *sad, int flags)
             AF_INET, SOCK_DGRAM, flags);
 }
 
+#ifndef NO_SCTP
 /** \brief  Return a SCTP socket descriptor bound to the supplied IPv4 
  *          address */
 int u_net_sctp4_ssock (struct sockaddr_in *sad, int flags, int backlog)
@@ -227,6 +228,7 @@ int u_net_sctp4_csock (struct sockaddr_in *sad, int flags)
     return do_csock((struct sockaddr *) sad, sizeof *sad, 
             AF_INET, SOCK_SEQPACKET, flags);
 }
+#endif  /* !NO_SCTP */
 
 #ifndef NO_IPV6
 
