@@ -893,8 +893,7 @@ static int do_csock (struct sockaddr *sad, int sad_len, int domain, int type,
 
     /* NOTE that by default UDP sockets (not only TCP and UNIX) are connected.
      * This has a couple of important implications:
-     * 1) the caller must use u{,_net}_read/u{,_net}_write for I/O instead of 
-     *    recvfrom/sendto;
+     * 1) the caller must use u{,_net}_write for I/O instead of sendto 
      * 2) async errors are returned to the process. */
     if (!(opts & U_NET_OPT_DONT_CONNECT_UDP))
         dbg_err_sif (u_connect(s, sad, sad_len) == -1);
