@@ -113,7 +113,7 @@ int u_pwd_init (const char *res_uri, u_pwd_open_cb_t cb_open,
 
     /* copy in supplied attributes and methods */
     pwd->res_handler = NULL;
-    strlcpy(pwd->res_uri, res_uri, sizeof pwd->res_uri);
+    dbg_err_if (u_strlcpy(pwd->res_uri, res_uri, sizeof pwd->res_uri));
 
     pwd->hash_len = hash_len;
     pwd->cb_hash = cb_hash;
@@ -189,7 +189,7 @@ int u_pwd_auth_user (u_pwd_t *pwd, const char *user, const char *password)
     }
     else
     {
-        (void) strlcpy(__pstack, password, sizeof __pstack);
+        (void) u_strlcpy(__pstack, password, sizeof __pstack);
         __p = __pstack;
     }
 

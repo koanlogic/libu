@@ -969,7 +969,7 @@ int u_config_save_to_buf(u_config_t *c, char *buf, size_t size)
     /* buffer too small */
     warn_err_if(u_string_len(s) >= size);
 
-    strlcpy(buf, u_string_c(s), size);
+    (void) u_strlcpy(buf, u_string_c(s), size);
 
     u_string_free(s);
 
