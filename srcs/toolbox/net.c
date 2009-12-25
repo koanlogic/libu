@@ -239,7 +239,7 @@ int u_net_sctp4_csock (struct sockaddr_in *sad, int opts)
     int t = (opts & U_NET_OPT_SCTP_ONE_TO_MANY) ? SOCK_SEQPACKET : SOCK_STREAM;
 
     return do_csock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET, SOCK_SEQPACKET, IPPROTO_SCTP, opts);
+            AF_INET, t, IPPROTO_SCTP, opts);
 }
 #endif  /* !NO_SCTP */
 
