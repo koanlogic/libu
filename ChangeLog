@@ -1,4 +1,4 @@
-$Id: ChangeLog,v 1.82 2009/12/24 20:59:13 tho Exp $
+$Id: ChangeLog,v 1.83 2009/12/25 11:53:03 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
@@ -15,7 +15,8 @@ LibU 1.5.0 (?)
 	  added support for IPv[46] UDP sockets; added u_net_addr_{set,add}_flags
 	  interfaces for explicit socket flags manipulation; add explicit flags
 	  parameter to all u_net_*sock interfaces; added SCTP protocol support,
-	  both one-to-one and one-to-many (via U_NET_OPT_SCTP_ONE_TO_MANY option).
+	  both one-to-one and one-to-many (via U_NET_OPT_SCTP_ONE_TO_MANY option);
+	  add wrappers to common socket syscalls.
 	- fix configure bug which prevented IPv6 and UNIX sockets bits inclusion;
 	  also bring back to life --no_ipv6 and --no_unixsock configure flags; 
 	  new --no_sctp command line option to explicitly disable SCTP bits

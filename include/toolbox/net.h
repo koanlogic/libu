@@ -160,11 +160,18 @@ void u_net_addr_add_opts (u_net_addr_t *addr, int opts);
 /* misc */
 int u_net_nagle_off (int sd);
 
+/* networking syscall wrappers */
+int u_socket (int domain, int type, int protocol);
 #ifdef HAVE_SOCKLEN_T
+int u_connect (int sd, const struct sockaddr *addr, socklen_t addrlen);
 int u_accept(int ld, struct sockaddr *addr, socklen_t *addrlen);
+int u_bind (int sd, const struct sockaddr *addr, socklen_t addrlen);
 #else
+int u_connect (int sd, const struct sockaddr *addr, int addrlen);
 int u_accept(int ld, struct sockaddr *addr, int *addrlen);
+int u_bind (int sd, const struct sockaddr *addr, int addrlen);
 #endif  /* HAVE_SOCKLEN_T */
+int u_listen (int sd, int backlog);
 
 #ifdef __cplusplus
 }

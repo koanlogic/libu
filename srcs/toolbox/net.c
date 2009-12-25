@@ -68,6 +68,7 @@ static int unix_uri_to_sun (u_uri_t *uri, struct sockaddr *sad);
 #ifndef NO_SCTP
 static int sctp_enable_events (int s);
 #endif  /* !NO_SCTP */
+static int bind_reuse_addr (int s);
 
 /* internal uri representation */
 struct u_net_addr_s
@@ -601,18 +602,90 @@ void u_net_addr_add_opts (u_net_addr_t *addr, int opts)
  *          returns \c -1
  */ 
 #ifdef HAVE_SOCKLEN_T
-int u_accept(int ld, struct sockaddr *addr, socklen_t *addrlen)
+int u_accept (int ld, struct sockaddr *addr, socklen_t *addrlen)
 #else
-int u_accept(int ld, struct sockaddr *addr, int *addrlen)
+int u_accept (int ld, struct sockaddr *addr, int *addrlen)
 #endif  /* HAVE_SOCKLEN_T */
 {
-    int ad = -1;
+    int ad;
 
 again:
     if ((ad = accept(ld, addr, addrlen)) == -1 && (errno == EINTR))
         goto again; /* interrupted */
 
     return ad;
+}
+
+/** \brief  socket(2) wrapper */
+int u_socket (int domain, int type, int protocol)
+{
+    int s = socket(domain, type, protocol);
+
+#ifdef U_NET_TRACE
+    dbg("socket(%d, %d, %d) = %d", domain, type, protocol, s); 
+#endif
+
+    /* in case of error log, otherwise fall through */
+    dbg_err_sif (s == -1);
+err:
+    return s;
+}
+
+/** \brief  connect(2) wrapper that handles EINTR */
+#ifdef HAVE_SOCKLEN_T
+int u_connect (int sd, const struct sockaddr *addr, socklen_t addrlen)
+#else
+int u_connect (int sd, const struct sockaddr *addr, int addrlen)
+#endif  /* HAVE_SOCKLEN_T */
+{
+    int s;
+   
+again:
+    if ((s = connect(sd, addr, addrlen)) == -1 && (errno == EINTR))
+        goto again;
+
+#ifdef U_NET_TRACE
+    dbg("connect(%d, %p, %d) = %d", sd, addr, addrlen, s); 
+#endif
+
+    /* in case of error log, otherwise fall through */
+    dbg_err_sif (s == -1);
+err:
+    return s;
+}
+
+/** \brief  bind(2) wrapper */
+#ifdef HAVE_SOCKLEN_T
+int u_bind (int sd, const struct sockaddr *addr, socklen_t addrlen)
+#else
+int u_bind (int sd, const struct sockaddr *addr, int addrlen)
+#endif  /* HAVE_SOCKLEN_T */
+{
+    int rc = bind(sd, addr, addrlen);
+
+#ifdef U_NET_TRACE
+    dbg("bind(%d, %p, %d) = %d", sd, addr, addrlen, rc); 
+#endif
+
+    /* in case of error log, otherwise fall through */
+    dbg_err_sif (rc == -1);
+err:
+    return rc;
+}
+
+/** \brief  listen(2) wrapper */
+int u_listen (int sd, int backlog)
+{
+    int rc = listen(sd, backlog);
+
+#ifdef U_NET_TRACE
+    dbg("listen(%d, %d) = %d", sd, backlog, rc); 
+#endif
+
+    /* in case of error log, otherwise fall through */
+    dbg_err_sif (rc == -1);
+err:
+    return rc;
 }
 
 /**
@@ -827,24 +900,17 @@ static int do_ssock (struct sockaddr *sad, int sad_len, int domain, int type,
         int protocol, int opts, int backlog)
 {
     int s = -1;
-#ifdef HAVE_SETSOCKOPT
-    /* by default address reuse is in place, unless the caller has set
-     * the U_NET_OPT_DONT_REUSE_ADDR option */
-    int on = (opts & U_NET_OPT_DONT_REUSE_ADDR) ? 0 : 1;
-#endif  /* HAVE_SETSOCKOPT */
 
     dbg_return_if (sad == NULL, -1);
 
     dbg_err_sif ((s = socket(domain, type, protocol)) == -1);
-#ifdef HAVE_SETSOCKOPT
-    if (domain != AF_UNIX)
-    {
-        dbg_err_sif (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, 
-                    &on, sizeof on) == -1);
-    }
-#else
-    info("could not honour the address reuse request");
-#endif
+    
+    /* 
+     * by default address reuse is in place for all server sockets except 
+     * AF_UNIX, unless the caller has set the U_NET_OPT_DONT_REUSE_ADDR option 
+     */ 
+    if (domain != AF_UNIX && !(opts & U_NET_OPT_DONT_REUSE_ADDR))
+        dbg_err_if (bind_reuse_addr(s));
 
 #ifndef NO_SCTP
     if (opts & U_NET_OPT_SCTP_ONE_TO_MANY)
@@ -881,3 +947,23 @@ err:
     return ~0;
 }
 #endif  /* !NO_SCTP */
+
+/* change the rules used in validating addresses supplied in a bind(2) call 
+ * so that reuse of local addresses is allowed */
+static int bind_reuse_addr (int s)
+{
+#ifdef HAVE_SETSOCKOPT
+    int on = 1;
+
+    dbg_return_if (s < 0, -1);
+    dbg_err_sif (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on) == -1);
+
+    return 0;
+err:
+    return ~0;
+#else /* !HAVE_SETSOCKOPT */
+    u_unused_args(sd);
+    info("could not honour the address reuse request");
+    return 0;
+#endif  /* HAVE_SETSOCKOPT */
+}
