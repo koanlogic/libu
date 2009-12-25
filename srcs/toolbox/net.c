@@ -594,7 +594,7 @@ void u_net_addr_add_opts (u_net_addr_t *addr, int opts)
 /**
  *  \brief  accept(2) wrapper that handles EINTR
  *
- *  \param  ld          file descriptor
+ *  \param  sd          file descriptor
  *  \param  addr        see accept(2)   
  *  \param  addrlen     size of addr struct
  *
@@ -602,17 +602,24 @@ void u_net_addr_add_opts (u_net_addr_t *addr, int opts)
  *          returns \c -1
  */ 
 #ifdef HAVE_SOCKLEN_T
-int u_accept (int ld, struct sockaddr *addr, socklen_t *addrlen)
+int u_accept (int sd, struct sockaddr *addr, socklen_t *addrlen)
 #else
-int u_accept (int ld, struct sockaddr *addr, int *addrlen)
+int u_accept (int sd, struct sockaddr *addr, int *addrlen)
 #endif  /* HAVE_SOCKLEN_T */
 {
     int ad;
 
 again:
-    if ((ad = accept(ld, addr, addrlen)) == -1 && (errno == EINTR))
+    if ((ad = accept(sd, addr, addrlen)) == -1 && (errno == EINTR))
         goto again; /* interrupted */
 
+#ifdef U_NET_TRACE
+    dbg("accept(%d, %p, %d) = %d", sd, addr, addrlen, ad); 
+#endif
+
+    /* in case of error log errno, otherwise fall through */
+    dbg_err_sif (ad == -1);
+err:
     return ad;
 }
 
@@ -625,7 +632,7 @@ int u_socket (int domain, int type, int protocol)
     dbg("socket(%d, %d, %d) = %d", domain, type, protocol, s); 
 #endif
 
-    /* in case of error log, otherwise fall through */
+    /* in case of error log errno, otherwise fall through */
     dbg_err_sif (s == -1);
 err:
     return s;
@@ -648,7 +655,7 @@ again:
     dbg("connect(%d, %p, %d) = %d", sd, addr, addrlen, s); 
 #endif
 
-    /* in case of error log, otherwise fall through */
+    /* in case of error log errno, otherwise fall through */
     dbg_err_sif (s == -1);
 err:
     return s;
@@ -667,7 +674,7 @@ int u_bind (int sd, const struct sockaddr *addr, int addrlen)
     dbg("bind(%d, %p, %d) = %d", sd, addr, addrlen, rc); 
 #endif
 
-    /* in case of error log, otherwise fall through */
+    /* in case of error log errno, otherwise fall through */
     dbg_err_sif (rc == -1);
 err:
     return rc;
@@ -682,7 +689,7 @@ int u_listen (int sd, int backlog)
     dbg("listen(%d, %d) = %d", sd, backlog, rc); 
 #endif
 
-    /* in case of error log, otherwise fall through */
+    /* in case of error log errno, otherwise fall through */
     dbg_err_sif (rc == -1);
 err:
     return rc;
