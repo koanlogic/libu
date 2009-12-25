@@ -305,7 +305,8 @@ static int ipv6_uri_to_sin6 (u_uri_t *uri, struct sockaddr *sad)
 
     dbg_return_if (uri == NULL, ~0);
     dbg_return_if (strcasecmp(uri->scheme, "tcp6") && 
-            strcasecmp(uri->scheme, "udp6"), ~0);
+            strcasecmp(uri->scheme, "udp6") && 
+            strcasecmp(uri->scheme, "sctp6"), ~0);
     dbg_return_if (uri->port <= 0 || uri->port > 65535, ~0);
     dbg_return_if ((sin6 = (struct sockaddr_in6 *) sad) == NULL, ~0);
 
@@ -545,7 +546,8 @@ static int ipv4_uri_to_sin (u_uri_t *uri, struct sockaddr *sad)
 
     dbg_return_if (uri == NULL, ~0);
     dbg_return_if (strcasecmp(uri->scheme, "tcp4") && 
-            strcasecmp(uri->scheme, "udp4"), ~0);
+            strcasecmp(uri->scheme, "udp4") &&
+            strcasecmp(uri->scheme, "sctp4"), ~0);
     dbg_return_if (uri->port <= 0 || uri->port > 65535, ~0);
     dbg_return_if ((sin = (struct sockaddr_in *) sad) == NULL, ~0);
 
