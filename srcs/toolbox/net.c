@@ -866,7 +866,7 @@ static int udp6_csock (struct sockaddr *sad, int opts, int dummy)
 { 
     u_unused_args(dummy);
 #ifndef NO_IPV6
-    return do_csock((struct sockaddr *) sad, sizeof *sad, 
+    return do_csock((struct sockaddr *) sad, sizeof(struct sockaddr_in6),
             AF_INET6, SOCK_DGRAM, 0, opts);
 #else
     u_unused_args(sad, opts);
@@ -882,7 +882,7 @@ static int do_csock (struct sockaddr *sad, int sad_len, int domain, int type,
 
     dbg_return_if (sad == NULL, -1);
 
-    dbg_err_sif ((s = socket(domain, type, protocol)) == -1);
+    dbg_err_sif ((s = u_socket(domain, type, protocol)) == -1);
 
 #ifndef NO_SCTP
     if (opts & U_NET_OPT_SCTP_ONE_TO_MANY)
@@ -895,7 +895,7 @@ static int do_csock (struct sockaddr *sad, int sad_len, int domain, int type,
      *    recvfrom/sendto;
      * 2) async errors are returned to the process. */
     if (!(opts & U_NET_OPT_DONT_CONNECT_UDP))
-        dbg_err_sif (connect(s, sad, sad_len) == -1);
+        dbg_err_sif (u_connect(s, sad, sad_len) == -1);
 
     return s;
 err:
@@ -910,7 +910,7 @@ static int do_ssock (struct sockaddr *sad, int sad_len, int domain, int type,
 
     dbg_return_if (sad == NULL, -1);
 
-    dbg_err_sif ((s = socket(domain, type, protocol)) == -1);
+    dbg_err_sif ((s = u_socket(domain, type, protocol)) == -1);
     
     /* 
      * by default address reuse is in place for all server sockets except 
@@ -924,11 +924,11 @@ static int do_ssock (struct sockaddr *sad, int sad_len, int domain, int type,
         dbg_err_sif (sctp_enable_events(s));
 #endif
 
-    dbg_err_sif (bind(s, (struct sockaddr *) sad, sad_len) == -1);
+    dbg_err_sif (u_bind(s, (struct sockaddr *) sad, sad_len) == -1);
 
     /* only stream and seqpacket sockets enter the LISTEN state */
     if (type == SOCK_STREAM || type == SOCK_SEQPACKET)
-        dbg_err_sif (listen(s, backlog) == -1);
+        dbg_err_sif (u_listen(s, backlog) == -1);
 
     return s;
 err:
