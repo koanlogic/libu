@@ -226,14 +226,18 @@ int u_net_udp4_csock (struct sockaddr_in *sad, int opts)
  *          if you need to implement the one-to-many SCTP model. */
 int u_net_sctp4_ssock (struct sockaddr_in *sad, int opts, int backlog)
 { 
+    int t = (opts & U_NET_OPT_SCTP_ONE_TO_MANY) ? SOCK_SEQPACKET : SOCK_STREAM;
+
     return do_ssock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET, SOCK_SEQPACKET, IPPROTO_SCTP, opts, backlog);
+            AF_INET, t, IPPROTO_SCTP, opts, backlog);
 }
 
-/** \brief  Return a TCP socket descriptor connected to the supplied IPv4
+/** \brief  Return a SCTP socket descriptor connected to the supplied IPv4
  *          address */
 int u_net_sctp4_csock (struct sockaddr_in *sad, int opts)
 {
+    int t = (opts & U_NET_OPT_SCTP_ONE_TO_MANY) ? SOCK_SEQPACKET : SOCK_STREAM;
+
     return do_csock((struct sockaddr *) sad, sizeof *sad, 
             AF_INET, SOCK_SEQPACKET, IPPROTO_SCTP, opts);
 }
@@ -277,16 +281,20 @@ int u_net_udp6_csock (struct sockaddr_in6 *sad, int opts)
  *          address */
 int u_net_sctp6_ssock (struct sockaddr_in6 *sad, int opts, int backlog)
 {
+    int t = (opts & U_NET_OPT_SCTP_ONE_TO_MANY) ? SOCK_SEQPACKET : SOCK_STREAM;
+
     return do_ssock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET6, SOCK_SEQPACKET, IPPROTO_SCTP, opts, backlog);
+            AF_INET6, t, IPPROTO_SCTP, opts, backlog);
 }
 
 /** \brief  Return a SCTP socket descriptor connected to the supplied IPv6
  *          address */
 int u_net_sctp6_csock (struct sockaddr_in6 *sad, int opts)
 {
+    int t = (opts & U_NET_OPT_SCTP_ONE_TO_MANY) ? SOCK_SEQPACKET : SOCK_STREAM;
+
     return do_csock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET6, SOCK_SEQPACKET, IPPROTO_SCTP, opts);
+            AF_INET6, t, IPPROTO_SCTP, opts);
 }
 #endif  /* !NO_SCTP */
 
