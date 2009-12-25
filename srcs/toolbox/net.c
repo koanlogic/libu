@@ -99,7 +99,7 @@ struct u_net_addr_s
  * endpoint, a \a server socket (\c U_NET_SSOCK) by its local address.
  *
  * The identification is done via a family of private URIs:
- * - {tc,ud}p[46]://&lt;host&gt;:&lt;port&gt; for TCP/UDP over IPv[46] 
+ * - {sct,tc,ud}p[46]://&lt;host&gt;:&lt;port&gt; for TCP/UDP/SCTP over IPv[46] 
  *   addresses,
  * - unix://&lt;abs_path&gt; for UNIX IPC pathnames.
  *
@@ -139,9 +139,12 @@ err:
     return -1;
 }
 
-/** \brief  Like \c u_net_sock but need an already filled-in \p addr.  You
- *          can use it whenever you need to reuse a given address: call 
- *          \c u_net_uri2addr once and \c u_net_sock_by_addr repeatedly.  */
+/** \brief  Like ::u_net_sock but wants an already filled-in \p addr.  
+ *          Prefer this interface whenever you need to reuse a given address: 
+ *          call ::u_net_uri2addr once and ::u_net_sock_by_addr repeatedly. 
+ *          By default address reuse is in place for server sockets (i.e.
+ *          those whose \p mode is \c U_NET_SSOCK), unless the caller has set
+ *          the \c U_NET_OPT_DONT_REUSE_ADDR option on the supplied \p addr */
 int u_net_sock_by_addr (u_net_addr_t *addr, int mode)
 {
     u_net_disp_f dfun;
@@ -158,7 +161,7 @@ int u_net_sock_by_addr (u_net_addr_t *addr, int mode)
     return -1;
 }
 
-/** \brief  Specialisation of \c u_net_sock_by_addr for TCP sockets */
+/** \brief  Specialisation of ::u_net_sock_by_addr for TCP sockets */
 int u_net_sock_tcp (u_net_addr_t *addr, int mode)
 {
     dbg_return_if (addr == NULL, -1);
@@ -167,7 +170,7 @@ int u_net_sock_tcp (u_net_addr_t *addr, int mode)
     return u_net_sock_by_addr(addr, mode);
 }
 
-/** \brief  Specialisation of \c u_net_sock_by_addr for UNIX sockets */
+/** \brief  Specialisation of ::u_net_sock_by_addr for UNIX sockets */
 int u_net_sock_unix (u_net_addr_t *addr, int mode)
 {
     dbg_return_if (addr == NULL, -1);
@@ -176,7 +179,7 @@ int u_net_sock_unix (u_net_addr_t *addr, int mode)
     return u_net_sock_by_addr(addr, mode);
 }
 
-/** \brief  Specialisation of \c u_net_sock_by_addr for UDP sockets */
+/** \brief  Specialisation of ::u_net_sock_by_addr for UDP sockets */
 int u_net_sock_udp (u_net_addr_t *addr, int mode)
 {
     dbg_return_if (addr == NULL, -1);
@@ -208,7 +211,8 @@ int u_net_udp4_ssock (struct sockaddr_in *sad, int opts)
 }
 
 /** \brief  Return a UDP socket descriptor connected (the UDP way) to the 
- *          supplied IPv4 address */
+ *          supplied IPv4 address.  Pass \c U_NET_OPT_DONT_CONNECT_UDP
+ *          into \p opts if you want to avoid the call to connect(2). */
 int u_net_udp4_csock (struct sockaddr_in *sad, int opts)
 {
     return do_csock((struct sockaddr *) sad, sizeof *sad, 
@@ -217,7 +221,8 @@ int u_net_udp4_csock (struct sockaddr_in *sad, int opts)
 
 #ifndef NO_SCTP
 /** \brief  Return a SCTP socket descriptor bound to the supplied IPv4 
- *          address */
+ *          address.  Pass \c U_NET_OPT_SCTP_ONE_TO_MANY into \p opts 
+ *          if you need to implement the one-to-many SCTP model. */
 int u_net_sctp4_ssock (struct sockaddr_in *sad, int opts, int backlog)
 { 
     return do_ssock((struct sockaddr *) sad, sizeof *sad, 
@@ -257,7 +262,7 @@ int u_net_udp6_ssock (struct sockaddr_in6 *sad, int opts)
             AF_INET6, SOCK_DGRAM, 0, opts, 0 /* backlog is ignored by UDP */);
 }
 
-/** \brief  Return a UDP socket descriptorconnected (the UDP way) to the 
+/** \brief  Return a UDP socket descriptor connected (the UDP way) to the 
  *          supplied IPv6 address.  In case you need to avoid connection,
  *          assert \c U_NET_OPT_DONT_CONNECT_UDP in the \p opts parameter. */
 int u_net_udp6_csock (struct sockaddr_in6 *sad, int opts)
@@ -266,6 +271,7 @@ int u_net_udp6_csock (struct sockaddr_in6 *sad, int opts)
             AF_INET6, SOCK_DGRAM, 0, opts);
 }
 
+#ifndef NO_SCTP
 /** \brief  Return a SCTP socket descriptor bound to the supplied IPv6 
  *          address */
 int u_net_sctp6_ssock (struct sockaddr_in6 *sad, int opts, int backlog)
@@ -281,6 +287,7 @@ int u_net_sctp6_csock (struct sockaddr_in6 *sad, int opts)
     return do_csock((struct sockaddr *) sad, sizeof *sad, 
             AF_INET6, SOCK_SEQPACKET, IPPROTO_SCTP, opts);
 }
+#endif  /* !NO_SCTP */
 
 /** \brief  Fill the supplied \c sockaddr_in6 object at \p *sad with addressing
  *          information coming from the IPv6 \p uri string */
@@ -387,7 +394,8 @@ err:
 
 #endif /* !NO_UNIXSOCK */
 
-/** \brief  Return a pointer to sockaddr structure of the supplied address */
+/** \brief  Return a pointer to the internal sockaddr structure of the 
+ *          supplied address (\c NULL on error) */
 struct sockaddr *u_net_addr_get_sa (u_net_addr_t *a)
 {
     dbg_return_if (a == NULL, NULL);
@@ -395,7 +403,8 @@ struct sockaddr *u_net_addr_get_sa (u_net_addr_t *a)
     return &a->sa.s;
 }
 
-/** \brief  Return the type of the supplied address (U_NET_TYPE_MIN on error) */
+/** \brief  Return the type of the supplied address (\c U_NET_TYPE_MIN 
+ *          on error) */
 int u_net_addr_get_type (u_net_addr_t *a)
 {
     dbg_return_if (a == NULL, U_NET_TYPE_MIN);
@@ -565,7 +574,7 @@ err:
     return ~0;
 }
 
-/** \brief  Set the supplied address opts set to \p opts */
+/** \brief  Set the supplied address' options set to \p opts */
 void u_net_addr_set_opts (u_net_addr_t *addr, int opts)
 {
     dbg_return_if (addr == NULL, );
@@ -573,7 +582,7 @@ void u_net_addr_set_opts (u_net_addr_t *addr, int opts)
     return;
 }
 
-/** \brief  Add the \p opts subset to the supplied address opts set */
+/** \brief  Add the \p opts subset to the supplied address' options set */
 void u_net_addr_add_opts (u_net_addr_t *addr, int opts)
 {
     dbg_return_if (addr == NULL, );
@@ -588,7 +597,8 @@ void u_net_addr_add_opts (u_net_addr_t *addr, int opts)
  *  \param  addr        see accept(2)   
  *  \param  addrlen     size of addr struct
  *
- *  \return on success returns the socket descriptor; on failure returns -1
+ *  \return on success returns the accepted socket descriptor; on failure 
+ *          returns \c -1
  */ 
 #ifdef HAVE_SOCKLEN_T
 int u_accept(int ld, struct sockaddr *addr, socklen_t *addrlen)
@@ -637,8 +647,9 @@ err:
  */
 
 /* 
- * all internal methods have a common layout to suit the dispatch table 
- * interface (see u_net_disp_f typedef)
+ * All internal methods have a common layout to suit the dispatch table 
+ * interface (see u_net_disp_f typedef).  Locally unneeded parameters are 
+ * explicitly named "dummy".
  */
 
 static int tcp4_ssock (struct sockaddr *sad, int opts, int backlog)
@@ -820,8 +831,6 @@ static int do_ssock (struct sockaddr *sad, int sad_len, int domain, int type,
     /* by default address reuse is in place, unless the caller has set
      * the U_NET_OPT_DONT_REUSE_ADDR option */
     int on = (opts & U_NET_OPT_DONT_REUSE_ADDR) ? 0 : 1;
-#else
-    u_unused_args(opts);
 #endif  /* HAVE_SETSOCKOPT */
 
     dbg_return_if (sad == NULL, -1);
@@ -855,15 +864,15 @@ err:
 }
 
 #ifndef NO_SCTP
-/* change server settings for one-to-many SCTP socket so that the it can access
- * the sctp_sndrcvinfo struct from which the client stream number can be 
- * determined (MSG_NOTIFICATION events won't be seen) */
+/* change server/client settings for one-to-many SCTP socket so that the it 
+ * can access the sctp_sndrcvinfo struct from which the client stream number 
+ * can be determined.  MSG_NOTIFICATION events won't be seen. */
 static int sctp_enable_events (int s)
 {
     struct sctp_event_subscribe e;
 
     memset(&e, 0, sizeof e);
-    e.sctp_data_io_event = 1;
+    e.sctp_data_io_event = 1;   /* enable sctp_sndrcvinfo only */
 
     dbg_err_sif (setsockopt(s, IPPROTO_SCTP, SCTP_EVENTS, &e, sizeof e) == -1);
 

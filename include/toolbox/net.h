@@ -85,11 +85,11 @@ enum {
  *  \{
  */
 
-/** \brief u_io specialisation for output ops */
+/** \brief ::u_io specialisation for output ops */
 #define u_net_write(sd, buf, nbytes, nw, iseof) \
     u_io((iof_t) write, sd, buf, nbytes, nw, iseof)
 
-/** \brief u_io specialisation for input ops */
+/** \brief ::u_io specialisation for input ops */
 #define u_net_read(sd, buf, nbytes, nr, iseof) \
     u_io(read, sd, buf, nbytes, nr, iseof)
 
