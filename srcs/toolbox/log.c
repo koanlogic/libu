@@ -3,7 +3,7 @@
  */
 
 static const char rcsid[] =
-    "$Id: log.c,v 1.9 2009/12/25 14:52:30 tho Exp $";
+    "$Id: log.c,v 1.10 2009/12/25 19:42:12 tho Exp $";
 
 #include <sys/types.h>
 #include <errno.h>
@@ -247,13 +247,13 @@ int u_strerror_r(int en, char *msg, size_t sz)
 
     if(rc == 0)
     {    /* posix version, success */
-        (void) u_strlcpy(msg, buf, sz);
+        (void) strlcpy(msg, buf, sz);
     } else if(rc == -1 || (rc > 0 && rc < 1024)) {
          /* posix version, failed (returns -1 or an error number) */
          goto err;
     } else {
         /* glibc char*-returning version, always succeeds */
-        (void) u_strlcpy(msg, (char*)rc, sz);
+        (void) strlcpy(msg, (char*)rc, sz);
     }
 #else
     /* there's not strerror_r, use strerror() instead */
@@ -261,7 +261,7 @@ int u_strerror_r(int en, char *msg, size_t sz)
 
     dbg_err_if((p = strerror(en)) == NULL);
 
-    (void) u_strlcpy(msg, p, sz);
+    (void) strlcpy(msg, p, sz);
 #endif
 
     return 0;
