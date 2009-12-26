@@ -985,15 +985,32 @@ static int sctp_enable_events (int s, int o)
 {
     struct sctp_event_subscribe e;
 
-    e.sctp_data_io_event = (o & U_NET_OPT_SCTP_DATA_IO_EVENT);
-    e.sctp_association_event = (o & U_NET_OPT_SCTP_ASSOCIATION_EVENT);
-    e.sctp_address_event = (o & U_NET_OPT_SCTP_ADDRESS_EVENT);
-    e.sctp_send_failure_event = (o & U_NET_OPT_SCTP_SEND_FAILURE_EVENT);
-    e.sctp_peer_error_event = (o & U_NET_OPT_SCTP_PEER_ERROR_EVENT);
-    e.sctp_shutdown_event = (o & U_NET_OPT_SCTP_SHUTDOWN_EVENT);
-    e.sctp_partial_delivery_event = (o & U_NET_OPT_SCTP_PARTIAL_DELIVERY_EVENT);
-    e.sctp_adaptation_layer_event = (o & U_NET_OPT_SCTP_ADAPTATION_LAYER_EVENT);
-    e.sctp_authentication_event = (o & U_NET_OPT_SCTP_AUTHENTICATION_EVENT);
+    e.sctp_data_io_event = 
+        (o & U_NET_OPT_SCTP_DATA_IO_EVENT) ? 1 : 0;
+
+    e.sctp_association_event = 
+        (o & U_NET_OPT_SCTP_ASSOCIATION_EVENT) ? 1 : 0;
+
+    e.sctp_address_event = 
+        (o & U_NET_OPT_SCTP_ADDRESS_EVENT) ? 1 : 0;
+
+    e.sctp_send_failure_event = 
+        (o & U_NET_OPT_SCTP_SEND_FAILURE_EVENT) ? 1 : 0;
+
+    e.sctp_peer_error_event = 
+        (o & U_NET_OPT_SCTP_PEER_ERROR_EVENT) ? 1 : 0;
+    
+    e.sctp_shutdown_event = 
+        (o & U_NET_OPT_SCTP_SHUTDOWN_EVENT) ? 1 : 0;
+    
+    e.sctp_partial_delivery_event = 
+        (o & U_NET_OPT_SCTP_PARTIAL_DELIVERY_EVENT) ? 1 : 0;
+    
+    e.sctp_adaptation_layer_event = 
+        (o & U_NET_OPT_SCTP_ADAPTATION_LAYER_EVENT) ? 1 : 0;
+    
+    e.sctp_authentication_event = 
+        (o & U_NET_OPT_SCTP_AUTHENTICATION_EVENT) ? 1 : 0;
 
     dbg_err_if (u_setsockopt(s, IPPROTO_SCTP, SCTP_EVENTS, &e, sizeof e) == -1);
 
