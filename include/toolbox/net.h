@@ -76,9 +76,18 @@ enum {
 #define U_NET_IS_MODE(m) (m == U_NET_SSOCK || m == U_NET_CSOCK)
 
 /* opts for u_net_addr_{set,add}_opts() */
-#define U_NET_OPT_DONT_REUSE_ADDR  (1 << 0)
-#define U_NET_OPT_DONT_CONNECT_UDP (1 << 1)
-#define U_NET_OPT_SCTP_ONE_TO_MANY (1 << 2)
+#define U_NET_OPT_DONT_REUSE_ADDR               (1 << 0)
+#define U_NET_OPT_DONT_CONNECT                  (1 << 1)
+#define U_NET_OPT_SCTP_ONE_TO_MANY              (1 << 2)
+#define U_NET_OPT_SCTP_DATA_IO_EVENT            (1 << 3)
+#define U_NET_OPT_SCTP_ASSOCIATION_EVENT        (1 << 4)
+#define U_NET_OPT_SCTP_ADDRESS_EVENT            (1 << 5)
+#define U_NET_OPT_SCTP_SEND_FAILURE_EVENT       (1 << 6)
+#define U_NET_OPT_SCTP_PEER_ERROR_EVENT         (1 << 7)
+#define U_NET_OPT_SCTP_SHUTDOWN_EVENT           (1 << 8)
+#define U_NET_OPT_SCTP_PARTIAL_DELIVERY_EVENT   (1 << 9)
+#define U_NET_OPT_SCTP_ADAPTATION_LAYER_EVENT   (1 << 10)
+#define U_NET_OPT_SCTP_AUTHENTICATION_EVENT     (1 << 11)
 
 /**
  * \addtogroup net
@@ -112,8 +121,10 @@ int u_net_sock_by_addr (u_net_addr_t *addr, int mode);
 /* deprecated: use u_net_sock_by_addr instead */
 int u_net_sock_tcp (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
 int u_net_sock_udp (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
-int u_net_sock_sctp (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
 int u_net_sock_unix (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
+#ifndef NO_SCTP
+int u_net_sock_sctp (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
+#endif  /* !NO_SCTP */
 
 /* low-level socket creation */
 int u_net_tcp4_ssock (struct sockaddr_in *sad, int opts, int backlog);
@@ -166,10 +177,12 @@ int u_socket (int domain, int type, int protocol);
 int u_connect (int sd, const struct sockaddr *addr, socklen_t addrlen);
 int u_accept(int ld, struct sockaddr *addr, socklen_t *addrlen);
 int u_bind (int sd, const struct sockaddr *addr, socklen_t addrlen);
+int u_setsockopt (int sd, int lev, int oname, const void *oval, socklen_t olen);
 #else
 int u_connect (int sd, const struct sockaddr *addr, int addrlen);
 int u_accept(int ld, struct sockaddr *addr, int *addrlen);
 int u_bind (int sd, const struct sockaddr *addr, int addrlen);
+int u_setsockopt (int sd, int lev, int oname, const void *oval, int olen);
 #endif  /* HAVE_SOCKLEN_T */
 int u_listen (int sd, int backlog);
 

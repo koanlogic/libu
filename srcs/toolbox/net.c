@@ -66,7 +66,7 @@ static int ipv6_uri_to_sin6 (u_uri_t *uri, struct sockaddr *sad);
 static int unix_uri_to_sun (u_uri_t *uri, struct sockaddr *sad);
 #endif  /* !NO_UNIXSOCK */
 #ifndef NO_SCTP
-static int sctp_enable_events (int s);
+static int sctp_enable_events (int s, int opts);
 #endif  /* !NO_SCTP */
 static int bind_reuse_addr (int s);
 
@@ -189,6 +189,17 @@ int u_net_sock_udp (u_net_addr_t *addr, int mode)
     return u_net_sock_by_addr(addr, mode);
 }
 
+#ifndef NO_SCTP
+/** \brief  Specialisation of ::u_net_sock_by_addr for SCTP sockets */
+int u_net_sock_sctp (u_net_addr_t *addr, int mode)
+{
+    dbg_return_if (addr == NULL, -1);
+    dbg_return_if (addr->type != U_NET_SCTP4 && addr->type != U_NET_SCTP6, -1);
+
+    return u_net_sock_by_addr(addr, mode);
+}
+#endif  /* !NO_SCTP */
+
 /** \brief  Return a TCP socket descriptor bound to the supplied IPv4 address */
 int u_net_tcp4_ssock (struct sockaddr_in *sad, int opts, int backlog)
 { 
@@ -212,7 +223,7 @@ int u_net_udp4_ssock (struct sockaddr_in *sad, int opts)
 }
 
 /** \brief  Return a UDP socket descriptor connected (the UDP way) to the 
- *          supplied IPv4 address.  Pass \c U_NET_OPT_DONT_CONNECT_UDP
+ *          supplied IPv4 address.  Pass \c U_NET_OPT_DONT_CONNECT
  *          into \p opts if you want to avoid the call to connect(2). */
 int u_net_udp4_csock (struct sockaddr_in *sad, int opts)
 {
@@ -269,7 +280,7 @@ int u_net_udp6_ssock (struct sockaddr_in6 *sad, int opts)
 
 /** \brief  Return a UDP socket descriptor connected (the UDP way) to the 
  *          supplied IPv6 address.  In case you need to avoid connection,
- *          assert \c U_NET_OPT_DONT_CONNECT_UDP in the \p opts parameter. */
+ *          assert \c U_NET_OPT_DONT_CONNECT in the \p opts parameter. */
 int u_net_udp6_csock (struct sockaddr_in6 *sad, int opts)
 {
     return do_csock((struct sockaddr *) sad, sizeof *sad, 
@@ -705,31 +716,54 @@ err:
     return rc;
 }
 
+/** \brief  setsockopt(2) wrapper */
+#ifdef HAVE_SOCKLEN_T
+int u_setsockopt (int sd, int lev, int oname, const void *oval, socklen_t olen)
+#else
+int u_setsockopt (int sd, int lev, int oname, const void *oval, int olen)
+#endif  /* HAVE_SOCKLEN_T */
+{
+#ifdef HAVE_SETSOCKOPT
+    int rc = setsockopt(sd, lev, oname, oval, olen);
+
+#ifdef U_NET_TRACE
+    dbg("setsockopt(%d, %d, %d, %p, %d) = %d", sd, lev, oname, oval, olen, rc);
+#endif
+
+    dbg_err_sif (rc == -1);
+err:
+    return rc;
+#else
+    u_unused_args(sd, lev, oname, oval, olen);
+    info("setsockopt not implemented on this platform");
+    return -1;
+#endif  /* HAVE_SETSOCKOPT */
+}
+
 /**
  *  \brief  Disable Nagle algorithm on the supplied TCP socket
  *
- *  \param  sd  a TCP socket descriptor
+ *  \param  s   a TCP socket descriptor
  *
- *  \return \c 0 if successful, \c ~0 on error
+ *  \return \c 0 if successful (or not implemented), \c ~0 on error
  */ 
-int u_net_nagle_off (int sd)
+int u_net_nagle_off (int s)
 {
-#if defined(HAVE_TCP_NODELAY) && defined(HAVE_SETSOCKOPT)
-    int rc, on = 1;
+#ifdef HAVE_TCP_NODELAY
+    int y = 1;
 
-    dbg_return_if (sd < 0, ~0);
+    dbg_return_if (s < 0, ~0);
 
-    rc = setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof on);
-    dbg_err_sifm (rc == -1, "cannot disable Nagle algorithm on sd %d", sd);
+    dbg_err_if (u_setsockopt(s, IPPROTO_TCP, TCP_NODELAY, &y, sizeof y) == -1);
 
     return 0;
 err:
     return ~0;
-#else /* !HAVE_TCP_NODELAY || !HAVE_SETSOCKOPT */
-    u_unused_args(sd);
-    dbg("u_net_nagle_off not supported on this platform");
+#else   /* !HAVE_TCP_NODELAY */
+    u_unused_args(s);
+    dbg("TCP_NODELAY not supported on this platform");
     return 0;
-#endif  /* !HAVE_TCP_NODELAY */
+#endif  /* HAVE_TCP_NODELAY */
 }
 
 /**
@@ -896,14 +930,14 @@ static int do_csock (struct sockaddr *sad, int sad_len, int domain, int type,
 
 #ifndef NO_SCTP
     if (opts & U_NET_OPT_SCTP_ONE_TO_MANY)
-        dbg_err_sif (sctp_enable_events(s));
+        dbg_err_sif (sctp_enable_events(s, opts));
 #endif
 
-    /* NOTE that by default UDP sockets (not only TCP and UNIX) are connected.
-     * This has a couple of important implications:
+    /* NOTE that by default UDP and SCTP sockets (not only TCP and UNIX) are 
+     * connected.  For UDP this has a couple of important implications:
      * 1) the caller must use u{,_net}_write for I/O instead of sendto 
      * 2) async errors are returned to the process. */
-    if (!(opts & U_NET_OPT_DONT_CONNECT_UDP))
+    if (!(opts & U_NET_OPT_DONT_CONNECT))
         dbg_err_sif (u_connect(s, sad, sad_len) == -1);
 
     return s;
@@ -930,7 +964,7 @@ static int do_ssock (struct sockaddr *sad, int sad_len, int domain, int type,
 
 #ifndef NO_SCTP
     if (opts & U_NET_OPT_SCTP_ONE_TO_MANY)
-        dbg_err_sif (sctp_enable_events(s));
+        dbg_err_sif (sctp_enable_events(s, opts));
 #endif
 
     dbg_err_sif (u_bind(s, (struct sockaddr *) sad, sad_len) == -1);
@@ -946,17 +980,22 @@ err:
 }
 
 #ifndef NO_SCTP
-/* change server/client settings for one-to-many SCTP socket so that the it 
- * can access the sctp_sndrcvinfo struct from which the client stream number 
- * can be determined.  MSG_NOTIFICATION events won't be seen. */
-static int sctp_enable_events (int s)
+/* change server/client notification settings for one-to-many SCTP sockets */
+static int sctp_enable_events (int s, int o)
 {
     struct sctp_event_subscribe e;
 
-    memset(&e, 0, sizeof e);
-    e.sctp_data_io_event = 1;   /* enable sctp_sndrcvinfo only */
+    e.sctp_data_io_event = (o & U_NET_OPT_SCTP_DATA_IO_EVENT);
+    e.sctp_association_event = (o & U_NET_OPT_SCTP_ASSOCIATION_EVENT);
+    e.sctp_address_event = (o & U_NET_OPT_SCTP_ADDRESS_EVENT);
+    e.sctp_send_failure_event = (o & U_NET_OPT_SCTP_SEND_FAILURE_EVENT);
+    e.sctp_peer_error_event = (o & U_NET_OPT_SCTP_PEER_ERROR_EVENT);
+    e.sctp_shutdown_event = (o & U_NET_OPT_SCTP_SHUTDOWN_EVENT);
+    e.sctp_partial_delivery_event = (o & U_NET_OPT_SCTP_PARTIAL_DELIVERY_EVENT);
+    e.sctp_adaptation_layer_event = (o & U_NET_OPT_SCTP_ADAPTATION_LAYER_EVENT);
+    e.sctp_authentication_event = (o & U_NET_OPT_SCTP_AUTHENTICATION_EVENT);
 
-    dbg_err_sif (setsockopt(s, IPPROTO_SCTP, SCTP_EVENTS, &e, sizeof e) == -1);
+    dbg_err_if (u_setsockopt(s, IPPROTO_SCTP, SCTP_EVENTS, &e, sizeof e) == -1);
 
     return 0;
 err:
@@ -968,18 +1007,13 @@ err:
  * so that reuse of local addresses is allowed */
 static int bind_reuse_addr (int s)
 {
-#ifdef HAVE_SETSOCKOPT
-    int on = 1;
+    int y = 1;
 
     dbg_return_if (s < 0, -1);
-    dbg_err_sif (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on) == -1);
+
+    dbg_err_if (u_setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &y, sizeof y) == -1);
 
     return 0;
 err:
     return ~0;
-#else /* !HAVE_SETSOCKOPT */
-    u_unused_args(sd);
-    info("could not honour the address reuse request");
-    return 0;
-#endif  /* HAVE_SETSOCKOPT */
 }
