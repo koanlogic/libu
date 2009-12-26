@@ -178,11 +178,13 @@ int u_connect (int sd, const struct sockaddr *addr, socklen_t addrlen);
 int u_accept(int ld, struct sockaddr *addr, socklen_t *addrlen);
 int u_bind (int sd, const struct sockaddr *addr, socklen_t addrlen);
 int u_setsockopt (int sd, int lev, int oname, const void *oval, socklen_t olen);
+int u_getsockopt (int sd, int lev, int oname, void *oval, socklen_t *olen);
 #else
 int u_connect (int sd, const struct sockaddr *addr, int addrlen);
 int u_accept(int ld, struct sockaddr *addr, int *addrlen);
 int u_bind (int sd, const struct sockaddr *addr, int addrlen);
 int u_setsockopt (int sd, int lev, int oname, const void *oval, int olen);
+int u_getsockopt (int sd, int lev, int oname, void *oval, int *olen);
 #endif  /* HAVE_SOCKLEN_T */
 int u_listen (int sd, int backlog);
 

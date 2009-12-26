@@ -100,7 +100,7 @@ struct u_net_addr_s
  * endpoint, a \a server socket (\c U_NET_SSOCK) by its local address.
  *
  * The identification is done via a family of private URIs:
- * - {sct,tc,ud}p[46]://&lt;host&gt;:&lt;port&gt; for TCP/UDP/SCTP over IPv[46] 
+ * - {tc,ud,sct}p[46]://&lt;host&gt;:&lt;port&gt; for TCP/UDP/SCTP over IPv[46] 
  *   addresses,
  * - unix://&lt;abs_path&gt; for UNIX IPC pathnames.
  *
@@ -738,6 +738,30 @@ err:
     info("setsockopt not implemented on this platform");
     return -1;
 #endif  /* HAVE_SETSOCKOPT */
+}
+
+/** \brief  getsockopt(2) wrapper */
+#ifdef HAVE_SOCKLEN_T
+int u_getsockopt (int sd, int lev, int oname, void *oval, socklen_t *olen)
+#else
+int u_getsockopt (int sd, int lev, int oname, void *oval, int *olen)
+#endif  /* HAVE_SOCKLEN_T */
+{
+#ifdef HAVE_GETSOCKOPT
+    int rc = getsockopt(sd, lev, oname, oval, olen);
+
+#ifdef U_NET_TRACE
+    dbg("getsockopt(%d, %d, %d, %p, %p) = %d", sd, lev, oname, oval, olen, rc);
+#endif
+
+    dbg_err_sif (rc == -1);
+err:
+    return rc;
+#else
+    u_unused_args(sd, lev, oname, oval, olen);
+    info("getsockopt not implemented on this platform");
+    return -1;
+#endif  /* HAVE_GETSOCKOPT */
 }
 
 /**
