@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <string.h>
+#include <strings.h>
 
 #include <toolbox/net.h>
 #include <toolbox/uri.h>
@@ -331,7 +332,11 @@ static int ipv6_uri_to_sin6 (u_uri_t *uri, struct sockaddr *sad)
 
     memset(sin6, 0, sizeof(struct sockaddr_in6));
 
+#ifdef SIN6_LEN
+    /* the SIN6_LEN constant must be defined if the system supports the
+     * length member for IPv6 socket address structure */
     sin6->sin6_len = sizeof(struct sockaddr_in6);
+#endif
     sin6->sin6_port = htons(uri->port);
     sin6->sin6_family = AF_INET6;
     sin6->sin6_flowinfo = 0;
