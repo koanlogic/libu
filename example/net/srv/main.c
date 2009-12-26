@@ -1,4 +1,4 @@
-/* $Id: main.c,v 1.4 2009/12/25 19:04:07 tho Exp $ */
+/* $Id: main.c,v 1.5 2009/12/26 14:16:35 tho Exp $ */
 
 #include <stdlib.h>
 #include <u/libu.h>
@@ -9,8 +9,8 @@ int main (int argc, char *argv[])
 {
     u_net_addr_t *a = NULL;
     int sd = -1, asd = -1, at;
-    struct sockaddr sa;
-    socklen_t sa_len;
+    struct sockaddr_storage sa;
+    socklen_t sa_len = sizeof sa;
     char s[1024];
     ssize_t rb;
 
@@ -21,11 +21,12 @@ int main (int argc, char *argv[])
 
     /* only STREAM/SEQPACKET sockets need to call accept(2) */
     asd = ((at = u_net_addr_get_type(a)) != U_NET_UDP4 && at != U_NET_UDP6) ?
-        u_accept(sd, &sa, &sa_len) : sd;
+        u_accept(sd, (struct sockaddr *) &sa, &sa_len) : sd;
     con_err_sif (asd == -1);
 
     /* read data */
-    con_err_sif ((rb = recvfrom(asd, s, sizeof s, 0, &sa, &sa_len)) == -1);
+    con_err_sif ((rb = recvfrom(asd, s, sizeof s, 0, 
+                    (struct sockaddr *) &sa, &sa_len)) == -1);
     con("read: %s", s);
 
     /* dtors */
