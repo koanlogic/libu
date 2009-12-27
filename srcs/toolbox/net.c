@@ -205,7 +205,7 @@ int u_net_sock_sctp (u_net_addr_t *addr, int mode)
 int u_net_tcp4_ssock (struct sockaddr_in *sad, int opts, int backlog)
 { 
     return do_ssock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET, SOCK_STREAM, 0, opts, backlog);
+            AF_INET, SOCK_STREAM, IPPROTO_TCP, opts, backlog);
 }
 
 /** \brief  Return a TCP socket descriptor connected to the supplied IPv4
@@ -213,14 +213,14 @@ int u_net_tcp4_ssock (struct sockaddr_in *sad, int opts, int backlog)
 int u_net_tcp4_csock (struct sockaddr_in *sad, int opts)
 {
     return do_csock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET, SOCK_STREAM, 0, opts);
+            AF_INET, SOCK_STREAM, IPPROTO_TCP, opts);
 }
 
 /** \brief  Return a UDP socket descriptor bound to the supplied IPv4 address */
 int u_net_udp4_ssock (struct sockaddr_in *sad, int opts)
 { 
     return do_ssock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET, SOCK_DGRAM, 0, opts, 0 /* backlog is ignored by UDP */);
+            AF_INET, SOCK_DGRAM, IPPROTO_UDP, opts, 0 /* ignored by UDP */);
 }
 
 /** \brief  Return a UDP socket descriptor connected (the UDP way) to the 
@@ -229,7 +229,7 @@ int u_net_udp4_ssock (struct sockaddr_in *sad, int opts)
 int u_net_udp4_csock (struct sockaddr_in *sad, int opts)
 {
     return do_csock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET, SOCK_DGRAM, 0, opts);
+            AF_INET, SOCK_DGRAM, IPPROTO_UDP, opts);
 }
 
 #ifndef NO_SCTP
@@ -261,7 +261,7 @@ int u_net_sctp4_csock (struct sockaddr_in *sad, int opts)
 int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int opts, int backlog)
 {
     return do_ssock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET6, SOCK_STREAM, 0, opts, backlog);
+            AF_INET6, SOCK_STREAM, IPPROTO_TCP, opts, backlog);
 }
 
 /** \brief  Return a TCP socket descriptor connected to the supplied IPv6
@@ -269,14 +269,14 @@ int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int opts, int backlog)
 int u_net_tcp6_csock (struct sockaddr_in6 *sad, int opts)
 {
     return do_csock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET6, SOCK_STREAM, 0, opts);
+            AF_INET6, SOCK_STREAM, IPPROTO_TCP, opts);
 }
 
 /** \brief  Return a UDP socket descriptor bound to the supplied IPv6 address */
 int u_net_udp6_ssock (struct sockaddr_in6 *sad, int opts)
 { 
     return do_ssock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET6, SOCK_DGRAM, 0, opts, 0 /* backlog is ignored by UDP */);
+            AF_INET6, SOCK_DGRAM, IPPROTO_UDP, opts, 0 /* ignored by UDP */);
 }
 
 /** \brief  Return a UDP socket descriptor connected (the UDP way) to the 
@@ -285,7 +285,7 @@ int u_net_udp6_ssock (struct sockaddr_in6 *sad, int opts)
 int u_net_udp6_csock (struct sockaddr_in6 *sad, int opts)
 {
     return do_csock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET6, SOCK_DGRAM, 0, opts);
+            AF_INET6, SOCK_DGRAM, IPPROTO_UDP, opts);
 }
 
 #ifndef NO_SCTP
@@ -925,11 +925,12 @@ static int udp4_csock (struct sockaddr *sad, int opts, int dummy)
 
 static int udp6_ssock (struct sockaddr *sad, int opts, int backlog)
 { 
+    int dummy = backlog;
 #ifndef NO_IPV6
     return do_ssock((struct sockaddr *) sad, sizeof(struct sockaddr_in6),
-            AF_INET6, SOCK_DGRAM, 0, opts, backlog /* ignored by UDP */);
+            AF_INET6, SOCK_DGRAM, IPPROTO_UDP, opts, dummy);
 #else
-    u_unused_args(sad, opts, backlog);
+    u_unused_args(sad, opts);
     info("udp6 socket not supported");
     return -1;
 #endif  /* !NO_IPV6 */
@@ -940,7 +941,7 @@ static int udp6_csock (struct sockaddr *sad, int opts, int dummy)
     u_unused_args(dummy);
 #ifndef NO_IPV6
     return do_csock((struct sockaddr *) sad, sizeof(struct sockaddr_in6),
-            AF_INET6, SOCK_DGRAM, 0, opts);
+            AF_INET6, SOCK_DGRAM, IPPROTO_UDP, opts);
 #else
     u_unused_args(sad, opts);
     info("udp6 socket not supported");
