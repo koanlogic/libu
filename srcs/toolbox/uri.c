@@ -10,6 +10,16 @@
 #include <toolbox/misc.h>
 #include <toolbox/memory.h>
 
+struct u_uri_s
+{
+    char *scheme;
+    char *user;
+    char *pwd;
+    char *host;
+    char *port;
+    char *path;
+};
+
 static int split(const char *s, size_t len, char c, char **left, char **right);
 static int parse_middle(const char *s, size_t len, u_uri_t *uri);
 static int parse_hostinfo(const char *s, size_t len, u_uri_t *uri);
@@ -25,9 +35,9 @@ int u_uri_parse (const char *s, u_uri_t **pu)
 {
     int i;
     const char *p, *p0;
-    u_uri_t *uri;
+    u_uri_t *uri = NULL;
 
-    dbg_return_if ((uri = (u_uri_t *) u_zalloc(sizeof(u_uri_t))) == NULL, ~0);
+    dbg_err_sif ((uri = u_zalloc(sizeof(u_uri_t))) == NULL);
 
     dbg_err_if ((p = strchr(s, ':')) == NULL); /* err if malformed */
 
@@ -72,7 +82,50 @@ void u_uri_free (u_uri_t *uri)
     U_FREE(uri->pwd);
     U_FREE(uri->host);
     U_FREE(uri->path);
+    U_FREE(uri->port);
     U_FREE(uri);
+}
+
+/** \brief  return the \c scheme string of the parsed \p uri */
+const char *u_uri_scheme (u_uri_t *uri)
+{
+    dbg_return_if (uri == NULL, NULL);
+    return uri->scheme;
+}
+
+/** \brief  return the \c user string of the parsed \p uri */
+const char *u_uri_user (u_uri_t *uri)
+{
+    dbg_return_if (uri == NULL, NULL);
+    return uri->user;
+}
+
+/** \brief  return the \c password string of the parsed \p uri */
+const char *u_uri_pwd (u_uri_t *uri)
+{
+    dbg_return_if (uri == NULL, NULL);
+    return uri->pwd;
+}
+
+/** \brief  return the \c host string of the parsed \p uri */
+const char *u_uri_host (u_uri_t *uri)
+{
+    dbg_return_if (uri == NULL, NULL);
+    return uri->host;
+}
+
+/** \brief  return the \c path string of the parsed \p uri */
+const char *u_uri_path (u_uri_t *uri)
+{
+    dbg_return_if (uri == NULL, NULL);
+    return uri->path;
+}
+
+/** \brief  return the \c port string of the parsed \p uri */
+const char *u_uri_port (u_uri_t *uri)
+{
+    dbg_return_if (uri == NULL, NULL);
+    return uri->port;
 }
 
 /**
@@ -119,31 +172,32 @@ static int parse_userinfo(const char *s, size_t len, u_uri_t *uri)
 static int parse_hostinfo(const char *s, size_t len, u_uri_t *uri)
 {
     char *a, *b;
-    char *port = NULL;
 
-    /* check for IPv6: "A host identified by an IPv6 literal address is 
-     * represented inside the square brackets without a preceding version 
+    /* check for numeric IPv6: "A host identified by an IPv6 literal address 
+     * is represented inside the square brackets without a preceding version 
      * flag" */
     if ((a = strchr(s, '[')) && (b = strchr(s, ']')))
     {
         dbg_err_ifm (b <= a + 1, "malformed IPv6 URL: %s", s);
         dbg_err_sif ((uri->host = u_strndup(a + 1, b - a - 1)) == NULL);
-        dbg_err_sif (u_atoi(b + 2, &uri->port));
 
-        return 0;
+        /* check for optional port */
+        if (strlen(b) > 3)
+        {
+            if (b[1] == ':')
+            {
+                uri->port = u_strndup(b + 2, len - (b - a) - 2);
+                dbg_err_if (uri->port == NULL);
+            }
+            else
+                dbg_err("bad syntax for IPv6 address %s", s);     
+        }
     }
-
-    dbg_err_if (split(s, len, ':', &uri->host, &port));
-
-    if(port)
-    {
-        dbg_err_if (u_atoi(port, &uri->port));
-        U_FREE(port);
-    }
+    else    /* numeric IPv4 or host name */
+        dbg_err_if (split(s, len, ':', &uri->host, &uri->port));
 
     return 0;
 err:
-    U_FREE(port);
     return ~0;
 }
 
@@ -157,5 +211,3 @@ static int parse_middle(const char *s, size_t len, u_uri_t *uri)
         return parse_userinfo(s, p - s, uri) +
             parse_hostinfo(1 + p, s + len - p - 1, uri);
 }
-
-
