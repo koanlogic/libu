@@ -11,19 +11,20 @@
 extern "C" {
 #endif
 
-struct u_uri_s
-{
-    char *scheme;
-    char *user;
-    char *pwd;
-    char *host;
-    int port;
-    char *path;
-};
-
+struct u_uri_s;     /* fwd decl */
 typedef struct u_uri_s u_uri_t;
 
+/* uri decoder */
 int u_uri_parse (const char *s, u_uri_t **pu);
+
+/* getter methods */
+const char *u_uri_scheme (u_uri_t *uri);
+const char *u_uri_user (u_uri_t *uri);
+const char *u_uri_pwd (u_uri_t *uri);
+const char *u_uri_host (u_uri_t *uri);
+const char *u_uri_path (u_uri_t *uri);
+const char *u_uri_port (u_uri_t *uri);
+
 void u_uri_free (u_uri_t *uri);
 
 #ifdef __cplusplus
