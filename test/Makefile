@@ -8,15 +8,19 @@ SRCS += misc.c
 SRCS += string.c 
 
 ifndef NO_HMAP
-SRCS += hmap.c 
+    SRCS += hmap.c 
 endif
 
 ifndef NO_LIST
-SRCS += list.c 
+    SRCS += list.c 
 endif
 
 ifndef NO_ARRAY
-SRCS += array.c 
+    SRCS += array.c 
+endif
+
+ifndef NO_NET
+    SRCS += uri.c
 endif
 
 LDADD += ../srcs/libu.a

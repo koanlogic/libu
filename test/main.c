@@ -15,6 +15,9 @@ int main(int argc, char **argv)
 #ifndef NO_ARRAY
     U_TEST_MODULE_USE(array);
 #endif
+#ifndef NO_NET
+    U_TEST_MODULE_USE(uri);
+#endif
 
     return u_test_run(argc, argv);
 }
