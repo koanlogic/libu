@@ -179,16 +179,22 @@ int u_accept(int ld, struct sockaddr *addr, socklen_t *addrlen);
 int u_bind (int sd, const struct sockaddr *addr, socklen_t addrlen);
 int u_setsockopt (int sd, int lev, int oname, const void *oval, socklen_t olen);
 int u_getsockopt (int sd, int lev, int oname, void *oval, socklen_t *olen);
+const char *u_inet_ntop (int af, const void *src, char *dst, socklen_t len);
 #else
 int u_connect (int sd, const struct sockaddr *addr, int addrlen);
 int u_accept(int ld, struct sockaddr *addr, int *addrlen);
 int u_bind (int sd, const struct sockaddr *addr, int addrlen);
 int u_setsockopt (int sd, int lev, int oname, const void *oval, int olen);
 int u_getsockopt (int sd, int lev, int oname, void *oval, int *olen);
+const char *u_inet_ntop (int af, const void *src, char *dst, size_t len);
 #endif  /* HAVE_SOCKLEN_T */
 int u_listen (int sd, int backlog);
+int u_inet_pton (int af, const char *src, void *dst);
+const char *u_sa_ntop (const struct sockaddr *sa, char *dst, size_t dst_len);
 
 #ifdef HAVE_GETADDRINFO
+int u_net_sock_by_ai (struct addrinfo *ai, int mode, int opts, 
+        struct sockaddr **psa);
 int u_net_uri2ai (const char *uri, struct addrinfo **pai);
 int u_net_resolver (const char *host, const char *port, int family, int type,
         int proto, int passive, struct addrinfo **pai);
