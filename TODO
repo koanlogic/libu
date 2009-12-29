@@ -1,8 +1,8 @@
-# $Id: TODO,v 1.5 2008/05/21 12:10:32 tat Exp $
+# $Id: TODO,v 1.6 2009/12/29 20:14:34 tho Exp $
 
 - .conf include_dirs keyword support
 - u_config_t multi-line values
-- externalize SO_REUSEADDR flag
+[ok] externalize SO_REUSEADDR flag
 - man page for each module
-- complete the Net module
+[wip] complete the Net module
 - a decent README file :-)

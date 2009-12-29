@@ -16,6 +16,12 @@
 #include <toolbox/memory.h>
 #include <u/missing.h>
 
+#ifdef HAVE_GETADDRINFO
+const int u_net_with_ai = 1;
+#else
+const int u_net_with_ai = 0;
+#endif  /* HAVE_GETADDRINFO */
+
 /* generic socket creation interface */
 typedef int (*u_net_disp_f) (struct sockaddr *, int, int);
 
@@ -26,8 +32,9 @@ static int do_ssock (struct sockaddr *sad, int sad_len, int domain, int type,
         int protocol, int opts, int backlog);
 
 #ifdef HAVE_GETADDRINFO
-static int do_ai_ssock (struct addrinfo *ai, int opts, int backlog);
-static int do_ai_csock (struct addrinfo *ai, int opts);
+static int do_ai_ssock (struct addrinfo *ai, int opts, int backlog, 
+        struct sockaddr **psa);
+static int do_ai_csock (struct addrinfo *ai, int opts, struct sockaddr **psa);
 #endif  /* HAVE_GETADDRINFO */
 
 /* per family dispatchers */
@@ -77,11 +84,27 @@ static int sctp_enable_events (int s, int opts);
 static int bind_reuse_addr (int s);
 static int resolv_port (const char *s_port, uint16_t *pin_port);
 
+/* scheme mapper */
+struct u_net_scheme_map_s
+{
+    int type;           /* one of U_NET_... */
+    int addr_family;    /* one of AF_... */
+    int sock_type;      /* one of SOCK_... */
+    int proto;          /* one of IPPROTO_... */
+};
+
+typedef struct u_net_scheme_map_s u_net_scheme_map_t;
+
+static int scheme_mapper (const char *scheme, u_net_scheme_map_t *map);
+
 /* internal uri representation */
 struct u_net_addr_s
 {
     int type;   /* one of U_NET_TYPE's */
     int opts;   /* one of U_NET_OPT's */
+#ifdef HAVE_GETADDRINFO
+    struct addrinfo *ai;
+#endif  /* HAVE_GETADDRINFO */
     union
     {
         struct sockaddr     s;
@@ -353,7 +376,7 @@ static int ipv6_uri_to_sin6 (u_uri_t *uri, struct sockaddr *sad)
     else
     {
         /* try with the resolver first, if no result, fall back to numeric */
-        /* gethostbyname2 is deprecated by POSIX */
+        /* XXX: gethostbyname2 is deprecated by POSIX */
         hp = gethostbyname2(host, AF_INET6);
 
         hnum = (hp && hp->h_addrtype == AF_INET6) ? hp->h_addr : host;
@@ -476,43 +499,99 @@ void u_net_addr_free (u_net_addr_t *a)
     return;
 }
 
+static int scheme_mapper (const char *scheme, u_net_scheme_map_t *map)
+{
+    dbg_return_if (scheme == NULL, ~0);
+    dbg_return_if (map == NULL, ~0);
+
+    if (!strcasecmp(scheme, "tcp4"))
+    {
+        map->type = U_NET_TCP4;
+        map->addr_family = AF_INET;
+        map->sock_type = SOCK_STREAM;
+        map->proto  = IPPROTO_TCP;
+    }
+    else if (!strcasecmp(scheme, "udp4"))
+    {
+        map->type = U_NET_UDP4;
+        map->addr_family = AF_INET;
+        map->sock_type = SOCK_DGRAM;
+        map->proto  = IPPROTO_UDP;
+    }
+#ifndef NO_SCTP
+    else if (!strcasecmp(scheme, "sctp4"))
+    {
+        map->type = U_NET_SCTP4;
+        map->addr_family = AF_INET;
+        /* default to STREAM, will be set to SEQPACKET in case 
+         * U_NET_OPT_SCTP_ONE_TO_MANY is set */
+        map->sock_type = SOCK_STREAM;
+        map->proto  = IPPROTO_SCTP;
+    }
+#endif  /* !NO_SCTP */
+#ifndef NO_UNIXSOCK
+    else if (!strcasecmp(scheme, "unix"))
+    {
+        map->type = U_NET_UNIX;
+        map->addr_family = AF_UNIX;
+        map->sock_type = SOCK_STREAM;   /* default to STREAM sockets */
+        map->proto  = 0;
+    }
+#endif  /* !NO_UNIXSOCK */
+#ifndef NO_IPV6
+    else if (!strcasecmp(scheme, "tcp6"))
+    {
+        map->type = U_NET_TCP6;
+        map->addr_family = AF_INET6;
+        map->sock_type = SOCK_STREAM;
+        map->proto  = IPPROTO_TCP;
+    }
+    else if (!strcasecmp(scheme, "udp6"))
+    {
+        map->type = U_NET_UDP6;
+        map->addr_family = AF_INET6;
+        map->sock_type = SOCK_DGRAM;
+        map->proto  = IPPROTO_UDP;
+    }
+#ifndef NO_SCTP
+    else if (!strcasecmp(scheme, "sctp6"))
+    {
+        map->type = U_NET_SCTP6;
+        map->addr_family = AF_INET6;
+        /* default to STREAM, will be set to SEQPACKET in case 
+         * U_NET_OPT_SCTP_ONE_TO_MANY is set */
+        map->sock_type = SOCK_STREAM;
+        map->proto  = IPPROTO_SCTP;
+    }
+#endif  /* !NO_SCTP */
+#endif  /* !NO_IPV6 */
+    else
+        return ~0;
+
+    return 0;
+}
+
 /** \brief  Decode the supplied \p uri into an \c u_net_addr_t object */
 int u_net_uri2addr (const char *uri, u_net_addr_t **pa)
 {
+    const char *s;
     u_uri_t *u = NULL;
     u_net_addr_t *a = NULL;
-    int a_type = U_NET_TYPE_MIN;
-    const char *scheme;
+    u_net_scheme_map_t smap;
     
     dbg_return_if (uri == NULL, ~0);
     dbg_return_if (pa == NULL, ~0);
 
-    /* decode address */
+    /* decode address and map scheme to an U_NET_<type> */
     dbg_err_if (u_uri_parse(uri, &u));
-    dbg_err_if ((scheme = u_uri_scheme(u)) == NULL);
-
-    if (!strcasecmp(scheme, "tcp4"))
-        a_type = U_NET_TCP4;
-    else if (!strcasecmp(scheme, "udp4"))
-        a_type = U_NET_UDP4;
-    else if (!strcasecmp(scheme, "sctp4"))
-        a_type = U_NET_SCTP4;
-    else if (!strcasecmp(scheme, "unix"))
-        a_type = U_NET_UNIX;
-    else if (!strcasecmp(scheme, "tcp6"))
-        a_type = U_NET_TCP6;
-    else if (!strcasecmp(scheme, "udp6"))
-        a_type = U_NET_UDP6;
-    else if (!strcasecmp(scheme, "sctp6"))
-        a_type = U_NET_SCTP6;
-    else
-        dbg_err("unsupported URI scheme: %s", scheme); 
+    dbg_err_if ((s = u_uri_scheme(u)) == NULL);
+    dbg_err_ifm (scheme_mapper(s, &smap), "unsupported URI scheme: %s", s);
 
     /* create address for the decoded type */
-    dbg_err_if (u_net_addr_new(a_type, &a));
+    dbg_err_if (u_net_addr_new(smap.type, &a));
 
     /* fill it */
-    switch (a_type)
+    switch (smap.type)
     {
         case U_NET_TCP4:
         case U_NET_UDP4:
@@ -810,6 +889,34 @@ err:
 }
 
 #ifdef HAVE_GETADDRINFO
+
+/** \brief  Pretty much like ::u_net_uri2addr except it return an addrinfo
+ *          instead of an u_net_addr_t, also it can't handle 'unix://' schemes 
+ *          (WIP) */
+int u_net_uri2ai (const char *uri, struct addrinfo **pai)
+{
+    const char *s;
+    u_uri_t *u = NULL;
+    u_net_scheme_map_t smap;
+
+    dbg_return_if (uri == NULL, ~0);
+    dbg_return_if (pai == NULL, ~0);
+
+    /* decode address and map scheme */
+    dbg_err_if (u_uri_parse(uri, &u));
+    dbg_err_if ((s = u_uri_scheme(u)) == NULL);
+    dbg_err_ifm (scheme_mapper(s, &smap) || smap.type == U_NET_UNIX, 
+            "unsupported URI scheme: %s", s);
+
+    /* now call the gai resolver (NOTE: 'passive' is set to 0) */
+    dbg_err_if (u_net_resolver(u_uri_host(u), u_uri_port(u), 
+                smap.addr_family, smap.sock_type, smap.proto, 0, pai));
+
+    return 0;
+err:
+    return ~0;
+}
+
 /** \brief  Wrapper to getaddrinfo(3) */
 int u_net_resolver (const char *host, const char *port, int family, int type,
         int proto, int passive, struct addrinfo **pai)
@@ -820,6 +927,10 @@ int u_net_resolver (const char *host, const char *port, int family, int type,
     dbg_return_if (host == NULL, ~0);
     dbg_return_if (port == NULL, ~0);
     dbg_return_if (pai == NULL, ~0);
+
+    /* 
+     * TODO check special cases '*' for both host and port:
+     */
 
     memset(&hints, 0, sizeof hints);
 
@@ -849,8 +960,6 @@ err:
     return ~0;
 }
 #endif  /* HAVE_GETADDRINFO */
-
-
 
 /**
  *  \}
@@ -1069,29 +1178,43 @@ err:
 
 #ifdef HAVE_GETADDRINFO
 
-static int do_ai_ssock (struct addrinfo *ai, int opts, int backlog)
-{
-    struct addrinfo *aip;
-
-    dbg_return_if ((aip = ai) == NULL, ~0);
-
-    do 
-    {
-        if (do_ssock(aip->ai_addr, aip->ai_addrlen, aip->ai_family, 
-                    aip->ai_socktype, aip->ai_protocol, opts, backlog) == 0)
-            break;
-    } while ((aip = aip->ai_next) != NULL);
-
-    return (aip == NULL) ? ~0 : 0;
-}
-
-static int do_ai_csock (struct addrinfo *ai, int opts)
+/* if 'sa' is not NULL it */
+static int do_ai_ssock (struct addrinfo *ai, int opts, int backlog, 
+        struct sockaddr **psa)
 {
     int sd = -1;
     struct addrinfo *aip;
 
-    /* NOTE assume ai->ai_canonname is always set, i.e. 'ai' has been filled
-     * by u_net_resolver() */
+    dbg_return_if ((aip = ai) == NULL, ~0);
+
+    for (aip = ai; aip != NULL; aip = aip->ai_next)
+    {
+        if (do_ssock(aip->ai_addr, aip->ai_addrlen, aip->ai_family, 
+                    aip->ai_socktype, aip->ai_protocol, opts, backlog) == 0)
+        {
+            info("bind succeded for host %s", ai->ai_canonname);
+
+            /* if caller has supplied a valid 'psa', copy out the pointer 
+             * to the sockaddr that has fullfilled the connection request */
+            if (psa)
+                *psa = aip->ai_addr;
+
+            break;
+        }
+    } 
+
+    if (sd == -1)
+        info("could not bind to %s", ai->ai_canonname);
+
+    return sd;
+}
+
+/* NOTE: assume ai->ai_canonname is always set, i.e. 'ai' has been filled
+ *       by u_net_resolver() */
+static int do_ai_csock (struct addrinfo *ai, int opts, struct sockaddr **psa)
+{
+    int sd = -1;
+    struct addrinfo *aip;
 
     dbg_return_if (ai == NULL, ~0);
 
@@ -1101,6 +1224,12 @@ static int do_ai_csock (struct addrinfo *ai, int opts)
                     aip->ai_socktype, aip->ai_protocol, opts)) != -1)
         {
             info("connection succeded to host %s", ai->ai_canonname);
+
+            /* if caller has supplied a valid 'psa', copy out the pointer 
+             * to the sockaddr that has fullfilled the connection request */
+            if (psa)
+                *psa = aip->ai_addr;
+
             break;
         }
     }

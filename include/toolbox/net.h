@@ -189,10 +189,10 @@ int u_getsockopt (int sd, int lev, int oname, void *oval, int *olen);
 int u_listen (int sd, int backlog);
 
 #ifdef HAVE_GETADDRINFO
+int u_net_uri2ai (const char *uri, struct addrinfo **pai);
 int u_net_resolver (const char *host, const char *port, int family, int type,
         int proto, int passive, struct addrinfo **pai);
 #endif  /* HAVE_GETADDRINFO */
-
 
 #ifdef __cplusplus
 }
