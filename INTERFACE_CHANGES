@@ -1,0 +1,25 @@
+
+[uri]:
+    u_uri_t is now opaque.  Type attributes can be accessed only through their 
+    getter methods, which are *new* with 2.0:
+        * const char *u_uri_scheme (u_uri_t *uri)
+        * const char *u_uri_user (u_uri_t *uri)
+        * const char *u_uri_pwd (u_uri_t *uri)
+        * const char *u_uri_host (u_uri_t *uri)
+        * const char *u_uri_path (u_uri_t *uri)
+        * const char *u_uri_port (u_uri_t *uri)
+
+[buf]:
+    u_buf_t is now opaque.  Type attributes can be accessed only through their
+    getter methods, which where already present in 1.x:
+        * void *u_buf_ptr (u_buf_t *buf);
+        * size_t u_buf_len (u_buf_t *buf);
+        * size_t u_buf_size (u_buf_t *buf);
+
+[net]:
+    This module has been completely revamped, both implementation and 
+    interfaces have changed dramatically.  The sole chance for your application
+    to be backwards compatible is in case it used the u_net_sock() interface 
+    only.
+    A wealth of new interfaces has been added:
+        * ...

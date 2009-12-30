@@ -897,9 +897,9 @@ int u_net_sock_by_ai (struct addrinfo *ai, int mode, int opts,
     switch (mode)
     {
         case U_NET_SSOCK:
-            return do_ai_ssock (ai, opts, U_NET_BACKLOG, psa);
+            return do_ai_ssock(ai, opts, U_NET_BACKLOG, psa);
         case U_NET_CSOCK:
-            return do_ai_csock (ai, opts, psa);
+            return do_ai_csock(ai, opts, psa);
         default:
             info_return_ifm (1, ~0, "mode not supported");
     }
