@@ -27,11 +27,13 @@ typedef int (*u_net_disp_f) (struct sockaddr *, int, int);
 
 /* workers */
 static int do_csock (struct sockaddr *sad, int sad_len, int domain, int type,
-        int protocol, int opts);
+        int protocol, int opts, int dummy);
 static int do_ssock (struct sockaddr *sad, int sad_len, int domain, int type,
         int protocol, int opts, int backlog);
 
 #ifdef HAVE_GETADDRINFO
+static int do_ai_sock (int f(struct sockaddr *, int, int, int, int, int, int), 
+        struct addrinfo *ai, int opts, int backlog, struct sockaddr **psa);
 static int do_ai_ssock (struct addrinfo *ai, int opts, int backlog, 
         struct sockaddr **psa);
 static int do_ai_csock (struct addrinfo *ai, int opts, struct sockaddr **psa);
@@ -254,7 +256,7 @@ int u_net_tcp4_ssock (struct sockaddr_in *sad, int opts, int backlog)
 int u_net_tcp4_csock (struct sockaddr_in *sad, int opts)
 {
     return do_csock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET, SOCK_STREAM, IPPROTO_TCP, opts);
+            AF_INET, SOCK_STREAM, IPPROTO_TCP, opts, -1);
 }
 
 /** \brief  Return a UDP socket descriptor bound to the supplied IPv4 address */
@@ -270,7 +272,7 @@ int u_net_udp4_ssock (struct sockaddr_in *sad, int opts)
 int u_net_udp4_csock (struct sockaddr_in *sad, int opts)
 {
     return do_csock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET, SOCK_DGRAM, IPPROTO_UDP, opts);
+            AF_INET, SOCK_DGRAM, IPPROTO_UDP, opts, -1);
 }
 
 #ifndef NO_SCTP
@@ -292,7 +294,7 @@ int u_net_sctp4_csock (struct sockaddr_in *sad, int opts)
     int t = (opts & U_NET_OPT_SCTP_ONE_TO_MANY) ? SOCK_SEQPACKET : SOCK_STREAM;
 
     return do_csock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET, t, IPPROTO_SCTP, opts);
+            AF_INET, t, IPPROTO_SCTP, opts, -1);
 }
 #endif  /* !NO_SCTP */
 
@@ -310,7 +312,7 @@ int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int opts, int backlog)
 int u_net_tcp6_csock (struct sockaddr_in6 *sad, int opts)
 {
     return do_csock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET6, SOCK_STREAM, IPPROTO_TCP, opts);
+            AF_INET6, SOCK_STREAM, IPPROTO_TCP, opts, -1);
 }
 
 /** \brief  Return a UDP socket descriptor bound to the supplied IPv6 address */
@@ -326,7 +328,7 @@ int u_net_udp6_ssock (struct sockaddr_in6 *sad, int opts)
 int u_net_udp6_csock (struct sockaddr_in6 *sad, int opts)
 {
     return do_csock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET6, SOCK_DGRAM, IPPROTO_UDP, opts);
+            AF_INET6, SOCK_DGRAM, IPPROTO_UDP, opts, -1);
 }
 
 #ifndef NO_SCTP
@@ -347,7 +349,7 @@ int u_net_sctp6_csock (struct sockaddr_in6 *sad, int opts)
     int t = (opts & U_NET_OPT_SCTP_ONE_TO_MANY) ? SOCK_SEQPACKET : SOCK_STREAM;
 
     return do_csock((struct sockaddr *) sad, sizeof *sad, 
-            AF_INET6, t, IPPROTO_SCTP, opts);
+            AF_INET6, t, IPPROTO_SCTP, opts, -1);
 }
 #endif  /* !NO_SCTP */
 
@@ -432,7 +434,7 @@ int u_net_unix_ssock (struct sockaddr_un *sad, int opts, int backlog)
 int u_net_unix_csock (struct sockaddr_un *sad, int opts)
 {
     return do_csock((struct sockaddr *) sad, sizeof *sad, 
-            AF_UNIX, SOCK_STREAM, 0, opts);
+            AF_UNIX, SOCK_STREAM, 0, opts, -1);
 }
 
 /** \brief  Fill the supplied \c sockaddr_un object at \p *sad with addressing
@@ -911,7 +913,7 @@ int u_net_sock_by_ai (struct addrinfo *ai, int mode, int opts,
         case U_NET_CSOCK:
             return do_ai_csock(ai, opts, psa);
         default:
-            info_return_ifm (1, ~0, "mode not supported");
+            info_return_ifm (1, -1, "mode not supported");
     }
 }
 
@@ -1299,7 +1301,7 @@ static int udp6_csock (struct sockaddr *sad, int opts, int dummy)
     u_unused_args(dummy);
 #ifndef NO_IPV6
     return do_csock((struct sockaddr *) sad, sizeof(struct sockaddr_in6),
-            AF_INET6, SOCK_DGRAM, IPPROTO_UDP, opts);
+            AF_INET6, SOCK_DGRAM, IPPROTO_UDP, opts, -1);
 #else
     u_unused_args(sad, opts);
     info("udp6 socket not supported");
@@ -1308,9 +1310,11 @@ static int udp6_csock (struct sockaddr *sad, int opts, int dummy)
 }
 
 static int do_csock (struct sockaddr *sad, int sad_len, int domain, int type,
-        int protocol, int opts)
+        int protocol, int opts, int dummy)
 {
     int s = -1;
+
+    u_unused_args(dummy);
 
     dbg_return_if (sad == NULL, -1);
 
@@ -1368,9 +1372,11 @@ err:
 }
 
 #ifdef HAVE_GETADDRINFO
-/* if 'sa' is not NULL it */
-static int do_ai_ssock (struct addrinfo *ai, int opts, int backlog, 
-        struct sockaddr **psa)
+
+/* f == do_ssock|do_csock */
+/* if 'sa' is not NULL it will receive the connected/bound sockaddr back */
+static int do_ai_sock (int f(struct sockaddr *, int, int, int, int, int, int), 
+        struct addrinfo *ai, int opts, int backlog, struct sockaddr **psa)
 {
     int sock_type, sd = -1;
     struct addrinfo *aip;
@@ -1391,11 +1397,13 @@ static int do_ai_ssock (struct addrinfo *ai, int opts, int backlog,
         sock_type = aip->ai_socktype;
 #endif  /* !NO_SCTP */
 
-        if (do_ssock(aip->ai_addr, aip->ai_addrlen, aip->ai_family, 
-                    sock_type, aip->ai_protocol, opts, backlog) == 0)
+        if (f(aip->ai_addr, aip->ai_addrlen, aip->ai_family, sock_type, 
+                    aip->ai_protocol, opts, backlog) == 0)
         {
-            info("bind succeded for %s", ai->ai_canonname ? 
-                    ai->ai_canonname : u_sa_ntop(aip->ai_addr, h, sizeof h));
+            info("%s %s", (f == do_ssock) ?  "bind succeded for" : 
+                    "connect succeded to", 
+                    ai->ai_canonname ?  ai->ai_canonname : 
+                    u_sa_ntop(aip->ai_addr, h, sizeof h));
 
             /* if caller has supplied a valid 'psa', copy out the pointer 
              * to the sockaddr that has fullfilled the connection request */
@@ -1408,55 +1416,25 @@ static int do_ai_ssock (struct addrinfo *ai, int opts, int backlog,
 
     if (sd == -1)
     {
-        info("could not bind %s", ai->ai_canonname ?
-                    ai->ai_canonname : u_sa_ntop(aip->ai_addr, h, sizeof h));
+        info("could not %s %s", (f == do_ssock) ? "bind" : "connect to",
+                ai->ai_canonname ? ai->ai_canonname : 
+                u_sa_ntop(aip->ai_addr, h, sizeof h));
     }
 
     return sd;
+}
+
+static int do_ai_ssock (struct addrinfo *ai, int opts, int backlog, 
+        struct sockaddr **psa)
+{
+    return do_ai_sock(do_ssock, ai, opts, backlog, psa);
 }
 
 static int do_ai_csock (struct addrinfo *ai, int opts, struct sockaddr **psa)
 {
-    int sock_type, sd = -1;
-    struct addrinfo *aip;
-    char h[1024];
-
-    for (aip = ai; aip != NULL; aip = aip->ai_next)
-    {
-#ifndef NO_SCTP
-        /* override .ai_socktype for SCTP one-to-many sockets with 
-         * SOCK_SEQPACKET.  the default is SOCK_STREAM, see scheme_mapper() 
-         * in sctp[46] branches */ 
-        sock_type = (aip->ai_protocol == IPPROTO_SCTP && 
-                (opts & U_NET_OPT_SCTP_ONE_TO_MANY)) ? 
-            SOCK_SEQPACKET : aip->ai_socktype;
-#else
-        sock_type = aip->ai_socktype;
-#endif  /* !NO_SCTP */
-
-        if ((sd = do_csock(aip->ai_addr, aip->ai_addrlen, aip->ai_family, 
-                    sock_type, aip->ai_protocol, opts)) != -1)
-        {
-            info("connection succeded to %s", ai->ai_canonname ? 
-                    ai->ai_canonname : u_sa_ntop(aip->ai_addr, h, sizeof h));
-
-            /* if caller has supplied a valid 'psa', copy out the pointer 
-             * to the sockaddr that has fullfilled the connection request */
-            if (psa)
-                *psa = aip->ai_addr;
-
-            break;
-        }
-    }
-
-    if (sd == -1)
-    {
-        info("could not connect to %s", ai->ai_canonname ? 
-                    ai->ai_canonname : u_sa_ntop(aip->ai_addr, h, sizeof h));
-    }
-
-    return sd;
+    return do_ai_sock(do_csock, ai, opts, -1, psa);
 }
+
 #endif  /* HAVE_GETADDRINFO */
 
 #ifndef NO_SCTP
