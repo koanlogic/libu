@@ -198,6 +198,7 @@ int u_net_sock_by_ai (struct addrinfo *ai, int mode, int opts,
 int u_net_uri2ai (const char *uri, struct addrinfo **pai);
 int u_net_resolver (const char *host, const char *port, int family, int type,
         int proto, int passive, struct addrinfo **pai);
+void u_net_freeaddrinfo (struct addrinfo *ai);
 #endif  /* HAVE_GETADDRINFO */
 
 #ifdef __cplusplus

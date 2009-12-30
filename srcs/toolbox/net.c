@@ -75,8 +75,11 @@ static int ipv4_uri_to_sin (u_uri_t *uri, struct sockaddr *sad);
 #ifndef NO_IPV6
 static int ipv6_uri_to_sin6 (u_uri_t *uri, struct sockaddr *sad);
 #endif  /* !NO_IPV6 */
-#ifndef NO_UNIXSOCsu
+#ifndef NO_UNIXSOCK
 static int unix_uri_to_sun (u_uri_t *uri, struct sockaddr *sad);
+#ifdef HAVE_GETADDRINFO
+static int unix_uri_to_ai (u_uri_t *uri, struct addrinfo **pai);
+#endif  /* HAVE_GETADDRINFO */
 #endif  /* !NO_UNIXSOCK */
 #ifndef NO_SCTP
 static int sctp_enable_events (int s, int opts);
@@ -96,6 +99,15 @@ struct u_net_scheme_map_s
 typedef struct u_net_scheme_map_s u_net_scheme_map_t;
 
 static int scheme_mapper (const char *scheme, u_net_scheme_map_t *map);
+
+/* scheme checkers */
+#define SCHEME_IS_V4(s)     \
+    (strchr(s, '4') != NULL || !strcasecmp(s, "tcp") || \
+     !strcasecmp(s, "udp") || !strcasecmp(s, "sctp"))
+#define SCHEME_IS_V6(s)     \
+    (strchr(s, '6') != NULL)
+#define SCHEME_IS_UNIX(s)   \
+    (!strcasecmp(s, "unix"))
 
 /* internal uri representation */
 struct u_net_addr_s
@@ -355,8 +367,7 @@ static int ipv6_uri_to_sin6 (u_uri_t *uri, struct sockaddr *sad)
     dbg_return_if (uri == NULL, ~0);
     dbg_return_if ((host = u_uri_host(uri)) == NULL, 0);
     dbg_return_if ((scheme = u_uri_scheme(uri)) == NULL, 0);
-    dbg_return_if (strcasecmp(scheme, "tcp6") && strcasecmp(scheme, "udp6") && 
-            strcasecmp(scheme, "sctp6"), ~0);
+    dbg_return_if (!SCHEME_IS_V6(scheme), ~0);
     dbg_return_if ((sin6 = (struct sockaddr_in6 *) sad) == NULL, ~0);
 
     memset(sin6, 0, sizeof(struct sockaddr_in6));
@@ -439,7 +450,7 @@ static int unix_uri_to_sun (u_uri_t *uri, struct sockaddr *sad)
     dbg_return_if (uri == NULL, ~0);
     dbg_return_if ((path = u_uri_path(uri)) == NULL, ~0);
     dbg_return_if ((scheme = u_uri_scheme(uri)) == NULL, ~0);
-    dbg_return_if (strcasecmp(scheme, "unix"), ~0);
+    dbg_return_if (!SCHEME_IS_UNIX(scheme), ~0);
     dbg_return_if ((sun = (struct sockaddr_un *) sad) == NULL, ~0);
 
     sun->sun_family = AF_UNIX;
@@ -664,8 +675,7 @@ static int ipv4_uri_to_sin (u_uri_t *uri, struct sockaddr *sad)
     dbg_return_if (uri == NULL, ~0);
     dbg_return_if ((host = u_uri_host(uri)) == NULL, ~0);
     dbg_return_if ((scheme = u_uri_scheme(uri)) == NULL, ~0);
-    dbg_return_if (strcasecmp(scheme, "tcp4") && strcasecmp(scheme, "udp4") && 
-            strcasecmp(scheme, "sctp4"), ~0);
+    dbg_return_if (!SCHEME_IS_V4(scheme), ~0);
     dbg_return_if ((sin = (struct sockaddr_in *) sad) == NULL, ~0);
 
     memset(sin, 0, sizeof(struct sockaddr_in));
@@ -906,13 +916,15 @@ int u_net_sock_by_ai (struct addrinfo *ai, int mode, int opts,
 }
 
 /** \brief  Pretty much like ::u_net_uri2addr except it return an addrinfo
- *          instead of an u_net_addr_t, also it can't handle 'unix://' schemes 
- *          (WIP) */
+ *          instead of an u_net_addr_t */
 int u_net_uri2ai (const char *uri, struct addrinfo **pai)
 {
     const char *s;
     u_uri_t *u = NULL;
     u_net_scheme_map_t smap;
+#ifndef NO_UNIXSOCK
+    struct addrinfo *unix_ai;
+#endif
 
     dbg_return_if (uri == NULL, ~0);
     dbg_return_if (pai == NULL, ~0);
@@ -920,8 +932,19 @@ int u_net_uri2ai (const char *uri, struct addrinfo **pai)
     /* decode address and map scheme */
     dbg_err_if (u_uri_parse(uri, &u));
     dbg_err_if ((s = u_uri_scheme(u)) == NULL);
-    dbg_err_ifm (scheme_mapper(s, &smap) || smap.type == U_NET_UNIX, 
-            "unsupported URI scheme: %s", s);
+    dbg_err_ifm (scheme_mapper(s, &smap), "unsupported URI scheme: %s", s);
+
+#ifndef NO_UNIXSOCK
+    /* handle UNIX as a special case: we can't let it through the resolver */
+    if (smap.type == U_NET_UNIX)
+    {
+        dbg_err_if (unix_uri_to_ai(u, &unix_ai));
+
+        /* copy out and go */
+        *pai = unix_ai;
+        return 0;
+    }
+#endif
 
     /* now call the gai resolver (NOTE: 'passive' is set to 0) */
     dbg_err_if (u_net_resolver(u_uri_host(u), u_uri_port(u), 
@@ -929,7 +952,58 @@ int u_net_uri2ai (const char *uri, struct addrinfo **pai)
 
     return 0;
 err:
+    if (unix_ai)
+        freeaddrinfo(unix_ai);
     return ~0;
+}
+
+#ifndef NO_UNIXSOCK
+static int unix_uri_to_ai (u_uri_t *uri, struct addrinfo **pai)
+{
+    struct addrinfo *ai = NULL;
+    struct sockaddr_un *sun = NULL;
+
+    dbg_return_if (uri == NULL, ~0);
+    dbg_return_if (pai == NULL, ~0);
+
+    dbg_err_sif ((ai = u_zalloc(sizeof *ai)) == NULL);
+    dbg_err_sif ((sun = u_zalloc(sizeof *sun)) == NULL);
+
+    /* fill-in a 'fake' UNIX addrinfo */
+    ai->ai_flags = 0;
+    ai->ai_family = AF_UNIX;
+    ai->ai_socktype = SOCK_STREAM;  /* default to STREAM */
+    ai->ai_protocol = 0;
+    ai->ai_addrlen = sizeof *sun;
+    ai->ai_addr = (struct sockaddr *) sun;
+    dbg_err_if (unix_uri_to_sun(uri, ai->ai_addr));
+    /* let CNAME point to the pathname */
+    ai->ai_canonname = ((struct sockaddr_un *) ai->ai_addr)->sun_path;    
+    ai->ai_next = NULL;
+
+    *pai = ai;
+
+    return 0;
+err:
+    U_FREE(ai);
+    U_FREE(sun);
+    return ~0;
+}
+#endif  /* !NO_UNIXSOCK */
+
+void u_net_freeaddrinfo (struct addrinfo *ai)
+{
+    dbg_return_if (ai == NULL, );
+
+    if (ai->ai_family != AF_UNIX)
+        freeaddrinfo(ai); 
+    else
+    {
+        U_FREE(ai->ai_addr);
+        u_free(ai);
+    }
+
+    return;
 }
 
 /** \brief  Wrapper to getaddrinfo(3) */
@@ -1320,7 +1394,7 @@ static int do_ai_ssock (struct addrinfo *ai, int opts, int backlog,
         if (do_ssock(aip->ai_addr, aip->ai_addrlen, aip->ai_family, 
                     sock_type, aip->ai_protocol, opts, backlog) == 0)
         {
-            info("bind succeded for host %s", ai->ai_canonname ? 
+            info("bind succeded for %s", ai->ai_canonname ? 
                     ai->ai_canonname : u_sa_ntop(aip->ai_addr, h, sizeof h));
 
             /* if caller has supplied a valid 'psa', copy out the pointer 
@@ -1334,7 +1408,7 @@ static int do_ai_ssock (struct addrinfo *ai, int opts, int backlog,
 
     if (sd == -1)
     {
-        info("could not bind to %s", ai->ai_canonname ?
+        info("could not bind %s", ai->ai_canonname ?
                     ai->ai_canonname : u_sa_ntop(aip->ai_addr, h, sizeof h));
     }
 
@@ -1363,7 +1437,7 @@ static int do_ai_csock (struct addrinfo *ai, int opts, struct sockaddr **psa)
         if ((sd = do_csock(aip->ai_addr, aip->ai_addrlen, aip->ai_family, 
                     sock_type, aip->ai_protocol, opts)) != -1)
         {
-            info("connection succeded to host %s", ai->ai_canonname ? 
+            info("connection succeded to %s", ai->ai_canonname ? 
                     ai->ai_canonname : u_sa_ntop(aip->ai_addr, h, sizeof h));
 
             /* if caller has supplied a valid 'psa', copy out the pointer 
@@ -1377,7 +1451,7 @@ static int do_ai_csock (struct addrinfo *ai, int opts, struct sockaddr **psa)
 
     if (sd == -1)
     {
-        info("could not connect to host %s", ai->ai_canonname ? 
+        info("could not connect to %s", ai->ai_canonname ? 
                     ai->ai_canonname : u_sa_ntop(aip->ai_addr, h, sizeof h));
     }
 
