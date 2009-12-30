@@ -924,9 +924,6 @@ int u_net_uri2ai (const char *uri, struct addrinfo **pai)
     const char *s;
     u_uri_t *u = NULL;
     u_net_scheme_map_t smap;
-#ifndef NO_UNIXSOCK
-    struct addrinfo *unix_ai;
-#endif
 
     dbg_return_if (uri == NULL, ~0);
     dbg_return_if (pai == NULL, ~0);
@@ -940,10 +937,7 @@ int u_net_uri2ai (const char *uri, struct addrinfo **pai)
     /* handle UNIX as a special case: we can't let it through the resolver */
     if (smap.type == U_NET_UNIX)
     {
-        dbg_err_if (unix_uri_to_ai(u, &unix_ai));
-
-        /* copy out and go */
-        *pai = unix_ai;
+        dbg_err_if (unix_uri_to_ai(u, pai));
         return 0;
     }
 #endif
@@ -954,8 +948,6 @@ int u_net_uri2ai (const char *uri, struct addrinfo **pai)
 
     return 0;
 err:
-    if (unix_ai)
-        freeaddrinfo(unix_ai);
     return ~0;
 }
 
@@ -1047,7 +1039,7 @@ int u_net_resolver (const char *host, const char *port, int family, int type,
     return 0;
 err:
     if (ai)
-        freeaddrinfo(ai);
+        u_net_freeaddrinfo(ai);
     return ~0;
 }
 
