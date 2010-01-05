@@ -42,6 +42,12 @@
   typedef unsigned long in_addr_t;
 #endif
 
+#ifndef HAVE_SOCKLEN_T
+  typedef int u_socklen_t;
+#else   /* !HAVE_SOCKLEN_T */
+  typedef socklen_t u_socklen_t;
+#endif  /* HAVE_SOCKLEN_T */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -55,19 +61,6 @@ extern "C" {
 struct u_net_addr_s;
 typedef struct u_net_addr_s u_net_addr_t;
 
-enum { 
-    U_NET_TYPE_MIN = 0,
-    U_NET_TCP4 = 1,
-    U_NET_TCP6 = 2,
-    U_NET_UDP4 = 3,
-    U_NET_UDP6 = 4,
-    U_NET_UNIX = 5,
-    U_NET_SCTP4 = 6,
-    U_NET_SCTP6 = 7,
-    U_NET_TYPE_MAX = 8
-};
-#define U_NET_IS_VALID_ADDR_TYPE(a) (a > U_NET_TYPE_MIN && a < U_NET_TYPE_MAX)
-
 /* socket creation semantics: server or client (the 'mode' in u_net_sock) */
 enum { 
     U_NET_SSOCK = 0, 
@@ -75,7 +68,7 @@ enum {
 };
 #define U_NET_IS_MODE(m) (m == U_NET_SSOCK || m == U_NET_CSOCK)
 
-/* opts for u_net_addr_{set,add}_opts() */
+/** \brief  Options possibly used when creating the socket */
 #define U_NET_OPT_DONT_REUSE_ADDR               (1 << 0)
 #define U_NET_OPT_DONT_CONNECT                  (1 << 1)
 #define U_NET_OPT_SCTP_ONE_TO_MANY              (1 << 2)
@@ -115,91 +108,32 @@ enum {
  */
 
 /* hi-level socket creation */
-int u_net_sock (const char *uri, int mode);
-int u_net_sock_by_addr (u_net_addr_t *addr, int mode);
+int u_net_sock (const char *uri, int mode, ...);
+int u_net_sock_by_addr (u_net_addr_t *a);
 
-/* deprecated: use u_net_sock_by_addr instead */
-int u_net_sock_tcp (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
-int u_net_sock_udp (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
-int u_net_sock_unix (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
-#ifndef NO_SCTP
-int u_net_sock_sctp (u_net_addr_t *addr, int mode) __LIBU_DEPRECATED;
-#endif  /* !NO_SCTP */
-
-/* low-level socket creation */
-int u_net_tcp4_ssock (struct sockaddr_in *sad, int opts, int backlog);
-int u_net_tcp4_csock (struct sockaddr_in *sad, int opts);
-int u_net_udp4_ssock (struct sockaddr_in *sad, int opts);
-int u_net_udp4_csock (struct sockaddr_in *sad, int opts);
-#ifndef NO_SCTP
-int u_net_sctp4_ssock (struct sockaddr_in *sad, int opts, int backlog);
-int u_net_sctp4_csock (struct sockaddr_in *sad, int opts);
-#endif /* !NO_SCTP */
-int u_net_uri2sin (const char *uri, struct sockaddr_in *sad);
-
-#ifndef NO_IPV6
-int u_net_tcp6_ssock (struct sockaddr_in6 *sad, int opts, int backlog);
-int u_net_tcp6_csock (struct sockaddr_in6 *sad, int opts);
-int u_net_udp6_ssock (struct sockaddr_in6 *sad, int opts);
-int u_net_udp6_csock (struct sockaddr_in6 *sad, int opts);
-#ifndef NO_SCTP
-int u_net_sctp6_ssock (struct sockaddr_in6 *sad, int opts, int backlog);
-int u_net_sctp6_csock (struct sockaddr_in6 *sad, int opts);
-#endif /* !NO_SCTP */
-int u_net_uri2sin6 (const char *uri, struct sockaddr_in6 *sad);
-#endif /* !NO_IPV6 */
-
-#ifndef NO_UNIXSOCK
-int u_net_unix_ssock (struct sockaddr_un *sad, int opts, int backlog);
-int u_net_unix_csock (struct sockaddr_un *sad, int opts);
-int u_net_uri2sun (const char *uri, struct sockaddr_un *sad);
-#endif /* !NO_UNIXSOCK */
-
-/* address translation: uri string -> u_uri -> u_net_addr -> struct sockaddr */
-int u_net_uri2addr (const char *uri, u_net_addr_t **pa);
-int u_net_addr_new (int type, u_net_addr_t **pa);
-void u_net_addr_free (u_net_addr_t *addr);
-
-/* address accessors */
-int u_net_addr_get_type (u_net_addr_t *a);
-struct sockaddr *u_net_addr_get_sa (u_net_addr_t *a);
+/* address ctor/dtor */
+int u_net_uri2addr (const char *uri, int mode, u_net_addr_t **pa);
+void u_net_addr_free (u_net_addr_t *a);
 
 /* address opts manipulation (applies to socket creation) */
-void u_net_addr_set_opts (u_net_addr_t *addr, int opts);
-void u_net_addr_add_opts (u_net_addr_t *addr, int opts);
+void u_net_addr_set_opts (u_net_addr_t *a, int opts);
+void u_net_addr_add_opts (u_net_addr_t *a, int opts);
 
 /* misc */
 int u_net_nagle_off (int sd);
 
 /* networking syscall wrappers */
 int u_socket (int domain, int type, int protocol);
-#ifdef HAVE_SOCKLEN_T
-int u_connect (int sd, const struct sockaddr *addr, socklen_t addrlen);
-int u_accept(int ld, struct sockaddr *addr, socklen_t *addrlen);
-int u_bind (int sd, const struct sockaddr *addr, socklen_t addrlen);
-int u_setsockopt (int sd, int lev, int oname, const void *oval, socklen_t olen);
-int u_getsockopt (int sd, int lev, int oname, void *oval, socklen_t *olen);
-const char *u_inet_ntop (int af, const void *src, char *dst, socklen_t len);
-#else
-int u_connect (int sd, const struct sockaddr *addr, int addrlen);
-int u_accept(int ld, struct sockaddr *addr, int *addrlen);
-int u_bind (int sd, const struct sockaddr *addr, int addrlen);
-int u_setsockopt (int sd, int lev, int oname, const void *oval, int olen);
-int u_getsockopt (int sd, int lev, int oname, void *oval, int *olen);
-const char *u_inet_ntop (int af, const void *src, char *dst, size_t len);
-#endif  /* HAVE_SOCKLEN_T */
+int u_connect (int sd, const struct sockaddr *addr, u_socklen_t addrlen);
 int u_listen (int sd, int backlog);
-int u_inet_pton (int af, const char *src, void *dst);
-const char *u_sa_ntop (const struct sockaddr *sa, char *dst, size_t dst_len);
+int u_accept(int ld, struct sockaddr *addr, u_socklen_t *addrlen);
+int u_bind (int sd, const struct sockaddr *addr, u_socklen_t addrlen);
+int u_setsockopt (int sd, int lev, int name, const void *val, u_socklen_t len);
+int u_getsockopt (int sd, int lev, int name, void *val, u_socklen_t *len);
 
-#ifdef HAVE_GETADDRINFO
-int u_net_sock_by_ai (struct addrinfo *ai, int mode, int opts, 
-        struct sockaddr **psa);
-int u_net_uri2ai (const char *uri, struct addrinfo **pai);
-int u_net_resolver (const char *host, const char *port, int family, int type,
-        int proto, int passive, struct addrinfo **pai);
-void u_net_freeaddrinfo (struct addrinfo *ai);
-#endif  /* HAVE_GETADDRINFO */
+/* addressing conversion */
+const char *u_sa_ntop (const struct sockaddr *sa, char *dst, size_t dst_len);
+const char *u_inet_ntop (int af, const void *src, char *dst, u_socklen_t len);
 
 #ifdef __cplusplus
 }

@@ -1,90 +1,91 @@
-# $Id: Makefile,v 1.15 2009/02/20 10:25:26 tho Exp $
+# $Id: Makefile,v 1.16 2010/01/05 21:29:41 tho Exp $
 
 include common.mk
 include ../Makefile.conf
 
 LIB = u
 
-# toolbox sources
-SRCS = toolbox/memory.c \
-       toolbox/misc.c   \
-       toolbox/str.c    \
-       toolbox/buf.c    \
-       toolbox/log.c    \
-       toolbox/test.c
+# toolbox core sources
+SRCS =  toolbox/memory.c
+SRCS += toolbox/misc.c
+SRCS += toolbox/str.c
+SRCS += toolbox/buf.c
+SRCS += toolbox/log.c
+SRCS += toolbox/test.c
 
 ifndef NO_HMAP
-SRCS += toolbox/hmap.c
+    SRCS += toolbox/hmap.c
 endif
 ifndef NO_CONFIG
-SRCS += toolbox/config.c
-SRCS += toolbox/config_fs.c
+    SRCS += toolbox/config.c
+    SRCS += toolbox/config_fs.c
 endif
 ifndef NO_ENV
-SRCS += toolbox/env.c
+    SRCS += toolbox/env.c
 endif
 ifndef NO_NET
-SRCS += toolbox/net.c toolbox/uri.c
+    SRCS += toolbox/net.c 
+    SRCS += toolbox/uri.c
 endif
 ifndef NO_FS
-SRCS += toolbox/fs.c
+    SRCS += toolbox/fs.c
 endif
 ifndef NO_PWD
-ifdef NO_HMAP   # pwd needs hmap
-$(warning adding hmap module as a dependency to pwd)
-SRCS += toolbox/hmap.c
-endif   # NO_HMAP (PWD dep)
-SRCS += toolbox/pwd.c
+    ifdef NO_HMAP   # pwd needs hmap
+        $(warning adding hmap module as a dependency to pwd)
+        SRCS += toolbox/hmap.c
+    endif   # NO_HMAP (PWD dep)
+    SRCS += toolbox/pwd.c
 endif   # !NO_PWD 
 ifndef NO_LIST
-SRCS += toolbox/list.c
+    SRCS += toolbox/list.c
 endif
 ifndef NO_ARRAY
-SRCS += toolbox/array.c
+    SRCS += toolbox/array.c
 endif
 ifdef SHLIB_NO_UNDEFINED_SYMS
-SRCS += toolbox/facility.c
+    SRCS += toolbox/facility.c
 endif
 
 # missing sources
 ifndef HAVE_SYSLOG
-SRCS += missing/syslog.c
+    SRCS += missing/syslog.c
 endif
 ifndef HAVE_STRTOK_R
-SRCS += missing/strtok_r.c
+    SRCS += missing/strtok_r.c
 endif
 ifndef HAVE_UNLINK
-SRCS += missing/unlink.c
+    SRCS += missing/unlink.c
 endif
 ifndef HAVE_GETPID
-SRCS += missing/getpid.c
+    SRCS += missing/getpid.c
 endif
 ifndef HAVE_FNMATCH
-SRCS += missing/fnmatch.c
+    SRCS += missing/fnmatch.c
 endif
 ifndef HAVE_TIMEGM
-SRCS += missing/timegm.c
+    SRCS += missing/timegm.c
 endif
 ifndef HAVE_STRSEP
-SRCS += missing/strsep.c
+    SRCS += missing/strsep.c
 endif
 ifndef HAVE_STRLCPY
-SRCS += missing/strlcpy.c
+    SRCS += missing/strlcpy.c
 endif
 ifndef HAVE_STRLCAT
-SRCS += missing/strlcat.c
+    SRCS += missing/strlcat.c
 endif
 ifndef HAVE_GETTIMEOFDAY
-SRCS += missing/gettimeofday.c
+    SRCS += missing/gettimeofday.c
 endif
 ifndef HAVE_DAEMON
-SRCS += missing/daemon.c
+    SRCS += missing/daemon.c
 endif
 ifndef HAVE_MKSTEMPS
-SRCS += missing/mkstemps.c
+    SRCS += missing/mkstemps.c
 endif
 ifndef HAVE_SETENV
-SRCS += missing/setenv.c
+    SRCS += missing/setenv.c
 endif
 
 include lib.mk
