@@ -35,7 +35,8 @@ struct u_net_addr_s
 {
     int opts;   /* OR'd U_NET_OPT's */
     int mode;   /* one of U_NET_SSOCK or U_NET_CSOCK */
-    u_addrinfo_t *addr;
+    u_addrinfo_t *addr; /* list of available addresses */
+    u_addrinfo_t *cur;  /* reference to the current working address */
 };
 
 /* private stuff */ 
@@ -73,7 +74,7 @@ static int resolv_port (const char *s_port, uint16_t *pin_port);
 /* socket creation horses */
 static int do_sock (
         int f(struct sockaddr *, u_socklen_t, int, int, int, int, int), 
-        struct u_net_addr_s *a, int backlog, struct sockaddr **psa);
+        struct u_net_addr_s *a, int backlog, u_addrinfo_t **pai);
 static int do_csock (struct sockaddr *sad, u_socklen_t sad_len, int domain, 
         int type, int protocol, int opts, int dummy);
 static int do_ssock (struct sockaddr *sad, u_socklen_t sad_len, int domain, 
@@ -217,9 +218,9 @@ int u_net_sock_by_addr (u_net_addr_t *a)
     switch (a->mode)
     {
         case U_NET_SSOCK:
-            return do_sock(do_ssock, a, U_NET_BACKLOG, NULL);
+            return do_sock(do_ssock, a, U_NET_BACKLOG, &a->cur);
         case U_NET_CSOCK:
-            return do_sock(do_csock, a, 0, NULL);
+            return do_sock(do_csock, a, 0, &a->cur);
         default:
             dbg_return_ifm (1, -1, "unknown socket mode %d", a->mode);
     }
@@ -272,6 +273,30 @@ err:
         u_net_addr_free(a);
 
     return -1;
+}
+
+/** 
+ *  \brief  Tell if the supplied address is entitled to call accept(2) 
+ *
+ *  \param  a   A \c u_net_addr_t object that has been created via 
+ *              ::u_net_uri2addr
+ *
+ *  \retval 1   if the address is suitable for accept'ing connections
+ *  \retval 0   if the address is invalid, or not eligible for accept(2)
+ */
+int u_net_addr_can_accept (u_net_addr_t *a)
+{
+    dbg_return_if (a == NULL, 0);
+    dbg_return_if (a->cur == NULL, 0);
+
+    switch (a->cur->ai_socktype)
+    {
+        case SOCK_STREAM:
+        case SOCK_SEQPACKET:
+            return (a->mode == U_NET_SSOCK) ? 1 : 0;
+        default:
+            return 0;
+    }
 }
 
 /**
@@ -565,7 +590,7 @@ err:
  * - if 'psa' is not NULL it will receive the connected/bound sockaddr back */
 static int do_sock (
         int wf (struct sockaddr *, u_socklen_t, int, int, int, int, int), 
-        struct u_net_addr_s *a, int backlog, struct sockaddr **psa)
+        struct u_net_addr_s *a, int backlog, u_addrinfo_t **pai)
 {
     int sock_type, sd = -1;
     u_addrinfo_t *ap;
@@ -586,28 +611,27 @@ static int do_sock (
         sock_type = ap->ai_socktype;
 #endif  /* !NO_SCTP */
 
-        if (wf(ap->ai_addr, ap->ai_addrlen, ap->ai_family, sock_type, 
-                    ap->ai_protocol, a->opts, backlog) == 0)
+        if ((sd = wf(ap->ai_addr, ap->ai_addrlen, ap->ai_family, sock_type, 
+                    ap->ai_protocol, a->opts, backlog)) != -1)
         {
-            info("%s %s", (wf == do_ssock) ?  "bind succeded for" : 
-                    "connect succeded to", 
-                    ap->ai_canonname ?  ap->ai_canonname : 
-                    u_sa_ntop(ap->ai_addr, h, sizeof h));
+            info("%s %s", (wf == do_ssock) ? "bind succeeded for" 
+                    : "connect succeeded to", (ap->ai_family == AF_UNIX) 
+                    ? ap->ai_canonname : u_sa_ntop(ap->ai_addr, h, sizeof h));
 
-            /* if caller has supplied a valid 'psa', copy out the pointer 
-             * to the sockaddr that has fullfilled the connection request */
-            if (psa)
-                *psa = ap->ai_addr;
+            /* if caller has supplied a valid 'pai', copy out the pointer 
+             * to the addrinfo that has fullfilled the connection request */
+            if (pai)
+                *pai = ap;
 
             break;
         }
-    } 
+    }
 
     if (sd == -1)
     {
-        info("could not %s %s", (wf == do_ssock) ? "bind" : "connect to",
-                ap->ai_canonname ? ap->ai_canonname : 
-                u_sa_ntop(ap->ai_addr, h, sizeof h));
+        info("could not %s %s", (wf == do_ssock) ? "bind" : "connect to", 
+                (ap->ai_family == AF_UNIX) ? a->addr->ai_canonname 
+                : u_sa_ntop(a->addr->ai_addr, h, sizeof h));
     }
 
     return sd;

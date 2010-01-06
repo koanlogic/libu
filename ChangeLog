@@ -1,4 +1,4 @@
-$Id: ChangeLog,v 1.85 2009/12/29 23:45:16 tho Exp $
+$Id: ChangeLog,v 1.86 2010/01/06 20:48:34 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
@@ -8,17 +8,8 @@ LibU 2.0.0
 	- [hmap] added u_hmap_foreach_arg which accepts a user defined parameter
 	  that is supplied to the callback function
 	- [uri] parse IPv6 numeric addresses as per rfc3986; added tester
-	- [net] module implementation revamped; u_net_sock_by_addr added; handle
-	  wildcard address (i.e. '*') in uri; IPv6 uri to address translator;
-	  u_net_uri2sin footprint aligned to other u_net_uri2* interfaces;
-	  u_accept prototype fixed for platforms supporting socklen_t type; 
-	  added support for IPv[46] UDP sockets; added u_net_addr_{set,add}_flags
-	  interfaces for explicit socket flags manipulation; add explicit flags
-	  parameter to all u_net_*sock interfaces; added SCTP protocol support,
-	  both one-to-one and one-to-many (via U_NET_OPT_SCTP_ONE_TO_MANY option);
-	  add wrappers to common socket syscalls; added u_net_resolver interface;
-	  add u_inet_pton, u_inet_ntop and u_sa_ntop interfaces for pretty printing
-	  of sockaddr's; add addressinfo support; ...
+	- [net] module implementation revamped, too many changes to be listed here:
+	  see the INTERFACE_CHANGES document
 	- fix configure bug which prevented IPv6 and UNIX sockets bits inclusion;
 	  also bring back to life --no_ipv6 and --no_unixsock configure flags; 
 	  new --no_sctp command line option to explicitly disable SCTP bits

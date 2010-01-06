@@ -111,9 +111,10 @@ enum {
 int u_net_sock (const char *uri, int mode, ...);
 int u_net_sock_by_addr (u_net_addr_t *a);
 
-/* address ctor/dtor */
+/* address ctor/dtor & co. */
 int u_net_uri2addr (const char *uri, int mode, u_net_addr_t **pa);
 void u_net_addr_free (u_net_addr_t *a);
+int u_net_addr_can_accept (u_net_addr_t *a);
 
 /* address opts manipulation (applies to socket creation) */
 void u_net_addr_set_opts (u_net_addr_t *a, int opts);

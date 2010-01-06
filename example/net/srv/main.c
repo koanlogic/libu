@@ -1,4 +1,4 @@
-/* $Id: main.c,v 1.5 2009/12/26 14:16:35 tho Exp $ */
+/* $Id: main.c,v 1.6 2010/01/06 20:48:34 tho Exp $ */
 
 #include <stdlib.h>
 #include <u/libu.h>
@@ -8,7 +8,7 @@ int facility = LOG_LOCAL0;
 int main (int argc, char *argv[])
 {
     u_net_addr_t *a = NULL;
-    int sd = -1, asd = -1, at;
+    int sd = -1, asd = -1;
     struct sockaddr_storage sa;
     socklen_t sa_len = sizeof sa;
     char s[1024];
@@ -16,12 +16,13 @@ int main (int argc, char *argv[])
 
     con_err_ifm (argc != 2, "usage: %s <bind uri>", argv[0]);
 
-    con_err_if (u_net_uri2addr(argv[1], &a));
-    con_err_sif ((sd = u_net_sock_by_addr(a, U_NET_SSOCK)) == -1);
+    con_err_if (u_net_uri2addr(argv[1], U_NET_SSOCK, &a));
+
+    con_err_sif ((sd = u_net_sock_by_addr(a)) == -1);
 
     /* only STREAM/SEQPACKET sockets need to call accept(2) */
-    asd = ((at = u_net_addr_get_type(a)) != U_NET_UDP4 && at != U_NET_UDP6) ?
-        u_accept(sd, (struct sockaddr *) &sa, &sa_len) : sd;
+    asd = u_net_addr_can_accept(a)
+            ? u_accept(sd, (struct sockaddr *) &sa, &sa_len) : sd;
     con_err_sif (asd == -1);
 
     /* read data */
