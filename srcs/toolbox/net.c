@@ -16,7 +16,7 @@ typedef struct addrinfo u_addrinfo_t;
 #else
 /* duplicate addrinfo layout in case struct addrinfo and related
  * methods were not available on the platform */
-struct u_addrinfo_s
+typedef struct u_addrinfo_s
 {
     int ai_flags;       /* not used */
     int ai_family;      /* AF_INET, AF_INET6, AF_UNIX */
@@ -27,8 +27,7 @@ struct u_addrinfo_s
     u_socklen_t ai_addrlen;
     struct sockaddr *ai_addr;
     struct u_addrinfo_s *ai_next;
-};
-typedef struct u_addrinfo_s u_addrinfo_t;
+} u_addrinfo_t;
 #endif  /* HAVE_GETADDRINFO */
 
 /* how u_net uri are represented */
