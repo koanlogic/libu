@@ -16,18 +16,19 @@ typedef struct addrinfo u_addrinfo_t;
 #else
 /* duplicate addrinfo layout in case struct addrinfo and related
  * methods were not available on the platform */
-typedef struct u_addrinfo_s
+struct u_addrinfo_s
 {
     int ai_flags;       /* not used */
     int ai_family;      /* AF_INET, AF_INET6, AF_UNIX */
     int ai_socktype;    /* SOCK_STREAM, SOCK_DGRAM, SOCK_SEQPACKET */
-    int ai_protocol;    /* (ai_family == F_UNIX) => 0, otherwise one of:
+    int ai_protocol;    /* (ai_family == AF_UNIX) => 0, otherwise one of:
                            IPPROTO_TCP, IPPROTO_UDP, IPPROTO_SCTP */
     char *ai_canonname;
     u_socklen_t ai_addrlen;
     struct sockaddr *ai_addr;
     struct u_addrinfo_s *ai_next;
-} u_addrinfo_t;
+};
+typedef struct u_addrinfo_s u_addrinfo_t;
 #endif  /* HAVE_GETADDRINFO */
 
 /* how u_net uri are represented */
@@ -39,26 +40,28 @@ struct u_net_addr_s
 };
 
 /* private stuff */ 
-static int u_net_addr_new (int mode, u_net_addr_t **pa);
-static void u_addrinfo_free (u_addrinfo_t *ai);
+static int na_new (int mode, u_net_addr_t **pa);
+static void ai_free (u_addrinfo_t *ai);
+#ifndef NO_SCTP
+static int sctp_enable_events (int s, int opts);
+#endif  /* !NO_SCTP */
+static int bind_reuse_addr (int s);
+
 /* low level resolvers */
 static int do_resolv (
         int rf (const char *, const char *, const char *, u_addrinfo_t *ai), 
         const char *host, const char *port, const char *path, int family, 
         int type, int proto, u_addrinfo_t **pai);
 #ifndef NO_UNIXSOCK
+/* this is needed here because getaddrinfo() don't understand AF_UNIX */
 static int resolv_sun (const char *dummy1, const char *dummy2, const char *path,
         u_addrinfo_t *ai); 
 #endif  /* !NO_UNIXSOCK */
-
-/* addrinfo specific bits */
-#ifdef HAVE_GETADDRINFO
-static void ai_free (struct addrinfo *ai);
 static int ai_resolv (const char *host, const char *port, const char *path,
-        int family, int type, int proto, int passive, struct addrinfo **pai);
-#else   /* !HAVE_GETADDRINFO */
-static int u_addrinfo_resolv (const char *host, const char *port, 
-        const char *path, int family, int type, int proto, u_addrinfo_t **pai);
+        int family, int type, int proto, int passive, u_addrinfo_t **pai);
+
+/* resolver bits when getaddrinfo() is missing */
+#ifndef HAVE_GETADDRINFO
 static int resolv_sin (const char *host, const char *port, const char *dummy, 
         u_addrinfo_t *ai); 
 #ifndef NO_IPV6
@@ -66,13 +69,7 @@ static int resolv_sin6 (const char *host, const char *port, const char *dummy,
         u_addrinfo_t *ai);
 #endif  /* !NO_IPV6 */
 static int resolv_port (const char *s_port, uint16_t *pin_port);
-#endif  /* HAVE_GETADDRINFO */
-
-/* misc */
-#ifndef NO_SCTP
-static int sctp_enable_events (int s, int opts);
-#endif  /* !NO_SCTP */
-static int bind_reuse_addr (int s);
+#endif  /* !HAVE_GETADDRINFO */
 
 /* socket creation horses */
 static int do_sock (
@@ -184,7 +181,7 @@ int u_net_uri2addr (const char *uri, int mode, u_net_addr_t **pa)
     dbg_err_ifm (scheme_mapper(s, &smap), "unsupported URI scheme: %s", s);
 
     /* create the address container */
-    dbg_err_sif (u_net_addr_new(mode, &a));
+    dbg_err_sif (na_new(mode, &a));
 
     /* create the internal representation */
     dbg_err_if (uri2addr(u, &smap, a));
@@ -332,11 +329,8 @@ void u_net_addr_free (u_net_addr_t *a)
     dbg_return_if (a == NULL, );
 
     /* release the inner blob */
-#ifdef HAVE_GETADDRINFO
     ai_free(a->addr);
-#else
-    U_FREE(a->addr);
-#endif
+
     /* release the wrapping container */
     u_free(a);
     return;
@@ -470,7 +464,8 @@ err:
  *
  *  \param  s   a TCP socket descriptor
  *
- *  \return \c 0 if successful (or not implemented), \c ~0 on error
+ *  \retval  0  if successful or \c TCP_NODELAY not implemented
+ *  \retval ~0  on error
  */ 
 int u_net_nagle_off (int s)
 {
@@ -804,7 +799,7 @@ static int scheme_mapper (const char *scheme, u_net_scheme_map_t *map)
 
 /* just malloc enough room for the address container and zero-out everything
  * but the 'mode' attribute */
-static int u_net_addr_new (int mode, u_net_addr_t **pa)
+static int na_new (int mode, u_net_addr_t **pa)
 {
     u_net_addr_t *a = NULL;
 
@@ -826,24 +821,16 @@ err:
     return ~0;
 }
 
+/* basically an ai_resolv() wrapper using u_net objects */
 static int uri2addr (u_uri_t *u, u_net_scheme_map_t *m, u_net_addr_t *a)
 {
     dbg_return_if (u == NULL, ~0);
     dbg_return_if (m == NULL, ~0);
     dbg_return_if (a == NULL, ~0);
 
-#ifdef HAVE_GETADDRINFO
-    dbg_err_if (ai_resolv(u_uri_host(u), u_uri_port(u), u_uri_path(u), 
-                m->addr_family, m->sock_type, m->proto, 
-                (a->mode == U_NET_SSOCK) ? 1 : 0, &a->addr));
-#else
-    dbg_err_if (u_addrinfo_resolv(u_uri_host(u), u_uri_port(u), u_uri_path(u), 
-                m->addr_family, m->sock_type, m->proto, &a->addr));
-#endif  /* HAVE_GETADDRINFO */
-
-    return 0;
-err:
-    return ~0;
+    return ai_resolv(u_uri_host(u), u_uri_port(u), u_uri_path(u), 
+            m->addr_family, m->sock_type, m->proto, 
+            (a->mode == U_NET_SSOCK) ? 1 : 0, &a->addr);
 }
 
 /* 'rf' is one of: resolv_sin, resolv_sun or resolv_sin6 */ 
@@ -874,20 +861,8 @@ static int do_resolv (
     return 0;
 err:
     if (ai)
-        u_addrinfo_free(ai);
+        ai_free(ai);
     return ~0;
-}
-
-static void u_addrinfo_free (u_addrinfo_t *ai)
-{
-    /* at present the linked list has one element only */
-    dbg_return_if (ai == NULL, );
-
-    U_FREE(ai->ai_addr);
-    U_FREE(ai->ai_canonname);
-    u_free(ai);
-
-    return;
 }
 
 #ifndef NO_UNIXSOCK
@@ -925,9 +900,31 @@ err:
 }
 #endif  /* !NO_UNIXSOCK */
 
+static void ai_free (u_addrinfo_t *ai)
+{
+    dbg_return_if (ai == NULL, );
+
+#ifdef HAVE_GETADDRINFO
+    if (ai->ai_family == AF_UNIX)
+    {
+#endif
+        /* UNIX addresses have been created "manually", i.e. not by means 
+         * of getaddrinfo()  */
+        U_FREE(ai->ai_addr);
+        U_FREE(ai->ai_canonname);
+        u_free(ai);
+#ifdef HAVE_GETADDRINFO
+    }
+    else
+        freeaddrinfo(ai); 
+#endif
+
+    return;
+}
+
 #ifdef HAVE_GETADDRINFO
 static int ai_resolv (const char *host, const char *port, const char *path,
-        int family, int type, int proto, int passive, struct addrinfo **pai)
+        int family, int type, int proto, int passive, u_addrinfo_t **pai)
 {
     int e;
     struct addrinfo hints, *ai = NULL;
@@ -964,7 +961,7 @@ static int ai_resolv (const char *host, const char *port, const char *path,
         case EAI_SYSTEM:    /* system error returned in errno */
             dbg_err_sifm (1, "getaddrinfo failed");
         default:            /* gai specific error */
-            dbg_err_sifm (1, "getaddrinfo failed: %s", gai_strerror(e));
+            dbg_err_ifm (1, "getaddrinfo failed: %s", gai_strerror(e));
     }
 
     *pai = ai;
@@ -976,27 +973,13 @@ err:
     return ~0;
 }
 
-static void ai_free (struct addrinfo *ai)
-{
-    dbg_return_if (ai == NULL, );
-
-    if (ai->ai_family == AF_UNIX)
-    {
-        /* reuse u_addrinfo_free because UNIX addresses have been created 
-         * "manually", i.e. not by means of getaddrinfo()  */
-        u_addrinfo_free(ai);    
-    }
-    else
-        freeaddrinfo(ai); 
-
-    return;
-}   
-
 #else   /* !HAVE_GETADDRINFO */
 
-static int u_addrinfo_resolv (const char *host, const char *port, 
-        const char *path, int family, int type, int proto, u_addrinfo_t **pai)
+static int ai_resolv (const char *host, const char *port, const char *path, 
+        int family, int type, int proto, int passive, u_addrinfo_t **pai)
 {
+    u_unused_args(passive);
+
     /* dispatch is based on address family type */
     switch (family)
     {
