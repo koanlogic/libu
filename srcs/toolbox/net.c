@@ -239,7 +239,7 @@ int u_net_sock_by_addr (u_net_addr_t *a)
 int u_net_sock (const char *uri, int mode, ...)
 {
     va_list ap;
-    int opts = -1, s = -1;
+    int opts = 0, s = -1;
     u_net_addr_t *a = NULL;
 
     /* 'mode' check is done by u_net_uri2addr() */
@@ -256,7 +256,7 @@ int u_net_sock (const char *uri, int mode, ...)
     dbg_err_if (u_net_uri2addr(uri, mode, &a));
 
     /* add options if any */
-    if (opts > 0)
+    if (opts)
         u_net_addr_set_opts(a, opts);
 
     /* do the real job */
@@ -839,6 +839,7 @@ static int na_new (int mode, u_net_addr_t **pa)
     a->mode = mode;
     a->opts = 0;
     a->addr = NULL;
+    a->cur = NULL;
 
     *pa = a;
 
@@ -930,7 +931,7 @@ err:
 
 static void ai_free (u_addrinfo_t *ai)
 {
-    dbg_return_if (ai == NULL, );
+    nop_return_if (ai == NULL, );
 
 #ifdef HAVE_GETADDRINFO
     if (ai->ai_family == AF_UNIX)
@@ -1086,7 +1087,6 @@ static int resolv_sin6 (const char *host, const char *port,
         const char *dummy, u_addrinfo_t *ai)
 {
     char *cname = NULL;
-    const char *hnum;
     struct hostent *hp = NULL;
     struct sockaddr_in6 *sin6 = NULL;
 
@@ -1116,30 +1116,26 @@ static int resolv_sin6 (const char *host, const char *port,
          * XXX here is because our platform is not that POSIX, i.e. IPv6 is
          * XXX implemented but addrinfo is not available. */
 
-        hnum = host;
-
         if (!strchr(host, ':'))
         {
             dbg_err_ifm ((hp = gethostbyname2(host, AF_INET6)) == NULL, 
                     "%s: %s", host, hstrerror(h_errno));
-
             dbg_err_if (hp->h_addrtype != AF_INET6);
-
-            /* overwrite 'hnum' in case it is gone through the resolver */
-            hnum = hp->h_addr;
+            memcpy(&sin6->sin6_addr, hp->h_addr, sizeof(struct in6_addr));
         }
-
-        /* convert address from printable to network format */
-        switch (inet_pton(AF_INET6, hnum, &sin6->sin6_addr))
+        else /* convert numeric address */
         {
-            case -1:
-                dbg_strerror(errno); 
-                /* log errno and fall through */
-            case 0:
-                dbg_err("invalid IPv6 host name: \'%s\'", hnum);
-                /* log hostname and jump to err: */
-            default:
-                break;
+            switch (inet_pton(AF_INET6, host, &sin6->sin6_addr))
+            {
+                case -1:
+                    dbg_strerror(errno); 
+                    /* log errno and fall through */
+                case 0:
+                    dbg_err("invalid IPv6 host name: \'%s\'", host);
+                    /* log hostname and jump to err: */
+                default:
+                    break;
+            }
         }
     }
 
