@@ -1112,16 +1112,17 @@ static int resolv_sin6 (const char *host, const char *port,
         sin6->sin6_addr = in6addr_any;
     else
     {
-        /* XXX gethostbyname2(3) is deprecated by POSIX, anyway if we reached
-         * XXX here is because our platform is not that POSIX, i.e. IPv6 is
-         * XXX implemented but addrinfo is not available. */
-
+        /* try DNS for an AAAA record of 'host' */
         if (!strchr(host, ':'))
         {
+            /* XXX gethostbyname2(3) is deprecated by POSIX, anyway if we 
+             * XXX reached here is because our platform is not that POSIX, 
+             * XXX i.e. IPv6 is implemented but addrinfo is not available. */
             dbg_err_ifm ((hp = gethostbyname2(host, AF_INET6)) == NULL, 
                     "%s: %s", host, hstrerror(h_errno));
             dbg_err_if (hp->h_addrtype != AF_INET6);
-            memcpy(&sin6->sin6_addr, hp->h_addr, sizeof(struct in6_addr));
+            dbg_err_if (hp->h_length != sizeof(struct in6_addr));
+            memcpy(&sin6->sin6_addr, hp->h_addr, hp->h_length);
         }
         else /* convert numeric address */
         {
