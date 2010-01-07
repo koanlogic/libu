@@ -614,6 +614,9 @@ static int do_sock (
         if ((sd = wf(ap->ai_addr, ap->ai_addrlen, ap->ai_family, sock_type, 
                     ap->ai_protocol, a->opts, backlog)) != -1)
         {
+            /* TODO call getsockname to catch the real connected/bound address 
+             * to feed 'pai' */
+
             info("%s %s", (wf == do_ssock) ? "bind succeeded for" 
                     : "connect succeeded to", (ap->ai_family == AF_UNIX) 
                     ? ap->ai_canonname : u_sa_ntop(ap->ai_addr, h, sizeof h));
@@ -629,9 +632,11 @@ static int do_sock (
 
     if (sd == -1)
     {
+        u_addrinfo_t *wai = a->addr;
+
         info("could not %s %s", (wf == do_ssock) ? "bind" : "connect to", 
-                (ap->ai_family == AF_UNIX) ? a->addr->ai_canonname 
-                : u_sa_ntop(a->addr->ai_addr, h, sizeof h));
+                (wai->ai_family == AF_UNIX) ? wai->ai_canonname 
+                : u_sa_ntop(wai->ai_addr, h, sizeof h));
     }
 
     return sd;
@@ -1048,11 +1053,13 @@ static int resolv_sin (const char *host, const char *port,
         sin->sin_addr.s_addr = htonl(INADDR_ANY);
     else
     {
-        /* try with the resolver first, if no result, fall back to numeric */
-        hp = gethostbyname(host);
-
-        if (hp && hp->h_addrtype == AF_INET)
+        if (strspn(host, "0123456789.") != strlen(host)) /* !ipv4 dotted */
+        {
+            dbg_err_ifm ((hp = gethostbyname(host)) == NULL, 
+                    "%s: %s", host, hstrerror(h_errno));
+            dbg_err_if (hp->h_addrtype != AF_INET);
             memcpy(&sin->sin_addr.s_addr, hp->h_addr, sizeof(in_addr_t));
+        }
         else if ((saddr = inet_addr(host)) != INADDR_NONE)
             sin->sin_addr.s_addr = saddr;
         else
@@ -1109,10 +1116,18 @@ static int resolv_sin6 (const char *host, const char *port,
          * XXX here is because our platform is not that POSIX, i.e. IPv6 is
          * XXX implemented but addrinfo is not available. */
 
-        /* try with the resolver first, if no result, fall back to numeric */
-        hp = gethostbyname2(host, AF_INET6);
+        hnum = host;
 
-        hnum = (hp && hp->h_addrtype == AF_INET6) ? hp->h_addr : host;
+        if (!strchr(host, ':'))
+        {
+            dbg_err_ifm ((hp = gethostbyname2(host, AF_INET6)) == NULL, 
+                    "%s: %s", host, hstrerror(h_errno));
+
+            dbg_err_if (hp->h_addrtype != AF_INET6);
+
+            /* overwrite 'hnum' in case it is gone through the resolver */
+            hnum = hp->h_addr;
+        }
 
         /* convert address from printable to network format */
         switch (inet_pton(AF_INET6, hnum, &sin6->sin6_addr))
@@ -1121,7 +1136,7 @@ static int resolv_sin6 (const char *host, const char *port,
                 dbg_strerror(errno); 
                 /* log errno and fall through */
             case 0:
-                dbg_err("invalid IPv6 host name: \'%s\'", host);
+                dbg_err("invalid IPv6 host name: \'%s\'", hnum);
                 /* log hostname and jump to err: */
             default:
                 break;
