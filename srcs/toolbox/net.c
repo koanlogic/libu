@@ -186,6 +186,8 @@ int u_net_uri2addr (const char *uri, int mode, u_net_addr_t **pa)
     /* create the internal representation */
     dbg_err_if (uri2addr(u, &smap, a));
 
+    u_uri_free(u);
+
     *pa = a;
 
     return 0;
