@@ -385,6 +385,7 @@ int u_data_is_bin (char *data, size_t sz)
     return 0;
 }
 
+/** \brief  Save the supplied \p data to \p file */
 int u_data_dump (char *data, size_t sz, const char *file)
 {
     FILE *fp = NULL;
@@ -620,11 +621,41 @@ err:
 }
 #endif  /* HAVE_STRTOUMAX */
 
+/** 
+ *  \brief  Wrapper to strlcpy(3) 
+ * 
+ *  Wrapper to strlcpy(3) that will check whether \p src is too big to fit 
+ *  \p dst.  In case of overflow, at least \p size bytes will be anyway copied 
+ *  from \p src to \p dst.
+ * 
+ *  \param  dst     buffer of at least \p size bytes where bytes from \p src 
+ *                  will be copied
+ *  \param  src     NUL-terminated string that is (possibly) copied to \p dst
+ *  \param  size    full size of the destination buffer \p dst
+ *  
+ *  \retval  0  copy is ok
+ *  \retval ~0  copy would overflow the destination buffer
+ */
 inline int u_strlcpy(char *dst, const char *src, size_t size)
 {
     return (strlcpy(dst, src, size) >= size ? ~0 : 0);
 }
 
+/** 
+ *  \brief  Wrapper to strlcat(3) 
+ * 
+ *  Wrapper to strlcat(3) that will check whether \p src is too big to fit 
+ *  \p dst.  In any case at least \p size bytes of \p src will be concatenated
+ *  to \p dst. 
+ *
+ *  \param  dst     NUL-terminated string to which \p src will be concatenated
+ *  \param  src     NUL-terminated string that is (possibly) contatenated to 
+ *                  \p dst
+ *  \param  size    full size of the destination buffer \p dst
+ *  
+ *  \retval  0  string concatenation is ok
+ *  \retval ~0  string concatenation would overflow the destination buffer
+ */
 inline int u_strlcat(char *dst, const char *src, size_t size)
 {
     return (strlcat(dst, src, size) >= size ? ~0 : 0);
