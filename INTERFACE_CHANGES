@@ -76,6 +76,6 @@
 
     Note that the returned pointer is not sufficient to point out a failure in 
     the get/set operation, since a NULL value could be perfectly valid: 
-    *always* use '*prc' to discriminate through a good (i.e. *prc == 0) and bad
+    *always* use '*prc' to discriminate between a good (i.e. *prc == 0) and bad
     (i.e. *prc == -1) run.
 

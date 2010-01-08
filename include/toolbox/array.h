@@ -106,18 +106,36 @@ int u_array_resize (u_array_t *da, size_t req_idx);
  *  \retval -1  on error 
  */
 int u_array_set_char (u_array_t *da, size_t idx, char v, char *pold);
+
+/** \brief  Setter for the \c unsigned \c char type */
 int u_array_set_u_char (u_array_t *da, size_t idx, unsigned char v, 
         unsigned char *pold);
+
+/** \brief  Setter for the \c short type */
 int u_array_set_short (u_array_t *da, size_t idx, short v, short *pold);
+
+/** \brief  Setter for the \c unsigned \c short type */
 int u_array_set_u_short (u_array_t *da, size_t idx, unsigned short v, 
         unsigned short *pold);
+
+/** \brief  Setter for the \c int type */
 int u_array_set_int (u_array_t *da, size_t idx, int v, int *pold);
+
+/** \brief  Setter for the \c unsigned \c int type */
 int u_array_set_u_int (u_array_t *da, size_t idx, unsigned int v, 
         unsigned int *pold);
+
+/** \brief  Setter for the \c long type */
 int u_array_set_long (u_array_t *da, size_t idx, long v, long *pold);
+
+/** \brief  Setter for the \c unsigned \c long type */
 int u_array_set_u_long (u_array_t *da, size_t idx, unsigned long v, 
         unsigned long *pold);
+
+/** \brief  Setter for the \c float type */
 int u_array_set_float (u_array_t *da, size_t idx, float v, float *pold);
+
+/** \brief  Setter for the \c double type */
 int u_array_set_double (u_array_t *da, size_t idx, double v, double *pold);
 
 /** 
@@ -135,14 +153,32 @@ int u_array_set_double (u_array_t *da, size_t idx, double v, double *pold);
  *  \retval -1  on error 
  */
 int u_array_get_char (u_array_t *da, size_t idx, char *pv);
+
+/** \brief  Getter for the \c unsigned \c char type */
 int u_array_get_u_char (u_array_t *da, size_t idx, unsigned char *pv);
+
+/** \brief  Getter for the \c short type */
 int u_array_get_short (u_array_t *da, size_t idx, short *pv);
+
+/** \brief  Getter for the \c unsigned \c short type */
 int u_array_get_u_short (u_array_t *da, size_t idx, unsigned short *pv);
+
+/** \brief  Getter for the \c int type */
 int u_array_get_int (u_array_t *da, size_t idx, int *pv);
+
+/** \brief  Getter for the \c unsigned \c int type */
 int u_array_get_u_int (u_array_t *da, size_t idx, unsigned int *pv);
+
+/** \brief  Getter for the \c long type */
 int u_array_get_long (u_array_t *da, size_t idx, long *pv);
+
+/** \brief  Getter for the \c unsigned \c long type */
 int u_array_get_u_long (u_array_t *da, size_t idx, unsigned long *pv);
+
+/** \brief  Getter for the \c float type */
 int u_array_get_float (u_array_t *da, size_t idx, float *pv);
+
+/** \brief  Getter for the \c double type */
 int u_array_get_double (u_array_t *da, size_t idx, double *pv);
 
 /*
@@ -154,52 +190,62 @@ void *u_array_set_ptr (u_array_t *da, size_t idx, void *v, int *prc);
 void *u_array_get_ptr (u_array_t *da, size_t idx, int *prc);
 
 #ifdef HAVE_BOOL
-/* set */
+/** \brief  Setter for the \c bool type */
 int u_array_set_bool (u_array_t *da, size_t idx, bool v, bool *pold);
-/* get */
+
+/** \brief  Getter for the \c bool type */
 int u_array_get_bool (u_array_t *da, size_t idx, bool *pv);
 #endif  /* HAVE_BOOL */
 
 #ifdef HAVE_LONG_LONG
-/* set */
+/** \brief  Setter for the \c long \c long type */
 int u_array_set_long_long (u_array_t *da, size_t idx, long long v, 
         long long *pold);
+
+/** \brief  Setter for the \c unsigned \c long \c long type */
 int u_array_set_u_long_long (u_array_t *da, size_t idx, unsigned long long v, 
         unsigned long long *pold);
-/* get */
+
+/** \brief  Getter for the \c long \c long type */
 int u_array_get_long_long (u_array_t *da, size_t idx, long long *pv);
+
+/** \brief  Getter for the \c unsigned \c long \c long type */
 int u_array_get_u_long_long (u_array_t *da, size_t idx, unsigned long long *pv);
 #endif  /* HAVE_LONG_LONG */
 
 #ifdef HAVE_LONG_DOUBLE
-/* set */
+/** \brief  Setter for the \c long \c double type */
 int u_array_set_long_double (u_array_t *da, size_t idx, long double v, 
         long double *pold);
-/* get */
+
+/** \brief  Getter for the \c long \c double type */
 int u_array_get_long_double (u_array_t *da, size_t idx, long double *pv);
 #endif  /* HAVE_LONG_DOUBLE */
 
 #ifdef HAVE_FLOAT_COMPLEX
-/* set */
+/** \brief  Setter for the \c float \c complex type */
 int u_array_set_float_complex (u_array_t *da, size_t idx, float complex v, 
         float complex *pold);
-/* get */
+
+/** \brief  Getter for the \c float \c complex type */
 int u_array_get_float_complex (u_array_t *da, size_t idx, float complex *pv);
 #endif  /* HAVE_FLOAT_COMPLEX */
 
 #ifdef HAVE_DOUBLE_COMPLEX
-/* set */
+/** \brief  Setter for the \c double \c complex type */
 int u_array_set_double_complex (u_array_t *da, size_t idx, double complex v, 
         double complex *pold);
-/* get */
+
+/** \brief  Getter for the \c double \c complex type */
 int u_array_get_double_complex (u_array_t *da, size_t idx, double complex *pv);
 #endif  /* HAVE_DOUBLE_COMPLEX */
 
 #ifdef HAVE_LONG_DOUBLE_COMPLEX
-/* set */
+/** \brief  Setter for the \c long \c double \c complex type */
 int u_array_set_long_double_complex (u_array_t *da, size_t idx, 
         long double complex v, long double complex *pold);
-/* get */
+
+/** \brief  Getter for the \c long \c double \c complex type */
 int u_array_get_long_double_complex (u_array_t *da, size_t idx, 
         long double complex *pv);
 #endif  /* HAVE_LONG_DOUBLE_COMPLEX */
