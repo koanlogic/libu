@@ -18,15 +18,98 @@
 #include <toolbox/str.h>
 
 /**
- *  \defgroup config Configuration
- *  \{
- *      \par Intro
- *          The u_config_t object is used to store, load and parse 
- *          text configuration files.
- *          \n
- *          A configuration file is a plain text file that stores a list of
- *          key=values pair in a tree-ordered structure.
- *          TODO
+    \defgroup config Configuration
+    \{
+        In the context of the \ref config module, a config file consists of 
+        sections and parameter assignements.
+        
+        A section begins with the name of the section - which can't contain
+        whitespaces - is followed by a \c '{' and continues until the 
+        corresponding \c '}' is found.  
+        
+        Sections can contain other sections or parameter assignements of the 
+        form:
+    \code
+    name    value
+    \endcode
+
+        The file is line-based, that is, each newline-terminated line 
+        represents either a section name or a parameter assignement.  
+        
+        Comments start from the hash sign (\c '#') and eat all the characters 
+        they encounter until the end of the line.
+
+        Section and parameter names are case sensitive.
+
+        Leading and trailing whitespace in section and parameter names is 
+        irrelevant.  Leading and trailing whitespace in a parameter 
+        value is discarded.  Internal whitespace within a parameter value is 
+        retained verbatim.
+
+        As a corollary, any line containing only whitespace is ignored.
+
+        The value in parameters is always a string (no quotes needed) whose 
+        case is preserved.
+
+        It is also possible to use variable substitution which allows to 
+        define a symbol name to be replaced by an arbitrary text string, with 
+        the classic bottom-up scoping.
+
+        A simple example follows:
+    \code
+    last_name   blues
+
+    type    musician
+
+    # elwood's brother
+    name
+    {
+        first   joliet
+        middle  jake
+        last    ${last_name}    # use substitution
+    }
+
+    address city of chicago
+    \endcode
+
+        A parameter name can be equivalently expressed through its "qualified 
+        name" using the following dotted notation:
+    \code
+    # the very same elwood's brother
+    name.first  joliet
+    name.middle jake
+    name.last   blues
+    \endcode
+
+        Once you have a well-formed configuration file, you can load it 
+        into memory using ::u_config_load_from_file and then manipulate the 
+        corresponding ::u_config_t object to obtain values of the parameters
+        (\p keys) you are interested in via ::u_config_get_subkey_value and
+        friends, as illustrated in the following example:
+    \code
+    u_config_t *top = NULL, *name_sect;
+    const char *first_name, *middle_name, *last_name;
+
+    // load and parse the configuration file "my.conf"
+    dbg_err_if (u_config_load_from_file("./my.conf", &top));
+
+    // get the section whose name is "name"
+    dbg_err_if (u_config_get_subkey(top, "name", &name_sect));
+
+    // get values of parameters "first", "middle" and "last" in section "name"
+    first_name = u_config_get_subkey_value(name_sect, "first");
+    middle_name = u_config_get_subkey_value(name_sect, "middle");
+    last_name = u_config_get_subkey_value(name_sect, "last");
+    ...
+    u_config_free(top);
+    \endcode
+
+    After you have successfully loaded your configuration file, you could
+    modify its values using ::u_config_set_value as needed, and than save
+    it back to file with ::u_config_print_to_fp.  The loop is closed.
+
+    When you're done, don't forget to release the top-level ::u_config_t 
+    object via ::u_config_free.
  */
 
 TAILQ_HEAD(u_config_list_s, u_config_s);
@@ -244,6 +327,7 @@ static u_config_t* u_config_get_root(u_config_t *c)
     return c;
 }
 
+/** \brief  Assign \p val to \p c's key */
 int u_config_set_value(u_config_t *c, const char *val)
 {
     u_config_t *root, *ignore;
@@ -276,7 +360,7 @@ int u_config_set_value(u_config_t *c, const char *val)
             /* skip ${ */
             vs = p+2;               
 
-            /* look for closig bracket */
+            /* look for closing bracket */
             ve = strchr(vs, '}');
             dbg_err_if(ve == NULL); /* closing bracket missing */
 

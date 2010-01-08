@@ -3,20 +3,21 @@
 
 LibU is a multiplatform C library which comes under a BSD-style license.  This 
 means that you are allowed unlimited redistribution for any purpose of LibU 
-bits, as long as you retain the copyright notices and the license's disclaimers
-of warranty:
-\verbatim
+bits (in source or binary form), as long as you retain the copyright notices 
+and the license's disclaimers of warranty:
+
+\code
   LibU - Copyright (c) 2005-2010 by KoanLogic srl
   All rights reserved.
   ...
-\endverbatim
+\endcode
 
 LibU includes many interdependent modules for accomplishing several tasks: 
 \ref alloc, \ref net and \ref uri parsing (as per RFC 2396), \ref string 
 manipulation, \ref carpal (with bundled debugging and logging functionalities) 
 of C/C++ programs in a very compact way, plus many other \ref misc tasks.  
 
-Also, built-in support for tree-structured \ref config files, or plain 
+Also, it has built-in support for tree-structured \ref config files, or plain 
 configuration files which are passed to the running process \ref env.
 
 Hash \ref hmap's using separate (sorted) chaining or linear probing, tail 
@@ -26,7 +27,7 @@ custom data structures.
 A complete machinery for handling authentication via \ref pwd files, data 
 \ref buf manipulation, a module for \ref test of C/C++ programs, and some
 commodity interfaces for playing safe with the \ref fs, complete the list of
-provided functionalities.
+the provided functionalities.
 
 Happy hacking !
 */ 

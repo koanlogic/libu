@@ -12,17 +12,30 @@
 extern "C" {
 #endif
 
+/**
+ *  \addtogroup config
+ *  \{
+ */
+
+/* forward decl */
 struct u_config_s;
+
+/** \brief  Configuration base type */
 typedef struct u_config_s u_config_t;
 
 struct u_config_driver_s
 {
     int (*open)(const char *uri, void **parg);
     int (*close)(void *arg);
-    char* (*gets)(void *arg, char *buf, size_t size);
+    char *(*gets)(void *arg, char *buf, size_t size);
     int (*resolv)(const char *name, char *uri, size_t uri_bufsz);
 };
+
 typedef struct u_config_driver_s u_config_driver_t;
+
+/**
+ *  \}
+ */ 
 
 int u_config_create(u_config_t **pc);
 int u_config_free(u_config_t *c);
