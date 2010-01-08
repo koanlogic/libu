@@ -93,8 +93,60 @@ static int scheme_mapper (const char *scheme, u_net_scheme_map_t *map);
 static int uri2addr (u_uri_t *u, u_net_scheme_map_t *m, u_net_addr_t *a);
 
 /**
- *  \defgroup net Networking
- *  \{
+    \defgroup net Networking
+    \{
+        The \ref net module defines the following private URI schemes 
+        corresponding to the protocol combos:
+   
+        <table>
+          <tr>
+            <td></td>
+            <td><b>TCP</b></td>
+            <td><b>UDP</b></td>
+            <td><b>SCTP</b></td>
+          </tr>
+          <tr>
+            <td><b>IPv4</b></td>
+            <td><tt>tcp://</tt> or <tt>tcp4://</tt></td>
+            <td><tt>udp://</tt> or <tt>udp4://</tt></td>
+            <td><tt>sctp://</tt> or <tt>sctp4://</tt></td>
+          </tr>
+          <tr>
+            <td><b>IPv6</b></td>
+            <td><tt>tcp6://</tt></td>
+            <td><tt>udp6://</tt></td>
+            <td><tt>sctp6://</tt></td>
+          </tr>
+          <tr>
+            <td><b>UNIX</b></td>
+            <td><tt>unix://</tt></td>
+            <td>N.A.</td>
+            <td>N.A.</td>
+          </tr>
+        </table>
+      
+        Except for \c unix:// , which accepts only a valid pathname in the 
+        target file system, e.g.: 
+        - <code> unix:///tmp/my.sock </code>
+  
+        every other scheme needs an <b>host</b> (by name or numeric address) 
+        and a <b>port</b> (by service name, or numeric in range 
+        <code>[1..65535]</code>) separated by a single <code>':'</code> 
+        characted, e.g.:
+        - <code> tcp://www.kame.net:http </code>
+        - <code> udp6://[fe80::200:f8ff:fe21:67cf]:65432 </code>
+        - <code> sctp4://myhost:9999 </code>
+  
+        Note that IPv6 numeric addresses must be enclosed by brackets as per 
+        RFC 2732.  
+  
+        Also, the wildcard address is specified with a <code>'*'</code>, and 
+        the same representation is used to let the kernel choose an ephemeral 
+        port for us. e.g.:
+        - <code> tcp6://[*]:1025 </code>
+        - <code> tcp4://192.168.0.1:* </code>
+
+        TBC
  */
 
 /** 
@@ -104,56 +156,6 @@ static int uri2addr (u_uri_t *u, u_net_scheme_map_t *m, u_net_addr_t *a);
  *  \p pa as a result argument.  The address can then be used (and reused) to 
  *  create passive or connected sockets by means of the ::u_net_sock_by_addr 
  *  interface.
- *
- *  The net module defines the following private URI schemes corresponding
- *  to the protocol combos:
- * 
- *  <table>
- *    <tr>
- *      <td></td>
- *      <td><b>TCP</b></td>
- *      <td><b>UDP</b></td>
- *      <td><b>SCTP</b></td>
- *    </tr>
- *    <tr>
- *      <td><b>IPv4</b></td>
- *      <td><tt>tcp://</tt> or <tt>tcp4://</tt></td>
- *      <td><tt>udp://</tt> or <tt>udp4://</tt></td>
- *      <td><tt>sctp://</tt> or <tt>sctp4://</tt></td>
- *    </tr>
- *    <tr>
- *      <td><b>IPv6</b></td>
- *      <td><tt>tcp6://</tt></td>
- *      <td><tt>udp6://</tt></td>
- *      <td><tt>sctp6://</tt></td>
- *    </tr>
- *    <tr>
- *      <td><b>UNIX</b></td>
- *      <td><tt>unix://</tt></td>
- *      <td>N.A.</td>
- *      <td>N.A.</td>
- *    </tr>
- *  </table>
- *
- *  Except for \c unix:// , which accepts only a valid pathname in the target
- *  file system, e.g.: 
- *  - <code> unix:///tmp/my.sock </code>
- *
- *  every other scheme needs an <b>host</b> (by name or numeric address) and 
- *  a <b>port</b> (by service name, or numeric in range <code>[1..65535]</code>)
- *  separated by a single <code>':'</code> characted, e.g.:
- *  - <code> tcp://www.kame.net:http </code>
- *  - <code> udp6://[fe80::200:f8ff:fe21:67cf]:65432 </code>
- *  - <code> sctp4://myhost:9999 </code>
- *
- *  Note that IPv6 numeric addresses must be enclosed by brackets as per 
- *  RFC 2732.  
- *
- *  Also, the wildcard address is specified with a <code>'*'</code>, and the 
- *  same representation is used for letting the kernel chose an ephemeral port 
- *  for us:
- *  - <code> tcp6://[*]:1025 </code>
- *  - <code> tcp4://192.168.0.1:* </code>
  *
  *  \param  uri     an URI string
  *  \param  mode    one of \c U_NET_SSOCK if the address needs to be used
