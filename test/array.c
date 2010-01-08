@@ -69,6 +69,7 @@ err:
 
 static int test_ptr (void)
 {
+    int rc = 0;
     u_array_t *da = NULL;
     size_t idx;
     struct S { int i; char c; } s, *s0;
@@ -80,11 +81,15 @@ static int test_ptr (void)
         s.i = (int) idx;
         s.c = (char) idx;
 
-        con_err_if (u_array_set_ptr(da, idx, (void *) &s, NULL));
-        con_err_if (u_array_get_ptr(da, idx, (void **) &s0));
+        /* explicitly ignore "old values" */
+        (void) u_array_set_ptr(da, idx, &s, &rc);
+        con_err_ifm (rc == -1, "setting %p at idx %zu failed", &s, idx);
 
-        con_err_if (s.i != s0->i);
-        con_err_if (s.c != s0->c);
+        s0 = u_array_get_ptr(da, idx, &rc);
+        con_err_ifm (rc == -1, "getting from idx %zu failed", idx);
+
+        con_err_ifm (s.i != s0->i, "%d != %d at index %zu", s.i, s0->i, idx);
+        con_err_ifm (s.c != s0->c, "%c != %c at index %zu", s.c, s0->c, idx);
     }
 
     u_array_free(da);

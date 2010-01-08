@@ -85,21 +85,26 @@ void u_array_free (u_array_t *da);
 /* dyn resize */
 int u_array_resize (u_array_t *da, size_t req_idx);
 
-/** \brief  Put value \p v into the array \p da at index \p idx.
- *          In case \p pold is not \c NULL, the overridden value (if any)
- *          is copied out.  \b NOTE: an identical interface -- aside from the 
- *          type of \p v and \p pold parameters -- is given for any supported 
- *          types.
+/** 
+ *  \brief  Put value \p v into the array \p da at index \p idx.
+ *
+ *  Put value \p v into the array \p da at index \p idx.  In case \p pold is 
+ *  not \c NULL, the overridden value (if any) is copied out.  
+ *
+ *  \note   An identical interface -- aside from the type of \p v and \p pold 
+ *          parameters -- is given for any supported type.
  *
  *  \param  da      An already instantiated dynamic array
- *  \param  idx     The index at which the element shall be placed
+ *  \param  idx     The index at which the element \p v shall be placed
  *                  Transparent resize is handled in case the index were out
  *                  of actual array bounds
  *  \param  v       The value that must be copied into the array
  *  \param  pold    If not \c NULL, it is the address at which the overridden
  *                  element (if any) shall be copied
  *
- *  \return \c 0 on success \c -1 on error */
+ *  \retval  0  on success 
+ *  \retval -1  on error 
+ */
 int u_array_set_char (u_array_t *da, size_t idx, char v, char *pold);
 int u_array_set_u_char (u_array_t *da, size_t idx, unsigned char v, 
         unsigned char *pold);
@@ -114,17 +119,21 @@ int u_array_set_u_long (u_array_t *da, size_t idx, unsigned long v,
         unsigned long *pold);
 int u_array_set_float (u_array_t *da, size_t idx, float v, float *pold);
 int u_array_set_double (u_array_t *da, size_t idx, double v, double *pold);
-int u_array_set_ptr (u_array_t *da, size_t idx, void *v, void **pold);
 
-/** \brief  Get the element of \c char array \p da at index \p idx and save it 
- *          at \p *pv.  \b NOTE: an identical interface -- aside from the 
- *          type of \p pv parameter -- is given for the supported types.
+/** 
+ *  \brief  Get the element of \c char array \p da at index \p idx and save it 
+ *          at \p *pv.  
+ *
+ *  \note   An identical interface -- aside from the type of \p pv parameter 
+ *          -- is given for any supported type.
  *
  *  \param  da      An already instantiated dynamic array
  *  \param  idx     The index at which the element shall be retrieved
  *  \param  pv      The address at which the retrieved value is copied
  *
- *  \return \c 0 on success \c -1 on error */
+ *  \retval  0  on success 
+ *  \retval -1  on error 
+ */
 int u_array_get_char (u_array_t *da, size_t idx, char *pv);
 int u_array_get_u_char (u_array_t *da, size_t idx, unsigned char *pv);
 int u_array_get_short (u_array_t *da, size_t idx, short *pv);
@@ -135,7 +144,14 @@ int u_array_get_long (u_array_t *da, size_t idx, long *pv);
 int u_array_get_u_long (u_array_t *da, size_t idx, unsigned long *pv);
 int u_array_get_float (u_array_t *da, size_t idx, float *pv);
 int u_array_get_double (u_array_t *da, size_t idx, double *pv);
-int u_array_get_ptr (u_array_t *da, size_t idx, void **pv);
+
+/*
+ * Pointer data have sligthly different interface: "C has the generic pointer 
+ * `void*', but no generic pointer-to-pointer.".
+ */
+
+void *u_array_set_ptr (u_array_t *da, size_t idx, void *v, int *prc);
+void *u_array_get_ptr (u_array_t *da, size_t idx, int *prc);
 
 #ifdef HAVE_BOOL
 /* set */

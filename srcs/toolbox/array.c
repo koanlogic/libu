@@ -145,10 +145,11 @@ int u_array_resize (u_array_t *da, size_t idx)
     dbg_return_if (da == NULL, -1);
 
     /* no need to resize, go out */
-    dbg_return_if (idx < da->nslots, 0);        
+    dbg_return_if (idx < da->nslots, 0);
 
     /* can't go further, go out */
-    dbg_return_if (idx >= (max_nslots = MAX_NSLOTS(da)) - 1, 0);   
+    /* XXX why return '0' instead of '-1' ? */
+    dbg_return_if (idx >= (max_nslots = MAX_NSLOTS(da)) - 1, 0);
 
     /* decide how many new slots are needed */
     new_nslots = ((max_nslots - U_ARRAY_RESIZE_PAD - 1) >= idx) ?
@@ -210,7 +211,7 @@ int u_array_get##pfx (u_array_t *da, size_t idx, ctype *pv)                 \
     dbg_return_if (da->type != dtype, -1);                                  \
                                                                             \
     /* check overflow */                                                    \
-    warn_err_if (idx > da->nslots -1);                                      \
+    warn_err_if (idx > da->nslots - 1);                                     \
                                                                             \
     ep = (ctype *) da->base + idx;                                          \
                                                                             \
@@ -231,7 +232,7 @@ U_ARRAY_GETSET_F(_long, U_ARRAY_TYPE_LONG, long)
 U_ARRAY_GETSET_F(_u_long, U_ARRAY_TYPE_U_LONG, unsigned long)
 U_ARRAY_GETSET_F(_float, U_ARRAY_TYPE_FLOAT, float)
 U_ARRAY_GETSET_F(_double, U_ARRAY_TYPE_DOUBLE, double)
-U_ARRAY_GETSET_F(_ptr, U_ARRAY_TYPE_PTR, void *)
+//U_ARRAY_GETSET_F(_ptr, U_ARRAY_TYPE_PTR, void *)
 
 #ifdef HAVE_BOOL
 U_ARRAY_GETSET_F(_bool, U_ARRAY_TYPE_BOOL, bool)
@@ -258,3 +259,118 @@ U_ARRAY_GETSET_F(_double_complex, U_ARRAY_TYPE_DOUBLE_COMPLEX, double complex)
 U_ARRAY_GETSET_F(_long_double_complex, U_ARRAY_TYPE_LONG_DOUBLE_COMPLEX, long double complex)
 #endif  /* HAVE_LONG_DOUBLE_COMPLEX */
 
+/**
+ *  \brief Dynamic array setter interface for generic pointer values.
+ *
+ *  Try to put some generic pointer \p v at position \p idx into the dyamic
+ *  array \p da.  If supplied (i.e. non-NULL) the result argument \p *prc will
+ *  hold the return code of the whole set operation.  
+ *  We could not preserve the same interface as all the other standard types
+ *  because the \c void** out parameter would be easily abused through an 
+ *  incorrect cast.  The following sample should illustrate how to correctly
+ *  use the interface:
+ *  
+ *  \code
+ *      int rc = 0;
+ *      size_t i = 231; // some random index
+ *      my_t *old_v, *v = NULL; // the value that we are going to store
+ *
+ *      // make room for your new object and fill it some way
+ *      dbg_err_sif ((v = u_zalloc(sizeof(my_t))) == NULL);
+ *      v->somefield = somevalue;
+ *      
+ *      // set the new value in the array at some conveninent index, 
+ *      // and dispose the old one in case it was set
+ *      old_v = u_array_set_ptr(da, i, v, &rc);
+ *      dbg_err_if (rc == -1);
+ *      if (old_v)
+ *          my_free(old_v);
+ *      ...
+ *  \endcode
+ *
+ *  \param  da      An already instantiated dynamic array 
+ *  \param  idx     The index at which the element \p v shall be stored
+ *  \param  v       The value that must be stored
+ *  \param  prc     If non-NULL this result argument will store the return
+ *                  code of the whole operation, i.e. \c 0 if successfull,
+ *                  \c -1 if something went wrong
+ *
+ *  \return the old value stored at index \p idx (can be \c NULL)
+ */ 
+void *u_array_set_ptr (u_array_t *da, size_t idx, void *v, int *prc)
+{
+    void **ep, *old_ep;
+
+    dbg_err_if (da == NULL);
+    dbg_err_if (da->type != U_ARRAY_TYPE_PTR);
+
+    if (idx > da->nslots - 1)
+        dbg_err_if (u_array_resize (da, idx));
+
+    ep = (void **) da->base + idx;
+
+    /* save old value (could be NULL) */
+    old_ep = *ep;
+
+    /* overwrite with the supplied value */
+    *ep = v;
+
+    if (prc)
+        *prc = 0;
+
+    return old_ep;
+err:
+    if (prc)
+        *prc = -1;
+    return NULL;
+}
+
+/**
+ *  \brief Dynamic array getter interface for generic pointer values.
+ *
+ *  Try to retrieve the pointer at position \p idx from the dyamic array \p da.
+ *  If supplied (i.e. non-NULL) the result argument \p *prc will hold the 
+ *  return code of the whole get operation.  
+ *  We could not preserve the same interface as all the other standard types
+ *  because the \c void** out parameter would be easily abused through an 
+ *  incorrect cast.  The following sample should illustrate how to correctly 
+ *  use the interface:
+ *  
+ *  \code
+ *      int rc = 0;
+ *      size_t i = 231; // some random index
+ *      my_t *v = NULL; // the value that we are going to retrieve
+ *
+ *      // get the new value from the array at some conveninent index, 
+ *      v = u_array_get_ptr(da, i, &rc);
+ *      dbg_err_if (rc == -1);
+ *
+ *      // do something with 'v'
+ *      ...
+ *  \endcode
+ *
+ *  \param  da      An already instantiated dynamic array 
+ *  \param  idx     The index at which the element \p v shall be stored
+ *  \param  prc     If non-NULL this result argument will store the return
+ *                  code of the whole operation, i.e. \c 0 if successfull,
+ *                  \c -1 if something went wrong
+ *
+ *  \return the value stored at index \p idx (note that it can be \c NULL and
+ *          therefore it can't be used to distinguish a failed operation.
+ */ 
+void *u_array_get_ptr (u_array_t *da, size_t idx, int *prc)
+{
+    dbg_err_if (da == NULL);
+    dbg_err_if (da->type != U_ARRAY_TYPE_PTR);
+
+    warn_err_if (idx > da->nslots - 1);
+
+    if (prc)
+        *prc = 0;
+
+    return *((void **) da->base + idx);
+err:
+    if (prc)
+        *prc = -1;
+    return NULL;
+}
