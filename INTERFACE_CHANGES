@@ -60,11 +60,11 @@
         * u_inet_ntop
 
 [array]
-    The setter/getter methods for generic pointer have been restyled.  See
+    The setter/getter methods for generic pointers have been restyled.  See
     http://coding.derkeiler.com/Archive/C_CPP/comp.lang.c/2008-10/msg01683.html
     for details about the reason why we had to move.  The following interfaces 
-    have been modified: they give back the error code through a result argument
-    and return the generic (ie. void*) pointer as a return value:
+    have been modified: they give back the error code through a result argument,
+    and the generic (ie. void*) pointer as the returned value:
     
     New interfaces:
     * void *u_array_get_ptr (u_array_t *da, size_t idx, int *prc);
@@ -74,8 +74,8 @@
     * int u_array_get_ptr (u_array_t *da, size_t idx, void **pv);
     * int u_array_set_ptr (u_array_t *da, size_t idx, void *v, void **pold);
 
-    Note that the returned pointer is not enough to point out a failure in the 
-    get/set operation, since a NULL value could be perfectly valid: *always*
-    use '*prc' to discriminate through a good (i.e. *prc == 0) and bad (i.e.
-    *prc == -1) run.
+    Note that the returned pointer is not sufficient to point out a failure in 
+    the get/set operation, since a NULL value could be perfectly valid: 
+    *always* use '*prc' to discriminate through a good (i.e. *prc == 0) and bad
+    (i.e. *prc == -1) run.
 

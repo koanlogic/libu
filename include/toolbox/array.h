@@ -23,13 +23,13 @@ extern "C" {
  */
 
 /** \brief  default number of slots on array creation (can be changed at
- *          compile time via "-DU_ARRAY_NSLOTS_DFL=nnn" flag)  */
+ *          compile time via \c -DU_ARRAY_NSLOTS_DFL=nnn flag)  */
 #ifndef U_ARRAY_NSLOTS_DFL
 #define U_ARRAY_NSLOTS_DFL 512
 #endif
 
 /** \brief  right-pad when doing dynamic resize (can be changed at compile 
- *          time via "-DU_ARRAY_RESIZE_PAD=nnn" flag) */
+ *          time via \c -DU_ARRAY_RESIZE_PAD=nnn flag) */
 #ifndef U_ARRAY_RESIZE_PAD
 #define U_ARRAY_RESIZE_PAD 100
 #endif
@@ -72,10 +72,10 @@ typedef enum {
         U_ARRAY_TYPE_MAX = U_ARRAY_TYPE_PTR
 } u_array_type_t;
          
-#define U_ARRAY_TYPE_IS_VALID(t) \
-    (t > U_ARRAY_TYPE_UNSET && t <= U_ARRAY_TYPE_MAX)
-
+/* forward decl */
 struct u_array_s;
+
+/** \brief  Dynamic array base type */
 typedef struct u_array_s u_array_t;
 
 /* [cd]tor */

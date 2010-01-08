@@ -18,6 +18,9 @@ struct u_array_s
     void *base;
 };
 
+#define U_ARRAY_TYPE_IS_VALID(t) \
+    (t > U_ARRAY_TYPE_UNSET && t <= U_ARRAY_TYPE_MAX)
+
 static size_t sizeof_type[U_ARRAY_TYPE_MAX + 1] =
 {
     0,                              /* U_ARRAY_TYPE_UNSET  = 0          */
@@ -59,12 +62,16 @@ static size_t sizeof_type[U_ARRAY_TYPE_MAX + 1] =
  *  \defgroup array Dynamic Arrays
  *  \{
  *      A dynamic array has a type, which is the type of its elements.
- *      The type of the dynamic array is declared when creating a new
- *      array instance via u_array_create() and must be one of the types 
- *      in u_array_type_t.  Available type are the standard C types supported 
- *      by the target platform, plus a generic pointer type for user defined
- *      types. A couple of getter/setter methods is provided for each 
- *      u_array_type_t entry.
+ *      The type of the dynamic array is declared when a new array instance 
+ *      is created via ::u_array_create and must be one of the types 
+ *      in ::u_array_type_t.  Available types are the standard C types 
+ *      supported by the target platform, plus a generic pointer type for 
+ *      user defined types.  A couple of getter/setter methods is provided for 
+ *      each ::u_array_type_t entry, e.g. see ::u_array_get_char and 
+ *      ::u_array_set_char.
+ *      \note The getter/setter interfaces for generic pointers are different
+ *            from all the other, see ::u_array_get_ptr and ::u_array_set_ptr
+ *            for details.
  */
 
 /**
@@ -78,7 +85,8 @@ static size_t sizeof_type[U_ARRAY_TYPE_MAX + 1] =
  *                  if you want the default)
  *  \param pda      the newly created array object as a result argument
  *
- *  \return \c 0 on success, \c -1 on error
+ *  \retval  0  on success 
+ *  \retval -1  on error
  */
 int u_array_create (u_array_type_t t, size_t nslots, u_array_t **pda)
 {
@@ -135,7 +143,8 @@ void u_array_free (u_array_t *da)
  *  \param da   the array object
  *  \param idx  the index that needs to be accomodated/reached
  *
- *  \return \c 0 on success, \c -1 on error
+ *  \retval  0  on success
+ *  \retval -1  on error
  */
 int u_array_resize (u_array_t *da, size_t idx)
 {
@@ -148,8 +157,7 @@ int u_array_resize (u_array_t *da, size_t idx)
     dbg_return_if (idx < da->nslots, 0);
 
     /* can't go further, go out */
-    /* XXX why return '0' instead of '-1' ? */
-    dbg_return_if (idx >= (max_nslots = MAX_NSLOTS(da)) - 1, 0);
+    dbg_return_if (idx >= (max_nslots = MAX_NSLOTS(da)) - 1, -1);
 
     /* decide how many new slots are needed */
     new_nslots = ((max_nslots - U_ARRAY_RESIZE_PAD - 1) >= idx) ?
