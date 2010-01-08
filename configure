@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.84 2009/12/28 17:52:31 tho Exp $
+# $Id: configure,v 1.85 2010/01/08 15:39:28 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -36,6 +36,7 @@ makl_set_var_mk "SRCDIR" "`pwd`"
 makl_set_var_h "OS_UNIX"
 makl_set_var_h "U_PATH_SEPARATOR" "'/'"
 target=`makl_target_name`
+echo $target
 case ${target} in
     *mingw*)
         makl_unset_var "OS_UNIX"
@@ -54,6 +55,9 @@ case ${target} in
     darwin*)
         makl_set_var_mk "OS_DARWIN" "true"
         makl_set_var_mk "SHLIB_LDFLAGS" "-undefined suppress -flat_namespace"
+        ;;
+    linux*)
+        makl_set_var "OS_LINUX"
         ;;
 esac
 
@@ -138,7 +142,15 @@ then
     then
         makl_checktype          0   "struct sockaddr_in6"   \
             "<sys/types.h> <sys/socket.h> <netinet/in.h>" 
-        [ $? -ne 0 ] && makl_set_var "NO_IPV6" 
+        if [ $? -ne 0 ]
+        then
+            makl_set_var "NO_IPV6" 
+        elif [ "`makl_get_var_h "OS_LINUX"`" ]
+        then
+            # struct addrinfo is picked up from netdb header only 
+            # in case _GNU_SOURCE is defined.
+            makl_append_var_mk "CFLAGS" "-D_GNU_SOURCE"
+        fi
     fi
 
     # check for Unix socket support (in case --no_unixsock was not specified)
