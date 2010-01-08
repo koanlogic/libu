@@ -240,7 +240,6 @@ U_ARRAY_GETSET_F(_long, U_ARRAY_TYPE_LONG, long)
 U_ARRAY_GETSET_F(_u_long, U_ARRAY_TYPE_U_LONG, unsigned long)
 U_ARRAY_GETSET_F(_float, U_ARRAY_TYPE_FLOAT, float)
 U_ARRAY_GETSET_F(_double, U_ARRAY_TYPE_DOUBLE, double)
-//U_ARRAY_GETSET_F(_ptr, U_ARRAY_TYPE_PTR, void *)
 
 #ifdef HAVE_BOOL
 U_ARRAY_GETSET_F(_bool, U_ARRAY_TYPE_BOOL, bool)

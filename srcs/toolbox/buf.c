@@ -17,7 +17,7 @@ struct u_buf_s
 };
 
 /**
- *  \defgroup buf Buf
+ *  \defgroup buf Buffer
  *  \{
  */
 

@@ -17,7 +17,7 @@ typedef struct u_memory_funcs_s
 static u_memory_fns_t u_memory_fns = { malloc, calloc, realloc, free };
 
 /**
- *  \defgroup alloc Memory
+ *  \defgroup alloc Memory allocation
  *  \{
  */
 
