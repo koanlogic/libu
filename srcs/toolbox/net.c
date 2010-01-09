@@ -34,13 +34,13 @@ typedef struct u_addrinfo_s
 struct u_net_addr_s
 {
     int opts;   /* OR'd U_NET_OPT's */
-    int mode;   /* one of U_NET_SSOCK or U_NET_CSOCK */
+    u_net_mode_t mode;  /* one of U_NET_SSOCK or U_NET_CSOCK */
     u_addrinfo_t *addr; /* list of available addresses */
     u_addrinfo_t *cur;  /* reference to the current working address */
 };
 
 /* private stuff */ 
-static int na_new (int mode, u_net_addr_t **pa);
+static int na_new (u_net_mode_t mode, u_net_addr_t **pa);
 static void ai_free (u_addrinfo_t *ai);
 #ifndef NO_SCTP
 static int sctp_enable_events (int s, int opts);
@@ -131,8 +131,7 @@ static int uri2addr (u_uri_t *u, u_net_scheme_map_t *m, u_net_addr_t *a);
   
         every other scheme needs an <b>host</b> (by name or numeric address) 
         and a <b>port</b> (by service name, or numeric in range 
-        <code>[1..65535]</code>) separated by a single <code>':'</code> 
-        characted, e.g.:
+        <code>[1..65535]</code>) separated by a single \c ':' character, e.g.:
         - <code> tcp://www.kame.net:http </code>
         - <code> udp6://[fe80::200:f8ff:fe21:67cf]:65432 </code>
         - <code> sctp4://myhost:9999 </code>
@@ -140,19 +139,74 @@ static int uri2addr (u_uri_t *u, u_net_scheme_map_t *m, u_net_addr_t *a);
         Note that IPv6 numeric addresses must be enclosed by brackets as per 
         RFC 2732.  
   
-        Also, the wildcard address is specified with a <code>'*'</code>, and 
-        the same representation is used to let the kernel choose an ephemeral 
-        port for us. e.g.:
+        Also, the wildcard address is specified with a \c '*', and the same 
+        representation is used to let the kernel choose an ephemeral port for 
+        us. e.g.:
         - <code> tcp6://[*]:1025 </code>
         - <code> tcp4://192.168.0.1:* </code>
 
-        TBC
- */
+        There exist two ways to obtain a socket descriptor: the first creates
+        and consumes an address object without the caller ever noticing it and
+        is ideal one-shot initialization and use, e.g. a passive socket which
+        is created once and accept'ed multiple times during the process 
+        lifetime:
+    \code
+        int sd, asd;
+        struct sockaddr_storage sa;
+        socklen_t sa_len = sizeof sa;
+
+        // create a passive TCP socket
+        dbg_err_if ((sd = u_net_sock("tcp://my:http-alt", U_NET_SSOCK)) == -1);
+
+        for (;;)
+        {
+            // accept new incoming connections
+            asd = u_accept(sd, (struct sockaddr *) &sa, &sa_len);
+
+            dbg_ifb (asd == -1)
+                continue;
+
+            // handle it
+            do_serve(asd);
+        }
+    \endcode
+
+        The second allows to reuse the same address object multiple times, and 
+        could easily fit a scenario where a transient connection must be set up
+        on regular basis:
+    \code
+        int csd;
+        u_net_addr_t *a = NULL;
+
+        // create an address object for an active TCP socket
+        dbg_err_if (u_net_uri2addr("tcp://my:http-alt", U_NET_CSOCK, &a));
+
+        for (;;)
+        {
+            // sleep some time 
+            (void) u_sleep(SOME_TIME);
+
+            // connect to the server host, reusing the same address
+            dbg_ifb ((csd = u_net_sock_by_addr(a)) == -1)
+                continue;
+
+            // do some messaging over the connected socket
+            dbg_if (do_io(csd));
+        }
+    \endcode
+
+    The net module primarily aims at simplifying the socket creation process. 
+    When you receive back your brand new socket descriptor, its goal is almost 
+    done.  You can use libu's ::u_read, ::u_write, ::u_net_readn, 
+    ::u_net_writen or barebones \c sendto(2), \c select(2), \c recvmsg(2), as 
+    much as you like.  One of my favourite is to use it in connection with 
+    <a href="http://www.monkey.org/~provos/libevent">libevent</a>.
+*/
 
 /** 
  *  \brief  Parse the supplied uri and transform it into an \a u_net_addr_t .
  *
- *  Parse the supplied \p uri string and return an \a u_net_addr_t object at
+ *  Parse the supplied \p uri string and return an ::u_net_addr_t object at
  *  \p pa as a result argument.  The address can then be used (and reused) to 
  *  create passive or connected sockets by means of the ::u_net_sock_by_addr 
  *  interface.
@@ -166,7 +220,7 @@ static int uri2addr (u_uri_t *u, u_net_scheme_map_t *m, u_net_addr_t *a);
  *  \retval  0  on success
  *  \retval ~0  on error
  */
-int u_net_uri2addr (const char *uri, int mode, u_net_addr_t **pa)
+int u_net_uri2addr (const char *uri, u_net_mode_t mode, u_net_addr_t **pa)
 {
     const char *s;
     u_uri_t *u = NULL;
@@ -202,11 +256,11 @@ err:
 }
 
 /**
- *  \brief  Create a socket (connected or passive) from a given \c u_net_addr_t
+ *  \brief  Create a socket (connected or passive) from a given ::u_net_addr_t
  *          object.
  * 
  *  Create a socket, being connected or passive depends on \p mode value, given
- *  the already filled-in \c u_net_addr_t object \p a.  The returned socket 
+ *  the already filled-in ::u_net_addr_t object \p a.  The returned socket 
  *  descriptor can then be used for any I/O operation compatible with its
  *  underlying nature.
  *
@@ -240,7 +294,7 @@ int u_net_sock_by_addr (u_net_addr_t *a)
  *
  *  \return the created socket descriptor, or \c -1 on error.
  */ 
-int u_net_sock (const char *uri, int mode, ...)
+int u_net_sock (const char *uri, u_net_mode_t mode, ...)
 {
     va_list ap;
     int opts = 0, s = -1;
@@ -282,7 +336,7 @@ err:
 /** 
  *  \brief  Tell if the supplied address is entitled to call accept(2) 
  *
- *  \param  a   A \c u_net_addr_t object that has been created via 
+ *  \param  a   A ::u_net_addr_t object that has been created via 
  *              ::u_net_uri2addr
  *
  *  \retval 1   if the address is suitable for accept'ing connections
@@ -310,7 +364,7 @@ int u_net_addr_can_accept (u_net_addr_t *a)
  *  a.  Beware that this operation overrides any option that was previously 
  *  installed in the address.
  *
- *  \param  a       an already allocated \c u_net_addr_t object
+ *  \param  a       an already allocated ::u_net_addr_t object
  *  \param  opts    the set of options that will be installed
  *
  *  \return nothing
@@ -325,11 +379,11 @@ void u_net_addr_set_opts (u_net_addr_t *a, int opts)
 /**
  *  \brief  Add the supplied \p opts to the given address.
  *
- *  Add the supplied options set \p opts to set of options inside \p a.
+ *  Add the supplied options set \p opts to \p a options' set.
  *  This operation is not disruptive so that any option that was previously 
  *  installed in the address is retained.
  *
- *  \param  a       an already allocated \c u_net_addr_t object
+ *  \param  a       an already allocated ::u_net_addr_t object
  *  \param  opts    the set of options that will added to the set of options
  *                  already installed
  *
@@ -343,10 +397,10 @@ void u_net_addr_add_opts (u_net_addr_t *a, int opts)
 }
 
 /** 
- *  \brief  Free memory allocated to an \c u_net_addr_t object
+ *  \brief  Free memory allocated to an ::u_net_addr_t object
  *
- *  Free resources allocated to the previously allocated \c u_net_addr_t 
- *  object \p a.  A new \c u_net_addr_t object is created at each 
+ *  Free resources allocated to the previously allocated ::u_net_addr_t 
+ *  object \p a.  A new ::u_net_addr_t object is created at each 
  *  ::u_net_uri2addr invocation and must be explicitly released, otherwise
  *  it'll be leaked.
  *
@@ -831,7 +885,7 @@ static int scheme_mapper (const char *scheme, u_net_scheme_map_t *map)
 
 /* just malloc enough room for the address container and zero-out everything
  * but the 'mode' attribute */
-static int na_new (int mode, u_net_addr_t **pa)
+static int na_new (u_net_mode_t mode, u_net_addr_t **pa)
 {
     u_net_addr_t *a = NULL;
 
