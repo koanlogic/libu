@@ -212,10 +212,10 @@ static int uri2addr (u_uri_t *u, u_net_scheme_map_t *m, u_net_addr_t *a);
  *  interface.
  *
  *  \param  uri     an URI string
- *  \param  mode    one of \c U_NET_SSOCK if the address needs to be used
- *                  for a passive socket, or \c U_NET_CSOCK if the address
+ *  \param  mode    one of ::U_NET_SSOCK if the address needs to be used
+ *                  for a passive socket, or ::U_NET_CSOCK if the address
  *                  will be used for a connected (i.e. non-passive) socket
- *  \param  pa      the translated \c u_net_addr_t as a result argument
+ *  \param  pa      the translated ::u_net_addr_t as a result argument
  *
  *  \retval  0  on success
  *  \retval ~0  on error
@@ -264,7 +264,7 @@ err:
  *  descriptor can then be used for any I/O operation compatible with its
  *  underlying nature.
  *
- *  \param  a       a valid \c u_net_addr_t address, created by a previous
+ *  \param  a       a valid ::u_net_addr_t address, created by a previous
  *                  call to ::u_net_uri2addr 
  *
  *  \return the created socket descriptor, or \c -1 on error.
@@ -289,10 +289,10 @@ int u_net_sock_by_addr (u_net_addr_t *a)
  *          ::u_net_addr_set_opts and ::u_net_sock_by_addr bits together.
  *
  *  \param  uri     an URI string
- *  \param  mode    one of \c U_NET_CSOCK (connected) or U_NET_SSOCK (passive)
+ *  \param  mode    one of ::U_NET_CSOCK (connected) or ::U_NET_SSOCK (passive)
  *  \param  ...     optional set of OR'd <code>U_NET_OPT_*</code> bits
  *
- *  \return the created socket descriptor, or \c -1 on error.
+ *  \return the newly created socket descriptor, or \c -1 on error.
  */ 
 int u_net_sock (const char *uri, u_net_mode_t mode, ...)
 {

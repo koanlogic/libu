@@ -60,10 +60,7 @@ extern "C" {
 /** \brief  Default backlog queue size supplied to listen(2) */
 #define U_NET_BACKLOG 300
 
-/* The Net module defines the following (private) URI types: 
- *    {tc,ud,sct}p[46]://<host>:<port> for TCP/UDP/SCTP over IPv[46] addresses,
- *    unix://<abs_path> for UNIX IPC endpoints. 
- * Internally, they are translated into an u_net_addr_t structure. */
+/* forward decl */
 struct u_net_addr_s;
 
 /** \brief  Base type of the net module: holds all the addressing and 
@@ -79,48 +76,53 @@ typedef enum {
 } u_net_mode_t;
 #define U_NET_IS_MODE(m) (m == U_NET_SSOCK || m == U_NET_CSOCK)
 
-/** \brief  Disable local address reuse when creating a passive socket */
-#define U_NET_OPT_DONT_REUSE_ADDR               (1 << 0)
 
-/** \brief  Do not connect(2) when creating an (UDP) active socket */
-#define U_NET_OPT_DONT_CONNECT                  (1 << 1)
+/** \brief  Address options, can be supplied (by or'ing them together through 
+ *          ::u_net_addr_set_opts and/or ::u_net_addr_add_opts, in order to 
+ *          tweek the socket creation machinery */
+typedef enum {
+    U_NET_OPT_DONT_REUSE_ADDR = (1 << 0),
+    /**<  Disable local address reuse when creating a passive socket */
 
-/** \brief  Use one-to-many model when creating SCTP sockets */ 
-#define U_NET_OPT_SCTP_ONE_TO_MANY              (1 << 2)
+    U_NET_OPT_DONT_CONNECT = (1 << 1),  
+    /**< Do not \c connect(2) when creating an (UDP) active socket */
 
-/** \brief  SCTP only: get extra information as ancillary data with the 
- *          receive calls, e.g. the stream number */
-#define U_NET_OPT_SCTP_DATA_IO_EVENT            (1 << 3)
+    U_NET_OPT_SCTP_ONE_TO_MANY = (1 << 2),  
+    /**< Use one-to-many model when creating SCTP sockets */ 
 
-/** \brief  SCTP only: get notification about changes in associations, 
- *          including the arrival of new associations */
-#define U_NET_OPT_SCTP_ASSOCIATION_EVENT        (1 << 4)
+    U_NET_OPT_SCTP_DATA_IO_EVENT = (1 << 3),
+    /**< SCTP only: get extra information as ancillary data with the 
+     *   receive calls, e.g. the stream number */
 
-/** \brief  SCTP only: get notfication when some event occurs concerning one 
- *          of the peer's addresses, e.g. addition, deletion, reachability, 
- *          unreachability */
-#define U_NET_OPT_SCTP_ADDRESS_EVENT            (1 << 5)
+    U_NET_OPT_SCTP_ASSOCIATION_EVENT = (1 << 4),
+    /**< SCTP only: get notification about changes in associations, 
+     *   including the arrival of new associations */
 
-/** \brief  SCTP only: when a send fails, the data is returned with an error */
-#define U_NET_OPT_SCTP_SEND_FAILURE_EVENT       (1 << 6)
+    U_NET_OPT_SCTP_ADDRESS_EVENT = (1 << 5),
+    /**< SCTP only: get notfication when some event occurs concerning one 
+     *   of the peer's addresses, e.g. addition, deletion, reachability, 
+     *   unreachability */
 
-/** \brief  SCTP only: get peer error messages (as TLV) from the stack */
-#define U_NET_OPT_SCTP_PEER_ERROR_EVENT         (1 << 7)
+    U_NET_OPT_SCTP_SEND_FAILURE_EVENT = (1 << 6),
+    /**< SCTP only: when a send fails, the data is returned with an error */
 
-/** \brief  SCTP only: get notifications about the peer having closed or 
- *          shutdown an association */
-#define U_NET_OPT_SCTP_SHUTDOWN_EVENT           (1 << 8)
+    U_NET_OPT_SCTP_PEER_ERROR_EVENT = (1 << 7),
+    /**< SCTP only: get peer error messages (as TLV) from the stack */
 
-/** \brief  SCTP only: get notified about issues that may occur in the partial 
- *          delivery API */
-#define U_NET_OPT_SCTP_PARTIAL_DELIVERY_EVENT   (1 << 9)
+    U_NET_OPT_SCTP_SHUTDOWN_EVENT = (1 << 8),
+    /**< SCTP only: get notifications about the peer having closed or 
+     *   shutdown an association */
 
-/** \brief  SCTP only: get events coming from the adaptation layer */
-#define U_NET_OPT_SCTP_ADAPTATION_LAYER_EVENT   (1 << 10)
+    U_NET_OPT_SCTP_PARTIAL_DELIVERY_EVENT = (1 << 9),
+    /**< SCTP only: get notified about issues that may occur in the partial 
+     *   delivery API */
 
-/** \brief  SCTP only: get authentication events, e.g. activation of new keys */
-#define U_NET_OPT_SCTP_AUTHENTICATION_EVENT     (1 << 11)
+    U_NET_OPT_SCTP_ADAPTATION_LAYER_EVENT = (1 << 10),
+    /**< SCTP only: get events coming from the adaptation layer */
 
+    U_NET_OPT_SCTP_AUTHENTICATION_EVENT = (1 << 11)
+    /**< SCTP only: get authentication events, e.g. activation of new keys */
+} u_net_opts_t;
 
 /** \brief ::u_io specialisation for output ops */
 #define u_net_write(sd, buf, nbytes, nw, iseof) \
