@@ -5,10 +5,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <regex.h>
+
 #include <toolbox/uri.h>
 #include <toolbox/carpal.h>
 #include <toolbox/misc.h>
 #include <toolbox/memory.h>
+
+/* See RFC 3986, Appendix B. */
+const char *uri_pat = 
+    "^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?" ;
 
 struct u_uri_s
 {
@@ -18,22 +24,17 @@ struct u_uri_s
     char *host;
     char *port;
     char *path;
+    char *query;
+    char *fragment;
 };
 
-static int split(const char *s, size_t len, char c, char **left, char **right);
-static int parse_middle(const char *s, size_t len, u_uri_t *uri);
-static int parse_hostinfo(const char *s, size_t len, u_uri_t *uri);
-static int parse_userinfo(const char *s, size_t len, u_uri_t *uri);
+static int u_uri_fill (u_uri_t *u, const char *uri, regmatch_t pmatch[10]);
 
 /**
     \defgroup uri URI
     \{
-        The \ref uri module allows the parsing and validation of a subset 
-        of URI strings defined in 
-        <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>, and 
-        specifically (at present) an URI is tokenized up to the so-called
-        \c hier-part, leaving the \c query and \c fragment unparsed, i.e.
-        indistinguishable from the \c path.
+        The \ref uri module allows the parsing and validation of URI strings as
+        defined in <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>.
 
         Usage is really simple and goes like this:
     \code
@@ -55,44 +56,92 @@ static int parse_userinfo(const char *s, size_t len, u_uri_t *uri);
         \note ::u_uri_t objects are building blocks in the \ref net module.
  */
 
-/** \brief parse the URI string \a s and create an \c u_uri_t at \a *pu */
-int u_uri_parse (const char *s, u_uri_t **pu)
+/** 
+ *  \brief Parse an URI string and create the corresponding ::u_uri_t object 
+ *
+ *  Parse the NUL-terminated string \p uri and create an ::u_uri_t object at 
+ *  \p *pu 
+ *
+ *  \param  uri the NUL-terminated string that must be parsed
+ *  \param  pu  the newly created ::u_uri_t object containing the b
+ *
+ *  \retval 0   on success
+ *  \retval ~0  on error
+ */
+int u_uri_parse (const char *uri, u_uri_t **pu)
 {
-    int i;
-    const char *p, *p0;
-    u_uri_t *uri = NULL;
+    u_uri_t *u = NULL;
+    int rc = 0;
+    char es[1024];
+    regex_t re;
+    regmatch_t pmatch[10];
 
-    dbg_err_sif ((uri = u_zalloc(sizeof(u_uri_t))) == NULL);
+    dbg_err_if ((rc = regcomp(&re, uri_pat, REG_EXTENDED)));
+    dbg_err_if ((rc = regexec(&re, uri, 10, pmatch, 0)));
 
-    dbg_err_if ((p = strchr(s, ':')) == NULL); /* err if malformed */
+    dbg_err_sif ((u = u_zalloc(sizeof(u_uri_t))) == NULL);
+    dbg_err_if (u_uri_fill(u, uri, pmatch));
 
-    /* save schema string */
-    dbg_err_if ((uri->scheme = u_strndup(s, p - s)) == NULL);
+    regfree(&re);
 
-    p++; /* skip ':' */
-
-    /* skip "//" */
-    for (i = 0; i < 2; ++i, ++p)
-        dbg_err_if (!p || *p == 0 || *p != '/'); /* err if malformed */
-
-    /* save p */
-    p0 = p;
-
-    /* find the first path char ('/') or the end of the string */
-    while (*p && *p != '/')
-        ++p;
-
-    /* parse userinfo and hostinfo */
-    dbg_err_if ((p - p0) && parse_middle(p0, p - p0, uri));
-
-    /* save path */
-    dbg_err_if (*p && (uri->path = u_strdup(p)) == NULL);
-
-    *pu = uri;
+    *pu = u;
 
     return 0;
 err:
-    u_uri_free(uri);
+    if (rc)
+    {
+        regerror(rc, &re, es, sizeof es);
+        dbg("%s", es);
+    }
+    regfree(&re);
+
+    if (u)
+        u_uri_free(u);
+
+    return ~0;
+}
+
+static int u_uri_fill (u_uri_t *u, const char *uri, regmatch_t pmatch[10])
+{
+    size_t i, ms_len;
+    char ms[4096];
+
+    for (i = 0; i < 10; ++i)
+    {
+        if (pmatch[i].rm_so == -1)
+        {
+            dbg("[%zu] __NO_MATCH__", i);
+            continue;
+        }
+
+        ms_len = pmatch[i].rm_eo - pmatch[i].rm_so + 1;
+        dbg_if (u_strlcpy(ms, uri + pmatch[i].rm_so, ms_len));
+
+        switch (i)
+        {
+            case 0: case 1: case 3: case 8:
+                break;
+            case 2: /* scheme */
+                dbg_err_sif ((u->scheme = u_strdup(ms)) == NULL);
+                break;
+            case 4: /* authority */
+                /* TODO break down authority string */
+                dbg("TODO break authority: %s", ms); 
+                break;
+            case 5: /* path */
+                dbg_err_sif ((u->path = u_strdup(ms)) == NULL);
+                break;
+            case 7: /* query */
+                dbg_err_sif ((u->query = u_strdup(ms)) == NULL);
+                break;
+            case 9: /* fragment */
+                dbg_err_sif ((u->fragment = u_strdup(ms)) == NULL);
+                break;
+        }
+    }
+
+    return 0;
+err:
     return ~0;
 }
 
@@ -102,13 +151,15 @@ void u_uri_free (u_uri_t *uri)
     if (uri == NULL)
         return;
 
-    U_FREE(uri->scheme);
-    U_FREE(uri->user);
-    U_FREE(uri->pwd);
-    U_FREE(uri->host);
-    U_FREE(uri->path);
-    U_FREE(uri->port);
-    U_FREE(uri);
+    u_free(uri->scheme);
+    u_free(uri->user);
+    u_free(uri->pwd);
+    u_free(uri->host);
+    u_free(uri->path);
+    u_free(uri->port);
+    u_free(uri->fragment);
+    u_free(uri->query);
+    u_free(uri);
 }
 
 /** \brief  return the \c scheme string of the parsed \p uri */
@@ -153,86 +204,21 @@ const char *u_uri_port (u_uri_t *uri)
     return uri->port;
 }
 
+/** \brief  return the \c query string of the parsed \p uri */
+const char *u_uri_query (u_uri_t *uri)
+{
+    dbg_return_if (uri == NULL, NULL);
+    return uri->query;
+}
+
+/** \brief  return the \c fragment string of the parsed \p uri */
+const char *u_uri_fragment (u_uri_t *uri)
+{
+    dbg_return_if (uri == NULL, NULL);
+    return uri->fragment;
+}
+
 /**
  *  \}
  */
 
-/* split a string separated by 'c' in two substrings */
-static int split(const char *s, size_t len, char c, char **left, char **right)
-{
-    char *buf = NULL;
-    const char *p;
-    char *l = NULL, *r = NULL;
-    
-    dbg_err_sif ((buf = u_strndup(s, len)) == NULL);
-
-    if((p = strchr(buf, c)) != NULL)
-    {
-        dbg_err_sif ((l = u_strndup(s, p - buf)) == NULL);
-        dbg_err_sif ((r = u_strndup(1 + p, len - (p - buf) - 1)) == NULL);
-    } else {
-        r = NULL;
-        dbg_err_sif ((l = u_strndup(buf, len)) == NULL);
-    }
-
-    /* return result strings */
-    *left = l;
-    *right = r;
-
-    U_FREE(buf);
-
-    return 0;
-err:
-    U_FREE(buf);
-    U_FREE(l);
-    U_FREE(r);
-    return ~0;
-}
-
-static int parse_userinfo(const char *s, size_t len, u_uri_t *uri)
-{
-    return split(s, len, ':', &uri->user, &uri->pwd);
-}
-
-static int parse_hostinfo(const char *s, size_t len, u_uri_t *uri)
-{
-    char *a, *b;
-
-    /* check for numeric IPv6: "A host identified by an IPv6 literal address 
-     * is represented inside the square brackets without a preceding version 
-     * flag" */
-    if ((a = strchr(s, '[')) && (b = strchr(s, ']')))
-    {
-        dbg_err_ifm (b <= a + 1, "malformed IPv6 URL: %s", s);
-        dbg_err_sif ((uri->host = u_strndup(a + 1, b - a - 1)) == NULL);
-
-        /* check for optional port */
-        if (strlen(b) > 3)
-        {
-            if (b[1] == ':')
-            {
-                uri->port = u_strndup(b + 2, len - (b - a) - 2);
-                dbg_err_if (uri->port == NULL);
-            }
-            else
-                dbg_err("bad syntax for IPv6 address %s", s);     
-        }
-    }
-    else    /* numeric IPv4 or host name */
-        dbg_err_if (split(s, len, ':', &uri->host, &uri->port));
-
-    return 0;
-err:
-    return ~0;
-}
-
-static int parse_middle(const char *s, size_t len, u_uri_t *uri)
-{
-    const char *p;
-
-    if( (p = strchr(s, '@')) == NULL)
-        return parse_hostinfo(s, len, uri);
-    else
-        return parse_userinfo(s, p - s, uri) +
-            parse_hostinfo(1 + p, s + len - p - 1, uri);
-}

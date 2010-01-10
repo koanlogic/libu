@@ -24,6 +24,8 @@ const char *u_uri_pwd (u_uri_t *uri);
 const char *u_uri_host (u_uri_t *uri);
 const char *u_uri_path (u_uri_t *uri);
 const char *u_uri_port (u_uri_t *uri);
+const char *u_uri_fragment (u_uri_t *uri);
+const char *u_uri_query (u_uri_t *uri);
 
 void u_uri_free (u_uri_t *uri);
 
