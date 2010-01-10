@@ -17,29 +17,41 @@ typedef struct u_memory_funcs_s
 static u_memory_fns_t u_memory_fns = { malloc, calloc, realloc, free };
 
 /**
- *  \defgroup alloc Memory allocation
- *  \{
+    \defgroup alloc Memory allocation
+    \{
+        The \ref alloc module introduces a number of wrappers to basic memory
+        management functions which allows to change the underlying memory
+        allocator in a way that is transparent to the applications built on
+        LibU.
+        It is sufficient for an application to only use ::u_malloc/::u_free 
+        and friends (which also include ::u_memdup, ::u_strndup and ::u_strdup 
+        from the \ref misc module) when carrying out memory allocation and 
+        deallocation operations.  
+        In case it'd be needed to change the underlying memory management 
+        facility with a custom one a call to ::u_memory_set_malloc and co. 
+        would be enough to fix it up, provided that the new memory management 
+        system has ISO C-like \c malloc(3) interfaces.
  */
 
-/** \brief Set malloc(3) replacement */
+/** \brief Set \c malloc(3) replacement */
 void u_memory_set_malloc (void *(*f_malloc) (size_t))
 {
     u_memory_fns.f_malloc = f_malloc;
 }
 
-/** \brief Set calloc(3) replacement */
+/** \brief Set \c calloc(3) replacement */
 void u_memory_set_calloc (void *(*f_calloc) (size_t, size_t))
 {
     u_memory_fns.f_calloc = f_calloc;
 }
 
-/** \brief Set realloc(3) replacement */
+/** \brief Set \c realloc(3) replacement */
 void u_memory_set_realloc (void *(*f_realloc) (void *, size_t))
 {
     u_memory_fns.f_realloc = f_realloc;
 }
 
-/** \brief Set free(3) replacement */
+/** \brief Set \c free(3) replacement */
 void u_memory_set_free (void (*f_free) (void *))
 {
     u_memory_fns.f_free = f_free;

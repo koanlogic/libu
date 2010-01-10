@@ -151,55 +151,55 @@ static int uri2addr (u_uri_t *u, u_net_scheme_map_t *m, u_net_addr_t *a);
         is created once and accept'ed multiple times during the process 
         lifetime:
     \code
-        int sd, asd;
-        struct sockaddr_storage sa;
-        socklen_t sa_len = sizeof sa;
+    int sd, asd;
+    struct sockaddr_storage sa;
+    socklen_t sa_len = sizeof sa;
 
-        // create a passive TCP socket
-        dbg_err_if ((sd = u_net_sock("tcp://my:http-alt", U_NET_SSOCK)) == -1);
+    // create a passive TCP socket
+    dbg_err_if ((sd = u_net_sock("tcp://my:http-alt", U_NET_SSOCK)) == -1);
 
-        for (;;)
-        {
-            // accept new incoming connections
-            asd = u_accept(sd, (struct sockaddr *) &sa, &sa_len);
+    for (;;)
+    {
+        // accept new incoming connections
+        asd = u_accept(sd, (struct sockaddr *) &sa, &sa_len);
 
-            dbg_ifb (asd == -1)
-                continue;
+        dbg_ifb (asd == -1)
+            continue;
 
-            // handle it
-            do_serve(asd);
-        }
+        // handle it
+        do_serve(asd);
+    }
     \endcode
 
         The second allows to reuse the same address object multiple times, and 
         could easily fit a scenario where a transient connection must be set up
         on regular basis:
     \code
-        int csd;
-        u_net_addr_t *a = NULL;
+    int csd;
+    u_net_addr_t *a = NULL;
 
-        // create an address object for an active TCP socket
-        dbg_err_if (u_net_uri2addr("tcp://my:http-alt", U_NET_CSOCK, &a));
+    // create an address object for an active TCP socket
+    dbg_err_if (u_net_uri2addr("tcp://my:http-alt", U_NET_CSOCK, &a));
 
-        for (;;)
-        {
-            // sleep some time 
-            (void) u_sleep(SOME_TIME);
+    for (;;)
+    {
+        // sleep some time 
+        (void) u_sleep(SOME_TIME);
 
-            // connect to the server host, reusing the same address
-            dbg_ifb ((csd = u_net_sock_by_addr(a)) == -1)
-                continue;
+        // connect to the server host, reusing the same address
+        dbg_ifb ((csd = u_net_sock_by_addr(a)) == -1)
+            continue;
 
-            // do some messaging over the connected socket
-            dbg_if (do_io(csd));
-        }
+        // do some messaging over the connected socket
+        dbg_if (do_io(csd));
+    }
     \endcode
 
     The net module primarily aims at simplifying the socket creation process. 
     When you receive back your brand new socket descriptor, its goal is almost 
     done.  You can use libu's ::u_read, ::u_write, ::u_net_readn, 
     ::u_net_writen or barebones \c sendto(2), \c select(2), \c recvmsg(2), as 
-    much as you like.  One of my favourite is to use it in connection with 
+    much as you like.  One of my favourite is to use it in association with 
     <a href="http://www.monkey.org/~provos/libevent">libevent</a>.
 */
 

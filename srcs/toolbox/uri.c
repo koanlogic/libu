@@ -26,8 +26,33 @@ static int parse_hostinfo(const char *s, size_t len, u_uri_t *uri);
 static int parse_userinfo(const char *s, size_t len, u_uri_t *uri);
 
 /**
- *  \defgroup uri URI
- *  \{
+    \defgroup uri URI
+    \{
+        The \ref uri module allows the parsing and validation of a subset 
+        of URI strings defined in 
+        <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>, and 
+        specifically (at present) an URI is tokenized up to the so-called
+        \c hier-part, leaving the \c query and \c fragment unparsed, i.e.
+        indistinguishable from the \c path.
+
+        Usage is really simple and goes like this:
+    \code
+    u_uri_t *u = NULL;
+    const char *uri = "http://me@[2001:db8::7]:8080/path/to/me/public_html";
+    const char *user, *scheme;
+
+    // parse and tokenize the uri string
+    dbg_err_if (u_uri_parse(uri, &u));
+
+    // get tokens you are interested in, e.g:
+    dbg_err_if ((scheme = u_uri_scheme(u)) == NULL);
+    dbg_err_if ((user = u_uri_user(u)) == NULL);
+    ...
+    // free the uri object once you are done with it
+    u_uri_free(u);
+    ...
+    \endcode
+        \note ::u_uri_t objects are building blocks in the \ref net module.
  */
 
 /** \brief parse the URI string \a s and create an \c u_uri_t at \a *pu */

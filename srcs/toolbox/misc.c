@@ -21,135 +21,222 @@
 #include <toolbox/memory.h>
 
 /**
- *  \defgroup misc Miscellaneous
- *  \{
+    \defgroup misc Miscellaneous
+    \{
+        
+        
+
  */
 
-/** \brief Returns \c 0 if \p c is neither a space or a tab, not-zero otherwise.
+/** 
+ *  \brief  Tell if the supplied char is a space or tab
+ *
+ *  Tell if the supplied char is a space or tab 
+ *
+ *  \param  c   the character to be tested
+ *
+ *  \retval 1   if \p c is whitespace or tab character
+ *  \retval 0   if \p c is neither a whitespace nor tab character
  */
-inline int u_isblank(int c)
+inline int u_isblank (int c)
 {
     return c == ' ' || c == '\t';
 }
 
-/** \brief Removes leading and trailing blanks (spaces and tabs) from \p s
+/** 
+ *  \brief  Tell if the supplied string is blank
+ *  
+ *  Tell if the supplied string is composed of tabs and/or spaces only
+ *
+ *  \param  s   a NUL-terminated string that is is being queried
+ *
+ *  \retval 1   if \p s is blank
+ *  \retval 0   if \p s contains non-blank characters 
  */
-void u_trim(char *s)
+inline int u_isblank_str (const char *s)
 {
-    char *p;
-
-    if(!s)
-        return;
-
-    /* trim trailing blanks */
-    p = s + strlen(s) -1;
-    while(s < p && u_isblank(*p))
-        --p;
-    p[1] = 0;
-
-    /* trim leading blanks */
-    p = s;
-    while(*p && u_isblank(*p))
-        ++p;
-
-    if(p > s)
-        memmove(s, p, 1 + strlen(p));
-}
-
-/** \brief Returns \c 1 if \p ln is a blank string i.e. a string formed by 
-           ONLY spaces and/or tabs characters.
- */
-inline int u_isblank_str(const char *ln)
-{
-    for(; *ln; ++ln)
-        if(!u_isblank(*ln))
+    for ( ; *s; ++s)
+    {
+        if (!u_isblank(*s))
             return 0;
+    }
+
     return 1;
 }
 
-/** \brief Returns \c 0 if \p c is neither a CR (\\r) or a LF (\\n), 
-     not-zero otherwise.
+/** 
+ *  \brief  Tell if the supplied char is a new-line character
+ *
+ *  Tell if the supplied char is a new-line character, i.e. CR (\c \\r) or
+ *  LF (\c \\n)
+ *
+ *  \param  c   the character to be tested
+ *
+ *  \retval 1   if \p c is CR or LF
+ *  \retval 0   if \p c is neither CR nor LF
  */
-inline int u_isnl(int c)
+inline int u_isnl (int c)
 {
     return c == '\n' || c == '\r';
 }
 
-/** \brief Dups the first \p len chars of \p s.
-     Returns the dupped zero terminated string or \c NULL on error.
+/** 
+ *  \brief  Tell if the supplied buffer contains non-ASCII bytes 
+ *
+ *  Tell if the supplied buffer \p data contains non-ASCII bytes in the first
+ *  \p sz bytes 
+ *
+ *  \param  data    the data buffer that shall be examined
+ *  \param  sz      the number of bytes that will be taken into account
+ *
+ *  \retval 1   if there is at least one non-ASCII character
+ *  \retval 0   if it \p data contains only ASCII characters
  */
-char *u_strndup(const char *s, size_t len)
+int u_data_is_bin (char *data, size_t sz)
+{
+    size_t i;
+
+    for (i = 0; i < sz; i++)
+    {
+        if (!isascii(data[i]))
+            return 1;
+    }
+
+    return 0;
+}
+
+/** 
+ *  \brief Removes leading and trailing blanks (spaces and tabs) from a string
+ *
+ *  Remove leading and trailing blanks (spaces and tabs) from the supplied 
+ *  string \p s
+ *
+ *  \param  s   a NUL-terminated string
+ *
+ *  return nothing 
+ */
+void u_trim (char *s)
+{
+    char *p;
+
+    nop_return_if (s == NULL, );
+
+    /* trim trailing blanks */
+    p = s + strlen(s) - 1;
+    while (s < p && u_isblank(*p))
+        --p;
+    p[1] = '\0';
+
+    /* trim leading blanks */
+    p = s;
+    while (*p && u_isblank(*p))
+        ++p;
+
+    if (p > s)
+        memmove(s, p, 1 + strlen(p));
+
+    return;
+}
+
+/** 
+ *  \brief  Make a copy of a portion of a string
+ *
+ *  Return a NUL-terminated string which duplicates the first \p len characters
+ *  of the supplied string \p s.  The returned pointer may subsequently be used
+ *  as an argument to ::u_free.
+ *
+ *  \param  s       a NUL-terminated string
+ *  \param  len     the length of the substring which has to be copied
+ *
+ *  \return the duplicated substring, or \c NULL on error (i.e. insufficient
+ *          memory or invalid \p len)
+ */
+char *u_strndup (const char *s, size_t len)
 {
     char *cp;
 
-    if((cp = (char*) u_malloc(len + 1)) == NULL)
-        return NULL;
+    /* check bounds */
+    dbg_return_if (len > strlen(s), NULL);
+
+    /* make room for the substring + \0 */
+    dbg_return_sif ((cp = u_malloc(len + 1)) == NULL, NULL);
+
     memcpy(cp, s, len);
-    cp[len] = 0;
+    cp[len] = '\0';
+
     return cp;
 }
 
-/** \brief Dups the supplied string \p s */
-char *u_strdup(const char *s)
+/** 
+ *  \brief  Allocate sufficient memory for a copy of the supplied string, copy 
+ *          it, and return a reference to the copy
+ *
+ *  Allocate sufficient memory for a copy of the supplied string \p s, copy it,
+ *  and return its reference. The returned pointer may subsequently be used
+ *  as an argument to ::u_free.
+ *
+ *  \param  s   a NUL-terminated string
+ *
+ *  \return the duplicated string or \c NULL in case no sufficient memory is
+ *          available
+ */
+char *u_strdup (const char *s)
 {
     return u_strndup(s, strlen(s));
 }
 
-/** \brief Save the PID of the calling process to a file named \p pf 
-     (that should be a fully qualified path).
-     Returns \c 0 on success, not-zero on error.
+/** 
+ *  \brief  Wrapper to strlcpy(3) 
+ * 
+ *  Wrapper to strlcpy(3) that will check whether \p src is too big to fit 
+ *  \p dst.  In case of overflow, at least \p size bytes will be copied anyway
+ *  from \p src to \p dst.
+ * 
+ *  \param  dst     buffer of at least \p size bytes where bytes from \p src 
+ *                  will be copied
+ *  \param  src     NUL-terminated string that is (possibly) copied to \p dst
+ *  \param  size    full size of the destination buffer \p dst
+ *  
+ *  \retval  0  copy is ok
+ *  \retval ~0  copy would overflow the destination buffer
  */
-int u_savepid (const char *pf)
+inline int u_strlcpy(char *dst, const char *src, size_t size)
 {
-    FILE *pfp = NULL;
-
-    dbg_return_if (pf == NULL, ~0);
-
-    dbg_err_sif ((pfp = fopen(pf, "w")) == NULL);
-    dbg_err_sif (fprintf(pfp, "%ld\n", (long) getpid()) == 0);
-    fclose(pfp);
-
-    return 0;
-err:
-    U_FCLOSE(pfp);
-    return ~0;
+    return (strlcpy(dst, src, size) >= size ? ~0 : 0);
 }
 
-/** \brief  Safe string copy, see also the U_SSTRNCPY define 
-  Safe string copy which null-terminates the destination string \a dst before
-  copying the source string \a src for no more than \a size bytes.
-  Returns a pointer to the destination string \a dst.
-*/
-char *u_sstrncpy (char *dst, const char *src, size_t size)
-{
-    dst[size] = '\0';
-    return strncpy(dst, src, size);
-}
-
-/** \brief Dups the memory block \c src of size \c size.
-     Returns the pointer of the dup'd block on success, \c NULL on error.
+/** 
+ *  \brief  Wrapper to strlcat(3) 
+ * 
+ *  Wrapper to strlcat(3) that will check whether \p src is too big to fit 
+ *  \p dst.  In any case at least \p size bytes of \p src will be concatenated
+ *  to \p dst. 
+ *
+ *  \param  dst     NUL-terminated string to which \p src will be concatenated
+ *  \param  src     NUL-terminated string that is (possibly) contatenated to 
+ *                  \p dst
+ *  \param  size    full size of the destination buffer \p dst
+ *  
+ *  \retval  0  string concatenation is ok
+ *  \retval ~0  string concatenation would overflow the destination buffer
  */
-void* u_memdup(const void *src, size_t size)
+inline int u_strlcat(char *dst, const char *src, size_t size)
 {
-    void *p;
-
-    p = u_malloc(size);
-    if(p)
-        memcpy(p, src, size);
-    return p;
+    return (strlcat(dst, src, size) >= size ? ~0 : 0);
 }
 
 /**
- * \brief   Break a string into pieces separated by a given set of characters
+ *  \brief   Break a string into pieces separated by a given set of characters
  *
- * Tokenize the \p delim separated string \p s and place its \p *pnelems pieces
- * into the string array \p *ptv.  The \p *ptv result argument contains all the
- * pieces at increasing indices [0..\p *pnelems-1] in the order they've been 
- * found in string \p s.  At index \p *pnelems - i.e. \p *ptv[\p *pnelems] - the
- * pointer to a (clobbered) duplicate of \p s is stored, which must be free'd 
- * along with the string array result \p *ptv once the caller is done with it:
+ *  Tokenize the \p delim separated string \p s and place its \p *pnelems 
+ *  pieces into the string array \p *ptv.  The \p *ptv result argument contains
+ *  all the pieces at increasing indices [0..\p *pnelems-1] in the order 
+ *  they've been found in string \p s.  At index \p *pnelems - i.e. 
+ *  \p *ptv[\p *pnelems] - the pointer to a (clobbered) duplicate of \p s is 
+ *  stored, which must be free'd along with the string array result \p *ptv 
+ *  once the caller is done with it:
  * 
- * \code
+ *  \code
  *      size_t nelems, i;
  *      char **tv = NULL;
  *          
@@ -162,18 +249,19 @@ void* u_memdup(const void *src, size_t size)
  *
  *      // free memory
  *      u_strtok_cleanup(tv, nelems);
- * \endcode
+ *  \endcode
  *
- * The aforementioned disposal must be carried out every time the function 
- * returns successfully, even if the number of found tokens is zero (i.e. \p s
- * contains separator chars only, or is an empty string).
+ *  The aforementioned disposal must be carried out every time the function 
+ *  returns successfully, even if the number of found tokens is zero (i.e. \p s
+ *  contains separator chars only, or is an empty string).
  *
- * \param   s       the string that shall be broken up
- * \param   delim   the set of allowed delimiters as a string
- * \param   ptv     the pieces as a result string array
- * \param   pnelems the number of tokens actually separated
+ *  \param  s       the string that shall be broken up
+ *  \param  delim   the set of allowed delimiters as a string
+ *  \param  ptv     the pieces as a result string array
+ *  \param  pnelems the number of tokens actually separated
  *
- * \return \c 0 on success, \c ~0 on error.
+ *  \retval  0  on success
+ *  \retval ~0  on error
  */ 
 int u_strtok (const char *s, const char *delim, char ***ptv, size_t *pnelems)
 {
@@ -235,12 +323,14 @@ err:
 }
 
 /**
- * \brief   Cleanup the strings vector created by u_strtok
+ *  \brief  Cleanup the strings vector created by ::u_strtok
  *
- * \param   tv      the strings vector created by a previous call to u_strtok
- * \param   nelems  number of elements in tv (as returned by u_strtok)
+ *  Cleanup the strings vector created by ::u_strtok
  *
- * \return nothing
+ *  \param   tv     the strings vector created by a previous call to ::u_strtok
+ *  \param   nelems number of elements in \p tv (as returned by ::u_strtok)
+ *
+ *  \return nothing
  */
 void u_strtok_cleanup (char **tv, size_t nelems)
 {
@@ -254,70 +344,31 @@ void u_strtok_cleanup (char **tv, size_t nelems)
 }
 
 /**
- * \brief   tokenize the supplied \p wlist string (DEPRECATED: use u_strtok)
+ *  \brief  snprintf(3) wrapper 
  *
- * Tokenize the \p delim separated string \p wlist and place its
- * pieces (at most \p tokv_sz - 1) into \p tokv.
- * DEPRECATED: use u_strtok instead
+ *  snprintf(3) wrapper
  *
- * \param wlist     list of strings possibily separated by chars in \p delim 
- * \param delim     set of token separators
- * \param tokv      pre-allocated string array
- * \param tokv_sz   number of cells in \p tokv array
+ *  \param  str     destination buffer
+ *  \param  size    size of \p str
+ *  \param  fmt     printf(3) format string
  *
- * \return \c 0 on success, \c ~0 on error.
+ *  \retval 0   on success
+ *  \retval ~0  on failure, i.e. if an output error has occurred, or the
+ *              destination buffer would have been overflowed
  */
-int u_tokenize (char *wlist, const char *delim, char **tokv, size_t tokv_sz)
+int u_snprintf (char *str, size_t size, const char *fmt, ...)
 {
-    char **ap;
-
-    dbg_return_if (wlist == NULL, ~0);
-    dbg_return_if (delim == NULL, ~0);
-    dbg_return_if (tokv == NULL, ~0);
-    dbg_return_if (tokv_sz == 0, ~0);
-
-    ap = tokv;
-
-    for ( ; (*ap = strsep(&wlist, delim)) != NULL; )
-    {
-        /* skip empty field */
-        if (**ap == '\0')
-            continue;
-
-        /* check bounds */
-        if (++ap >= &tokv[tokv_sz - 1])
-            break;
-    }
-
-    /* put an explicit stopper to tokv */
-    *ap = NULL;
-
-    return 0;
-}
-
-/**
- * \brief   snprintf-like function that returns 0 on success and ~0 on error
- *
- * snprintf-like function that returns 0 on success and ~0 on error
- *
- * \param str       destination buffer
- * \param size      size of \p str
- * \param fmt       snprintf format string
- *
- *   Returns \c 0 on success, not-zero on error.
- */
-int u_snprintf(char *str, size_t size, const char *fmt, ...)
-{
-    va_list ap;
     int wr;
+    va_list ap;
 
     va_start(ap, fmt);
-
     wr = vsnprintf(str, size, fmt, ap);
-
     va_end(ap);
 
-    dbg_err_if(wr < 0 || wr >= (int)size);
+    dbg_err_if (wr < 0);                /* output error */
+    dbg_err_if (size <= (size_t) wr);   /* overflow */
+
+    /* was: "dbg_err_if (wr >= (int) size);" bad cast ? */
 
     return 0;
 err:
@@ -325,35 +376,35 @@ err:
 }
 
 /**
- * \brief   snprintf-like function that handle path separator issues
+ *  \brief  snprintf(3)-like function that handles path name building
  *
- * Calls snprintf with the provided arguments and remove consecutive
- * path separators from the resulting string.
+ *  Call snprintf(3) with the provided arguments and remove consecutive
+ *  path separators from the resulting string
  *
- * \param buf       destination buffer
- * \param sz        size of \p str
- * \param sep       path separator to use ('/' or '\')
- * \param fmt       snprintf format string
+ *  \param buf  destination buffer
+ *  \param sz   size of \p str
+ *  \param sep  path separator to use (\c / or \c \)
+ *  \param fmt  printf format string
  *
- *   Returns \c 0 on success, not-zero on error.
+ *  \retval 0   on success
+ *  \retval ~0  on failure
  */
-int u_path_snprintf(char *buf, size_t sz, char sep, const char *fmt, ...)
+int u_path_snprintf (char *buf, size_t sz, char sep, const char *fmt, ...)
 {
     va_list ap;
     int wr, i, len;
 
     va_start(ap, fmt);
-
     wr = vsnprintf(buf, sz, fmt, ap);
-
     va_end(ap);
 
-    dbg_err_if(wr < 0 || wr >= (int)sz);
+    dbg_err_if (wr < 0);
+    dbg_err_if (sz <= (size_t) wr);
 
     /* remove multiple consecutive '/' */
-    for(len = i = strlen(buf); i > 0; --i)
+    for (len = i = strlen(buf); i > 0; --i)
     {
-        if(buf[i] == sep && buf[i-1] == sep)
+        if (buf[i] == sep && buf[i - 1] == sep)
         {
             memmove(buf + i, buf + i + 1, len - i);
             len--;
@@ -365,33 +416,93 @@ err:
     return ~0;
 }
 
-inline void u_use_unused_args(char *dummy, ...)
+/** 
+ *  \brief  Save the process id of the calling process to file
+ *
+ *  Save the process id of the calling process to the supplied file \p pf
+ *
+ *  \param  pf  path of the file (be it fully qualified or relative to the 
+ *              current working directory) where the pid will be saved
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on error
+ */
+int u_savepid (const char *pf)
+{
+    FILE *pfp = NULL;
+
+    dbg_return_if (pf == NULL, ~0);
+
+    dbg_err_sif ((pfp = fopen(pf, "w")) == NULL);
+    dbg_err_sif (fprintf(pfp, "%ld\n", (long) getpid()) == 0);
+    fclose(pfp);
+
+    return 0;
+err:
+    U_FCLOSE(pfp);
+    return ~0;
+}
+
+/** 
+ *  \brief  Make a duplicate of a memory block
+ *
+ *  Duplicate the memory block starting at \c src of size \c size
+ *
+ *  \param  src     reference to the block that must be copied
+ *  \param  size    number of bytes that must be copied 
+ *
+ *  \return the reference to the duplicated block of memory on success, 
+ *          \c NULL on error.
+ */
+void *u_memdup (const void *src, size_t size)
+{
+    void *p;
+
+    dbg_return_sif ((p = u_malloc(size)) == NULL, NULL);
+
+    memcpy(p, src, size);
+
+    return p;
+}
+
+/**
+ *  \brief  Consume an arbitrary number of variable names
+ *
+ *  Consume an arbitrary number of variable names: it is used to silent the
+ *  GNU C compiler when invoked with \c -Wunused, and you know that a given
+ *  variable won't be never used.
+ *
+ *  \param  dummy   the first of a possibly long list of meaningless parameters
+ *
+ *  \return nothing
+ *
+ */ 
+inline void u_use_unused_args (char *dummy, ...)
 {
     dummy = 0;
     return;
 }
 
-/** \brief  Return \c 1 if the supplied buffer \p data has non-ascii bytes */
-int u_data_is_bin (char *data, size_t sz)
-{
-    size_t i;
 
-    for (i = 0; i < sz; i++)
-    {
-        if (!isascii(data[i]))
-            return 1;
-    }
-
-    return 0;
-}
-
-/** \brief  Save the supplied \p data to \p file */
+/** 
+ *  \brief  Save some data in memory to file
+ *
+ *  Save some memory starting from \p data for \p sz bytes to the supplied
+ *  \p file
+ *
+ *  \param  data    pointer to the data to be saved
+ *  \param  sz      size in bytes of \p data
+ *  \param  file    the path of the file where data will be saved
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on error
+ */
 int u_data_dump (char *data, size_t sz, const char *file)
 {
     FILE *fp = NULL;
 
-    dbg_err_if ((fp = fopen(file, "w")) == NULL); 
-    dbg_err_if (fwrite(data, sz, 1, fp) < 1);
+    dbg_err_sif ((fp = fopen(file, "w")) == NULL); 
+    dbg_err_sif (fwrite(data, sz, 1, fp) < 1);
     fclose(fp);
 
     return 0;
@@ -409,7 +520,8 @@ err:
  *                  contents as a value-result argument
  *  \param  psz     size of the loaded file as a v-r argument
  *
- *  \return \c 0 on success, \c ~0 on error
+ *  \retval  0  on success
+ *  \retval ~0  on error
  */ 
 int u_load_file (const char *path, size_t sz_max, char **pbuf, size_t *psz)
 {   
@@ -442,27 +554,29 @@ err:
     return ~0;
 }
 
-/** \brief  Top level I/O routine 
+/** 
+ *  \brief  Top level I/O routine 
  *
- * Try to read/write - atomically - a chunk of \p l bytes from/to the object 
- * referenced by the descriptor \p sd.  The data chunk is written to/read from
- * the buffer starting at \p buf.  The I/O driver function \p f is used to 
- * carry out the job, its interface and behaviour must conform to those of 
- * \c POSIX.1 \c read() or \c write().  If \p n is not \c NULL, it will store
- * the number of bytes actually read/written: this information is significant
- * only when u_io has failed.  If \p eof is not \c NULL, it will be set
- * to \c 1 on an end-of-file condition.
+ *  Try to read/write - atomically - a chunk of \p l bytes from/to the object 
+ *  referenced by the descriptor \p sd.  The data chunk is written to/read from
+ *  the buffer starting at \p buf.  An I/O driver function \p f is used to 
+ *  carry out the job whose interface and behaviour must conform to those of 
+ *  \c POSIX.1 \c read(2) or \c write(2).  If \p n is not \c NULL, it will store
+ *  the number of bytes actually read/written: this information is significant
+ *  only when ::u_io fails.  If \p eof is not \c NULL, it will be set to \c 1 
+ *  on an EOF condition.
  *
- * \param f         the I/O function, i.e. \c read(2) or \c write(2)
- * \param sd        the file descriptor on which the I/O operation is performed
- * \param buf       the data chunk to be read or written
- * \param l         the length in bytes of \p buf
- * \param n         the number of bytes read/written as a value-result arg
- * \param eof       true if end-of-file condition
- * 
- * \return  A \c ~0 is returned if an error other than \c EINTR
- *          has occurred, or if the requested amount of data could 
- *          not be entirely read/written.  A \c 0 is returned on success.
+ *  \param f        the I/O function, i.e. \c read(2) or \c write(2)
+ *  \param sd       the file descriptor on which the I/O operation is performed
+ *  \param buf      the data chunk to be read or written
+ *  \param l        the length in bytes of \p buf
+ *  \param n        the number of bytes read/written as a value-result arg
+ *  \param eof      true if end-of-file condition
+ *   
+ *  \retval  0  is returned on success
+ *  \retval ~0  is returned if an error other than \c EINTR has occurred, or 
+ *              if the requested amount of data could not be entirely 
+ *              read/written.
  */
 int u_io (iof_t f, int sd, void *buf, size_t l, ssize_t *n, int *eof)
 {
@@ -505,50 +619,27 @@ end:
 }
 
 /**
- *  \brief  sleep(3) wrapper that handles EINTR
+ *  \brief  An ::u_io wrapper that uses \c read(2) as I/O driver
  *
- *  \param  secs        sleep for 'secs' seconds
+ *  An ::u_io wrapper that uses \c read(2) as I/O driver: its behaviour
+ *  is identical to \c read(2) except it automatically restarts when 
+ *  interrupted
  *
- *  \return on success returns the socket descriptor; on failure returns -1
- */ 
-int u_sleep(unsigned int secs)
-{
-#ifdef OS_WIN
-    Sleep(secs * 1000);
-#else
-    int sleep_for, c;
-
-    for(sleep_for = secs; sleep_for > 0; sleep_for = c)
-    {
-        if((c = sleep(sleep_for)) == 0)
-            break;
-        else if(errno != EINTR)
-            return -1; /* should never happen */
-    }
-
-#endif
-    return 0;
-}
-
-/**
- *  \brief  read(2) wrapper that handles EINTR
- *
- *  \param  fd      file descriptor
+ *  \param  fd      an open file descriptor
  *  \param  buf     buffer to read into
- *  \param  size    size of the buffer
+ *  \param  size    size of \p buf in bytes
  *
  *  \return on success the number of read bytes (that will always 
- *          be \p size except that on EOF) is returned; on failure \c -1 is
- *          returned
- */ 
-ssize_t u_read(int fd, void *buf, size_t size)
+ *          be \p size except that on EOF) is returned; on failure return \c -1
+ */
+ssize_t u_read (int fd, void *buf, size_t size)
 {
-    ssize_t nw = 0;
     int eof = 0;
+    ssize_t nw = 0;
 
-    if(u_io((iof_t) read, fd, buf, size, &nw, &eof))
+    if (u_io((iof_t) read, fd, buf, size, &nw, &eof))
     {
-        if(eof)
+        if (eof)
             return nw; /* may be zero */
         else
             return -1;
@@ -558,23 +649,70 @@ ssize_t u_read(int fd, void *buf, size_t size)
 }
 
 /**
- *  \brief  write(2) wrapper that handle EINTR 
+ *  \brief  An ::u_io wrapper that uses \c write(2) as I/O driver
  *
- *  \param  fd      file descriptor
+ *  An ::u_io wrapper that uses \c write(2) as I/O driver: its behaviour
+ *  is identical to \c write(2) except it automatically restarts when 
+ *  interrupted
+ *
+ *  \param  fd      an open file descriptor
  *  \param  buf     buffer to write
- *  \param  size    size of the buffer
+ *  \param  size    size of \p buf in bytes
  *
- *  \return \c size on success, -1 on error
+ *  \retval size    on success
+ *  \retval -1      on error
  */ 
-ssize_t u_write(int fd, void *buf, size_t size)
+ssize_t u_write (int fd, void *buf, size_t size)
 {
-    if(u_io((iof_t) write, fd, buf, size, NULL, NULL))
+    if (u_io((iof_t) write, fd, buf, size, NULL, NULL))
         return -1;
 
     return size;
 }
 
-/** \brief  try to convert the string \p nptr into the integer at \p pi */
+/**
+ *  \brief  sleep(3) wrapper that handles EINTR
+ *
+ *  sleep(3) wrapper that automatically restarts when interrupted by a signal
+ *
+ *  \param  secs    number of seconds to sleep
+ *
+ *  \retval  0  on success
+ *  \retval -1  on failure
+ */ 
+int u_sleep(unsigned int secs)
+{
+#ifdef OS_WIN
+    Sleep(secs * 1000);
+#else
+    int sleep_for, c;
+
+    for (sleep_for = secs; sleep_for > 0; sleep_for = c)
+    {
+        if ((c = sleep(sleep_for)) == 0)
+            break;
+        else if (errno != EINTR)
+            return -1; /* should never happen */
+    }
+#endif
+    return 0;
+}
+
+/** 
+ *  \brief  Convert string to \c int representation
+ *
+ *  Try to convert the string \p nptr into an integer at \p pi, handling all 
+ *  \c strtol(3) exceptions (overflow or underflow, invalid representation)
+ *  in a simple go/no-go way.
+ *
+ *  \param  nptr    NUL-terminated string (possibly) representing an integer
+ *                  value (base 10)
+ *  \param  pi      pointer to an integer variable that contains the result
+ *                  of a successful conversion
+ *  
+ *  \retval 0   on success
+ *  \retval ~0  on error
+ */
 int u_atoi (const char *nptr, int *pi)
 {
     long int tmp, saved_errno = errno;
@@ -597,7 +735,21 @@ err:
 }
 
 #ifdef HAVE_STRTOUMAX
-/** \brief  try to convert the string \p nptr into the maximum unsigned integer at \p pumax */
+/** 
+ *  \brief  Convert string to \c u_intmax_t representation
+ *
+ *  Try to convert the string \p nptr into a maximum unsigned integer at 
+ *  \p pumax, handling all \c strtoumax(3) exceptions (overflow or underflow, 
+ *  invalid representation) in a simple go/no-go way.
+ *
+ *  \param  nptr    NUL-terminated string (possibly) representing an unsigned
+ *                  integer value (base 10)
+ *  \param  pumax   pointer to an \c u_intmax_t variable that contains the 
+ *                  result of a successful conversion
+ *  
+ *  \retval 0   on success
+ *  \retval ~0  on error
+ */
 int u_atoumax (const char *nptr, uintmax_t *pumax)
 {
     uintmax_t tmp; 
@@ -621,44 +773,69 @@ err:
 }
 #endif  /* HAVE_STRTOUMAX */
 
-/** 
- *  \brief  Wrapper to strlcpy(3) 
- * 
- *  Wrapper to strlcpy(3) that will check whether \p src is too big to fit 
- *  \p dst.  In case of overflow, at least \p size bytes will be anyway copied 
- *  from \p src to \p dst.
- * 
- *  \param  dst     buffer of at least \p size bytes where bytes from \p src 
- *                  will be copied
- *  \param  src     NUL-terminated string that is (possibly) copied to \p dst
- *  \param  size    full size of the destination buffer \p dst
- *  
- *  \retval  0  copy is ok
- *  \retval ~0  copy would overflow the destination buffer
+/**
+ *  \brief  tokenize the supplied \p wlist string (<b>DEPRECATED</b>, use 
+ *          ::u_strtok instead)
+ *
+ *  Tokenize the \p delim separated string \p wlist and place its
+ *  pieces (at most \p tokv_sz - 1) into \p tokv.
+ *
+ *  \note <b>DEPRECATED</b>, use ::u_strtok instead
+ *
+ *  \param wlist    list of strings possibily separated by chars in \p delim 
+ *  \param delim    set of token separators
+ *  \param tokv     pre-allocated string array
+ *  \param tokv_sz  number of cells in \p tokv array
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on error
  */
-inline int u_strlcpy(char *dst, const char *src, size_t size)
+int u_tokenize (char *wlist, const char *delim, char **tokv, size_t tokv_sz)
 {
-    return (strlcpy(dst, src, size) >= size ? ~0 : 0);
+    char **ap;
+
+    dbg_return_if (wlist == NULL, ~0);
+    dbg_return_if (delim == NULL, ~0);
+    dbg_return_if (tokv == NULL, ~0);
+    dbg_return_if (tokv_sz == 0, ~0);
+
+    ap = tokv;
+
+    for ( ; (*ap = strsep(&wlist, delim)) != NULL; )
+    {
+        /* skip empty field */
+        if (**ap == '\0')
+            continue;
+
+        /* check bounds */
+        if (++ap >= &tokv[tokv_sz - 1])
+            break;
+    }
+
+    /* put an explicit stopper to tokv */
+    *ap = NULL;
+
+    return 0;
 }
 
 /** 
- *  \brief  Wrapper to strlcat(3) 
- * 
- *  Wrapper to strlcat(3) that will check whether \p src is too big to fit 
- *  \p dst.  In any case at least \p size bytes of \p src will be concatenated
- *  to \p dst. 
+ *  \brief  Safe string copy (<b>DEPRECATED</b>, use ::u_strlcpy instead)
  *
- *  \param  dst     NUL-terminated string to which \p src will be concatenated
- *  \param  src     NUL-terminated string that is (possibly) contatenated to 
- *                  \p dst
+ *  Safe string copy which NUL-terminates the destination string \a dst before
+ *  copying the source string \a src for no more than \a size bytes
+ *
+ *  \note <b>DEPRECATED</b>, use ::u_strlcpy instead
+ *
+ *  \param  dst     buffer of at least \p size bytes where \p src will be copied
+ *  \param  src     NUL-terminated string that is (possibly) copied to \p dst
  *  \param  size    full size of the destination buffer \p dst
- *  
- *  \retval  0  string concatenation is ok
- *  \retval ~0  string concatenation would overflow the destination buffer
+ *
+ *  \return a pointer to the destination string \a dst
  */
-inline int u_strlcat(char *dst, const char *src, size_t size)
+char *u_sstrncpy (char *dst, const char *src, size_t size)
 {
-    return (strlcat(dst, src, size) >= size ? ~0 : 0);
+    dst[size] = '\0';
+    return strncpy(dst, src, size);
 }
 
 /**
