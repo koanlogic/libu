@@ -1,0 +1,96 @@
+/**
+ * \page install Installation
+
+\section    makl MaKL is a Prerequisite
+
+LibU needs <a href="http://koanlogic.com/makl">MaKL</a> to configure and build. 
+
+The following commands should be sufficient to get MaKL installed on any Linux 
+flavour or Darwin/MacOSX:
+\verbatim
+$ wget http://koanlogic.com/download/makl/makl-1.8.1.tar.gz
+$ tar zxf makl-1.8.1.tar.gz && cd makl-1.8.1
+$ sh configure.sh
+$ su 
+Password: ****
+# make install
+\endverbatim
+Should your platform be one of Solaris, OpenSolaris, FreeBSD, PC-BSD, OpenBSD,
+NetBSD, DragonflyBSD or Windows (MinGW or Gygwin) take a look at the \c INSTALL
+file in the top-level MaKL sources directory to track down specific variations 
+on the theme.
+
+\section    download Download
+
+Once MaKL is there, you can start downloading the package (always check the 
+official <a href="http://koanlogic.com/libu/index.html">LibU</a> page for the 
+latest version and related ChangeLog) and tailor it to your specific needs:
+\verbatim
+$ wget http://koanlogic.com/download/libu/libu-2.0.0.tar.gz
+$ tar zxf libu-2.0.0.tar.gz && cd libu-2.0.0
+\endverbatim
+
+\section    configure Configure
+
+E.g. should you need to change the default installation path (which is 
+<code>/usr/local</code>), use:
+\verbatim
+$ makl-conf --prefix="/my/install/base/dir"
+\endverbatim
+
+Debug symbols and warnings from the compiler can be switched on via
+\c --enable_debug and \c --enable_warns (use \c --enable_icc_warns instead when 
+working with the Intel C compiler):
+\verbatim
+$ makl-conf --enable_debug --enable_warns
+\endverbatim
+
+Code profiling using gprof(1) can be activated via \c --enable_profile, and 
+in general any compiler flag can be passed to the build stage in the following 
+way:
+\verbatim
+$ makl-conf --extra-cflags="-Wformat -Wno-format-extra-args -Wformat-security -Wformat-nonliteral -Wformat=2"
+\endverbatim
+The \c --extra-xxx="val" is indeed a powerful mechanism by which any Makefile 
+variable \c XXX (uppercase!) can be given an additional value \c val: (ab)use 
+it to tweak \c LDFLAGS, \c SHLIB_LDFLAGS, etc. as needed.  Anyway if in doubt, 
+or in search for exotic features, type <code>"makl-conf -h"</code> to display 
+the complete list of options: it's likely that what you are trying to achieve 
+is already there.
+
+\subsection    modules Pick Up What Needs to be Included
+
+The default is to build all the modules, but you can disable the 
+inclusion of specific bits selectively using the following switches:
+    - \c --no_hmap: to disable the \ref hmap module
+    - \c --no_config: to disable the \ref config module
+    - \c --no_net: to disable the \ref net module
+    - \c --no_env: to disable the \ref env module
+    - \c --no_fs: to disable the \ref fs module
+    - \c --no_pwd: to disable the \ref pwd module
+    - \c --no_list: to disable the \ref list module
+    - \c --no_array: to disable the \ref array module
+
+Also, some specific features regarding the networking code can be disabled
+at configuration:
+    - \c --no_ipv6: to disable IPv6 protocol support
+    - \c --no_sctp: to disable SCTP protocol support
+    - \c --no_unixsock: to disable UNIX IPC support
+
+\section    build Build, Test and Install
+
+When you are done with the configure step, you can build LibU bits and 
+optionally test them:
+\verbatim
+$ makl
+$ makl -C test
+\endverbatim
+
+And finally install it:
+\verbatim
+$ su
+Password: ****
+# makl install
+\endverbatim
+
+*/ 
