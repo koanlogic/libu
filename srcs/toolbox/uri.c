@@ -58,12 +58,15 @@ static int u_uri_fill (u_uri_t *u, const char *uri, regmatch_t pmatch[10]);
     u_uri_t *u = NULL;
     char s[U_URI_STRMAX];
 
+    // make room for the new URI object
     dbg_err_if (u_uri_new(&u));
 
+    // set the relevant attributes
     (void) u_uri_set_scheme(u, "http");
     (void) u_uri_set_authority(u, "www.ietf.org");
     (void) u_uri_set_path(u, "rfc/rfc3986.txt");
 
+    // encode it to string 's'
     dbg_err_if (u_uri_unparse(u, s));
 
     // should give: http://www.ietf.org/rfc/rfc3986.txt
@@ -123,36 +126,73 @@ err:
 }
 
 /**
- *  \brief  ...
+ *  \brief  Assemble an URI string starting from its atoms
  *
- *  ...
+ *  Assemble an URI string at \p s, starting from its pieces stored in the
+ *  supplied ::u_uri_t object \p u
+ *      
+ *  \param  u   reference to an already filled in ::u_uri_t object
+ *  \param  s   reference to an already alloc'd string of size ::U_URI_STRMAX
  *
- *  \param  u   ...
- *  \param  s   ...
- *
- *  \retval  0  ...
- *  \retval ~0  ...
+ *  \retval  0  on success
+ *  \retval ~0  on error
  */ 
 int u_uri_unparse (u_uri_t *u, char s[U_URI_STRMAX])
 {
     dbg_return_if (u == NULL, ~0);
+    dbg_return_if (u->path == NULL, ~0);    /* path is mandatory */
     dbg_return_if (s == NULL, ~0);
 
-    /* TODO */
-    /* see 5.3.  Component Recomposition */
+    /* see RFC 3986, Section 5.3. Component Recomposition */
 
+    *s = '\0';
+
+    if (u->scheme)
+    {
+        dbg_err_if (u_strlcat(s, u->scheme, U_URI_STRMAX));
+        dbg_err_if (u_strlcat(s, ":", U_URI_STRMAX));
+    }
+
+    if (u->authority)
+    {
+        dbg_err_if (u_strlcat(s, "//", U_URI_STRMAX));
+        dbg_err_if (u_strlcat(s, u->authority, U_URI_STRMAX));
+    }
+    else /* try recompose authority through its atoms */
+    {
+        dbg("TODO");
+    }
+
+    dbg_err_if (u_strlcat(s, u->path, U_URI_STRMAX));
+
+    if (u->query)
+    {
+        dbg_err_if (u_strlcat(s, "?", U_URI_STRMAX));
+        dbg_err_if (u_strlcat(s, u->query, U_URI_STRMAX));
+    }
+
+    if (u->fragment)
+    {
+        dbg_err_if (u_strlcat(s, "#", U_URI_STRMAX));
+        dbg_err_if (u_strlcat(s, u->fragment, U_URI_STRMAX));
+    }
+ 
     return 0;
+err:
+    return ~0;
 }
 
 /**
- *  \brief  ...
+ *  \brief  Make room for a new ::u_uri_t object
  *
- *  ...
+ *  Make room for a new ::u_uri_t object at \p *pu.  The returned object is 
+ *  completely empty: use the needed setter methods to fill it.
  *
- *  \param  pu  ...
+ *  \param  pu  Reference to an ::u_uri_t that, on success, will point to the 
+ *              newly created object
  *
- *  \retval  0  ...
- *  \retval ~0  ...
+ *  \retval  0  on success
+ *  \retval ~0  on error
  */ 
 int u_uri_new (u_uri_t **pu)
 {
@@ -166,9 +206,10 @@ int u_uri_new (u_uri_t **pu)
 /**
  *  \brief dispose memory allocated to \p uri
  *
- *  ...
+ *  Free the previously (via ::u_uri_parse or ::u_uri_new) allocated 
+ *  ::u_uri_t object \p u.
  *
- *  \param  u   ...
+ *  \param  u   reference to the ::u_uri_t object that needs to be disposed
  *
  *  \return nothing
  */ 
@@ -215,10 +256,7 @@ U_URI_GETSET_F(path)
 U_URI_GETSET_F(query)
 U_URI_GETSET_F(fragment)
 
-/**
- *  \}
- */
-
+/** \brief  Print an ::u_uri_t object to \c stderr (DEBUG) */
 void u_uri_print (u_uri_t *u)
 {
     dbg_return_if (u == NULL, );
@@ -235,6 +273,11 @@ void u_uri_print (u_uri_t *u)
 
     return;
 }
+
+/**
+ *  \}
+ */
+
 
 static int u_uri_fill (u_uri_t *u, const char *uri, regmatch_t pmatch[10])
 {
@@ -279,3 +322,4 @@ static int u_uri_fill (u_uri_t *u, const char *uri, regmatch_t pmatch[10])
 err:
     return ~0;
 }
+

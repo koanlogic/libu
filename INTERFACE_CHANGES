@@ -1,13 +1,32 @@
 
 [uri]:
-    u_uri_t is now opaque.  Type attributes can be accessed only through their 
-    getter methods, which are *new* with 2.0:
-        * const char *u_uri_scheme (u_uri_t *uri)
-        * const char *u_uri_user (u_uri_t *uri)
-        * const char *u_uri_pwd (u_uri_t *uri)
-        * const char *u_uri_host (u_uri_t *uri)
-        * const char *u_uri_path (u_uri_t *uri)
-        * const char *u_uri_port (u_uri_t *uri)
+    This module has been completely rewritten for plain RFC XXXX conformance.
+
+    Also, u_uri_t is now opaque type and its attributes can be accessed only 
+    through their getter methods:
+        * const char *u_uri_get_scheme (u_uri_t *u)
+        * const char *u_uri_get_user (u_uri_t *u)
+        * const char *u_uri_get_pwd (u_uri_t *u)
+        * const char *u_uri_get_host (u_uri_t *u)
+        * const char *u_uri_get_port (u_uri_t *u)
+        * const char *u_uri_get_authority (u_uri_t *u)
+        * const char *u_uri_get_path (u_uri_t *u)
+        * const char *u_uri_get_query (u_uri_t *u)
+        * const char *u_uri_get_fragment (u_uri_t *u)
+
+    A new interface for building confromant URI string as been added:
+        * int u_uri_unparse (u_uri_t *u, char s[U_URI_STRMAX])
+
+    together with the needed setter methods:
+        * int u_uri_set_scheme (u_uri_t *u, const char *val)
+        * int u_uri_set_user (u_uri_t *u, const char *val)
+        * int u_uri_set_pwd (u_uri_t *u, const char *val)
+        * int u_uri_set_host (u_uri_t *u, const char *val)
+        * int u_uri_set_port (u_uri_t *u, const char *val)
+        * int u_uri_set_authority (u_uri_t *u, const char *val)
+        * int u_uri_set_path (u_uri_t *u, const char *val)
+        * int u_uri_set_query (u_uri_t *u, const char *val)
+        * int u_uri_set_fragment (u_uri_t *u, const char *val)
 
 [buf]:
     u_buf_t is now opaque.  Type attributes can be accessed only through their
@@ -79,3 +98,7 @@
     *always* use '*prc' to discriminate between a good (i.e. *prc == 0) and bad
     (i.e. *prc == -1) run.
 
+[misc]
+    The following interfaces have been deprecated:
+        * u_tokenize    in favour of    u_strtok
+        * u_strncpy     in favour of    u_strlcpy

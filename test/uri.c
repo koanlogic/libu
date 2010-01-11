@@ -64,16 +64,15 @@ static int test_u_uri_parse (void)
     int i;
     u_uri_t *u = NULL;
 
-#define CHECK_EXP_MSG(field)                                                \
-    do {                                                                    \
-        if (((vt[i].exp.field == NULL) ?                                    \
-                (u_uri_##field(u) != NULL) :                                \
-                strcmp(u_uri_##field(u), vt[i].exp.field)))                 \
-        {                                                                   \
-            con("%s != %s at idx %d", u_uri_##field(u), vt[i].exp.field, i);\
-            goto err;                                                       \
-        }                                                                   \
-    } while (0)
+#define CHECK_EXP_MSG(field) do {   \
+    if (((vt[i].exp.field == NULL) ?                                         \
+            (u_uri_get_##field(u) != NULL) :                                 \
+            strcmp(u_uri_get_##field(u), vt[i].exp.field)))                  \
+    {                                                                        \
+        con("%s != %s at idx %d", u_uri_get_##field(u), vt[i].exp.field, i); \
+        goto err;                                                            \
+    }                                                                        \
+} while (0)
 
     for (i = 0; vt[i].in; i++)
     {

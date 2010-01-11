@@ -33,6 +33,9 @@ void u_uri_free (u_uri_t *u);
 int u_uri_parse (const char *s, u_uri_t **pu);
 int u_uri_unparse (u_uri_t *u, char s[U_URI_STRMAX]);
 
+/* print u_uri_t internal state */
+void u_uri_print (u_uri_t *u);
+
 /* getter/setter methods for u_uri_t objects */
 
 /** \brief  Get the scheme value from the supplied \p uri */
