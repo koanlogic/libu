@@ -27,6 +27,7 @@ struct u_uri_s
 };
 
 static int u_uri_fill (u_uri_t *u, const char *uri, regmatch_t pmatch[10]);
+static int split_authority (const char *authority, u_uri_t *u);
 
 /**
     \defgroup uri URI
@@ -186,7 +187,8 @@ err:
  *  \brief  Make room for a new ::u_uri_t object
  *
  *  Make room for a new ::u_uri_t object at \p *pu.  The returned object is 
- *  completely empty: use the needed setter methods to fill it.
+ *  completely empty: use the needed setter methods to fill it before passing
+ *  it to the encoder.
  *
  *  \param  pu  Reference to an ::u_uri_t that, on success, will point to the 
  *              newly created object
@@ -196,11 +198,29 @@ err:
  */ 
 int u_uri_new (u_uri_t **pu)
 {
+    u_uri_t *u = NULL;
+
     dbg_return_if (pu == NULL, ~0);
 
-    dbg_return_sif ((*pu = u_zalloc(sizeof(u_uri_t))) == NULL, ~0);
+    dbg_err_sif ((u = u_zalloc(sizeof(u_uri_t))) == NULL);
+
+    u->scheme = NULL;
+    u->user = NULL;
+    u->pwd = NULL;
+    u->host = NULL;
+    u->port = NULL;
+    u->authority = NULL;
+    u->path = NULL;
+    u->query = NULL;
+    u->fragment = NULL;
+
+    *pu = u;
 
     return 0;
+err:
+    if (u)
+        u_uri_free(u);
+    return ~0;
 }
 
 /**
@@ -278,7 +298,6 @@ void u_uri_print (u_uri_t *u)
  *  \}
  */
 
-
 static int u_uri_fill (u_uri_t *u, const char *uri, regmatch_t pmatch[10])
 {
     size_t i, ms_len;
@@ -286,25 +305,29 @@ static int u_uri_fill (u_uri_t *u, const char *uri, regmatch_t pmatch[10])
 
     for (i = 0; i < 10; ++i)
     {
-        if (pmatch[i].rm_so == -1)
+        /* skip greedy matches */
+        switch (i)
         {
-            dbg("[%zu] __NO_MATCH__", i);
-            continue;
+            case 0: case 1: case 3: case 6: case 8:
+                continue;
         }
 
+        /* skip unmatched regex tokens */
+        if (pmatch[i].rm_so == -1)
+            continue;
+
+        /* prepare a NUL-terminated string with the token that was matched */
         ms_len = U_MIN(pmatch[i].rm_eo - pmatch[i].rm_so + 1, sizeof ms);
         dbg_if (u_strlcpy(ms, uri + pmatch[i].rm_so, ms_len));
 
         switch (i)
         {
-            case 0: case 1: case 3: case 8:
-                break;
             case 2: /* scheme */
                 dbg_err_sif ((u->scheme = u_strdup(ms)) == NULL);
                 break;
             case 4: /* authority */
-                /* TODO break down authority string */
                 dbg_err_sif ((u->authority = u_strdup(ms)) == NULL);
+                dbg_err_if (split_authority(ms, u));
                 break;
             case 5: /* path */
                 dbg_err_sif ((u->path = u_strdup(ms)) == NULL);
@@ -323,3 +346,15 @@ err:
     return ~0;
 }
 
+/* TODO */
+static int split_authority (const char *authority, u_uri_t *u)
+{
+    dbg_return_if (u == NULL, ~0);
+
+    if (authority == NULL)
+        return 0;
+
+    dbg("TODO");
+
+    return 0;
+}
