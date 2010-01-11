@@ -58,6 +58,9 @@ or in search for exotic features, type <code>"makl-conf -h"</code> to display
 the complete list of options: it's likely that what you are trying to achieve 
 is already there.
 
+By default LibU is compiled as static library, to also enable shared library 
+build, supply the \c --enable_shared flag.
+
 \subsection    modules Pick Up What Needs to be Included
 
 The default is to build all the modules, but you can disable the 
@@ -92,5 +95,21 @@ $ su
 Password: ****
 # makl install
 \endverbatim
+
+\section hellolibu  Hello LibU !
+
+You now are ready to play with your first LibU program:
+
+\code
+#include <u/libu.h>
+
+int facility = LOG_LOCAL0;
+
+int main (void)
+{
+    con("Hello LibU world !");
+    return 0;
+}
+\endcode
 
 */ 

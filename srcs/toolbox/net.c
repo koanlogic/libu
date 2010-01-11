@@ -233,7 +233,7 @@ int u_net_uri2addr (const char *uri, u_net_mode_t mode, u_net_addr_t **pa)
     /* decode address and map the uri scheme to a suitable set of socket 
      * creation parameters */
     dbg_err_if (u_uri_parse(uri, &u));
-    dbg_err_if ((s = u_uri_scheme(u)) == NULL);
+    dbg_err_if ((s = u_uri_get_scheme(u)) == NULL);
     dbg_err_ifm (scheme_mapper(s, &smap), "unsupported URI scheme: %s", s);
 
     /* create the address container */
@@ -915,7 +915,7 @@ static int uri2addr (u_uri_t *u, u_net_scheme_map_t *m, u_net_addr_t *a)
     dbg_return_if (m == NULL, ~0);
     dbg_return_if (a == NULL, ~0);
 
-    return ai_resolv(u_uri_host(u), u_uri_port(u), u_uri_path(u), 
+    return ai_resolv(u_uri_get_host(u), u_uri_get_port(u), u_uri_get_path(u), 
             m->addr_family, m->sock_type, m->proto, 
             (a->mode == U_NET_SSOCK) ? 1 : 0, &a->addr);
 }

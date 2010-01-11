@@ -13,7 +13,7 @@ and the license's disclaimers of warranty:
 \endcode
 
 That said, LibU includes many interdependent modules for accomplishing several 
-tasks: \ref alloc, \ref net and \ref uri parsing (as per RFC 2396), \ref string 
+tasks: \ref alloc, \ref net and \ref uri parsing (as per RFC 3986), \ref string 
 manipulation, \ref carpal (with bundled debugging and logging functionalities) 
 of C/C++ programs in a very compact way, plus many other \ref misc tasks.  
 

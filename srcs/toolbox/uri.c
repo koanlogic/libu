@@ -19,7 +19,7 @@ const char *uri_pat =
 struct u_uri_s
 {
     char *scheme;
-    char *user, *pwd, *host, *port;
+    char *user, *pwd, *host, *port; /* possible 'authority' pieces */
     char *authority;
     char *path;
     char *query;
@@ -34,22 +34,42 @@ static int u_uri_fill (u_uri_t *u, const char *uri, regmatch_t pmatch[10]);
         The \ref uri module allows the parsing and validation of URI strings as
         defined in <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>.
 
-        Usage is really simple and goes like this:
+        It can be used for parsing a given uri string:
     \code
     u_uri_t *u = NULL;
-    const char *uri = "http://me@[2001:db8::7]:8080/path/to/me/public_html";
-    const char *user, *scheme;
+    const char *uri = "ftp://ftp.is.co.za/rfc/rfc1808.txt";
+    const char *authority, *scheme;
 
     // parse and tokenize the uri string
     dbg_err_if (u_uri_parse(uri, &u));
 
     // get tokens you are interested in, e.g:
-    dbg_err_if ((scheme = u_uri_scheme(u)) == NULL);
-    dbg_err_if ((user = u_uri_user(u)) == NULL);
+    dbg_err_if ((scheme = u_uri_get_scheme(u)) == NULL);
+    dbg_err_if ((authority = u_uri_get_authority(u)) == NULL);
+    
+    // should give "ftp '://' ftp.is.co.za"
+    con("%s \'://\' %s", scheme, authority);
     ...
     // free the uri object once you are done with it
     u_uri_free(u);
+    \endcode
+        Or, the way round, to build a URI string starting from its components:
+    \code
+    u_uri_t *u = NULL;
+    char s[U_URI_STRMAX];
+
+    dbg_err_if (u_uri_new(&u));
+
+    (void) u_uri_set_scheme(u, "http");
+    (void) u_uri_set_authority(u, "www.ietf.org");
+    (void) u_uri_set_path(u, "rfc/rfc3986.txt");
+
+    dbg_err_if (u_uri_unparse(u, s));
+
+    // should give: http://www.ietf.org/rfc/rfc3986.txt
+    con("%s", s);
     ...
+    u_uri_free(u);
     \endcode
         \note ::u_uri_t objects are building blocks in the \ref net module.
  */
@@ -119,6 +139,7 @@ int u_uri_unparse (u_uri_t *u, char s[U_URI_STRMAX])
     dbg_return_if (s == NULL, ~0);
 
     /* TODO */
+    /* see 5.3.  Component Recomposition */
 
     return 0;
 }
@@ -198,10 +219,27 @@ U_URI_GETSET_F(fragment)
  *  \}
  */
 
+void u_uri_print (u_uri_t *u)
+{
+    dbg_return_if (u == NULL, );
+
+    con("scheme: %s", u->scheme ? u->scheme : "__NOT_SET__");
+    con("user: %s", u->user ? u->user : "__NOT_SET__");
+    con("pwd: %s", u->pwd ? u->pwd : "__NOT_SET__");
+    con("host: %s", u->host ? u->host : "__NOT_SET__");
+    con("port: %s", u->port ? u->port : "__NOT_SET__");
+    con("authority: %s", u->authority ? u->authority : "__NOT_SET__");
+    con("path: %s", u->path ? u->path : "__NOT_SET__");
+    con("query: %s", u->query ? u->query : "__NOT_SET__");
+    con("fragment: %s", u->fragment ? u->fragment : "__NOT_SET__");
+
+    return;
+}
+
 static int u_uri_fill (u_uri_t *u, const char *uri, regmatch_t pmatch[10])
 {
     size_t i, ms_len;
-    char ms[4096];
+    char ms[U_URI_STRMAX];
 
     for (i = 0; i < 10; ++i)
     {
@@ -211,7 +249,7 @@ static int u_uri_fill (u_uri_t *u, const char *uri, regmatch_t pmatch[10])
             continue;
         }
 
-        ms_len = pmatch[i].rm_eo - pmatch[i].rm_so + 1;
+        ms_len = U_MIN(pmatch[i].rm_eo - pmatch[i].rm_so + 1, sizeof ms);
         dbg_if (u_strlcpy(ms, uri + pmatch[i].rm_so, ms_len));
 
         switch (i)
