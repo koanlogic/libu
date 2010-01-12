@@ -13,8 +13,9 @@
         * const char *u_uri_get_path (u_uri_t *u)
         * const char *u_uri_get_query (u_uri_t *u)
         * const char *u_uri_get_fragment (u_uri_t *u)
+        * const char *u_uri_get_userinfo (u_uri_t *u);
 
-    A new interface for building confromant URI string as been added:
+    A new interface for building conformant URI string as been added:
         * int u_uri_unparse (u_uri_t *u, char s[U_URI_STRMAX])
 
     together with the needed setter methods:
@@ -27,6 +28,10 @@
         * int u_uri_set_path (u_uri_t *u, const char *val)
         * int u_uri_set_query (u_uri_t *u, const char *val)
         * int u_uri_set_fragment (u_uri_t *u, const char *val)
+        * int u_uri_set_userinfo (u_uri_t *u, const char *val);
+
+    The u_uri_parse function accepts as last optional argument a bitmask of
+    U_URI_OPTS_* to tweak some parsing choices.
 
 [buf]:
     u_buf_t is now opaque.  Type attributes can be accessed only through their

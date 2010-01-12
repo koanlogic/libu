@@ -22,15 +22,28 @@ struct u_uri_s;     /* fwd decl */
  *          ::u_uri_unparse */
 #define U_URI_STRMAX    4096
 
+/** \brief  Option that can or'ed together and supplied as last (optional) 
+ *          argument to ::u_uri_parse */
+typedef enum
+{
+    U_URI_OPT_DONT_PARSE_USERINFO = 0x01,
+    /**< do not try to split user":"password in userinfo */
+
+    U_URI_OPT_DONT_PARSE_AUTHORITY = 0x02
+    /**< do not split [user":"password"@"]host[":"port] 
+     *   (implies ::U_URI_OPT_DONT_PARSE_USERINFO) */
+
+} u_uri_opts_t;
+
 /** \brief  Base type for all URI operations */
 typedef struct u_uri_s u_uri_t;
 
 /* uri ctor/dtor */
-int u_uri_new (u_uri_t **pu);
+int u_uri_new (u_uri_t **pu, ...);
 void u_uri_free (u_uri_t *u);
 
 /* uri encoder/decoder */
-int u_uri_parse (const char *s, u_uri_t **pu);
+int u_uri_parse (const char *s, u_uri_t **pu, ...);
 int u_uri_unparse (u_uri_t *u, char s[U_URI_STRMAX]);
 
 /* print u_uri_t internal state */
@@ -43,6 +56,12 @@ const char *u_uri_get_scheme (u_uri_t *uri);
 
 /** \brief  Set the scheme value to \p val on the supplied \p uri */
 int u_uri_set_scheme (u_uri_t *uri, const char *val);
+
+/** \brief  Get the userinfo value from the supplied \p uri */
+const char *u_uri_get_userinfo (u_uri_t *uri);
+
+/** \brief  Set the userinfo value to \p val on the supplied \p uri */
+int u_uri_set_userinfo (u_uri_t *uri, const char *val);
 
 /** \brief  Get the user value from the supplied \p uri */
 const char *u_uri_get_user (u_uri_t *uri);

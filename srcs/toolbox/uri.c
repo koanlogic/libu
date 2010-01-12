@@ -19,15 +19,18 @@ const char *uri_pat =
 struct u_uri_s
 {
     char *scheme;
-    char *user, *pwd, *host, *port; /* possible 'authority' pieces */
+    char *userinfo, *user, *pwd, *host, *port; /* 'authority' pieces */
     char *authority;
     char *path;
     char *query;
     char *fragment;
+    int opts;
 };
 
 static int u_uri_fill (u_uri_t *u, const char *uri, regmatch_t pmatch[10]);
-static int split_authority (const char *authority, u_uri_t *u);
+static int unparse_authority (u_uri_t *u, char s[U_URI_STRMAX]);
+static int parse_authority (char *authority, u_uri_t *u);
+static int parse_userinfo (char *userinfo, u_uri_t *u);
 
 /**
     \defgroup uri URI
@@ -41,7 +44,8 @@ static int split_authority (const char *authority, u_uri_t *u);
     const char *uri = "ftp://ftp.is.co.za/rfc/rfc1808.txt";
     const char *authority, *scheme;
 
-    // parse and tokenize the uri string
+    // parse and tokenize the uri string 
+    // note that no u_uri_opts_t have been supplied
     dbg_err_if (u_uri_parse(uri, &u));
 
     // get tokens you are interested in, e.g:
@@ -90,10 +94,11 @@ static int split_authority (const char *authority, u_uri_t *u);
  *  \retval  0  on success
  *  \retval ~0  on error
  */
-int u_uri_parse (const char *uri, u_uri_t **pu)
+int u_uri_parse (const char *uri, u_uri_t **pu, ...)
 {
+    va_list ap;
     u_uri_t *u = NULL;
-    int rc = 0;
+    int rc = 0, opts = 0;
     char es[1024];
     regex_t re;
     regmatch_t pmatch[10];
@@ -101,10 +106,14 @@ int u_uri_parse (const char *uri, u_uri_t **pu)
     dbg_return_if (uri == NULL, ~0);
     dbg_return_if (pu == NULL, ~0);
 
+    va_start(ap, pu);
+    opts = (int) va_arg(ap, int);
+    va_end(ap);
+
     dbg_err_if ((rc = regcomp(&re, uri_pat, REG_EXTENDED)));
     dbg_err_if ((rc = regexec(&re, uri, 10, pmatch, 0)));
 
-    dbg_err_if (u_uri_new(&u));
+    dbg_err_if (u_uri_new(&u, opts));
     dbg_err_if (u_uri_fill(u, uri, pmatch));
 
     regfree(&re);
@@ -160,9 +169,7 @@ int u_uri_unparse (u_uri_t *u, char s[U_URI_STRMAX])
         dbg_err_if (u_strlcat(s, u->authority, U_URI_STRMAX));
     }
     else /* try recompose authority through its atoms */
-    {
-        dbg("TODO");
-    }
+        dbg_err_if (unparse_authority(u, s));
 
     dbg_err_if (u_strlcat(s, u->path, U_URI_STRMAX));
 
@@ -196,15 +203,22 @@ err:
  *  \retval  0  on success
  *  \retval ~0  on error
  */ 
-int u_uri_new (u_uri_t **pu)
+int u_uri_new (u_uri_t **pu, ...)
 {
+    va_list ap;
+    int opts = 0;
     u_uri_t *u = NULL;
 
     dbg_return_if (pu == NULL, ~0);
 
+    va_start(ap, pu);
+    opts = (int) va_arg(ap, int);
+    va_end(ap);
+
     dbg_err_sif ((u = u_zalloc(sizeof(u_uri_t))) == NULL);
 
     u->scheme = NULL;
+    u->userinfo = NULL;
     u->user = NULL;
     u->pwd = NULL;
     u->host = NULL;
@@ -213,6 +227,7 @@ int u_uri_new (u_uri_t **pu)
     u->path = NULL;
     u->query = NULL;
     u->fragment = NULL;
+    u->opts = opts;
 
     *pu = u;
 
@@ -238,6 +253,7 @@ void u_uri_free (u_uri_t *u)
     dbg_return_if (u == NULL, )
 
     U_FREE(u->scheme);
+    U_FREE(u->userinfo);
     U_FREE(u->user);
     U_FREE(u->pwd);
     U_FREE(u->host);
@@ -267,6 +283,7 @@ int u_uri_set_##field (u_uri_t *uri, const char *val)               \
 }
 
 U_URI_GETSET_F(scheme)
+U_URI_GETSET_F(userinfo)
 U_URI_GETSET_F(user)
 U_URI_GETSET_F(pwd)
 U_URI_GETSET_F(host)
@@ -282,6 +299,7 @@ void u_uri_print (u_uri_t *u)
     dbg_return_if (u == NULL, );
 
     con("scheme: %s", u->scheme ? u->scheme : "__NOT_SET__");
+    con("userinfo: %s", u->userinfo ? u->userinfo : "__NOT_SET__");
     con("user: %s", u->user ? u->user : "__NOT_SET__");
     con("pwd: %s", u->pwd ? u->pwd : "__NOT_SET__");
     con("host: %s", u->host ? u->host : "__NOT_SET__");
@@ -318,7 +336,7 @@ static int u_uri_fill (u_uri_t *u, const char *uri, regmatch_t pmatch[10])
 
         /* prepare a NUL-terminated string with the token that was matched */
         ms_len = U_MIN(pmatch[i].rm_eo - pmatch[i].rm_so + 1, sizeof ms);
-        dbg_if (u_strlcpy(ms, uri + pmatch[i].rm_so, ms_len));
+        (void) u_strlcpy(ms, uri + pmatch[i].rm_so, ms_len);
 
         switch (i)
         {
@@ -327,7 +345,7 @@ static int u_uri_fill (u_uri_t *u, const char *uri, regmatch_t pmatch[10])
                 break;
             case 4: /* authority */
                 dbg_err_sif ((u->authority = u_strdup(ms)) == NULL);
-                dbg_err_if (split_authority(ms, u));
+                dbg_err_if (parse_authority(ms, u));
                 break;
             case 5: /* path */
                 dbg_err_sif ((u->path = u_strdup(ms)) == NULL);
@@ -346,15 +364,134 @@ err:
     return ~0;
 }
 
-/* TODO */
-static int split_authority (const char *authority, u_uri_t *u)
+/*  authority = [ userinfo "@" ] host [ ":" port ] */
+static int parse_authority (char *authority, u_uri_t *u)
 {
+    char *s, *cur, *end;
+    char userinfo[U_URI_STRMAX];
+    size_t len;
+
     dbg_return_if (u == NULL, ~0);
 
-    if (authority == NULL)
+    if (u->opts & U_URI_OPT_DONT_PARSE_AUTHORITY)
         return 0;
 
-    dbg("TODO");
+    s = cur = authority;
+    dbg_err_if ((end = strchr(authority, '\0')) == s);
+
+    /* check for optional userinfo */
+    if ((cur = strchr(s, '@')))
+    {
+        len = U_MIN((size_t) (cur - s + 1), sizeof userinfo);
+        (void) u_strlcpy(userinfo, s, len);
+        dbg_err_if (parse_userinfo(userinfo, u));
+        dbg_err_ifm ((s = cur + 1) == end, "empty host");
+    }
+
+    /* host = IP-literal / IPv4address / reg-name */
+    if (*s == '[')  
+    {
+        /* IP-literal = "[" IPv6address / IPvFuture case "]" */
+        dbg_err_ifm ((cur = strchr(s, ']')) == NULL, 
+                "miss closing ] in IP-literal");
+        dbg_err_ifm (cur == s + 1, "empty IPv6address / IPvFuture");
+
+        dbg_err_if ((u->host = u_strndup(s + 1, cur - s - 1)) == NULL);
+        ++cur;
+    }
+    else
+    {
+        /* IPv4address / reg-name, as-is */
+
+        if ((cur = strchr(s, ':')) == NULL)
+        {
+            dbg_err_if ((u->host = u_strdup(s)) == NULL);
+            goto end;
+        }
+        else
+        {
+            dbg_err_ifm (cur == s, "empty IPv4address / reg-name");
+            dbg_err_if ((u->host = u_strndup(s, cur - s)) == NULL);
+        }
+    }
+
+    /* check if we've reached the end of the authority string, otherwise
+     * pretend that next character is the port marker */
+    nop_goto_if ((s = cur) == end, end);
+    dbg_err_ifm (*s != ':', "bad syntax in authority string");
+    dbg_err_ifm (++s == end, "empty port");
+    dbg_err_if ((u->port = u_strdup(s)) == NULL);
+
+end:
+    return 0;
+err:
+    return ~0;
+}
+
+static int parse_userinfo (char *userinfo, u_uri_t *u)
+{
+    char *p;
+
+    dbg_return_if (u == NULL, ~0);
+
+    if (userinfo == NULL)
+        return 0;
+
+    /* dup it as-is to .userinfo */
+    if (u->opts & U_URI_OPT_DONT_PARSE_USERINFO)
+        dbg_err_sif ((u->userinfo = u_strdup(userinfo)) == NULL);
+
+    /* 3.2.1.  User Information: Use of the format "user:password" in the 
+     * userinfo field is deprecated.  
+     * Anyway :) */
+    if ((p = strchr(userinfo, ':')) != NULL)
+    {
+        dbg_err_ifm (p == userinfo, "no user in userinfo");
+        dbg_err_sif ((u->user = u_strndup(userinfo, p - userinfo)) == NULL);
+        ++p;
+        dbg_err_sif ((u->pwd = u_strdup(p)) == NULL);
+    }
+    else
+        dbg_err_sif ((u->user = u_strdup(userinfo)) == NULL);
 
     return 0;
+err:
+    return ~0;
+}
+
+static int unparse_authority (u_uri_t *u, char s[U_URI_STRMAX])
+{
+    dbg_return_if (u == NULL, ~0);
+    dbg_return_if (u->host == NULL, ~0);
+    dbg_return_if (s == NULL, ~0);
+
+    if (u->userinfo)
+    {
+        dbg_err_if (u_strlcat(s, u->userinfo, U_URI_STRMAX));
+        dbg_err_if (u_strlcat(s, "@", U_URI_STRMAX));
+    }
+    else if (u->user)
+    {
+        dbg_err_if (u_strlcat(s, u->user, U_URI_STRMAX)); 
+
+        if (u->pwd)
+        {
+            dbg_err_if (u_strlcat(s, ":", U_URI_STRMAX)); 
+            dbg_err_if (u_strlcat(s, u->pwd, U_URI_STRMAX)); 
+        }
+
+        dbg_err_if (u_strlcat(s, "@", U_URI_STRMAX));
+    }
+
+    dbg_err_if (u_strlcat(s, u->host, U_URI_STRMAX));
+
+    if (u->port)
+    {
+        dbg_err_if (u_strlcat(s, ":", U_URI_STRMAX));
+        dbg_err_if (u_strlcat(s, u->port, U_URI_STRMAX));
+    }
+
+    return 0;
+err:
+    return ~0;
 }
