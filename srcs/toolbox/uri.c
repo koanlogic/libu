@@ -277,7 +277,7 @@ int u_uri_set_##field (u_uri_t *uri, const char *val)               \
     dbg_return_if (uri == NULL, ~0);                                \
     dbg_return_if (val == NULL, ~0);                                \
                                                                     \
-    dbg_return_if ((uri->field = u_strdup(val)) == NULL, ~0);       \
+    dbg_return_sif ((uri->field = u_strdup(val)) == NULL, ~0);      \
                                                                     \
     return 0;                                                       \
 }
@@ -396,7 +396,7 @@ static int parse_authority (char *authority, u_uri_t *u)
                 "miss closing ] in IP-literal");
         dbg_err_ifm (cur == s + 1, "empty IPv6address / IPvFuture");
 
-        dbg_err_if ((u->host = u_strndup(s + 1, cur - s - 1)) == NULL);
+        dbg_err_sif ((u->host = u_strndup(s + 1, cur - s - 1)) == NULL);
         ++cur;
     }
     else
@@ -405,13 +405,13 @@ static int parse_authority (char *authority, u_uri_t *u)
 
         if ((cur = strchr(s, ':')) == NULL)
         {
-            dbg_err_if ((u->host = u_strdup(s)) == NULL);
+            dbg_err_sif ((u->host = u_strdup(s)) == NULL);
             goto end;
         }
         else
         {
             dbg_err_ifm (cur == s, "empty IPv4address / reg-name");
-            dbg_err_if ((u->host = u_strndup(s, cur - s)) == NULL);
+            dbg_err_sif ((u->host = u_strndup(s, cur - s)) == NULL);
         }
     }
 
@@ -420,7 +420,7 @@ static int parse_authority (char *authority, u_uri_t *u)
     nop_goto_if ((s = cur) == end, end);
     dbg_err_ifm (*s != ':', "bad syntax in authority string");
     dbg_err_ifm (++s == end, "empty port");
-    dbg_err_if ((u->port = u_strdup(s)) == NULL);
+    dbg_err_sif ((u->port = u_strdup(s)) == NULL);
 
 end:
     return 0;
@@ -437,9 +437,12 @@ static int parse_userinfo (char *userinfo, u_uri_t *u)
     if (userinfo == NULL)
         return 0;
 
-    /* dup it as-is to .userinfo */
     if (u->opts & U_URI_OPT_DONT_PARSE_USERINFO)
+    {
+        /* dup it as-is to .userinfo */
         dbg_err_sif ((u->userinfo = u_strdup(userinfo)) == NULL);
+        return 0;
+    }
 
     /* 3.2.1.  User Information: Use of the format "user:password" in the 
      * userinfo field is deprecated.  
