@@ -46,7 +46,7 @@ static int parse_userinfo (char *userinfo, u_uri_t *u);
 
     // parse and tokenize the uri string 
     // note that no u_uri_opts_t have been supplied
-    dbg_err_if (u_uri_parse(uri, &u));
+    dbg_err_if (u_uri_parse(uri, 0, &u));
 
     // get tokens you are interested in, e.g:
     dbg_err_if ((scheme = u_uri_get_scheme(u)) == NULL);
@@ -64,7 +64,7 @@ static int parse_userinfo (char *userinfo, u_uri_t *u);
     char s[U_URI_STRMAX];
 
     // make room for the new URI object
-    dbg_err_if (u_uri_new(&u));
+    dbg_err_if (u_uri_new(0, &u));
 
     // set the relevant attributes
     (void) u_uri_set_scheme(u, "http");
@@ -88,17 +88,17 @@ static int parse_userinfo (char *userinfo, u_uri_t *u);
  *  Parse the NUL-terminated string \p uri and create an ::u_uri_t object at 
  *  \p *pu 
  *
- *  \param  uri the NUL-terminated string that must be parsed
- *  \param  pu  the newly created ::u_uri_t object containing the b
+ *  \param  uri     the NUL-terminated string that must be parsed
+ *  \param  opts    bitmask of or'ed ::u_uri_opts_t values
+ *  \param  pu      the newly created ::u_uri_t object containing the b
  *
  *  \retval  0  on success
  *  \retval ~0  on error
  */
-int u_uri_parse (const char *uri, u_uri_t **pu, ...)
+int u_uri_parse (const char *uri, u_uri_opts_t opts, u_uri_t **pu)
 {
-    va_list ap;
     u_uri_t *u = NULL;
-    int rc = 0, opts = 0;
+    int rc = 0;
     char es[1024];
     regex_t re;
     regmatch_t pmatch[10];
@@ -106,14 +106,10 @@ int u_uri_parse (const char *uri, u_uri_t **pu, ...)
     dbg_return_if (uri == NULL, ~0);
     dbg_return_if (pu == NULL, ~0);
 
-    va_start(ap, pu);
-    opts = (int) va_arg(ap, int);
-    va_end(ap);
-
     dbg_err_if ((rc = regcomp(&re, uri_pat, REG_EXTENDED)));
     dbg_err_if ((rc = regexec(&re, uri, 10, pmatch, 0)));
 
-    dbg_err_if (u_uri_new(&u, opts));
+    dbg_err_if (u_uri_new(opts, &u));
     dbg_err_if (u_uri_fill(u, uri, pmatch));
 
     regfree(&re);
@@ -197,23 +193,18 @@ err:
  *  completely empty: use the needed setter methods to fill it before passing
  *  it to the encoder.
  *
- *  \param  pu  Reference to an ::u_uri_t that, on success, will point to the 
- *              newly created object
+ *  \param  opts    bitmask of or'ed ::u_uri_opts_t values
+ *  \param  pu      Reference to an ::u_uri_t that, on success, will point to 
+ *                  the newly created object
  *
  *  \retval  0  on success
  *  \retval ~0  on error
  */ 
-int u_uri_new (u_uri_t **pu, ...)
+int u_uri_new (u_uri_opts_t opts, u_uri_t **pu)
 {
-    va_list ap;
-    int opts = 0;
     u_uri_t *u = NULL;
 
     dbg_return_if (pu == NULL, ~0);
-
-    va_start(ap, pu);
-    opts = (int) va_arg(ap, int);
-    va_end(ap);
 
     dbg_err_sif ((u = u_zalloc(sizeof(u_uri_t))) == NULL);
 
@@ -335,7 +326,8 @@ static int u_uri_fill (u_uri_t *u, const char *uri, regmatch_t pmatch[10])
             continue;
 
         /* prepare a NUL-terminated string with the token that was matched */
-        ms_len = U_MIN(pmatch[i].rm_eo - pmatch[i].rm_so + 1, sizeof ms);
+        ms_len = 
+            U_MIN((size_t) pmatch[i].rm_eo - pmatch[i].rm_so + 1, sizeof ms);
         (void) u_strlcpy(ms, uri + pmatch[i].rm_so, ms_len);
 
         switch (i)

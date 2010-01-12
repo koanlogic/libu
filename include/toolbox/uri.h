@@ -39,11 +39,11 @@ typedef enum
 typedef struct u_uri_s u_uri_t;
 
 /* uri ctor/dtor */
-int u_uri_new (u_uri_t **pu, ...);
+int u_uri_new (u_uri_opts_t opts, u_uri_t **pu);
 void u_uri_free (u_uri_t *u);
 
 /* uri encoder/decoder */
-int u_uri_parse (const char *s, u_uri_t **pu, ...);
+int u_uri_parse (const char *s, u_uri_opts_t opts, u_uri_t **pu);
 int u_uri_unparse (u_uri_t *u, char s[U_URI_STRMAX]);
 
 /* print u_uri_t internal state */
