@@ -5,7 +5,7 @@ U_TEST_MODULE(uri);
 /* shall match struct u_uri_s */
 typedef struct 
 {
-    const char *scheme, *user, *pwd, *host, *port, *path;
+    const char *scheme, *user, *pwd, *host, *port, *path, *query;
 } u_uri_exp_t;
 
 static int test_u_uri_parse (void)
@@ -34,7 +34,8 @@ static int test_u_uri_parse (void)
                 .pwd = NULL,
                 .host = "wiki.koanlogic.com",
                 .port = NULL,
-                .path = "/doku.php?id=libu"
+                .path = "/doku.php",
+                .query = "id=libu"
             }
         },
         { 
@@ -76,7 +77,7 @@ static int test_u_uri_parse (void)
 
     for (i = 0; vt[i].in; i++)
     {
-        con_err_if (u_uri_parse(vt[i].in, &u));
+        con_err_if (u_uri_parse(vt[i].in, 0, &u));
 
         CHECK_EXP_MSG(scheme);
         CHECK_EXP_MSG(user);
