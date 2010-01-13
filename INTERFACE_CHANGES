@@ -1,9 +1,12 @@
 
 [uri]:
-    This module has been completely rewritten for plain RFC XXXX conformance.
+    This module has been completely rewritten for RFC 3986 conformance.
     
-    u_uri_parse accepts a bitmask of options as its second parameter:
-        * int u_uri_parse (const char *s, u_uri_opts_t opts, u_uri_t **pu);
+    u_uri_parse now accepts a bitmask of parsing options as its second 
+    parameter:
+        * int u_uri_parse (const char *s, u_uri_opts_t opts, u_uri_t **pu)
+    instead of the old:
+        * int u_uri_parse (const char *s, u_uri_t **pu)
 
     Also, u_uri_t is now opaque type and its attributes can be accessed only 
     through their getter methods:

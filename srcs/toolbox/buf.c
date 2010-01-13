@@ -12,43 +12,44 @@
 
 struct u_buf_s
 {
-    char *data;
-    size_t size, len;
+    char *data;     /* the memory buffer */
+    size_t size;    /* bytes malloc'd for .data */
+    size_t len;     /* bytes actually in use (always <= .size) */
 };
 
 /**
- *  \defgroup buf Buffer
- *  \{
+    \defgroup buf Buffer
+    \{
+        The \ref buf module ...
  */
 
 /**
- * \brief  Enlarge the underlying memory block of the given buffer
+ *  \brief  Enlarge the memory allocated to a given buffer
  *
- * Enlarge the buffer data block to (at least) \a size bytes.
+ *  Enlarge the buffer data block to (at least) \p size bytes.
  *
- * \param ubuf  buffer object
- * \param size  requested size
+ *  \param  ubuf    an already allocated ::u_buf_t object
+ *  \param  size    the requested size in bytes
  *
- * \return \c 0 on success, not zero on failure
+ *  \retval  0  on success
+ *  \retval ~0  on failure
  */
-int u_buf_reserve(u_buf_t *ubuf, size_t size)
+int u_buf_reserve (u_buf_t *ubuf, size_t size)
 {
     char *nbuf;
 
-    dbg_err_if(ubuf == NULL);
+    dbg_err_if (ubuf == NULL);
 
-    if(size <= ubuf->size)
-        return 0; /* nothing to do */
+    nop_return_if (size <= ubuf->size, 0);  /* nothing to do */
    
     /* size plus 1 char to store a '\0' */
-    nbuf = u_realloc(ubuf->data, size+1);
-    dbg_err_if(nbuf == NULL);
+    dbg_err_sif ((nbuf = u_realloc(ubuf->data, size + 1)) == NULL);
 
     /* buffer data will always be zero-terminated (but the len field will not
      * count the last '\0') */
-    nbuf[size] = 0;
+    nbuf[size] = '\0';
 
-    ubuf->data = (void*)nbuf;
+    ubuf->data = nbuf;
     ubuf->size = size;
 
     return 0;
@@ -57,33 +58,35 @@ err:
 }
 
 /**
- * \brief  Append some data to the buffer
+ *  \brief  Append data to the buffer
  *
- * Append \a data of size \a size to the given buffer. If needed the buffer
- * will be enlarged.
+ *  Append \p size bytes of \p data to the given buffer. If needed the buffer
+ *  will be transparently enlarged.
  *
- * \param ubuf  buffer object
- * \param data  the data block to append
- * \param size  size of \a data
+ *  \param  ubuf  an already allocated ::u_buf_t object
+ *  \param  data  a reference to the data block that will be appended
+ *  \param  size  the number of bytes to append
  *
- * \return \c 0 on success, not zero on failure
+ *  \retval  0  on success
+ *  \retval ~0  on failure
  */
-int u_buf_append(u_buf_t *ubuf, const void *data, size_t size)
+int u_buf_append (u_buf_t *ubuf, const void *data, size_t size)
 {
-    dbg_err_if(ubuf == NULL);
-    dbg_err_if(data == NULL);
-    dbg_err_if(size == 0);
+    dbg_return_if (ubuf == NULL, ~0);
+    dbg_return_if (data == NULL, ~0);
+    dbg_return_if (size == 0, ~0);
 
-    if(ubuf->size - ubuf->len < size)
-    {   /* buffer too small, need to resize */
-        dbg_err_if(u_buf_reserve(ubuf, ubuf->size + ubuf->len + 2*size));
+    if (ubuf->size - ubuf->len < size)
+    {
+        /* buffer too small, resize generously */
+        dbg_err_if (u_buf_reserve(ubuf, ubuf->size + ubuf->len + 2 * size));
     }
-   
+ 
     memcpy(ubuf->data + ubuf->len, data, size);
     ubuf->len += size;
 
     /* zero term the buffer so it can be used (when applicable) as a string */
-    ubuf->data[ubuf->len] = 0;
+    ubuf->data[ubuf->len] = '\0';
 
     return 0;
 err:
@@ -91,151 +94,151 @@ err:
 }
 
 /**
- * \brief  Fill a buffer object with the content of a file
+ *  \brief  Fill a buffer object with the content of a file
  *
- * Open \a filename and copy its whole content into the given buffer.
+ *  Open \a filename and copy its whole content into the given buffer \p ubuf
  *
- * \param ubuf     buffer object
- * \param filename the source filename
+ *  \param  ubuf        an already allocated ::u_buf_t object
+ *  \param  filename    path of the source file
  *
- * \return \c 0 on success, not zero on failure
+ *  \retval  0  on success
+ *  \retval ~0  on failure
  */
-int u_buf_load(u_buf_t *ubuf, const char *filename)
+int u_buf_load (u_buf_t *ubuf, const char *filename)
 {
     struct stat st;
     FILE *fp = NULL;
 
-    dbg_err_if(ubuf == NULL);
-    dbg_err_if(filename == NULL);
+    dbg_return_if (ubuf == NULL, ~0);
+    dbg_return_if (filename == NULL, ~0);
 
-    dbg_err_if(stat(filename, &st));
+    dbg_err_sif (stat(filename, &st) == -1);
 
     /* clear the current data */
-    dbg_err_if(u_buf_clear(ubuf));
+    dbg_err_if (u_buf_clear(ubuf));
 
     /* be sure to have a big enough buffer */
-    dbg_err_if(u_buf_reserve(ubuf, st.st_size));
+    dbg_err_if (u_buf_reserve(ubuf, st.st_size));
 
-    dbg_err_sif((fp = fopen(filename, "r")) == NULL);
+    dbg_err_sifm ((fp = fopen(filename, "r")) == NULL, "%s", filename);
 
     /* fill the buffer with the whole file content */
-    dbg_err_if(fread(ubuf->data, st.st_size, 1, fp) == 0);
+    dbg_err_if (fread(ubuf->data, st.st_size, 1, fp) != 1);
     ubuf->len = st.st_size;
 
-    fclose(fp);
+    (void) fclose(fp);
 
     return 0;
 err:
-    if(fp)
-        fclose(fp);
+    U_FCLOSE(fp);
     return ~0;
 }
 
 /**
- * \brief  Release buffer's underlying memory block without freeing it
+ *  \brief  Give up ownership of the ::u_buf_t data block
  *
- * Release the underlying memory block of the given buffer without 
- * calling free() on it. The caller must free the buffer later on (probably
- * after using it somwhow). 
+ *  Give up ownership of the data block of the supplied ::u_buf_t object 
+ *  \p ubuf.  Note that ::u_free won't be called on it, so the caller must 
+ *  ::u_free the buffer later on.  Before calling ::u_buf_detach, use 
+ *  ::u_buf_ptr to get the pointer of the data block, and possibly ::u_buf_size
+ *  and ::u_buf_len to get its total size and actually used length.
  *
- * Use u_buf_ptr() to get the pointer of the memory block, u_buf_size() to
- * get its size and u_buf_len() to get its length.
+ *  \param  ubuf    a previously allocated ::u_buf_t object
  *
- * \param ubuf     buffer object
- *
- * \return \c 0 on success, not zero on failure
+ *  \retval  0  on success
+ *  \retval ~0  on failure (i.e. \c NULL \p ubuf supplied)
  */
-int u_buf_detach(u_buf_t *ubuf)
+int u_buf_detach (u_buf_t *ubuf)
 {
-    dbg_err_if(ubuf == NULL);
+    dbg_return_if (ubuf == NULL, ~0);
 
     ubuf->data = NULL;
     ubuf->size = 0;
     ubuf->len = 0;
 
     return 0;
-err:
-    return ~0;
 }
 
 /**
- * \brief  Return the size of memory block allocated by the buffer
+ *  \brief  Return the total size of the data block allocated by the buffer
  *
- * Return the size of memory block allocated by the buffer. 
+ *  Return the total size of data block allocated by the supplied ::u_buf_t 
+ *  object \p ubuf. 
  *
- * \param ubuf     buffer object
+ *  \param  ubuf    a previously allocated ::u_buf_t object
  *
- * \return the data buffer length
+ *  \return the length in bytes of the data block (which could even be \c 0 
+ *          in case \p ubuf is detached), or \c -1 if a \c NULL ::u_buf_t
+ *          reference was supplied.
  */
-size_t u_buf_size(u_buf_t *ubuf)
+ssize_t u_buf_size (u_buf_t *ubuf)
 {
-    dbg_err_if(ubuf == NULL);
+    dbg_return_if (ubuf == NULL, -1);
 
     return ubuf->size;
-err:
-    return 0;
 }
 
 /**
- * \brief  Return the length of the buffer
+ *  \brief  Return the number of used bytes in the supplied buffer
  *
- * Return the length of data store in the given buffer.
+ *  Return the number of bytes actually used in the supplied ::u_buf_t object 
+ *  \p ubuf
  *
- * \param ubuf     buffer object
+ *  \param  ubuf    a previously allocated ::u_buf_t object
  *
- * \return the data buffer length
+ *  \return the number of \p used bytes or \c -1 if the ::u_buf_t reference
+ *          is invalid
  */
-size_t u_buf_len(u_buf_t *ubuf)
+ssize_t u_buf_len (u_buf_t *ubuf)
 {
-    dbg_err_if(ubuf == NULL);
+    dbg_return_if (ubuf == NULL, -1);
 
     return ubuf->len;
-err:
-    return 0;
 }
 
 /**
- * \brief  Clear a buffer
+ *  \brief  Clear a buffer
  *
- * Totally erase the content of the given buffer. The memory allocated by
- * the buffer will not be released until u_buf_free() is called.
+ *  Reset the internal \p used bytes indicator.  Note that the memory allocated
+ *  by the buffer object won't be ::u_free'd until ::u_buf_free is called.
  *
- * \param ubuf     buffer object
+ *  \param  ubuf    a previously allocated ::u_buf_t object
  *
- * \return \c 0 on success, not zero on failure
+ *  \retval  0  on success
+ *  \retval ~0  on failure (i.e. \c NULL \p ubuf supplied)
  */
-int u_buf_clear(u_buf_t *ubuf)
+int u_buf_clear (u_buf_t *ubuf)
 {
-    dbg_err_if(ubuf == NULL);
+    dbg_return_if (ubuf == NULL, ~0);
     
     ubuf->len = 0;
 
     return 0;
-err:
-    return ~0;
 }
 
 /**
- * \brief  Set the value of a buffer
+ *  \brief  Set the value of a buffer
  *
- * Set the value of \a ubuf to \a data. If needed the buffer object will alloc
- * more memory to store the \a data value.
+ *  Explicitly set the value of \a ubuf to \a data.  If needed the buffer
+ *  object will call ::u_buf_append to enlarge the storage needed to copy-in
+ *  the \a data value.
  *
- * \param ubuf  buffer object
- * \param data  the value that will be copied into the buffer
- * \param size  size of \a data
+ *  \param  ubuf    a previously allocated ::u_buf_t object
+ *  \param  data    a reference to the memory block that will be copied into
+ *                  the buffer
+ *  \param  size    size of \a data in bytes
  *
- * \return \c 0 on success, not zero on failure
+ *  \retval  0  on success
+ *  \retval ~0  on error
  */
-int u_buf_set(u_buf_t *ubuf, const void *data, size_t size)
+int u_buf_set (u_buf_t *ubuf, const void *data, size_t size)
 {
-    dbg_err_if(ubuf == NULL);
-    dbg_err_if(data == NULL);
-    dbg_err_if(size == 0);
+    dbg_return_if (ubuf == NULL, ~0);
+    dbg_return_if (data == NULL, ~0);
+    dbg_return_if (size == 0, ~0);
 
-    dbg_err_if(u_buf_clear(ubuf));
-
-    dbg_err_if(u_buf_append(ubuf, data, size));
+    dbg_err_if (u_buf_clear(ubuf));
+    dbg_err_if (u_buf_append(ubuf, data, size));
 
     return 0;
 err:
@@ -243,68 +246,65 @@ err:
 }
 
 /**
- * \brief  Return a pointer to the buffer internal momory block
+ *  \brief  Return the pointer to the internal data block
  *
- * Return a void* pointer to the memory block allocated by the buffer object.
+ *  Return a generic pointer to the data block allocated by the ::u_buf_t 
+ *  object \p ubuf.
  *
- * \param ubuf     buffer object
+ *  \param  ubuf    a previously allocated buffer object
  *
- * \return \c 0 on success, not zero on failure
+ *  \return the pointer to the internal data block of \c NULL if an invalid
+ *          ::u_buf_t reference is supplied
  */
-void* u_buf_ptr(u_buf_t *ubuf)
+void *u_buf_ptr (u_buf_t *ubuf)
 {
-    dbg_err_if(ubuf == NULL);
+    dbg_return_if (ubuf == NULL, NULL);
     
     return ubuf->data;
-err:
-    return NULL;
 }
 
 /**
- * \brief  Free a buffer
+ *  \brief  Free a buffer
  *
- * Release all resources and free the given buffer object.
+ *  Release all resources and free the given buffer object.
  *
- * \param ubuf     buffer object
+ *  \param  ubuf    buffer object
  *
- * \return \c 0 on success, not zero on failure
+ *  \retval  0  on success
+ *  \retval ~0  on error
  */
-int u_buf_free(u_buf_t *ubuf)
+int u_buf_free (u_buf_t *ubuf)
 {
-    dbg_err_if(ubuf == NULL);
+    dbg_return_if (ubuf == NULL, ~0);
 
-    if(ubuf->data)
-        u_free(ubuf->data);
-
+    U_FREE(ubuf->data);
     u_free(ubuf);
 
     return 0;
-err:
-    return ~0;
 }
 
 /**
- * \brief  Append a string to the given buffer
+ *  \brief  Append a string to the given buffer
  *
- * Create a string from the printf-style arguments and append it to the 
- * given u_buf_t object.
+ *  Create a NUL-terminated string from the \c printf(3) like arguments and 
+ *  append it to the given ::u_buf_t object.  The length of the appended string
+ *  (NOT including the ending \c \\0) will be added to the current length of 
+ *  the buffer (::u_buf_len).
  *
- * The length of the appended string (NOT including the ending '\\0') will 
- * be added to the current length of the buffer (u_buf_len).
+ *  \param  ubuf    a previously allocated ::u_buf_t object
+ *  \param  fmt     \c printf like format string
+ *  \param  ...     variable list of arguments used by the \p fmt
  *
- * \param ubuf  buffer object
- * \param fmt   printf-style format
- * \param ...   variable list of arguments
- *
- * \return \c 0 on success, not zero on failure
+ *  \retval  0  on success
+ *  \retval ~0  on error
  */
-int u_buf_printf(u_buf_t *ubuf, const char *fmt, ...)
+int u_buf_printf (u_buf_t *ubuf, const char *fmt, ...)
 {
     va_list ap;
     size_t sz, avail;
 
-    dbg_return_if(ubuf == NULL, ~0);
-    dbg_return_if(fmt == NULL, ~0);
+    dbg_return_if (ubuf == NULL, ~0);
+    dbg_return_if (fmt == NULL, ~0);
 
 again:
     va_start(ap, fmt); 
@@ -312,15 +312,15 @@ again:
     avail = ubuf->size - ubuf->len; /* avail may be zero */
 
     /* write to the internal buffer of ubuf */
-    dbg_err_if(( sz = vsnprintf(ubuf->data + ubuf->len, avail, fmt, ap)) <= 0);
+    dbg_err_if ((sz = vsnprintf(ubuf->data + ubuf->len, avail, fmt, ap)) <= 0);
 
-    if(sz >= avail)
+    if (sz >= avail)
     {
         /* enlarge the buffer (make it at least 128 bytes bigger) */
-        dbg_err_if(u_buf_reserve(ubuf, ubuf->len + U_MAX(128, sz + 1)));
+        dbg_err_if (u_buf_reserve(ubuf, ubuf->len + U_MIN(128, sz + 1)));
 
         /* zero-term the buffer (vsnprintf has removed the last \0!) */
-        ubuf->data[ubuf->len] = 0;
+        ubuf->data[ubuf->len] = '\0';
 
         va_end(ap);
 
@@ -336,26 +336,31 @@ again:
     return 0;
 err:
     va_end(ap);
-    return ~0; /* error */
+    return ~0;
 }
 
 /**
- * \brief  Create a new buffer
+ *  \brief  Create a new buffer
  *
- * Create a new buffer object and save its pointer to \a *ps.
+ *  Create a new ::u_buf_t object and save its reference to \p *ps.
  *
- * \param pubuf    on success will get the new buffer object
+ *  \param  pubuf   result argument: on success it will get the new ::u_buf_t
+ *                  object
  *
- * \return \c 0 on success, not zero on failure
+ *  \retval  0  on success
+ *  \retval ~0  on error
  */
-int u_buf_create(u_buf_t **pubuf)
+int u_buf_create (u_buf_t **pubuf)
 {
     u_buf_t *ubuf = NULL;
 
-    dbg_err_if(pubuf == NULL);
+    dbg_return_if (pubuf == NULL, ~0);
 
-    ubuf = (u_buf_t*)u_zalloc(sizeof(u_buf_t));
-    dbg_err_if(ubuf == NULL);
+    dbg_err_sif ((ubuf = u_zalloc(sizeof(u_buf_t))) == NULL);
+
+    ubuf->len = 0;
+    ubuf->size = 0;
+    ubuf->data = NULL;
 
     *pubuf = ubuf;
 
@@ -367,4 +372,3 @@ err:
 /**
  *      \}
  */
-
