@@ -31,6 +31,7 @@ int main (int ac, char *av[])
     {
         io_rc = u_rb_read(rb, obuf, sizeof obuf); 
         con("read %zu bytes from %p.", io_rc, rb, io_rc);
+        con_err_if (memcmp(obuf, ibuf, sizeof obuf));
     }
 
     u_rb_free(rb);
