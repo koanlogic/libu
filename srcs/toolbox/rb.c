@@ -27,7 +27,47 @@ static size_t round_sz (size_t sz);
     \defgroup rb Ring Buffer
     \{
         The \ref rb module provides an efficient implementation of a circular
-        buffer.
+        buffer.  Data can be written to (::u_rb_write), or read (::u_rb_read) 
+        from the buffer.  When the buffer fills up (i.e. the reader is less
+        efficient that the writer) any subsequent ::u_rb_write operation will
+        fail until more space is made available either by an explicit reset of 
+        the buffer - which done via ::u_rb_clear - or by an ::u_rb_read 
+        operation.  The ::u_rb_avail and ::u_rb_ready functions can be used
+        by the writer and the reader respectively to test if their actions
+        can be taken.
+        Initialization:
+    \code
+    size_t rb_sz, to_write, to_read;
+    u_rb_t *rb = NULL;
+
+    // create a ring buffer of size (at least) 1024 bytes
+    dbg_err_if (u_rb_create(1024, &rb));
+
+    // you can get the actual size of the buffer by using u_rb_size
+    con("ring buffer (@%p) of size %zu", rb, (rb_sz = u_rb_size(rb)));
+    \endcode
+
+        The writer:
+    \code
+    // assuming ibufp is an ideal, infinite size buffer :)
+    while ((to_write = u_rb_avail(rb)) > 0)
+    {
+        (void) u_rb_write(rb, ibufp, to_write);
+        ibufp += to_write;
+    }
+    \endcode
+        The reader is actually the dual:
+    \code
+    // assuming obufp is the same class as ibufp
+    while ((to_read = u_rb_ready(rb)) > 0)
+    {
+        (void) u_rb_read(rb, obufp, to_read);
+        obufp += to_read;
+    }
+    \endcode
+
+    \note   At present the implementation of the \ref rb module is not thread
+            safe.
  */
  
 /**
