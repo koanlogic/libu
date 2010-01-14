@@ -1,4 +1,3 @@
-#include <regex.h>
 #include <u/libu.h>
 
 int facility = LOG_LOCAL0;

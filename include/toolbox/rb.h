@@ -15,7 +15,7 @@ struct u_rb_s;
  *  \{
  */ 
 
-/** \brief  ... */
+/** \brief  The ring buffer type. */
 typedef struct u_rb_s u_rb_t;
 
 int u_rb_create (size_t hint_sz, u_rb_t **prb);

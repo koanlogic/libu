@@ -21,8 +21,8 @@ Also, it has built-in support for tree-structured \ref config files, or flat
 configuration files which are supplied through the running process \ref env.
 
 Hash \ref hmap's using separate (sorted) chaining or linear probing, tail 
-queued \ref list, and \ref array are provided as building blocks for your 
-custom data structures.
+queued \ref list, an efficient \ref rb implementation and \ref array are 
+provided as building blocks for your custom data structures.
 
 A complete machinery for handling authentication via \ref pwd like files, data 
 \ref buf manipulation, a module for \ref test of C/C++ programs, and some

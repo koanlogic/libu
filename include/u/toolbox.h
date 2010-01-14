@@ -52,4 +52,8 @@
   #include <u/toolbox/array.h>
 #endif
 
+#ifndef NO_RB
+  #include <u/toolbox/rb.h>
+#endif
+
 #endif  /* !_LIBU_TOOLBOX_H_ */

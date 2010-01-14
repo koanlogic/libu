@@ -73,6 +73,7 @@ inclusion of specific bits selectively using the following switches:
     - \c --no_pwd: to disable the \ref pwd module
     - \c --no_list: to disable the \ref list module
     - \c --no_array: to disable the \ref array module
+    - \c --no_ringbuffer: to disable the \ref rb module
 
 Also, some specific features regarding the networking code can be disabled
 at configuration:

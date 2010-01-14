@@ -48,7 +48,7 @@ int u_rb_create (size_t hint_sz, u_rb_t **prb)
 {
     int fd = -1;
     u_rb_t *rb = NULL;
-    char path[] = "/dev/shm/rb-XXXXXX";
+    char path[] = "/tmp/rb-XXXXXX";
     
     dbg_err_sif ((rb = u_zalloc(sizeof(u_rb_t))) == NULL);
     dbg_err_sif ((fd = mkstemp(path)) == -1);
@@ -155,7 +155,7 @@ end:
 }
 
 /**
- *  \brief  Write to the ring buffer
+ *  \brief  Read from the ring buffer
  *
  *  Try to read \p b_sz bytes of data from the ring buffer \p rb and copy it 
  *  to \p b

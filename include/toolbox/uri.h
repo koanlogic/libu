@@ -22,8 +22,8 @@ struct u_uri_s;     /* fwd decl */
  *          ::u_uri_unparse */
 #define U_URI_STRMAX    4096
 
-/** \brief  Option that can or'ed together and supplied as last (optional) 
- *          argument to ::u_uri_parse */
+/** \brief  Option that can or'ed together and supplied to ::u_uri_parse or 
+ *          ::u_uri_new */
 typedef enum
 {
     U_URI_OPT_DONT_PARSE_USERINFO = 0x01,
