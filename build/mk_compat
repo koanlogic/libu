@@ -1,0 +1,14 @@
+# $Id: mk_compat,v 1.1 2010/01/15 17:47:56 tho Exp $
+
+#
+# --compat_1x
+#
+makl_args_def   \
+    "compat_1x" \
+    "" ""       \
+    "enable compatibility with libu 1.X"
+
+__makl_compat_1X () 
+{ 
+    makl_set_var "LIBU_1X_COMPAT" ;
+}

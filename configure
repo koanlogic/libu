@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.86 2010/01/15 09:53:27 tho Exp $
+# $Id: configure,v 1.87 2010/01/15 17:47:56 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -24,6 +24,7 @@ makl_args_init "$@"
 . build/mk_cflags
 . build/mk_modules
 . build/mk_support
+. build/mk_compat
 
 # General settings (version is read from the VERSION file)
 makl_pkg_name "libu"

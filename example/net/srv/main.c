@@ -1,4 +1,4 @@
-/* $Id: main.c,v 1.7 2010/01/15 12:50:59 tho Exp $ */
+/* $Id: main.c,v 1.8 2010/01/15 17:47:56 tho Exp $ */
 
 #include <stdlib.h>
 #include <u/libu.h>
@@ -18,7 +18,7 @@ int main (int argc, char *argv[])
 
     con_err_if (u_net_uri2addr(argv[1], U_NET_SSOCK, &a));
 
-    con_err_sif ((sd = u_net_sock_by_addr(a)) == -1);
+    con_err_sif ((sd = u_net_sd_by_addr(a)) == -1);
 
     /* only STREAM/SEQPACKET sockets need to call accept(2) */
     asd = u_net_addr_can_accept(a)

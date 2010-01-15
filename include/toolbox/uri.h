@@ -19,10 +19,10 @@ struct u_uri_s;     /* fwd decl */
  */  
 
 /** \brief  Maximum length allowed when encoding an URI string, see 
- *          ::u_uri_unparse */
+ *          ::u_uri_knead */
 #define U_URI_STRMAX    4096
 
-/** \brief  Option that can or'ed together and supplied to ::u_uri_parse or 
+/** \brief  Option that can or'ed together and supplied to ::u_uri_crumble or 
  *          ::u_uri_new */
 typedef enum
 {
@@ -43,8 +43,8 @@ int u_uri_new (u_uri_opts_t opts, u_uri_t **pu);
 void u_uri_free (u_uri_t *u);
 
 /* uri encoder/decoder */
-int u_uri_parse (const char *s, u_uri_opts_t opts, u_uri_t **pu);
-int u_uri_unparse (u_uri_t *u, char s[U_URI_STRMAX]);
+int u_uri_crumble (const char *s, u_uri_opts_t opts, u_uri_t **pu);
+int u_uri_knead (u_uri_t *u, char s[U_URI_STRMAX]);
 
 /* print u_uri_t internal state */
 void u_uri_print (u_uri_t *u);

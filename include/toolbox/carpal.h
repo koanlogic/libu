@@ -82,28 +82,34 @@ extern "C" {
     \endcode
 
         As you can see, these macros also show the nice side effect of neatly 
-        packing your code -- the LOC compression factor being nearly 1:3 with 
-        respect to a properly formatted C program -- which of course increases 
+        packing your code -- the LOC compression factor being nearly 1:3 
+        compared to a properly formatted C program -- which of course increases 
         readability and maintainability of the software, but, most of all, 
-        tries to protect the professional programmer from the deadly carpal 
+        tries to protect the professional programmer from the nasty carpal 
         tunnel syndrome (hence the header name carpal.h).
         This is no doubt a clear case in which "Go To Statement can be 
         Considered Benefical" -- if Dijkstra allows.
 
-        In all the macros that follow the \c msg_ prefix can be substituted by
+        In all the macros that follow, the \c msg_ prefix can be substituted by
         any of \c dbg_, \c info_, \c notice_, \c warn_, \c err_, \c crit_,
-        \c alert_, \c emerg_ strings, and the \p label argument deleted since
+        \c alert_, \c emerg_ strings, and the \p label argument deleted, since
         it is absorbed into the explicit prefix.  
         As you may easily spot, each of these variant is in 1:1 correspondence 
         with \c syslog(1) error levels.  
         Also, the special \c con_ prefix can be used to redirect the message 
-        to \c stderr.
+        to \c stderr and \c nop_ to just don't log.
  */
 
 /** 
  *  \brief Log a message and jump to the \c err: label
  *
  *  Log a message of type \p label and jump to \c err label
+ *
+ *  For example:
+ *  \code
+ *      if (stat(filename, &sb) == -1)
+ *          dbg_err("stat failed on file %s", filename);
+ *  \endcode
  */
 #define msg_err(label, ...) \
     do { msg(label, 0, __VA_ARGS__); goto err; } while(0)
@@ -204,6 +210,12 @@ extern "C" {
  *  Log a message plus \c strerror(errno) if \p expr is true, and return 
  *  \p err to the caller.  The \p expr text statement will be written to 
  *  the log file.
+ *
+ *  For example:
+ *  \code
+ *      // return with ~0 and log errno returned by stat(2)
+ *      warn_return_sif (stat(filename, &sb) == -1, ~0);
+ *  \endcode
  */
 #define msg_return_sif(label, expr, err)    \
     do { if(expr) { msg_noargs(label, errno, #expr); return err; } } while(0)
@@ -214,6 +226,13 @@ extern "C" {
  *  Log a message of type \p label if \p expr is not zero and \c goto to the 
  *  label \p gt (that must be in-scope).  The \p expr text statement will be 
  *  written to the log file.
+ *
+ *  For example:
+ *  \code
+ *      again:
+ *          ad = accept(sd, addr, addrlen);
+ *          nop_goto_if (ad == -1 && errno == EINTR, again);
+ *  \endcode
  */
 #define msg_goto_if(label, expr, gt)    \
     msg_ifb(label, expr) goto gt
@@ -224,6 +243,15 @@ extern "C" {
  *  Log a message of type \p label if \p expr is true and \c goto to the 
  *  label \c err (that must be in-scope).  The \p expr text statement will 
  *  be written to the log file.
+ *
+ *  For example:
+ *  \code
+ *      dbg_err_if ((rc = regexec(&re, uri, 10, pmatch, 0)) != 0);
+ *      ...
+ *  err:
+ *      u_dbg("no match found !");
+ *      return ~0;
+ *  \endcode
  */
 #define msg_err_if(label, expr) \
     do { msg_ifb(label, expr) { goto err;} } while(0)
@@ -256,6 +284,14 @@ extern "C" {
  *  Log a message of type \p label if \p expr is true and \c goto to the 
  *  label \c err (that must be in-scope).  The user-provided message is
  *  used instead of the \p expr text statement.
+ *
+ *  For example:
+ *  \code
+ *      dbg_err_ifm (cur == s, "empty IPv4address / reg-name");
+ *      ...
+ *  err:
+ *      return ~0;
+ *  \endcode
  */
 #define msg_err_ifm(label, expr, ...)   \
     do { if( (expr) ) { msg(label, 0, __VA_ARGS__); goto err; } } while(0)
@@ -266,6 +302,14 @@ extern "C" {
  *
  *  Log a message of type \p label if \p expr is true and \c goto
  *  to the label \c err (that must be in-scope).  Also logs \c strerror(errno).
+ *
+ *  For example:
+ *  \code
+ *      dbg_err_sif ((s = u_strdup(huge_string)) == NULL);
+ *      ...
+ *  err:
+ *      return ~0;
+ *  \endcode
  */
 #define msg_err_sif(label, expr)    \
     do { if(expr) { msg_noargs(label, errno, #expr); goto err; } } while(0)
@@ -276,6 +320,14 @@ extern "C" {
  *
  *  Log the user provided message of type \p label if \p expr is true, log
  *  \c strerror(errno) and \c goto to the label \c err (that must be in-scope). 
+ *
+ *  For example:
+ *  \code
+ *      dbg_err_sifm ((fp = fopen(path, "r")) == NULL, "%s", path);
+ *      ...
+ *  err:
+ *      return ~0;
+ *  \endcode
  */
 #define msg_err_sifm(label, expr, ...)  \
     do { if((expr)) { msg(label, errno, __VA_ARGS__);  goto err; } } while(0)
@@ -284,6 +336,16 @@ extern "C" {
 /** 
  *  \brief  Write a debug message containing the message returned by 
  *          \c strerror(errno) 
+ *
+ *  For example:
+ *  \code
+ *      switch (inet_pton(AF_INET6, host, &sin6->sin6_addr))
+ *      {
+ *          case -1:
+ *              dbg_strerror(errno);
+ *              // fall through
+ *      ...
+ *  \endcode
  */
 #ifdef OS_WIN
 #define msg_strerror(label, en)                                     \

@@ -69,7 +69,7 @@ struct u_net_addr_s;
 typedef struct u_net_addr_s u_net_addr_t;
 
 /** \brief  Socket creation semantics: passive or active, i.e. the \p mode in 
- *          ::u_net_sock and ::u_net_uri2addr */
+ *          ::u_net_sd and ::u_net_uri2addr */
 typedef enum { 
     U_NET_SSOCK = 0,    /**< the address is used for a passive socket */
     U_NET_CSOCK = 1     /**< the address is used for an active socket */
@@ -145,8 +145,8 @@ typedef enum {
  */
 
 /* hi-level socket creation */
-int u_net_sock (const char *uri, u_net_mode_t mode, ...);
-int u_net_sock_by_addr (u_net_addr_t *a);
+int u_net_sd (const char *uri, u_net_mode_t mode, int opts);
+int u_net_sd_by_addr (u_net_addr_t *a);
 
 /* address ctor/dtor & co. */
 int u_net_uri2addr (const char *uri, u_net_mode_t mode, u_net_addr_t **pa);

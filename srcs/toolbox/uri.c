@@ -28,7 +28,7 @@ struct u_uri_s
 };
 
 static int u_uri_fill (u_uri_t *u, const char *uri, regmatch_t pmatch[10]);
-static int unparse_authority (u_uri_t *u, char s[U_URI_STRMAX]);
+static int knead_authority (u_uri_t *u, char s[U_URI_STRMAX]);
 static int parse_authority (char *authority, u_uri_t *u);
 static int parse_userinfo (char *userinfo, u_uri_t *u);
 
@@ -46,7 +46,7 @@ static int parse_userinfo (char *userinfo, u_uri_t *u);
 
     // parse and tokenize the uri string 
     // note that no u_uri_opts_t have been supplied
-    dbg_err_if (u_uri_parse(uri, 0, &u));
+    dbg_err_if (u_uri_crumble(uri, 0, &u));
 
     // get tokens you are interested in, e.g:
     dbg_err_if ((scheme = u_uri_get_scheme(u)) == NULL);
@@ -72,7 +72,7 @@ static int parse_userinfo (char *userinfo, u_uri_t *u);
     (void) u_uri_set_path(u, "rfc/rfc3986.txt");
 
     // encode it to string 's'
-    dbg_err_if (u_uri_unparse(u, s));
+    dbg_err_if (u_uri_knead(u, s));
 
     // should give: http://www.ietf.org/rfc/rfc3986.txt
     con("%s", s);
@@ -95,7 +95,7 @@ static int parse_userinfo (char *userinfo, u_uri_t *u);
  *  \retval  0  on success
  *  \retval ~0  on error
  */
-int u_uri_parse (const char *uri, u_uri_opts_t opts, u_uri_t **pu)
+int u_uri_crumble (const char *uri, u_uri_opts_t opts, u_uri_t **pu)
 {
     u_uri_t *u = NULL;
     int rc = 0;
@@ -143,7 +143,7 @@ err:
  *  \retval  0  on success
  *  \retval ~0  on error
  */ 
-int u_uri_unparse (u_uri_t *u, char s[U_URI_STRMAX])
+int u_uri_knead (u_uri_t *u, char s[U_URI_STRMAX])
 {
     dbg_return_if (u == NULL, ~0);
     dbg_return_if (u->path == NULL, ~0);    /* path is mandatory */
@@ -165,7 +165,7 @@ int u_uri_unparse (u_uri_t *u, char s[U_URI_STRMAX])
         dbg_err_if (u_strlcat(s, u->authority, U_URI_STRMAX));
     }
     else /* try recompose authority through its atoms */
-        dbg_err_if (unparse_authority(u, s));
+        dbg_err_if (knead_authority(u, s));
 
     dbg_err_if (u_strlcat(s, u->path, U_URI_STRMAX));
 
@@ -232,7 +232,7 @@ err:
 /**
  *  \brief dispose memory allocated to \p uri
  *
- *  Free the previously (via ::u_uri_parse or ::u_uri_new) allocated 
+ *  Free the previously (via ::u_uri_crumble or ::u_uri_new) allocated 
  *  ::u_uri_t object \p u.
  *
  *  \param  u   reference to the ::u_uri_t object that needs to be disposed
@@ -454,7 +454,7 @@ err:
     return ~0;
 }
 
-static int unparse_authority (u_uri_t *u, char s[U_URI_STRMAX])
+static int knead_authority (u_uri_t *u, char s[U_URI_STRMAX])
 {
     dbg_return_if (u == NULL, ~0);
     dbg_return_if (u->host == NULL, ~0);

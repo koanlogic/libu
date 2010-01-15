@@ -8,7 +8,7 @@ typedef struct
     const char *scheme, *user, *pwd, *host, *port, *path, *query;
 } u_uri_exp_t;
 
-static int test_u_uri_parse (void)
+static int test_uri_parser (void)
 {
     struct vt_s
     {
@@ -77,7 +77,7 @@ static int test_u_uri_parse (void)
 
     for (i = 0; vt[i].in; i++)
     {
-        con_err_if (u_uri_parse(vt[i].in, 0, &u));
+        con_err_if (u_uri_crumble(vt[i].in, 0, &u));
 
         CHECK_EXP_MSG(scheme);
         CHECK_EXP_MSG(user);
@@ -97,7 +97,7 @@ err:
 
 U_TEST_MODULE(uri)
 {
-    U_TEST_RUN( test_u_uri_parse );
+    U_TEST_RUN( test_uri_parser );
 
     return 0;                                                
 }

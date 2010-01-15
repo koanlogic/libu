@@ -156,7 +156,7 @@ static int uri2addr (u_uri_t *u, u_net_scheme_map_t *m, u_net_addr_t *a);
     socklen_t sa_len = sizeof sa;
 
     // create a passive TCP socket
-    dbg_err_if ((sd = u_net_sock("tcp://my:http-alt", U_NET_SSOCK)) == -1);
+    dbg_err_if ((sd = u_net_sd("tcp://my:http-alt", U_NET_SSOCK, 0)) == -1);
 
     for (;;)
     {
@@ -187,7 +187,7 @@ static int uri2addr (u_uri_t *u, u_net_scheme_map_t *m, u_net_addr_t *a);
         (void) u_sleep(SOME_TIME);
 
         // connect to the server host, reusing the same address
-        dbg_ifb ((csd = u_net_sock_by_addr(a)) == -1)
+        dbg_ifb ((csd = u_net_sd_by_addr(a)) == -1)
             continue;
 
         // do some messaging over the connected socket
@@ -208,7 +208,7 @@ static int uri2addr (u_uri_t *u, u_net_scheme_map_t *m, u_net_addr_t *a);
  *
  *  Parse the supplied \p uri string and return an ::u_net_addr_t object at
  *  \p pa as a result argument.  The address can then be used (and reused) to 
- *  create passive or connected sockets by means of the ::u_net_sock_by_addr 
+ *  create passive or connected sockets by means of the ::u_net_sd_by_addr 
  *  interface.
  *
  *  \param  uri     an URI string
@@ -232,7 +232,7 @@ int u_net_uri2addr (const char *uri, u_net_mode_t mode, u_net_addr_t **pa)
 
     /* decode address and map the uri scheme to a suitable set of socket 
      * creation parameters */
-    dbg_err_if (u_uri_parse(uri, 0, &u));
+    dbg_err_if (u_uri_crumble(uri, 0, &u));
     dbg_err_if ((s = u_uri_get_scheme(u)) == NULL);
     dbg_err_ifm (scheme_mapper(s, &smap), "unsupported URI scheme: %s", s);
 
@@ -269,7 +269,7 @@ err:
  *
  *  \return the created socket descriptor, or \c -1 on error.
  */ 
-int u_net_sock_by_addr (u_net_addr_t *a)
+int u_net_sd_by_addr (u_net_addr_t *a)
 {
     dbg_return_if (a == NULL, ~1);
 
@@ -286,7 +286,7 @@ int u_net_sock_by_addr (u_net_addr_t *a)
 
 /**
  *  \brief  Minimalistic, one-shot interface which wraps ::u_net_uri2addr, 
- *          ::u_net_addr_set_opts and ::u_net_sock_by_addr bits together.
+ *          ::u_net_addr_set_opts and ::u_net_sd_by_addr bits together.
  *
  *  \param  uri     an URI string
  *  \param  mode    one of ::U_NET_CSOCK (connected) or ::U_NET_SSOCK (passive)
@@ -294,31 +294,23 @@ int u_net_sock_by_addr (u_net_addr_t *a)
  *
  *  \return the newly created socket descriptor, or \c -1 on error.
  */ 
-int u_net_sock (const char *uri, u_net_mode_t mode, ...)
+int u_net_sd (const char *uri, u_net_mode_t mode, int opts)
 {
-    va_list ap;
-    int opts = 0, s = -1;
+    int s = -1;
     u_net_addr_t *a = NULL;
 
     /* 'mode' check is done by u_net_uri2addr() */
     dbg_return_if (uri == NULL, -1);
 
-    /* see if the caller supplied some 'opts' ('mode' is the last 
-     * non-optional argument)  */
-    va_start(ap, mode);
-    opts = (int) va_arg(ap, int);
-    va_end(ap);
-
     /* decode address (u_net_addr_t validation is done later by 
-     * u_net_sock_by_addr() */
+     * u_net_sd_by_addr() */
     dbg_err_if (u_net_uri2addr(uri, mode, &a));
 
     /* add options if any */
-    if (opts)
-        u_net_addr_set_opts(a, opts);
+    u_net_addr_set_opts(a, opts);
 
     /* do the real job */
-    s = u_net_sock_by_addr(a);
+    s = u_net_sd_by_addr(a);
 
     /* dispose the (one-shot) address */
     u_net_addr_free(a);

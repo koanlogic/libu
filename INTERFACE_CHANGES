@@ -1,10 +1,12 @@
 
+TODO: document --compat_1x effects
+
 [uri]:
     This module has been completely rewritten for RFC 3986 conformance.
     
-    u_uri_parse now accepts a bitmask of parsing options as its second 
-    parameter:
-        * int u_uri_parse (const char *s, u_uri_opts_t opts, u_uri_t **pu)
+    u_uri_parse has been removed: the new parsing interface, which also takes 
+    a bitmask of parsing options as its second parameter, is:
+        * int u_uri_crumble (const char *s, u_uri_opts_t opts, u_uri_t **pu)
     instead of the old:
         * int u_uri_parse (const char *s, u_uri_t **pu)
 
@@ -22,7 +24,7 @@
         * const char *u_uri_get_userinfo (u_uri_t *u);
 
     A new interface for building conformant URI string as been added:
-        * int u_uri_unparse (u_uri_t *u, char s[U_URI_STRMAX])
+        * int u_uri_knead (u_uri_t *u, char s[U_URI_STRMAX])
 
     together with the needed setter methods:
         * int u_uri_set_scheme (u_uri_t *u, const char *val)
@@ -71,7 +73,7 @@
     Interfaces changed:
         * u_net_uri2addr
             the socket 'mode' has been added as a mandatory input parameter
-        * u_net_sock
+        * u_net_sock (XXX u_net_sd, see compat.h)
             the socket 'mode' has been added as an optional input parameter in 
             a backwards-compatible way
 

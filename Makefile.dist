@@ -1,4 +1,4 @@
-# $Id: Makefile.dist,v 1.13 2007/12/15 17:21:46 tho Exp $
+# $Id: Makefile.dist,v 1.14 2010/01/15 17:47:56 tho Exp $
 
 include common.mk
 
@@ -19,6 +19,7 @@ DISTFILES += include/Makefile
 DISTFILES += $(wildcard include/missing/*.h) include/missing/Makefile
 DISTFILES += $(wildcard include/toolbox/*.h) include/toolbox/Makefile
 DISTFILES += include/u/libu.h include/u/missing.h include/u/toolbox.h
+DISTFILES += include/u/compat.h
 DISTFILES += include/u/Makefile
 
 # sources (srcs/{missing,toolbox})
