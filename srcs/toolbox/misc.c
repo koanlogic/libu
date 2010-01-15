@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2005-2010 by KoanLogic s.r.l. - All rights reserved.  
+ * Copyright (c) 2005-2008 by KoanLogic s.r.l. - All rights reserved.  
  */
 
 #include <u/libu_conf.h>
@@ -317,7 +317,8 @@ int u_snprintf(char *str, size_t size, const char *fmt, ...)
 
     va_end(ap);
 
-    dbg_err_if(wr < 0 || wr >= (int)size);
+    dbg_err_sif (wr < 0);               /* output error */
+    dbg_err_if (size <= (size_t) wr);   /* would overflow */
 
     return 0;
 err:
@@ -348,7 +349,8 @@ int u_path_snprintf(char *buf, size_t sz, char sep, const char *fmt, ...)
 
     va_end(ap);
 
-    dbg_err_if(wr < 0 || wr >= (int)sz);
+    dbg_err_sif (wr < 0);
+    dbg_err_if (sz <= (size_t) wr);
 
     /* remove multiple consecutive '/' */
     for(len = i = strlen(buf); i > 0; --i)
@@ -536,9 +538,7 @@ int u_sleep(unsigned int secs)
  *  \param  buf     buffer to read into
  *  \param  size    size of the buffer
  *
- *  \return on success the number of read bytes (that will always 
- *          be \p size except that on EOF) is returned; on failure \c -1 is
- *          returned
+ *  \return \c on success returns the number of bytes read (that will be always 'size' except on eof); on failure returns -1
  */ 
 ssize_t u_read(int fd, void *buf, size_t size)
 {

@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2005-2010 by KoanLogic s.r.l. - All rights reserved.  
+ * Copyright (c) 2005-2008 by KoanLogic s.r.l. - All rights reserved.  
  */
 
 #include <sys/types.h>
@@ -9,12 +9,6 @@
 #include <stdarg.h>
 #include <u/libu.h>
 #include <toolbox/buf.h>
-
-struct u_buf_s
-{
-    char *data;
-    size_t size, len;
-};
 
 /**
  *  \defgroup buf Buf
@@ -317,7 +311,7 @@ again:
     if(sz >= avail)
     {
         /* enlarge the buffer (make it at least 128 bytes bigger) */
-        dbg_err_if(u_buf_reserve(ubuf, ubuf->len + U_MAX(128, sz + 1)));
+        dbg_err_if(u_buf_reserve(ubuf, ubuf->len + U_MIN(128, sz + 1)));
 
         /* zero-term the buffer (vsnprintf has removed the last \0!) */
         ubuf->data[ubuf->len] = 0;
