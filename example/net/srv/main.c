@@ -1,4 +1,4 @@
-/* $Id: main.c,v 1.6 2010/01/06 20:48:34 tho Exp $ */
+/* $Id: main.c,v 1.7 2010/01/15 12:50:59 tho Exp $ */
 
 #include <stdlib.h>
 #include <u/libu.h>
@@ -28,7 +28,7 @@ int main (int argc, char *argv[])
     /* read data */
     con_err_sif ((rb = recvfrom(asd, s, sizeof s, 0, 
                     (struct sockaddr *) &sa, &sa_len)) == -1);
-    con("read: %s", s);
+    u_con("read: %s", s);
 
     /* dtors */
     u_net_addr_free(a);

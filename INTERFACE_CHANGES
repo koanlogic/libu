@@ -113,3 +113,16 @@
     The following interfaces have been deprecated:
         * u_tokenize    in favour of    u_strtok
         * u_strncpy     in favour of    u_strlcpy
+
+[carpal]
+    The following macros have been renamed to avoid name clash with <err.h> 
+    functions:
+        * dbg()     becomes     u_dbg()
+        * info()    becomes     u_info()
+        * notice()  becomes     u_notice()
+        * warn()    becomes     u_warn()
+        * err()     becomes     u_err()
+        * crit()    becomes     u_crit()
+        * alert()   becomes     u_alert()
+        * emerg()   becomes     u_emerg()
+

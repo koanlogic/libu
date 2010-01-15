@@ -5,7 +5,7 @@ int facility = LOG_LOCAL0;
 
 static void usage(void)
 {
-    con("usage: uconfig [-s] FILE");
+    u_con("usage: uconfig [-s] FILE");
     exit(1);
 }
 

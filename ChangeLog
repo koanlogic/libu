@@ -1,8 +1,10 @@
-$Id: ChangeLog,v 1.89 2010/01/14 12:28:29 tho Exp $
+$Id: ChangeLog,v 1.90 2010/01/15 12:50:59 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
 LibU 2.0.0
+	- [carpal] dbg(), warn(), info(), err() and friends have been prefixed 
+	  with "u_" to avoid conflicts with the <err.h> header
 	- [rb] added new ring buffer module
 	- [config] u_config_print_to_fp with brace delimiters for children records;
 	  documentation fixes by Mickael Auger

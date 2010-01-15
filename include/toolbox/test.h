@@ -96,8 +96,8 @@
  * \return \c 0 on success, not zero on failure (i.e. test failed)
  */
 #define U_TEST_RUN( f ) \
-    if( f () ) { _test_cnt++; _test_fail++; con("%s: failed", #f); } \
-    else { _test_cnt++; _test_ok++; if(_verbose) con("%s: ok", #f); }
+    if( f () ) { _test_cnt++; _test_fail++; u_con("%s: failed", #f); } \
+    else { _test_cnt++; _test_ok++; if(_verbose) u_con("%s: ok", #f); }
 
 
 /** \brief Import a test module in the test program

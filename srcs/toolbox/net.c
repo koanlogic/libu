@@ -428,7 +428,7 @@ again:
         goto again; /* interrupted */
 
 #ifdef U_NET_TRACE
-    dbg("accept(%d, %p, %d) = %d", sd, addr, addrlen, ad); 
+    u_dbg("accept(%d, %p, %d) = %d", sd, addr, addrlen, ad); 
 #endif
 
     /* in case of error log errno, otherwise fall through */
@@ -443,7 +443,7 @@ int u_socket (int domain, int type, int protocol)
     int s = socket(domain, type, protocol);
 
 #ifdef U_NET_TRACE
-    dbg("socket(%d, %d, %d) = %d", domain, type, protocol, s); 
+    u_dbg("socket(%d, %d, %d) = %d", domain, type, protocol, s); 
 #endif
 
     /* in case of error log errno, otherwise fall through */
@@ -462,7 +462,7 @@ again:
         goto again;
 
 #ifdef U_NET_TRACE
-    dbg("connect(%d, %p, %d) = %d", sd, addr, addrlen, s); 
+    u_dbg("connect(%d, %p, %d) = %d", sd, addr, addrlen, s); 
 #endif
 
     /* in case of error log errno, otherwise fall through */
@@ -477,7 +477,7 @@ int u_bind (int sd, const struct sockaddr *addr, u_socklen_t addrlen)
     int rc = bind(sd, addr, addrlen);
 
 #ifdef U_NET_TRACE
-    dbg("bind(%d, %p, %d) = %d", sd, addr, addrlen, rc); 
+    u_dbg("bind(%d, %p, %d) = %d", sd, addr, addrlen, rc); 
 #endif
 
     /* in case of error log errno, otherwise fall through */
@@ -492,7 +492,7 @@ int u_listen (int sd, int backlog)
     int rc = listen(sd, backlog);
 
 #ifdef U_NET_TRACE
-    dbg("listen(%d, %d) = %d", sd, backlog, rc); 
+    u_dbg("listen(%d, %d) = %d", sd, backlog, rc); 
 #endif
 
     /* in case of error log errno, otherwise fall through */
@@ -508,7 +508,7 @@ int u_setsockopt (int sd, int lev, int name, const void *val, u_socklen_t len)
     int rc = setsockopt(sd, lev, name, val, len);
 
 #ifdef U_NET_TRACE
-    dbg("setsockopt(%d, %d, %d, %p, %d) = %d", sd, lev, name, val, len, rc);
+    u_dbg("setsockopt(%d, %d, %d, %p, %d) = %d", sd, lev, name, val, len, rc);
 #endif
 
     dbg_err_sif (rc == -1);
@@ -516,7 +516,7 @@ err:
     return rc;
 #else
     u_unused_args(sd, lev, name, val, len);
-    info("setsockopt not implemented on this platform");
+    u_info("setsockopt not implemented on this platform");
     return -1;
 #endif  /* HAVE_SETSOCKOPT */
 }
@@ -528,7 +528,7 @@ int u_getsockopt (int sd, int lev, int name, void *val, u_socklen_t *len)
     int rc = getsockopt(sd, lev, name, val, len);
 
 #ifdef U_NET_TRACE
-    dbg("getsockopt(%d, %d, %d, %p, %p) = %d", sd, lev, name, val, len, rc);
+    u_dbg("getsockopt(%d, %d, %d, %p, %p) = %d", sd, lev, name, val, len, rc);
 #endif
 
     dbg_err_sif (rc == -1);
@@ -536,7 +536,7 @@ err:
     return rc;
 #else
     u_unused_args(sd, lev, name, val, len);
-    info("getsockopt not implemented on this platform");
+    u_info("getsockopt not implemented on this platform");
     return -1;
 #endif  /* HAVE_GETSOCKOPT */
 }
@@ -563,7 +563,7 @@ err:
     return ~0;
 #else   /* !HAVE_TCP_NODELAY */
     u_unused_args(s);
-    dbg("TCP_NODELAY not supported on this platform");
+    u_dbg("TCP_NODELAY not supported on this platform");
     return 0;
 #endif  /* HAVE_TCP_NODELAY */
 }
@@ -675,7 +675,7 @@ static int do_sock (
             /* TODO call getsockname to catch the real connected/bound address 
              * to feed 'pai' */
 
-            info("%s %s", (wf == do_ssock) ? "bind succeeded for" 
+            u_info("%s %s", (wf == do_ssock) ? "bind succeeded for" 
                     : "connect succeeded to", (ap->ai_family == AF_UNIX) 
                     ? ap->ai_canonname : u_sa_ntop(ap->ai_addr, h, sizeof h));
 
@@ -692,7 +692,7 @@ static int do_sock (
     {
         u_addrinfo_t *wai = a->addr;
 
-        info("could not %s %s", (wf == do_ssock) ? "bind" : "connect to", 
+        u_info("could not %s %s", (wf == do_ssock) ? "bind" : "connect to", 
                 (wai->ai_family == AF_UNIX) ? wai->ai_canonname 
                 : u_sa_ntop(wai->ai_addr, h, sizeof h));
     }

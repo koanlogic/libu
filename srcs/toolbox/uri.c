@@ -121,7 +121,7 @@ err:
     if (rc)
     {
         regerror(rc, &re, es, sizeof es);
-        dbg("%s: %s", uri, es);
+        u_dbg("%s: %s", uri, es);
     }
     regfree(&re);
 
@@ -289,16 +289,16 @@ void u_uri_print (u_uri_t *u)
 {
     dbg_return_if (u == NULL, );
 
-    con("scheme: %s", u->scheme ? u->scheme : "__NOT_SET__");
-    con("userinfo: %s", u->userinfo ? u->userinfo : "__NOT_SET__");
-    con("user: %s", u->user ? u->user : "__NOT_SET__");
-    con("pwd: %s", u->pwd ? u->pwd : "__NOT_SET__");
-    con("host: %s", u->host ? u->host : "__NOT_SET__");
-    con("port: %s", u->port ? u->port : "__NOT_SET__");
-    con("authority: %s", u->authority ? u->authority : "__NOT_SET__");
-    con("path: %s", u->path ? u->path : "__NOT_SET__");
-    con("query: %s", u->query ? u->query : "__NOT_SET__");
-    con("fragment: %s", u->fragment ? u->fragment : "__NOT_SET__");
+    u_con("scheme: %s", u->scheme ? u->scheme : "__NOT_SET__");
+    u_con("userinfo: %s", u->userinfo ? u->userinfo : "__NOT_SET__");
+    u_con("user: %s", u->user ? u->user : "__NOT_SET__");
+    u_con("pwd: %s", u->pwd ? u->pwd : "__NOT_SET__");
+    u_con("host: %s", u->host ? u->host : "__NOT_SET__");
+    u_con("port: %s", u->port ? u->port : "__NOT_SET__");
+    u_con("authority: %s", u->authority ? u->authority : "__NOT_SET__");
+    u_con("path: %s", u->path ? u->path : "__NOT_SET__");
+    u_con("query: %s", u->query ? u->query : "__NOT_SET__");
+    u_con("fragment: %s", u->fragment ? u->fragment : "__NOT_SET__");
 
     return;
 }

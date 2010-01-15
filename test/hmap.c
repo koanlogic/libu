@@ -8,7 +8,7 @@ static int example_static()
     u_hmap_o_t *obj = NULL;
     int fibonacci[] = { 0, 1, 1, 2, 3, 5, 8, 13, 21 };
 
-    dbg("example_static()");
+    u_dbg("example_static()");
 
     /* initialise hmap with no options - user owns data by default */
     dbg_err_if (u_hmap_new(NULL, &hmap));
@@ -21,11 +21,11 @@ static int example_static()
 
     /* retrieve and print values to dbgsole */
     dbg_err_if (u_hmap_get(hmap, "last", &obj)); 
-    dbg("hmap['%s'] = %d", (char *) obj->key, *((int *) obj->val));
+    u_dbg("hmap['%s'] = %d", (char *) obj->key, *((int *) obj->val));
     dbg_err_if (u_hmap_get(hmap, "fifth", &obj)); 
-    dbg("hmap['%s'] = %d", (char *) obj->key, *((int *) obj->val)); 
+    u_dbg("hmap['%s'] = %d", (char *) obj->key, *((int *) obj->val)); 
     dbg_err_if (u_hmap_get(hmap, "first", &obj)); 
-    dbg("hmap['%s'] = %d", (char *) obj->key, *((int *) obj->val));
+    u_dbg("hmap['%s'] = %d", (char *) obj->key, *((int *) obj->val));
 
     /* remove an element and replace it */
     dbg_err_if (u_hmap_del(hmap, "fifth", &obj)); 
@@ -56,7 +56,7 @@ static int example_dynamic_own_hmap()
     u_hmap_t *hmap = NULL;
     u_hmap_o_t *obj = NULL;
 
-    dbg("example_dynamic_own_hmap()");
+    u_dbg("example_dynamic_own_hmap()");
 
     /* initialise options and hmap */
     dbg_err_if (u_hmap_opts_new(&opts));
@@ -74,11 +74,11 @@ static int example_dynamic_own_hmap()
 
     /* retrieve and print values to console */
     dbg_err_if (u_hmap_get(hmap, "italian", &obj)); 
-    dbg("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
+    u_dbg("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
     dbg_err_if (u_hmap_get(hmap, "german", &obj)); 
-    dbg("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
+    u_dbg("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
     dbg_err_if (u_hmap_get(hmap, "english", &obj)); 
-    dbg("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
+    u_dbg("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
 
     /* remove an element and replace it */
     dbg_err_if (u_hmap_del(hmap, "german", NULL)); 
@@ -90,7 +90,7 @@ static int example_dynamic_own_hmap()
     dbg_err_if (u_hmap_put(hmap, u_hmap_o_new((void *) u_strdup("german"), 
                     (void *) u_strdup("Auf Wiedersehen!")), NULL));
     dbg_err_if (u_hmap_get(hmap, "german", &obj)); 
-    dbg("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
+    u_dbg("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
 
     /* free hmap (options and elements are freed automatically) */
     u_hmap_dbg(hmap);
@@ -119,7 +119,7 @@ static int example_dynamic_own_user()
         obj = NULL; \
     }
     
-    dbg("example_dynamic_own_user()");
+    u_dbg("example_dynamic_own_user()");
 
     /* hmap owns both keys and data */
     dbg_err_if (u_hmap_new(NULL, &hmap));
@@ -134,11 +134,11 @@ static int example_dynamic_own_user()
 
     /* retrieve and print values to console */
     dbg_err_if (u_hmap_get(hmap, "italian", &obj)); 
-    dbg("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
+    u_dbg("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
     dbg_err_if (u_hmap_get(hmap, "german", &obj)); 
-    dbg("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
+    u_dbg("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
     dbg_err_if (u_hmap_get(hmap, "english", &obj)); 
-    dbg("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
+    u_dbg("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
 
     /* remove an element and replace it */
     dbg_err_if (u_hmap_del(hmap, "german", &obj)); 
@@ -154,7 +154,7 @@ static int example_dynamic_own_user()
                     (void *) u_strdup("Auf Wiedersehen2!")), &obj));
     OBJ_FREE(obj);
     dbg_err_if (u_hmap_get(hmap, "german", &obj)); 
-    dbg("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
+    u_dbg("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
 
     u_hmap_del(hmap, "italian", &obj);
     OBJ_FREE(obj);
@@ -191,7 +191,7 @@ static int example_no_overwrite()
     u_hmap_t *hmap = NULL;
     u_hmap_o_t *obj = NULL;
 
-    dbg("example_no_overwrite()");
+    u_dbg("example_no_overwrite()");
 
     /* initialise options and hmap */
     dbg_err_if (u_hmap_opts_new(&opts));
@@ -206,7 +206,7 @@ static int example_no_overwrite()
 
     /* retrieve and print values to console */
     dbg_err_if (u_hmap_get(hmap, "A", &obj)); 
-    dbg("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
+    u_dbg("hmap['%s'] = %s", (char *) obj->key, (char *) obj->val);
     dbg_err_if (u_hmap_del(hmap, "A", &obj)); 
     u_hmap_o_free(obj); 
 
@@ -292,7 +292,7 @@ static int example_types_custom()
     u_hmap_t *hmap = NULL;
     u_hmap_o_t *obj = NULL; 
     
-    dbg("example_types_custom()"); 
+    u_dbg("example_types_custom()"); 
 
     dbg_err_if (u_hmap_opts_new(&opts));
     opts->options |= U_HMAP_OPTS_OWNSDATA | U_HMAP_OPTS_HASH_STRONG;
@@ -315,13 +315,13 @@ static int example_types_custom()
 
     int x = 1;
     dbg_err_if (u_hmap_get(hmap, &x, &obj)); 
-    dbg("hmap['%d'] = %s", *((int *) obj->key), (char *) obj->val);
+    u_dbg("hmap['%d'] = %s", *((int *) obj->key), (char *) obj->val);
     x++;
     dbg_err_if (u_hmap_get(hmap, &x, &obj)); 
-    dbg("hmap['%d'] = %s", *((int *) obj->key), (char *) obj->val);
+    u_dbg("hmap['%d'] = %s", *((int *) obj->key), (char *) obj->val);
     x++;
     dbg_err_if (u_hmap_get(hmap, &x, &obj)); 
-    dbg("hmap['%d'] = %s", *((int *) obj->key), (char *) obj->val);
+    u_dbg("hmap['%d'] = %s", *((int *) obj->key), (char *) obj->val);
     
     u_hmap_dbg(hmap);
     u_hmap_opts_free(opts);
@@ -346,7 +346,7 @@ static int test_resize()
     char key[MAX_STR], 
          val[MAX_STR];
 
-    dbg("test_resize()");
+    u_dbg("test_resize()");
 
     /* initialise hmap with no options - user owns data by default */
     dbg_err_if (u_hmap_opts_new(&opts));
@@ -392,7 +392,7 @@ static int test_linear()
     char key[MAX_STR], 
          val[MAX_STR];
 
-    dbg("test_linear()");
+    u_dbg("test_linear()");
 
     /* initialise hmap with no options - user owns data by default */
     dbg_err_if (u_hmap_opts_new(&opts));

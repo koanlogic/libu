@@ -24,166 +24,267 @@ extern "C" {
 #define msg_noargs(label, err, literal) label( err, "%s", literal)
 
 /**
- *  \defgroup carpal Flow Control
- *  \{
- *      In all the macros that follow the \c msg_ prefix can be substituted by
- *      any of \c dbg_, \c info_, \c notice_, \c warn_, \c err_, \c crit_,
- *      \c alert_, \c emerg_ strings.  As you may easily spot, each of these 
- *      variant is in 1:1 correspondence with \c syslog(1) error levels.  
- *      Also the special \c con_ prefix can be used to redirect the message 
- *      to the console.
+    \defgroup carpal Flow Control
+    \{
+        The \ref carpal module is at the very core of LibU.  It defines a 
+        number of macros that are used throughout the library code to guide
+        the execution flow.  They enforce an assertive programming style
+        in which the code in the function body flows straight to the expected
+        result and all the anomalies catched in the trunk are handled in a 
+        a special \c err: labelled branch.  Each function body can be split
+        into the following three blocks.
+        <p>
+        A declaration block:
+    \code
+    int f (void)
+    {
+        // local variables initialization
+        char *d = NULL;
+        FILE *fp = NULL;
+    \endcode
+        The trunk:
+    \code
+        // malloc a 1024 bytes 0-filled chunk
+        dbg_err_sif ((d = u_zalloc(1024)) == NULL);
+
+        // open "my.txt" for writing
+        dbg_err_sif ((fp = fopen("my.txt", "w")) == NULL);
+
+        // write to file
+        dbg_err_sif (fwrite(d, 1024, 1, fp) < 1);
+
+        // free memory and close the file stream 
+        u_free(d);
+        (void) fclose(fp);
+
+        return 0;
+    \endcode
+        The exception handling branch:
+    \code
+    err:
+        // invoke local resource dtors only in case they have been
+        // allocated in the trunk and tell the caller that we have failed
+        if (fp != NULL)
+            fclose(fp);
+        if (d != NULL)
+            u_free(d);
+
+        return ~0;
+    }
+    \endcode
+
+        Should the execution fail in the function trunk, a number of 
+        interesting info about the failed instruction and context are 
+        automatically supplied to the syslog machinery and redirected 
+        to the appropriate sink:
+    \code
+    Jan 15 12:27:27 tho-2 ./carp[14425]: [dbg][14425:main.c:20:f] (fp = fopen("my.txt", "w")) == ((void *)0) [errno: 13, Permission denied]
+    \endcode
+
+        As you can see, these macros also show the nice side effect of neatly 
+        packing your code -- the LOC compression factor being nearly 1:3 with 
+        respect to a properly formatted C program -- which of course increases 
+        readability and maintainability of the software, but, most of all, 
+        tries to protect the professional programmer from the deadly carpal 
+        tunnel syndrome (hence the header name carpal.h).
+        This is no doubt a clear case in which "Go To Statement can be 
+        Considered Benefical" -- if Dijkstra allows.
+
+        In all the macros that follow the \c msg_ prefix can be substituted by
+        any of \c dbg_, \c info_, \c notice_, \c warn_, \c err_, \c crit_,
+        \c alert_, \c emerg_ strings, and the \p label argument deleted since
+        it is absorbed into the explicit prefix.  
+        As you may easily spot, each of these variant is in 1:1 correspondence 
+        with \c syslog(1) error levels.  
+        Also, the special \c con_ prefix can be used to redirect the message 
+        to \c stderr.
  */
 
-/** \brief log a message and goto "err" label
+/** 
+ *  \brief Log a message and jump to the \c err: label
  *
- *   log a message of type \e label if \e expr not zero.
- *
+ *  Log a message of type \p label and jump to \c err label
  */
 #define msg_err(label, ...) \
     do { msg(label, 0, __VA_ARGS__); goto err; } while(0)
 
-/** \brief log a message if \e expr not zero.
+/** 
+ *  \brief Log a message if \p expr is true
  *
- *   log a message of type \e label if \e expr is not zero 
+ *  Log a message of type \p label if \p expr is true.  The \p expr text 
+ *  statement will be written to the log file.
  *
- *   \e expr text statement will be written to the log file.
- *
- *   For ex.:
- *       warn_if(check(abc) < 0);
+ *  For example: 
+ *  \code
+ *      warn_if (check(abc) < 0);
+ *  \endcode
  */
-#define msg_if(label, expr) do { if( expr ) \
-    msg_noargs(label, 0, #expr); } while(0)
+#define msg_if(label, expr) \
+    do { if( expr ) msg_noargs(label, 0, #expr); } while(0)
 
-/** \brief log the given message if \e expr not zero.
+/** 
+ *  \brief  Log the given message if \p expr is true
  *
- *   log the given message of type \e label if \e expr is not zero 
+ *  Log the given message of type \p label if \e expr is true.
  *
- *   For ex.:
- *       warn_ifm(check(abc) < 0, "check failed on file %s", filename);
+ *  For example: 
+ *  \code
+ *      warn_ifm (check(abc) < 0, "check failed on file %s", filename);
+ *  \endcode
  */
-#define msg_ifm(label, expr, ...) \
+#define msg_ifm(label, expr, ...)   \
     do { if(expr) { msg(label, 0, __VA_ARGS__); } } while(0);
 
-/** \brief log a message if \e expr not zero and enter the if-block
+/** 
+ *  \brief  Log a message if \p expr is true and enter the if-block
  *
- *   log a message of type \e label if \e expr is not zero and enter the
- *   following if-block.
+ *  Log a message of type \p label if \p expr is true and enter the
+ *  following if-block.  The \p expr text statement will be written 
+ *  to the log file.
  *
- *   \e expr text statement will be written to the log file.
- *
- *   A C-style dbg_ code block should follow. For ex.:
- *       dbg_ifb(i == 0)
- *       {
- *           do_something();
- *           do_something();
- *       }
+ *  A C-style code block should follow. For example:
+ *  \code
+ *      dbg_ifb (i == 0)
+ *      {
+ *          statement;
+ *          another_statement;
+ *      }
+ *  \endcode
  */
-#define msg_ifb(label, expr) \
+#define msg_ifb(label, expr)    \
     if( (expr) && (msg_noargs(label, 0, #expr) ? 1 : 1) ) 
 
-/** \brief log a message if \e expr not zero and return \e err.
+/** 
+ *  \brief  Log a message if \p expr is true and \c return with \e err.
  *
- *   log a message of type \e label if \e expr is not zero and return
- *   \e err to the caller.
+ *  Log a message if \p expr is true and \c return with \p err to the caller.
+ *  The \p expr text statement will be written to the log file.
  *
- *   \e expr text statement will be written to the log file.
- *
- *   Example:
- *      dbg_return_if(param == NULL, FUNC_ERROR);
+ *  For example:
+ *  \code
+ *      // return with PRM_ERROR if input parameter validation fails
+ *      dbg_return_if (param1 == NULL, PRM_ERROR);
+ *  \endcode
  */
-#define msg_return_if(label, expr, err) msg_ifb(label, expr) { return err; }
+#define msg_return_if(label, expr, err) \
+    msg_ifb(label, expr) { return err; }
 
-/** \brief log the given message if \e expr not zero and return \e err.
+/** 
+ *  \brief  Log the given message if \p expr is true and return \p err.
  *
- *   log the given message of type \e label if \e expr is not zero and return
- *   \e err to the caller.
+ *  Log the given message if \p expr is true and return \p err to the caller.
  *
- *   Example:
- *    dbg_return_ifm(param == NULL, FUNC_ERROR, "param %d must be not NULL", i);
+ *  For example:
+ *  \code
+ *      dbg_return_ifm (prm == NULL, PRM_ERROR, "param %d must be not NULL", i);
+ *  \endcode
  */
-#define msg_return_ifm(label, expr, err, ...) \
+#define msg_return_ifm(label, expr, err, ...)   \
     if(expr) { msg(label, 0, __VA_ARGS__); return err; }
 
-/** \brief log the given message and strerror(errno) if \e expr not zero and return \e err.
+/** 
+ *  \brief  Log the given message plus \c strerror(errno) if \p expr is true,
+ *          and return \p err.
  *
- *   log the given message of type \e label and strerror(errno) if \e expr is 
- *   not zero and return \e err to the caller.
+ *  Log the given message plus \c strerror(errno) if \p expr is true, and 
+ *  return \p err to the caller.
  *
- *   Example:
- *    dbg_return_sifm(stat(file, &st) < 0, -1, "file %s access error", file);
+ *  For example:
+ *  \code
+ *      dbg_return_sifm (stat(fn, &st) == -1, -1, "file %s access error", fn);
+ *  \endcode
  */
-#define msg_return_sifm(label, expr, err, ...) \
+#define msg_return_sifm(label, expr, err, ...)  \
     if(expr) { msg(label, errno, __VA_ARGS__); return err; }
 
-/** \brief log a message if \e expr not zero and return \e err. (Log the strerror also)
+/** 
+ *  \brief  Log a message plus \c strerror(errno) if \p expr is true, and 
+ *          return \p err. 
  *
- *   log a message of type \e label if \e expr is not zero and return
- *   \e err to the caller. Log also the strerror(errno).
- *
- *   \e expr text statement will be written to the log file.
+ *  Log a message plus \c strerror(errno) if \p expr is true, and return 
+ *  \p err to the caller.  The \p expr text statement will be written to 
+ *  the log file.
  */
-#define msg_return_sif(label, expr, err) \
+#define msg_return_sif(label, expr, err)    \
     do { if(expr) { msg_noargs(label, errno, #expr); return err; } } while(0)
 
-/** \brief log a message if \e expr not zero and goto \e gt.
+/** 
+ *  \brief  Log a message if \p expr is true and \c goto \p gt.
  *
- *   log a message of type \e label if \e expr is not zero and goto
- *   to the label \e gt (that must be in-scope).
- *
- *   \e expr text statement will be written to the log file.
+ *  Log a message of type \p label if \p expr is not zero and \c goto to the 
+ *  label \p gt (that must be in-scope).  The \p expr text statement will be 
+ *  written to the log file.
  */
-#define msg_goto_if(label, expr, gt) msg_ifb(label, expr) goto gt
+#define msg_goto_if(label, expr, gt)    \
+    msg_ifb(label, expr) goto gt
 
-/** \brief log a message if \e expr not zero and goto to the label "err"
+/** 
+ *  \brief  Log a message if \p expr is true and \c goto to the label \c err
  *
- *   log a message of type \e label if \e expr is not zero and goto
- *   to the label "err" (that must be defined).
- *
- *   \e expr text statement will be written to the log file.
+ *  Log a message of type \p label if \p expr is true and \c goto to the 
+ *  label \c err (that must be in-scope).  The \p expr text statement will 
+ *  be written to the log file.
  */
-#define msg_err_if(label, expr) do { msg_ifb(label, expr) { goto err;} } while(0)
+#define msg_err_if(label, expr) \
+    do { msg_ifb(label, expr) { goto err;} } while(0)
 
-/** \brief log a message if \e expr not zero, set \e errcode and goto to the label "err"
+/** 
+ *  \brief  Log a message if \p expr is true, set \p errcode and \c goto to 
+ *          the label \c err
  *
- *   log a message of type \e label if \e expr is not zero, set variable "rc"
- *   (that must be defined) to \e errcode and jump to label "err" (that must be
- *   defined).
+ *  Log a message of type \p label if \p expr is true, set variable \c rc
+ *  to \p errcode and jump to label \c err.  Both \c rc and \c err must be
+ *  in-scope.  The \p expr text statement will be written to the log file.
  *
- *   \e expr text statement will be written to the log file.
+ *  For example:
+ *  \code
+ *  int rc = ERR_NONE;
+ *  ...
+ *  dbg_err_rcif ((madp = u_zalloc(UINT_MAX)) == NULL, ERR_MEM);
+ *  ...
+ *  err:
+ *      return rc;
+ *  \endcode
  */
-#define msg_err_rcif(label, expr, errcode) \
+#define msg_err_rcif(label, expr, errcode)  \
     do { msg_ifb(label, expr) { rc = errcode; goto err;} } while(0)
 
-/** \brief log the given message if \e expr not zero and goto to the label "err"
+/** 
+ *  \brief  Log the given message if \p expr is true and \c goto to the
+ *          label \c err
  *
- *   log a message of type \e label if \e expr is not zero and goto
- *   to the label "err" (that must be defined). also logs arguments provided
- *   by the caller.
+ *  Log a message of type \p label if \p expr is true and \c goto to the 
+ *  label \c err (that must be in-scope).  The user-provided message is
+ *  used instead of the \p expr text statement.
  */
-#define msg_err_ifm(label, expr, ...) \
+#define msg_err_ifm(label, expr, ...)   \
     do { if( (expr) ) { msg(label, 0, __VA_ARGS__); goto err; } } while(0)
 
-/** \brief log a message and strerror(errno) if \e expr not zero; \
- *      then goto to the label "err"
+/** 
+ *  \brief  Log a message and \c strerror(errno) if \p expr is true, then 
+ *          \c goto to the label \c err
  *
- *   log a message of type \e label if \e expr is not zero and goto
- *   to the label "err" (that must be defined). also logs strerror(errno).
+ *  Log a message of type \p label if \p expr is true and \c goto
+ *  to the label \c err (that must be in-scope).  Also logs \c strerror(errno).
  */
-#define msg_err_sif(label, expr) \
+#define msg_err_sif(label, expr)    \
     do { if(expr) { msg_noargs(label, errno, #expr); goto err; } } while(0)
 
-/** \brief log the given message and strerror(errno) if \e expr not zero; \
- *      then goto to the label "err"
+/** 
+ *  \brief  Log the user provided message and \c strerror(errno) if \p expr 
+ *          is true, then \c goto to the label \c err
  *
- *   log the given  message of type \e label if \e expr is not zero, log
- *   strerror(errno) and goto to the label "err" (that must be defined). 
- *   also logs strerror(errno).
+ *  Log the user provided message of type \p label if \p expr is true, log
+ *  \c strerror(errno) and \c goto to the label \c err (that must be in-scope). 
  */
-#define msg_err_sifm(label, expr, ...) \
+#define msg_err_sifm(label, expr, ...)  \
     do { if((expr)) { msg(label, errno, __VA_ARGS__);  goto err; } } while(0)
 
 
-/** \brief write a debug message containing the message returned by strerror(errno) */
+/** 
+ *  \brief  Write a debug message containing the message returned by 
+ *          \c strerror(errno) 
+ */
 #ifdef OS_WIN
 #define msg_strerror(label, en)                                     \
     do {                                                            \
@@ -197,8 +298,7 @@ extern "C" {
             LocalFree(lpMsgBuf);                                    \
         }                                                           \
     } while(0)
-#else
-/** \brief write a debug message containing the message returned by strerror(errno) */
+#else   /* !OS_WIN */
 #define msg_strerror(label, en)                                     \
     do {                                                            \
         enum { _DBG_BUFSZ = 256 };                                  \
@@ -209,8 +309,7 @@ extern "C" {
             msg(label, 0, "errno: %d (%s)", errno, _eb);            \
         }                                                           \
     } while(0)  
-
-#endif /* ! def OS_WIN */
+#endif /* OS_WIN */
 
 /**
  *  \}
@@ -222,7 +321,7 @@ extern "C" {
 #define nop_goto_if(expr, gt)          do { if(expr) goto gt;    } while(0)
 
 /* con_ macros */
-#define con(...)                        msg(con_, 0, __VA_ARGS__)
+#define u_con(...)                      msg(con_, 0, __VA_ARGS__)
 #define con_err(...)                    msg_err(con_, __VA_ARGS__)
 #define con_ifb(expr)                   msg_ifb(con_, expr)
 #define con_if(expr)                    msg_if(con_, expr) 
@@ -245,7 +344,7 @@ extern "C" {
 #define con_strerror(err)               msg_strerror(con_, err)
 
 /* emerg_ macros */
-#define emerg(...)                      msg(emerg_, 0, __VA_ARGS__)
+#define u_emerg(...)                    msg(emerg_, 0, __VA_ARGS__)
 #define emerg_err(...)                  msg_err(emerg_, __VA_ARGS__)
 #define emerg_ifb(expr)                 msg_ifb(emerg_, expr)
 #define emerg_if(expr)                  msg_if(emerg_, expr) 
@@ -268,7 +367,7 @@ extern "C" {
 #define emerg_strerror(err)             msg_strerror(emerg_, err)
 
 /* alert_ macros */
-#define alert(...)                      msg(alert_, 0, __VA_ARGS__) 
+#define u_alert(...)                    msg(alert_, 0, __VA_ARGS__) 
 #define alert_err(...)                  msg_err(alert_, __VA_ARGS__)
 #define alert_ifb(expr)                 msg_ifb(alert_, expr)
 #define alert_if(expr)                  msg_if(alert_, expr) 
@@ -291,7 +390,7 @@ extern "C" {
 #define alert_strerror(err)             msg_strerror(alert_, err)
 
 /* crit_ macros */
-#define crit(...)                       msg(crit_, 0, __VA_ARGS__) 
+#define u_crit(...)                     msg(crit_, 0, __VA_ARGS__) 
 #define crit_err(...)                   msg_err(crit_, __VA_ARGS__)
 #define crit_ifb(expr)                  msg_ifb(crit_, expr)
 #define crit_if(expr)                   msg_if(crit_, expr) 
@@ -314,7 +413,7 @@ extern "C" {
 #define crit_strerror(err)              msg_strerror(crit, err)
 
 /* err_ macros */
-#define err(...)                        msg(err_, 0, __VA_ARGS__)
+#define u_err(...)                      msg(err_, 0, __VA_ARGS__)
 #define err_err(...)                    msg_err(err_, __VA_ARGS__)
 #define err_ifb(expr)                   msg_ifb(err_, expr)
 #define err_if(expr)                    msg_if(err_, expr) 
@@ -337,7 +436,7 @@ extern "C" {
 #define err_strerror(err)               msg_strerror(err_, err)
 
 /* warn_ macros */
-#define warn(...)                       msg(warn_, 0, __VA_ARGS__)
+#define u_warn(...)                     msg(warn_, 0, __VA_ARGS__)
 #define warn_err(...)                   msg_err(warn_, __VA_ARGS__)
 #define warn_ifb(expr)                  msg_ifb(warn_, expr)
 #define warn_if(expr)                   msg_if(warn_, expr) 
@@ -360,7 +459,7 @@ extern "C" {
 #define warn_strerror(err)              msg_strerror(warn_, err)
 
 /* notice_ macros */
-#define notice(...)                     msg(notice_, 0, __VA_ARGS__)
+#define u_notice(...)                   msg(notice_, 0, __VA_ARGS__)
 #define notice_err(...)                 msg_err(notice_, __VA_ARGS__)
 #define notice_ifb(expr)                msg_ifb(notice_, expr)
 #define notice_if(expr)                 msg_if(notice_, expr) 
@@ -386,7 +485,7 @@ extern "C" {
 #define notice_strerror(err)            msg_strerror(notice_, err)
 
 /* info_ macros */
-#define info(...)                       msg(info_, 0, __VA_ARGS__)
+#define u_info(...)                     msg(info_, 0, __VA_ARGS__)
 #define info_err(...)                   msg_err(info_, __VA_ARGS__)
 #define info_ifb(expr)                  msg_ifb(info_, expr)
 #define info_if(expr)                   msg_if(info_, expr) 
@@ -410,7 +509,7 @@ extern "C" {
 
 /* dbg_ macros */
 #ifdef DEBUG
-    #define dbg(...)                    msg(dbg_, 0, __VA_ARGS__)
+    #define u_dbg(...)                  msg(dbg_, 0, __VA_ARGS__)
     #define dbg_err(...)                msg_err(dbg_, __VA_ARGS__)
 
     #define dbg_if(expr)                msg_if(dbg_, expr) 
@@ -448,7 +547,7 @@ extern "C" {
     #include <ctype.h>
     /* this will be used just to avoid empty-if (and similar) warnings */
     #define dbg_nop()                   isspace(0)
-    #define dbg(...)                    dbg_nop()
+    #define u_dbg(...)                  dbg_nop()
     #define dbg_err(...)                do { goto err; } while(0)
 
     #define dbg_if(expr)                do { if( (expr) ) { ; } } while(0)

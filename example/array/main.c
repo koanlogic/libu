@@ -24,7 +24,7 @@ int main (void)
 
         c0 = (idx + 10) + (idx + 10) * I;
         con_err_if (u_array_set_long_double_complex(a, idx, c0, &c2));
-        con("overriding %lf + %lfi at %zu with %lf + %lfi", 
+        u_con("overriding %lf + %lfi at %zu with %lf + %lfi", 
                 creal(c2), cimag(c2), idx, creal(c0), cimag(c0)); 
         con_err_if (u_array_get_long_double_complex(a, idx, &c1));
         con_err_if (creal(c0) != creal(c1) || cimag(c0) != cimag(c1));

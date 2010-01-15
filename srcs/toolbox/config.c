@@ -641,7 +641,7 @@ static int u_config_include(u_config_t *c, u_config_driver_t *drv,
         crit_err_ifm (drv->close(arg),
             "unable to close input file: %s", p);
     else
-        warn("the 'close' driver callback is not defined, not closing...");
+        u_warn("the 'close' driver callback is not defined, not closing...");
 
     return 0;
 err:

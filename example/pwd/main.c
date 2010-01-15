@@ -32,7 +32,7 @@ int main (int argc, char *argv[])
     {
         u_snprintf(prompt, sizeof prompt, "%s: ", argv[i]);
         rc = u_pwd_auth_user(pwd, argv[i], getpass(prompt));
-        con("auth %s", rc ? "failed" : "ok");
+        u_con("auth %s", rc ? "failed" : "ok");
     }
 
     u_pwd_term(pwd);

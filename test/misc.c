@@ -179,7 +179,7 @@ static int test_u_rdwr(void)
 
     return 0;
 err:
-    con("failed. file: %s file_size: %d, buf_size: %d", fn, 
+    u_con("failed. file: %s file_size: %d, buf_size: %d", fn, 
             file_size, buf_size);
     return 1;
 }

@@ -224,7 +224,7 @@ static int _pcy_setup (u_hmap_t *hmap)
             hmap->pcy.ops = U_HMAP_PCY_OP_PUT | U_HMAP_PCY_OP_GET;
             break;
         default:
-            dbg("Invalid policy: %d", hmap->opts->policy);
+            u_dbg("Invalid policy: %d", hmap->opts->policy);
             return U_HMAP_ERR_FAIL;
     }
 
@@ -276,8 +276,8 @@ int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **hmap)
 
     TAILQ_INIT(&c->pcy.queue);
     
-    dbg("[hmap]");
-    dbg("threshold: %u", c->threshold);
+    u_dbg("[hmap]");
+    u_dbg("threshold: %u", c->threshold);
 
     *hmap = c;
 
@@ -339,7 +339,7 @@ void u_hmap_dbg (u_hmap_t *hmap)
 
     dbg_ifb (hmap == NULL) return;
 
-    dbg ("<hmap>");
+    u_dbg ("<hmap>");
     for (i = 0; i < hmap->size; ++i) 
     {
         dbg_ifb (u_string_create("", 1, &s)) return;
@@ -359,10 +359,10 @@ void u_hmap_dbg (u_hmap_t *hmap)
             }
         } 
         dbg_err_if (u_string_append(s, "|", 1));
-        dbg(u_string_c(s));
+        u_dbg(u_string_c(s));
         dbg_ifb (u_string_free(s)) return;
     }
-    dbg("</hmap>");
+    u_dbg("</hmap>");
     return;
 
 err:
@@ -509,7 +509,7 @@ void u_hmap_pcy_dbg (u_hmap_t *hmap)
         dbg_err_if (u_string_append(s, ")", 1));
     }
     dbg_err_if (u_string_append(s, "]", 1));
-    dbg(u_string_c(s));
+    u_dbg(u_string_c(s));
     dbg_if (u_string_free(s));
 
     return;
@@ -649,11 +649,11 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
         *old = NULL;
 
     if (hmap->sz >= hmap->threshold) {
-        dbg("hmap full");
+        u_dbg("hmap full");
         if (hmap->opts->policy == U_HMAP_PCY_NONE) {
             dbg_err_if (_resize(hmap));
         } else {
-            dbg("freeing according to policy %d", hmap->opts->policy);
+            u_dbg("freeing according to policy %d", hmap->opts->policy);
             dbg_err_if (hmap->pcy.pop(hmap, old));
         }
     }
@@ -672,7 +672,8 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
     if (hmap->opts->policy != U_HMAP_PCY_NONE &&
             hmap->sz >= hmap->opts->max) 
     {
-        dbg("Cache full - freeing according to policy %d", hmap->opts->policy);
+        u_dbg("Cache full - freeing according to policy %d", 
+                hmap->opts->policy);
         hmap->pcy.pop(hmap, old);
     }
 
@@ -1071,14 +1072,14 @@ void u_hmap_opts_dbg (u_hmap_opts_t *opts)
 {
     dbg_ifb (opts == NULL) return;
 
-    dbg("[hmap options]");
-    dbg("size: %u", opts->size);
-    dbg("max: %u", opts->max);
-    dbg("policy: %s", _pcy2str(opts->policy));
-    dbg("ownsdata: %d, &f_free: %x", 
+    u_dbg("[hmap options]");
+    u_dbg("size: %u", opts->size);
+    u_dbg("max: %u", opts->max);
+    u_dbg("policy: %s", _pcy2str(opts->policy));
+    u_dbg("ownsdata: %d, &f_free: %x", 
             (opts->options & U_HMAP_OPTS_OWNSDATA)>0,
             &opts->f_free);
-    dbg("no_overwrite: %d", (opts->options & U_HMAP_OPTS_NO_OVERWRITE)>0);
+    u_dbg("no_overwrite: %d", (opts->options & U_HMAP_OPTS_NO_OVERWRITE)>0);
 }
 
 /**
@@ -1243,7 +1244,7 @@ static int _resize(u_hmap_t *hmap)
     if (hmap->opts->policy != U_HMAP_PCY_NONE)
         return 0;
 
-    dbg("resize from: %u", hmap->size);
+    u_dbg("resize from: %u", hmap->size);
     
     /* copy old options */
     dbg_err_if (u_hmap_opts_new(&newopts));
@@ -1270,7 +1271,7 @@ static int _resize(u_hmap_t *hmap)
     memcpy(hmap, newmap, sizeof(u_hmap_t));
     u_free(newmap);
 
-    dbg("resized to: %u", hmap->size);
+    u_dbg("resized to: %u", hmap->size);
 
     return 0;
 

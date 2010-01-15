@@ -429,7 +429,7 @@ static int u_pwd_res_open (u_pwd_t *pwd)
     dbg_return_if (pwd->cb_open == NULL, ~0);
 
     if (pwd->res_handler != NULL)
-        warn("non-NULL resource handler will be lost");
+        u_warn("non-NULL resource handler will be lost");
 
     pwd->res_handler = NULL;
 
@@ -497,7 +497,7 @@ static int u_pwd_retr_mem (u_pwd_t *pwd, const char *user,
 
     /* on error keep on working with the old in-memory db */
     dbg_ifb (u_pwd_need_reload(pwd))
-        warn("error reloading master pwd file: using stale cache");
+        u_warn("error reloading master pwd file: using stale cache");
 
     dbg_err_if (pwd->db == NULL);
     dbg_err_if (u_hmap_get(pwd->db, user, &hobj));
@@ -586,7 +586,7 @@ static int u_pwd_db_load (u_pwd_t *pwd)
         /* tokenize line */
         dbg_ifb (u_strtok(ln, ":", &toks, &ntoks) || ntoks < 2)
         {
-            info("bad syntax at line %zu (%s)", lc, ln);
+            u_info("bad syntax at line %zu (%s)", lc, ln);
             continue;
         }
 
@@ -594,14 +594,14 @@ static int u_pwd_db_load (u_pwd_t *pwd)
         dbg_ifb (u_pwd_rec_new(toks[0], toks[1], ntoks < 3 ? NULL : toks[2], 
                     &rec))
         {
-            info("could not create record for entry at line %zu", lc);
+            u_info("could not create record for entry at line %zu", lc);
             continue;
         }
 
         /* push rec to db */
         dbg_ifb (u_pwd_db_push(pwd, rec))
         {
-            info("could not push record for entry at line %zu", lc);
+            u_info("could not push record for entry at line %zu", lc);
             u_pwd_rec_free(pwd, rec), rec = NULL;
         }
 
