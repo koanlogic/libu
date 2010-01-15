@@ -1,8 +1,10 @@
 /* 
  * Copyright (c) 2005-2010 by KoanLogic s.r.l. - All rights reserved.  
  */
+
 #ifndef _LIBU_GETPID_H_
 #define _LIBU_GETPID_H_
+
 #include <u/libu_conf.h>
 
 #ifdef HAVE_GETPID
@@ -27,6 +29,6 @@ pid_t getpid(void);
 }
 #endif
 
-#endif
+#endif  /* HAVE_GETPID */
 
-#endif
+#endif  /* !_LIBU_GETPID_H_ */

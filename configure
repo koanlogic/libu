@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.85 2010/01/08 15:39:28 tho Exp $
+# $Id: configure,v 1.86 2010/01/15 09:53:27 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -36,7 +36,6 @@ makl_set_var_mk "SRCDIR" "`pwd`"
 makl_set_var_h "OS_UNIX"
 makl_set_var_h "U_PATH_SEPARATOR" "'/'"
 target=`makl_target_name`
-echo $target
 case ${target} in
     *mingw*)
         makl_unset_var "OS_UNIX"
@@ -94,6 +93,9 @@ makl_checkfunc          0   "unlink"        1   ""  "<unistd.h>"
 makl_checkfunc          0   "sleep"         1   ""  "<unistd.h>"
 makl_checkfunc          0   "mkstemps"      2   ""  "<unistd.h>"
 makl_checkfunc          0   "setenv"        3   ""  "<stdlib.h>"
+makl_checkfunc          0   "mmap"          6   ""  "<sys/mman.h>"
+makl_checkfunc          0   "sysconf"       1   ""  "<unistd.h>"
+makl_checkfunc          0   "getpagesize"   0   ""  "<unistd.h>"
 makl_checkfunc          0   "fnmatch"       3   ""  "<fnmatch.h>"
 makl_checkfunc          0   "strtok_r"      3   ""  "<string.h>"
 makl_checkfunc          0   "strsep"        2   ""  "<string.h>"
@@ -126,6 +128,17 @@ fi
 
 # Handle command-line arguments
 makl_args_handle "$@"
+
+# the ring buffer is mmap(2) based
+# this check will be removed when we have a portable mmap replacement 
+if [ -z "`makl_get_var_h "NO_RB"`" ]
+then
+    if [ -z "`makl_get_var_h "HAVE_MMAP"`" ]
+    then
+        makl_warn "ring buffer module disabled since mmap(2) is missing"
+        makl_set_var "NO_RB"
+    fi
+fi
 
 # check for IPv4, IPv6 and Unix socket support 
 # these checks are disabled when --no_net is requested

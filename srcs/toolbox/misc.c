@@ -365,7 +365,7 @@ int u_snprintf (char *str, size_t size, const char *fmt, ...)
     wr = vsnprintf(str, size, fmt, ap);
     va_end(ap);
 
-    dbg_err_if (wr < 0);                /* output error */
+    dbg_err_sif (wr < 0);               /* output error */
     dbg_err_if (size <= (size_t) wr);   /* overflow */
 
     /* was: "dbg_err_if (wr >= (int) size);" bad cast ? */
@@ -398,7 +398,7 @@ int u_path_snprintf (char *buf, size_t sz, char sep, const char *fmt, ...)
     wr = vsnprintf(buf, sz, fmt, ap);
     va_end(ap);
 
-    dbg_err_if (wr < 0);
+    dbg_err_sif (wr < 0);
     dbg_err_if (sz <= (size_t) wr);
 
     /* remove multiple consecutive '/' */

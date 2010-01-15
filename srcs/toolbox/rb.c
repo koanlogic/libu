@@ -9,6 +9,16 @@
 #include <unistd.h>
 #include <toolbox/rb.h>
 
+#if defined(HAVE_SYSCONF) && defined(_SC_PAGE_SIZE)
+  #define u_vm_page_sz  sysconf(_SC_PAGE_SIZE)
+#elif defined (HAVE_SYSCONF) && defined(_SC_PAGESIZE)
+  #define u_vm_page_sz  sysconf(_SC_PAGESIZE)
+#elif defined(HAVE_GETPAGESIZE)
+  #define u_vm_page_sz  getpagesize()
+#else
+  #error "don't know how to get page size.  reconfigure with --no_ringbuffer."
+#endif
+
 struct u_rb_s
 {
     char *base;     /* base address of the mmap'd region */
@@ -26,8 +36,8 @@ static size_t round_sz (size_t sz);
 /**
     \defgroup rb Ring Buffer
     \{
-        The \ref rb module provides an efficient implementation of a circular
-        buffer.  Data can be written to (::u_rb_write), or read (::u_rb_read) 
+        The \ref rb module provides a fast implementation of a circular buffer.
+        Data can be written to (::u_rb_write), or read (::u_rb_read) 
         from the buffer.  When the buffer fills up (i.e. the reader is less
         efficient that the writer) any subsequent ::u_rb_write operation will
         fail until more space is made available either by an explicit reset of 
@@ -66,15 +76,20 @@ static size_t round_sz (size_t sz);
     }
     \endcode
 
-    \note   At present the implementation of the \ref rb module is not thread
-            safe.
+    \note   The \ref rb module is not thread safe: should you need to use it
+            in a MT scenario, you'll have to wrap the ::u_rb_t into a mutexed 
+            object and bound the relevant operations to the mutex acquisition.
  */
  
 /**
  *  \brief  Create a new ring buffer object
  *
- *  Create a new ::u_rb_t object of size (at least) \p hint_sz and return it 
- *  at \p *prb 
+ *  Create a new ::u_rb_t object of size (at least) \p hint_sz and return 
+ *  it at \p *prb.  The memory region used to hold the buffer is \c mmap'd 
+ *  and as such it has "page alignment" constraint which could make it 
+ *  space-inefficient in case a very tiny (i.e. much smaller than the system
+ *  page size) ring buffer is needed.  In fact, optimal size for a ::u_rb_t
+ *  object is a multiple of the target system page size.
  *
  *  \param  hint_sz the suggested size in bytes for the ring buffer (the actual
  *                  size could be more than that because of alignement needs)
@@ -285,7 +300,7 @@ size_t u_rb_avail (u_rb_t *rb)
 /* round requested size to a multiple of PAGESIZE */
 static size_t round_sz (size_t sz)
 {
-    size_t pg_sz = (size_t) sysconf(_SC_PAGE_SIZE);
+    size_t pg_sz = (size_t) u_vm_page_sz;
 
     return !sz ? pg_sz : (((sz - 1) / pg_sz) + 1) * pg_sz;
 }

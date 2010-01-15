@@ -44,9 +44,9 @@
 
 #ifndef HAVE_SOCKLEN_T
   typedef int u_socklen_t;
-#else   /* !HAVE_SOCKLEN_T */
+#else   /* HAVE_SOCKLEN_T */
   typedef socklen_t u_socklen_t;
-#endif  /* HAVE_SOCKLEN_T */
+#endif  /* !HAVE_SOCKLEN_T */
 
 #ifdef __cplusplus
 extern "C" {
