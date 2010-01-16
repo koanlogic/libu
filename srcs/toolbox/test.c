@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2005-2010 by KoanLogic s.r.l. - All rights reserved.  
+ * Copyright (c) 2005-2008 by KoanLogic s.r.l. - All rights reserved.  
  */
 
 #include <u/libu.h>
@@ -31,11 +31,11 @@ static void usage(const char *prog)
         "    Available modules:\n";
     char **p;
 
-    fprintf(stderr, us, prog);
+    con(us, prog);
 
     for(p = _mods_nm; p != _top_nm; ++p)
-        fprintf(stderr, "        %s\n", *p);
-    fprintf(stderr, "\n");
+        con("        %s", *p);
+    con("\n");
 
     exit(1);
 }
@@ -83,6 +83,7 @@ static int run_test_module(const char *module)
 int u_test_run(int argc, char **argv)
 {
     test_runner_t *p;
+    char **pn;
     int i;
 
     dbg_err_if(parse_opt(argc, argv));
@@ -94,15 +95,15 @@ int u_test_run(int argc, char **argv)
             dbg_err_if(run_test_module(arg[i]));
     } else {
         /* run all modules */
-        for(i = 0, p = _mods; p < _top; ++p, ++i)
+        for(p = _mods; p < _top; ++p)
             (*p)();
     }
 
     /* free strdup'd module names */
-    for(p = _mods_nm; p != _top_nm; ++p)
-        u_free(*p), *p = NULL;
+    for(pn = _mods_nm; pn != _top_nm; ++pn)
+        u_free(*pn), *pn = NULL;
 
-    printf("%d test run, %d failed\n", _test_cnt, _test_fail);
+    con("%d test run, %d failed\n", _test_cnt, _test_fail);
 
     return 0;
 err:

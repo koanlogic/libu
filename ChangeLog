@@ -1,4 +1,4 @@
-$Id: ChangeLog,v 1.71.2.1 2010/01/15 08:36:53 tho Exp $
+$Id: ChangeLog,v 1.71.2.2 2010/01/16 09:43:06 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
@@ -8,6 +8,7 @@ LibU X.Y.Z
 	- [hmap] added u_hmap_foreach_arg which accepts a user defined parameter
 	- [buf] minor fix in u_buf_printf resize algorithm
 	- [misc] fix a bad cast in u_snprintf and u_path_snprintf
+	- [test] minor fix in test module
 
 LibU 1.4.1
 	- [missing] u_va_copy added
