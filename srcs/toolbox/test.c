@@ -27,69 +27,72 @@ static int run_test_module(const char *module);
 /**
     \defgroup test Unit testing
     \{
-        Tests are bundles in test modules defined by the ::U_TEST_MODULE macro; 
-        each module contain one or more test functions; such functions will 
-        be considered succesfull when returning \c 0. Function should be run
-        from within the module main function wrapped by the ::U_TEST_RUN macro.
-  
-        Example: mymodule.c
+        The \ref test module offers a set of interfaces by means of which a 
+        user can organise its own software validation suite.  
+        Basically you define a test suite, which in turn comprises a set of
+        test cases (aka unit tests), and recall it in the main test program.
+        Each test case is associated to a ::test_runner_t routine which takes
+        no arguments and, by convention, is requested to return \c 0 in case 
+        the unit test succeeds and non-zero otherwise.
+        A test case is attached to its "mother" test suite with the
+        ::U_TEST_CASE_ADD macro; on the other hand, a test suite is attached 
+        to the main test program with the ::U_TEST_SUITE_ADD macro, as shown
+        in the following example:
     \code
-    int test_feature_1(void)
+    int test_case_1 (void)
     {
-        dbg_err_if(...);
+        dbg_err_if (...);
 
         return 0; 
     err:
         return ~0;
     }
 
-    int test_feature_2(void)
+    int test_case_2 (void)
     {
-        dbg_err_if(...);
+        dbg_err_if (...);
 
         return 0; 
     err:
         return ~0;
     }
 
-    U_TEST_MODULE( mymodule )
+    U_TEST_SUITE( mysuite1 )
     {
-        U_TEST_RUN( test_feature_1 );
-        U_TEST_RUN( test_feature_2 );
-    
-        return 0;                                                
+        U_TEST_CASE_ADD( test_case_1 );
+        U_TEST_CASE_ADD( test_case_2 );
+        return 0;
     }
     \endcode
 
-        To build a \c runtest executable define a \c main() function like 
-        the example below and import your test modules using the 
-        ::U_TEST_USE_MODULE macro. 
-  
-        Example: main.c
+        To build the main test program (let's call it \c runtest) you define a 
+        \c main function like the one in the example below, import your test 
+        suite using the ::U_TEST_SUITE_ADD macro, and then call the 
+        ::u_test_run function to execute all tests one after another:
     \code
     #include <u/libu.h>
 
     int facility = LOG_LOCAL0;
 
-    int main(int argc, char **argv)
+    int main (int argc, char **argv)
     {
-        U_TEST_USE_MODULE( mymodule );
-        U_TEST_USE_MODULE( mymodule2 );
+        U_TEST_SUITE_ADD( mysuite1 );
+        U_TEST_SUITE_ADD( mysuite2 );
     
         return u_test_run(argc, argv);
     }
     \endcode
 
-        To run all tests call \c runtest with no arguments. At the end of 
-        execution it will print the number of tests run and the number of 
-        tests that have failed.  Add the \c -v switch if you want a more
-        verbose output.
+        To run every included test suite, call \c runtest with no arguments. 
+        At the end of execution it will print the number of tests run and 
+        the number of tests that have failed.  Add the \c -v switch if you 
+        want a more verbose output.
     \code
-    $ ./runtest [-v] # run testers of all the defined U_TEST_USE_MODULE's 
+    $ ./runtest [-v] # run all the included test suites
     \endcode
 
-        If you want to run just selected modules add their name to the 
-        \c runtest command line:
+        If you want to run just selected suites, add the name used when 
+        ::U_TEST_CASE_ADD'ing them on the \c runtest command line, e.g.:
     \code
     $ ./runtest mymodule # just run 'mymodule' tests
     $ ./runtest mymodule othermod # run 'mymodule' and 'othermod' tests

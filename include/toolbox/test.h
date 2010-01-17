@@ -53,17 +53,9 @@ int u_test_run(int argc, char **argv);
  *          \c 0 on success, \c ~0 on error. */
 typedef int (*test_runner_t)(void);
 
-/** \brief  The array which holds all the test functions (INTERNAL) */
 extern test_runner_t _mods[], *_top;
-
-/** \brief  The array which holds all modules names (INTERNAL) */
 extern char *_mods_nm[], **_top_nm;
-
-/** \brief  Various internal counters */
 extern int _test_cnt, _test_ok, _test_fail;
-
-/** \brief  If set, via <code>runtest -v</code>, more info about the running
- *          tests are printed to standard error */
 extern int _verbose;
 
 /**
