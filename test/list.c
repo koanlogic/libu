@@ -9,7 +9,7 @@
 #include <signal.h>
 #include <u/libu.h>
 
-U_TEST_MODULE(list);
+U_TEST_SUITE(list);
 
 static int test_list_iterator(void)
 {
@@ -117,10 +117,10 @@ err:
     return ~0;
 }
 
-U_TEST_MODULE( list )
+U_TEST_SUITE( list )
 {
-    U_TEST_RUN( test_list_ins );
-    U_TEST_RUN( test_list_iterator );
+    U_TEST_CASE_ADD( test_list_ins );
+    U_TEST_CASE_ADD( test_list_iterator );
 
     return 0;                                                
 }

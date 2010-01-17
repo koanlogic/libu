@@ -39,9 +39,9 @@ err:
     return ~0;
 }
 
-U_TEST_MODULE( string )
+U_TEST_SUITE( string )
 {
-    U_TEST_RUN( test_u_str );
+    U_TEST_CASE_ADD( test_u_str );
 
     return 0;                                      
 }

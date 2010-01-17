@@ -8,39 +8,44 @@
  */ 
 
 /** 
- *  \brief Define a test module
+ *  \brief Define and/or declare a test suite
  *
- *  Defines a test module named \c name. 
+ *  Define and/or declare a test suite named \c name. 
  *
  *  \param name  module name
  */
-#define U_TEST_MODULE( name )   \
+#define U_TEST_SUITE( name )   \
     int u_test_run_ ## name (void)
 
 /** 
- *  \brief Define a test function
+ *  \brief Add a test case function
  *
- *  Defines a test function.
+ *  Add the test case function \p f to the test pool
  *
- *  \param  f   the function name
+ *  \param  f   a function with ::test_runner_t prototype
  */
-#define U_TEST_RUN( f ) \
-    if( f () ) { _test_cnt++; _test_fail++; u_con("%s: failed", #f); }  \
-    else { _test_cnt++; _test_ok++; if(_verbose) u_con("%s: ok", #f); }
+#define U_TEST_CASE_ADD( f ) \
+    if( f () ) { _test_cnt++; _test_fail++; u_con("[FAILED] %s", #f); }  \
+    else { _test_cnt++; _test_ok++; if(_verbose) u_con("[OK] %s", #f); }
 
 /** 
- *  \brief Import a test module in the test program
+ *  \brief Import a test suite in the test program
  *
- *  Import a test module to be use by the test program. 
+ *  Import a test suite that will be run by the test program. 
  *
- *  \param  name    the name of the module
+ *  \param  name    the name of the test suite
  */
-#define U_TEST_MODULE_USE( name )                                   \
+#define U_TEST_SUITE_ADD( name )                                    \
     do {                                                            \
         int u_test_run_ ## name (void);                             \
         *_top = u_test_run_ ## name; ++_top; *_top = NULL;          \
         *_top_nm = u_strdup( #name ); ++_top_nm; *_top_nm = NULL;   \
     } while(0)
+
+/* 1.x compat names */
+#define U_TEST_MODULE_USE   U_TEST_SUITE_ADD
+#define U_TEST_RUN          U_TEST_CASE_ADD
+#define U_TEST_MODULE       U_TEST_SUITE
 
 int u_test_run(int argc, char **argv);
 

@@ -10,7 +10,7 @@
 #include <signal.h>
 #include <u/libu.h>
 
-U_TEST_MODULE(array);
+U_TEST_SUITE(array);
 
 static int test_resize (void);
 static int test_short (void);
@@ -173,14 +173,14 @@ err:
     return -1;
 }
 
-U_TEST_MODULE( array )
+U_TEST_SUITE( array )
 {
-    U_TEST_RUN( test_ptr );
-    U_TEST_RUN( test_short );
-    U_TEST_RUN( test_u_short );
-    U_TEST_RUN( test_char );
-    U_TEST_RUN( test_u_char );
-    U_TEST_RUN( test_resize );
+    U_TEST_CASE_ADD( test_ptr );
+    U_TEST_CASE_ADD( test_short );
+    U_TEST_CASE_ADD( test_u_short );
+    U_TEST_CASE_ADD( test_char );
+    U_TEST_CASE_ADD( test_u_char );
+    U_TEST_CASE_ADD( test_resize );
 
     return 0;                                                
 }

@@ -12,7 +12,7 @@
 struct itimerval itv;
 size_t file_size, buf_size;
 
-U_TEST_MODULE(misc);
+U_TEST_SUITE(misc);
 
 static void setitv(struct itimerval *pitv)
 {
@@ -370,11 +370,11 @@ err:
     return ~0;
 }
 
-U_TEST_MODULE(misc)
+U_TEST_SUITE(misc)
 {
-    U_TEST_RUN( test_u_rdwr );
-    U_TEST_RUN( test_u_path_snprintf );
-    U_TEST_RUN( test_u_strtok );
+    U_TEST_CASE_ADD( test_u_rdwr );
+    U_TEST_CASE_ADD( test_u_path_snprintf );
+    U_TEST_CASE_ADD( test_u_strtok );
 
-    return 0;                                                
+    return 0;
 }

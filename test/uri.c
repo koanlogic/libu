@@ -1,6 +1,6 @@
 #include <u/libu.h>
 
-U_TEST_MODULE(uri);
+U_TEST_SUITE(uri);
 
 /* shall match struct u_uri_s */
 typedef struct 
@@ -95,9 +95,9 @@ err:
     return ~0;
 }
 
-U_TEST_MODULE(uri)
+U_TEST_SUITE (uri)
 {
-    U_TEST_RUN( test_uri_parser );
+    U_TEST_CASE_ADD( test_uri_parser );
 
     return 0;                                                
 }

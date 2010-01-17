@@ -429,18 +429,18 @@ err:
     return ~0;
 }
 
-U_TEST_MODULE(hmap)
+U_TEST_SUITE(hmap)
 {
     /* examples */
-    U_TEST_RUN( example_static );
-    U_TEST_RUN( example_dynamic_own_hmap );
-    U_TEST_RUN( example_dynamic_own_user );
-    U_TEST_RUN( example_no_overwrite );
-    U_TEST_RUN( example_types_custom );
+    U_TEST_CASE_ADD( example_static );
+    U_TEST_CASE_ADD( example_dynamic_own_hmap );
+    U_TEST_CASE_ADD( example_dynamic_own_user );
+    U_TEST_CASE_ADD( example_no_overwrite );
+    U_TEST_CASE_ADD( example_types_custom );
 
     /* tests */
-    U_TEST_RUN( test_resize );
-    U_TEST_RUN( test_linear );
+    U_TEST_CASE_ADD( test_resize );
+    U_TEST_CASE_ADD( test_linear );
 
     return 0;
 }
