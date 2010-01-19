@@ -370,11 +370,80 @@ err:
     return ~0;
 }
 
+static int test_u_atoi (void)
+{
+    int i, j, rc, dummy = 0;
+
+    struct
+    {
+        const char *in;
+        int exp, rc;
+    } vt[] = {
+        /* minimum value for INT_MIN (16-bit) */
+        {   "-32767",   -32767, 0   },  
+        /* minimum value for INT_MAX (16-bit) */
+        {   "32767",    32767,  0   },  
+
+        /* the string may begin with an arbitrary amount of white space 
+         * (as deter mined by isspace(3)) followed by a single optional `+' 
+         * or `-' sign. conversion stop at the first character which is not 
+         * a valid base-10 digit */
+        {   "123abc",   123,    0   },
+        {   "  +1+1",   1,      0   },
+        {   "abc123",   dummy,  ~0  },
+        {   "1b2c3",    1,      0   },
+        {   "bongo",    dummy,  ~0  },
+
+        /* check underflows */
+#if (INT_MIN < (-2147483647 - 1))       /* less than 32-bit */
+        {   "-2147483648",  dummy,      ~0 },
+#elif (INT_MIN == (-2147483647 - 1))    /* 32-bit */
+        {   "-2147483648", -2147483648, 0 },
+        {   "-2147483649",  dummy,      ~0 },
+#else                                   /* more than 32-bit */
+        {   "-2147483649", -2147483649, 0 },
+#endif
+
+        /* check overflows */
+#if (INT_MAX < 2147483647)              /* less than 32-bit */
+        {   "2147483647",   dummy,      ~0 },
+#elif (INT_MAX == 2147483647)           /* 32-bit */
+        {   "2147483647",   2147483647, 0 },
+        {   "2147483648",   dummy,      ~0 },
+#else
+#endif
+
+        {   NULL,       0,      0   }
+    };
+
+    for (i = 0; vt[i].in; ++i)
+    {
+        rc = u_atoi(vt[i].in, &j);
+
+        con_err_ifm (rc != vt[i].rc, 
+                "unexpected return code %d != %d (tested conversion was: %s)",
+                rc, vt[i].rc, vt[i].in);
+
+        if (rc == 0)
+        {
+            con_err_ifm (j != vt[i].exp, 
+                    "unexpected conversion value %d != %d on  %s",
+                    j, vt[i].exp, vt[i].in);
+        }
+    }
+
+
+    return 0;
+err:
+    return ~0;
+}
+
 U_TEST_SUITE(misc)
 {
     U_TEST_CASE_ADD( test_u_rdwr );
     U_TEST_CASE_ADD( test_u_path_snprintf );
     U_TEST_CASE_ADD( test_u_strtok );
+    U_TEST_CASE_ADD( test_u_atoi );
 
     return 0;
 }
