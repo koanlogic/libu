@@ -21,7 +21,7 @@ struct u_string_s
     char *data;
     size_t data_sz;     /* total malloc'c bytes starting from .data */
     size_t data_len;    /* strlen(3) of the NUL-terminated string */
-    size_t shift_cnt;
+    size_t shift_cnt;   /* (internal) used by the realloc algorithm */
 };
 
 static int u_string_do_vprintf (u_string_t *, int, const char *, va_list);
@@ -29,8 +29,44 @@ static int u_string_do_vprintf (u_string_t *, int, const char *, va_list);
 /**
     \defgroup string String
     \{
-        The \ref string module ...
- */
+        The \ref string module provides a string type and the set of associated
+        primitives that can be used instead of (or in combination with) the 
+        classic NUL-terminated C strings.
+        The convenience in using ::u_string_t objects in your code is that
+        you can forget the buffer length constraints (with their implied 
+        checks) and string explicit termination that come with C char arrays, 
+        since any needed buffer resizing and consistency is handled by the 
+        \ref string machinery transparently.
+
+        Anyway, a bunch of C code lines is better than any further word:
+    \code
+    u_string_t *s = NULL;
+
+    // create and initialize a new string object 's'
+    dbg_err_if (u_string_create("pi", strlen("pi"), &s));
+
+    // append the value of pi to 's'
+    dbg_err_if (u_string_aprintf(s, " = %.30f", M_PI));
+
+    // print it out (should give: "pi = 3.141592653589793115997963468544")
+    u_con("%s", u_string_c(s));
+
+    // clear the string
+    dbg_err_if (u_string_clear(s));
+
+    // go again with other stuff
+    dbg_err_if (u_string_set(s, "2^(1/2)", strlen("2^(1/2)")));
+
+    // append the value of 2^1/2 to 's'
+    dbg_err_if (u_string_aprintf(s, " = %.30f", M_SQRT2));
+
+    // print it out (should give: "2^(1/2) = 1.414213562373095145474621858739")
+    u_con("%s", u_string_c(s));
+
+    // when your done, dispose it
+    u_string_free(s);
+    \endcode
+*/
 
 /**
  *  \brief  Remove leading and trailing blanks
@@ -415,7 +451,7 @@ static int u_string_do_vprintf (u_string_t *s, int clear, const char *fmt,
     dbg_return_if (fmt == NULL, ~0);
 
     if (clear)
-        u_string_clear(s);
+        (void) u_string_clear(s);
 
 again:
     avail = s->data_sz - s->data_len; /* avail may be zero */
