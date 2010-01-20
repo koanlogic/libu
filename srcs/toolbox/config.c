@@ -151,15 +151,15 @@ static char *u_config_buf_gets (void *arg, char *buf, size_t size);
     When you're done, don't forget to release the top-level ::u_config_t 
     object via ::u_config_free.
 
-    \note   By means of the ::u_config_driver_t abstraction, any data source 
-            is available for storing textual ::u_config_t objects.  It is 
-            sufficient to supply a set of custom callbacks interfacing the
-            desired storage system.
-
-    \note   An ::u_config_t object can be marshalled/unmarshalled via the 
-            ::u_config_save_to_buf and ::u_config_load_from_buf functions
-            respectively.  As such it can be used as a generic message 
-            framing facility (though not particularly space efficient).
+    Other misc things that may be worth noting:
+        - by means of the ::u_config_driver_t abstraction, any data source 
+          is available for storing textual ::u_config_t objects: it is 
+          sufficient to supply a set of custom callbacks interfacing the
+          desired storage system;
+        - an ::u_config_t object can be marshalled/unmarshalled via the 
+          ::u_config_save_to_buf and ::u_config_load_from_buf functions
+          respectively: as such it can be used as a generic message 
+          framing facility (though not particularly space efficient).
  */
 
 /**

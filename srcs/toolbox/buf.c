@@ -20,7 +20,11 @@ struct u_buf_s
 /**
     \defgroup buf Buffer
     \{
-        The \ref buf module ...
+        The \ref buf module can be thought as the dual of the \ref string
+        module for generic data buffers.  The exposed primitives provide
+        hooks for the typical life-cycle of a data buffer: ex-nihil creation 
+        or loading from external source, manipulation, possible data printing,
+        raw data extraction and/or dump to non-volatile storage, and disposal.
  */
 
 /**
@@ -96,7 +100,7 @@ err:
 /**
  *  \brief  Fill a buffer object with the content of a file
  *
- *  Open \a filename and copy its whole content into the given buffer \p ubuf
+ *  Open \p filename and copy its whole content into the given buffer \p ubuf
  *
  *  \param  ubuf        an already allocated ::u_buf_t object
  *  \param  filename    path of the source file
@@ -132,6 +136,25 @@ int u_buf_load (u_buf_t *ubuf, const char *filename)
 err:
     U_FCLOSE(fp);
     return ~0;
+}
+
+/**
+ *  \brief  Save buffer to file
+ *
+ *  Save the ::u_buf_t object \p ubuf to \p filename
+ *
+ *  \param  ubuf        an already allocated ::u_buf_t object
+ *  \param  filename    path of the destination file
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on failure
+ */
+int u_buf_save (u_buf_t *ubuf, const char *filename)
+{
+    dbg_return_if (ubuf == NULL, ~0);
+    dbg_return_if (filename == NULL, ~0);
+
+    return u_data_dump(u_buf_ptr(ubuf), u_buf_len(ubuf), filename);
 }
 
 /**

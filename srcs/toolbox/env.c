@@ -70,19 +70,19 @@
  */
 
 /**
- * \brief   Load configuration environment
+ *  \brief  Load configuration environment
  *
- * \param   prefix  variables namespace
- * \param   cfile   configuration file
+ *  \param  prefix  variables namespace
+ *  \param  cfile   configuration file
  *
- * Load all configuration variables in the given \p prefix namespace from
- * the configuration file \p cfile into the environment of the calling process.
- * Complex parameter substitution, conditional evaluations, arithmetics, etc. 
- * is done by the shell: the caller has a simple name=value view of the 
- * configuration file.
+ *  Load all configuration variables in the given \p prefix namespace from
+ *  the configuration file \p cfile into the environment of the calling process.
+ *  Complex parameter substitution, conditional evaluations, arithmetics, etc. 
+ *  is done by the shell: the caller has a simple name=value view of the 
+ *  configuration file.
  *
- * \retval   0   on success 
- * \retval  ~0   on failure 
+ *  \retval  0  on success 
+ *  \retval ~0  on failure 
  */
 int u_env_init (const char *prefix, const char *cfile)
 {
@@ -122,14 +122,14 @@ err:
 }
 
 /** 
- * \brief   Get a configuration variable value 
+ *  \brief  Get a configuration variable value 
  * 
- * Return a configuration variable
+ *  Return a configuration variable by its name \p name
  * 
- * \param   name    the name of the variable to get 
+ *  \param  name    the name of the variable to get 
  *
- * \return  the value of the requested variable or \c NULL if the variable
- *          is not defined
+ *  \return  the value of the requested variable or \c NULL if the variable
+ *           is not defined
  */
 const char *u_env_var (const char *name)
 {
@@ -137,5 +137,5 @@ const char *u_env_var (const char *name)
 }
 
 /**
- *      \}
+ *  \}
  */

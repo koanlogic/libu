@@ -1,4 +1,4 @@
-/* $Id: buf.h,v 1.4 2010/01/13 18:25:09 tho Exp $ */
+/* $Id: buf.h,v 1.5 2010/01/20 16:04:50 tho Exp $ */
 
 #ifndef _U_LIBU_BUF_H_
 #define _U_LIBU_BUF_H_
@@ -35,6 +35,7 @@ int u_buf_free (u_buf_t *buf);
 int u_buf_load (u_buf_t *buf, const char *fqn);
 int u_buf_printf (u_buf_t *ubuf, const char *fmt, ...);
 int u_buf_reserve (u_buf_t *buf, size_t size);
+int u_buf_save (u_buf_t *ubuf, const char *filename);
 int u_buf_set (u_buf_t *buf, const void *data, size_t size);
 ssize_t u_buf_len (u_buf_t *buf);
 ssize_t u_buf_size (u_buf_t *ubuf);

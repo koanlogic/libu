@@ -15,28 +15,31 @@
 #include <toolbox/misc.h>
 
 /**
- *  \defgroup fs File system
- *  \{
+    \defgroup fs File system
+    \{
+        The \ref fs module provides a small set of interfaces to do basic
+        file juggling tasks: move, copy an remove.
  */
 
 /** 
- * \brief   Copy a file
+ *  \brief  Copy a file
  * 
- * Copy a file
+ *  Copy the file whose path name is \p src to \p dst
  * 
- * \param   src     source file name
- * \param   dst     destination file name
+ *  \param  src source file name
+ *  \param  dst destination file name
  *
- * \return  zero on success, not zero on error
+ *  \retval  0  on success
+ *  \retval ~0  on failure
  */
-int u_copy(const char *src, const char *dst)
+int u_copy (const char *src, const char *dst)
 {
     FILE *sfp = NULL, *dfp = NULL;
     size_t c;
     char buf[4096];
 
-    dbg_err_if(src == NULL);
-    dbg_err_if(dst == NULL);
+    dbg_return_if (src == NULL, ~0);
+    dbg_return_if (dst == NULL, ~0);
 
     sfp = fopen(src, "rb");
     dbg_err_sifm(sfp == NULL, "unable to open %s for reading", src);
@@ -62,22 +65,23 @@ err:
     return ~0;
 }
 
-/** 
- * \brief   Move a file
+/**
+ *  \brief  Move a file
  * 
- * Move a file
+ *  Move the file whose path name is \p src to \p dst
  * 
- * \param   src     source file name
- * \param   dst     destination file name
+ *  \param  src source file name
+ *  \param  dst destination file name
  *
- * \return  zero on success, not zero on error
+ *  \retval  0  on success
+ *  \retval ~0  on failure
  */
 int u_move(const char *src, const char *dst)
 {
     int rc;
 
-    dbg_err_if(src == NULL);
-    dbg_err_if(dst == NULL);
+    dbg_return_if (src == NULL, ~0);
+    dbg_return_if (dst == NULL, ~0);
 
 #ifdef HAVE_LINK
     dbg_err_sif((rc = link(src, dst)) < 0 && errno != EXDEV);
@@ -97,18 +101,19 @@ err:
     return ~0;
 }
 
-/** 
- * \brief   Remove a file
+/**
+ *  \brief  Remove a file
  * 
- * Remove a file
+ *  Unlink the file whose path name is \p file
  * 
- * \param   file     name of file to be removed
+ *  \param  file    the file to remove
  *
- * \return  zero on success, not zero on error
+ *  \retval  0  on success
+ *  \retval ~0  on failure
  */
 int u_remove(const char *file)
 {
-    dbg_err_if(file == NULL);
+    dbg_return_if (file == NULL, ~0);
 
     dbg_err_sif(unlink(file) < 0);
 
@@ -118,5 +123,5 @@ err:
 }
 
 /**
- *      \}
+ *  \}
  */
