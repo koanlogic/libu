@@ -585,6 +585,14 @@ int u_atoi (const char *nptr, int *pi)
     
     dbg_err_if (tmp == 0 && errno == EINVAL);
     dbg_err_if ((tmp == LONG_MIN || tmp == LONG_MAX) && errno == ERANGE);
+
+    /* check overflows/underflows when int bits are less than long bits */
+#if (INT_MAX < LONG_MAX) 
+    dbg_err_if (tmp > INT_MAX);
+#endif
+#if (INT_MIN > LONG_MIN)
+    dbg_err_if (tmp < INT_MIN);
+#endif
         
     *pi = (int) tmp;
     

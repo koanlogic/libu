@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2005-2010 by KoanLogic s.r.l. - All rights reserved.  
+ * Copyright (c) 2005-2008 by KoanLogic s.r.l. - All rights reserved.  
  */
 
 #include <sys/types.h>
@@ -125,7 +125,7 @@ void u_config_print_to_fp(u_config_t *c, FILE *fp, int lev)
 
     U_CONFIG_INDENT(fp, lev);
 
-    if (c->key)
+    if (c->key && strcmp(c->key, "include"))
         fprintf(fp, "%s  %s\n", c->key, c->value == NULL ? "" : c->value);
 
     ++lev;
@@ -938,7 +938,7 @@ static int u_config_to_str(u_config_t *c, u_string_t *s)
     dbg_err_if(c == NULL);
     dbg_err_if(s == NULL);
 
-    if(c->key)
+    if(c->key && strcmp(c->key, "include"))
         u_string_aprintf(s, "%s %s\n", c->key, (c->value ? c->value : ""));
     
     if(u_config_has_children(c))
@@ -969,7 +969,7 @@ int u_config_save_to_buf(u_config_t *c, char *buf, size_t size)
     /* buffer too small */
     warn_err_if(u_string_len(s) >= size);
 
-    (void) u_strlcpy(buf, u_string_c(s), size);
+    strlcpy(buf, u_string_c(s), size);
 
     u_string_free(s);
 
