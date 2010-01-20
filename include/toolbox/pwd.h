@@ -11,33 +11,53 @@
 extern "C" {
 #endif
 
-#define U_PWD_LINE_MAX  256
 
+/* forward decls */
 struct u_pwd_s;
+struct u_pwd_rec_s;
+
+/**
+ *  \addtogroup pwd
+ *  \{
+ */ 
+
+/** \brief  default length of a password file line (can be changed at
+ *          compile time via \c -DU_PWD_LINE_MAX=nnn flag)  */
+#ifndef U_PWD_LINE_MAX
+#define U_PWD_LINE_MAX  256
+#endif  /* !U_PWD_LINE_MAX */
+
+/** \brief  Base pwd object, mediates all operations over the password DB */
 typedef struct u_pwd_s u_pwd_t;
 
-struct u_pwd_rec_s;
+/** \brief  Carry information about a single password DB record */
 typedef struct u_pwd_rec_s u_pwd_rec_t;
 
-/* password hashing function:
- * supply a string and its lenght, return the hashed string */
+/** \brief  Password hashing callback prototype: accept a string and its 
+ *          lenght, return the hashed string */
 typedef int (*u_pwd_hash_cb_t) (const char *, size_t, char []);
 
-/* load function:
- * fgets-like prototype with generic stream type */
+/** \brief  Record load callback prototype: has fgets(3)-like prototype with 
+ *          generic storage resource handler */
 typedef char *(*u_pwd_load_cb_t) (char *, int, void *);
 
-/* master password db open:
- * supply an uri, return the resource handler */
+/** \brief  Master password DB open callback prototype: accepts an uri, return 
+ *          the (opaque) resource handler - the same that will be supplied to 
+ *          the ::u_pwd_load_cb_t */
 typedef int (*u_pwd_open_cb_t) (const char *, void **);
 
-/* master password db close:
- * supply res handler */
+/* \brief   Master password DB close callback prototype: takes the resource 
+ *          handler, return nothing */
 typedef void (*u_pwd_close_cb_t) (void *);
 
-/* update notification:
- * return true if supplied timestamp is older than last modification time */
+/** \brief  Update notification callback prototype: return true if supplied 
+ *          timestamp is older than last modification time (this will force
+ *          a reload for in-memory password DBs) */
 typedef int (*u_pwd_notify_cb_t) (const char *, time_t, time_t *);
+
+/**
+ *  \}
+ */ 
 
 /* interface */
 int u_pwd_init (const char *res_uri, u_pwd_open_cb_t cb_open, 

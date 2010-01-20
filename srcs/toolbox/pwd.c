@@ -70,27 +70,91 @@ struct u_pwd_rec_s
 };
 
 /**
- *  \defgroup pwd Password
- *  \{
+    \defgroup pwd Password
+    \{
+        The \ref pwd module models the interface to a generic credential
+        storage device which is password based.  An ::u_pwd_t object is the 
+        handler through which all authentication and retrieval operations are 
+        performed over a given password DB.  A password storage collects a 
+        number of identical records which carry at least an username and 
+        related password, plus an optional opaque blob which is intended to 
+        transport application specific information.  Each of such records is 
+        mediated by the ::u_pwd_rec_t object.  The storage is abstracted by 
+        means of a brigade of callbacks that the programmer is supposed to 
+        supply to the ::u_pwd_init function.  A specialization of such function
+        is provided for file based password files as ::u_pwd_init_file.
+
+        A simple authenticator based on the \ref pwd module follows:
+        \code
+    int main (int argc, char *argv[])
+    {
+        char c;
+        int i, rc, in_memory = 0;
+        u_pwd_t *pwd = NULL;
+        char prompt[128];
+
+        while ((c = getopt(argc, argv, "m")) != -1)
+        {
+            switch (c)
+            {
+                case 'm':
+                    ++in_memory;
+                    break;
+                default:
+                    con_err("usage: pwd [-m] user ...");
+            }
+        }
+
+        argc -= optind;
+        argv += optind;
+
+        con_err_if (u_pwd_init_file("./passwd", NULL, 0, in_memory, &pwd));
+
+        for (i = 0; i < argc; i++)
+        {
+            (void) u_snprintf(prompt, sizeof prompt, "%s: ", argv[i]);
+            rc = u_pwd_auth_user(pwd, argv[i], getpass(prompt));
+            u_con("auth %s", rc ? "failed" : "ok");
+        }
+
+        u_pwd_term(pwd);
+
+        return EXIT_SUCCESS;
+    err:
+        return EXIT_FAILURE;
+    }
+        \endcode
+    
+        Where the passwd file structure can be as simple as:
+        \code
+    # "name":"password"[:"hint"]
+    jake:joliet:blues
+    steve:colonel:cropper
+    donald:duck:dunn
+        \endcode
  */
+
 
 /**
  *  \brief  Initialize a pwd instance
+ *
+ *  Get a new ::u_pwd_t object using the supplied attributes
  * 
  *  \param  res_uri     name of the master db resource
  *  \param  cb_open     method to open \p res_uri (get its handler)
  *  \param  cb_load     method to load \p res_uri lines one by one
  *  \param  cb_close    method to dispose \p res_uri handler (OPTIONAL)
- *  \param  cb_notify   methor to notify changes in the master resource 
+ *  \param  cb_notify   method to notify changes in the master resource 
  *                      (OPTIONAL)
  *  \param  cb_hash     method to hash passwords (OPTIONAL)
- *  \param  hash_len    hashed password string lenght (needed if \p cb_hash
+ *  \param  hash_len    hashed password string length (needed if \p cb_hash
  *                      has been set)
  *  \param  in_memory   if true, keep an hash-map'd version of the master db
  *                      into memory (useful for huge and static db's)
  *  \param  ppwd        the pwd instance handler as a result value
  *
- *  \return \c 0 on success, \c ~0 on error
+ *  \retval  0  on success
+ *  \retval ~0  on failure
  */ 
 int u_pwd_init (const char *res_uri, u_pwd_open_cb_t cb_open, 
         u_pwd_load_cb_t cb_load, u_pwd_close_cb_t cb_close, 
@@ -138,13 +202,17 @@ err:
 
 /**
  *  \brief  Retrieve a pwd record
+ *
+ *  Retrieve the ::u_pwd_rec_t object (if any) corresponding to the supplied 
+ *  \p user from the ::u_pwd_t instance \p pwd
  * 
  *  \param  pwd     an already initialized pwd instance
  *  \param  user    user whose info shall be retrieved
  *  \param  prec    retrieved user record as a result argument (the record 
  *                  must be free'd using u_pwd_rec_free API).
  *
- *  \return \c 0 on success, \c ~0 on error
+ *  \retval  0  on success
+ *  \retval ~0  on failure
  */ 
 int u_pwd_retr (u_pwd_t *pwd, const char *user, u_pwd_rec_t **prec)
 {
@@ -162,12 +230,16 @@ int u_pwd_retr (u_pwd_t *pwd, const char *user, u_pwd_rec_t **prec)
 
 /**
  *  \brief  Check if user has presented the right credential
- * 
+ *
+ *  Check if \p user has presented the right \p password to access the
+ *  ::u_pwd_t object \p pwd
+ *
  *  \param  pwd         an already initialized pwd instance
  *  \param  user        user whose credential has to be checked
  *  \param  password    the supplied credential
  *
- *  \return \c 0 if authentication is ok, \c ~0 if authentication fails
+ *  \retval  0  if authentication is ok
+ *  \retval ~0  if authentication fails
  */ 
 int u_pwd_auth_user (u_pwd_t *pwd, const char *user, const char *password)
 {
@@ -216,6 +288,8 @@ err:
 
 /**
  *  \brief  Dispose the supplied pwd instance
+ *
+ *  Dispose the supplied ::u_pwd_t object \p pwd
  * 
  *  \param  pwd     the pwd instance that shall be disposed
  *
@@ -234,6 +308,8 @@ void u_pwd_term (u_pwd_t *pwd)
 
 /**
  *  \brief  Init specialization for file-based password db
+ *
+ *  An ::u_pwd_init specialization for file-based password DBs
  * 
  *  \param  res_uri     name of the master db resource
  *  \param  cb_hash     method to hash passwords (OPTIONAL)
@@ -243,7 +319,8 @@ void u_pwd_term (u_pwd_t *pwd)
  *                      into memory (useful for huge and static db's)
  *  \param  ppwd        the pwd instance handler as a result value
  *
- *  \return \c 0 on success, \c ~0 on error
+ *  \retval  0  on success
+ *  \retval ~0  on failure
  */ 
 int u_pwd_init_file (const char *res_uri, u_pwd_hash_cb_t cb_hash, 
         size_t hash_len, int in_memory, u_pwd_t **ppwd)
@@ -253,8 +330,11 @@ int u_pwd_init_file (const char *res_uri, u_pwd_hash_cb_t cb_hash,
 }
 
 /**
- *  \brief  Dispose a pwd_rec record (must be used on returned pwd_rec
- *          record from u_pwd_retr on in_memory pwd instances)
+ *  \brief  Dispose a ::u_pwd_rec_t object 
+ *
+ *  Dispose the supplied ::u_pwd_rec_t object \p rec.  It MUST be called
+ *  on ::u_pwd_rec_t records returned from ::u_pwd_retr when using "in memory" 
+ *  pwd instances (for non "in memory" pwd's the function is a NOP)
  *
  *  \param  pwd     the pwd instance which owns \p rec
  *  \param  rec     the pwd_rec record to be disposed
@@ -281,9 +361,12 @@ void u_pwd_rec_free (u_pwd_t *pwd, u_pwd_rec_t *rec)
 /**
  *  \brief  Return the user field of the supplied pwd record
  *
- *  \param  rec     handler of a pwd record returned by u_pwd_retr
+ *  Get the user name attribute from the supplied ::u_pwd_rec_t object
  *
- *  \return the user string or \c NULL on error
+ *  \param  rec     an ::u_pwd_rec_t object returned by ::u_pwd_retr
+ *
+ *  \return a NUL-terminated string carrying the user name, 
+ *          or \c NULL on error
  */ 
 const char *u_pwd_rec_get_user (u_pwd_rec_t *rec)
 {
@@ -294,9 +377,12 @@ const char *u_pwd_rec_get_user (u_pwd_rec_t *rec)
 /**
  *  \brief  Return the password field of the supplied pwd record
  *
- *  \param  rec     handler of a pwd record returned by u_pwd_retr
+ *  Get the user password attribute from the supplied ::u_pwd_rec_t object
  *
- *  \return the password string or \c NULL on error
+ *  \param  rec     an ::u_pwd_rec_t object returned by ::u_pwd_retr
+ *
+ *  \return a NUL-terminated string carrying the user password, 
+ *          or \c NULL on error
  */ 
 const char *u_pwd_rec_get_password (u_pwd_rec_t *rec)
 {
@@ -307,9 +393,11 @@ const char *u_pwd_rec_get_password (u_pwd_rec_t *rec)
 /**
  *  \brief  Return the opaque field of the supplied pwd record
  *
- *  \param  rec     handler of a pwd record returned by u_pwd_retr
+ *  Get the user opaque attribute from the supplied ::u_pwd_rec_t object
  *
- *  \return the opaque string (can be \c NULL even if successful)
+ *  \param  rec     an ::u_pwd_rec_t object returned by ::u_pwd_retr
+ *
+ *  \return the opaque string (which can be \c NULL even if successful)
  */ 
 const char *u_pwd_rec_get_opaque (u_pwd_rec_t *rec)
 {
@@ -318,9 +406,12 @@ const char *u_pwd_rec_get_opaque (u_pwd_rec_t *rec)
 }
 
 /**
- *  \brief  Return the in_memory flag of the supplied pwd instance
+ *  \brief  Return the in_memory attribute from the supplied pwd instance
  *
- *  \param  pwd    the pwd instance to be examined
+ *  Get the \p in_memory attribute from the supplied ::u_pwd_t object, i.e.
+ *  the fact that the password DB is memory cached or not.
+ *
+ *  \param  pwd    the ::u_pwd_t object to be inquired
  *
  *  \return return \c 0 in case it is not an in-memory pwd instance
  */ 
