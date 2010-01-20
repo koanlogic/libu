@@ -432,7 +432,6 @@ static int test_u_atoi (void)
         }
     }
 
-
     return 0;
 err:
     return ~0;

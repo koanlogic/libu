@@ -15,17 +15,17 @@
 #include <toolbox/memory.h>
 #include <toolbox/str.h>
 
-static int drv_fs_open(const char *path, void **parg)
+static int drv_fs_open (const char *path, void **parg)
 {
     int fd = -1;
     FILE *file = NULL;
 
-    dbg_err_if(path == NULL);
-    dbg_err_if(parg == NULL);
+    dbg_return_if (path == NULL, ~0);
+    dbg_return_if (parg == NULL, ~0);
 
     /* open the file */
 again:
-    fd = open (path, O_RDONLY);
+    fd = open(path, O_RDONLY);
     if(fd == -1 && (errno == EINTR))
         goto again; /* interrupted */
 
@@ -46,37 +46,34 @@ err:
     return ~0;
 }
 
-static int drv_fs_close(void *arg)
+static int drv_fs_close (void *arg)
 {
-    FILE *file = (FILE*)arg;
+    int rc;
+    FILE *file = (FILE *) arg;
 
-    dbg_err_if(file == NULL);
+    dbg_return_if (file == NULL, ~0);
 
-    fclose(file);
+    if ((rc = fclose(file)) != 0)
+        dbg_strerror(errno);
 
-    return 0;
-err:
-    return ~0;
+    return (rc == 0) ? 0 : ~0;
 }
 
-static char* drv_fs_gets(void *arg, char *buf, size_t size)
+static char *drv_fs_gets (void *arg, char *buf, size_t size)
 {
-    FILE *file = (FILE*)arg;
+    FILE *file = (FILE *) arg;
 
-    dbg_err_if(file == NULL);
-    dbg_err_if(buf == NULL);
+    dbg_return_if (file == NULL, NULL);
+    dbg_return_if (buf == NULL, NULL);
 
     return fgets(buf, size, file);
-err:
-    return NULL;
 }
 
 /* pre-set driver for filesystem access */
-u_config_driver_t u_config_drv_fs = { 
-    drv_fs_open, 
-    drv_fs_close, 
+u_config_driver_t u_config_drv_fs = 
+{ 
+    drv_fs_open,
+    drv_fs_close,
     drv_fs_gets,
-    NULL /* include resolver */
+    NULL    /* no resolver */
 };
-
-

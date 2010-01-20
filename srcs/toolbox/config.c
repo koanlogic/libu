@@ -17,6 +17,43 @@
 #include <toolbox/memory.h>
 #include <toolbox/str.h>
 
+
+TAILQ_HEAD(u_config_list_s, u_config_s);
+typedef struct u_config_list_s u_config_list_t;
+
+struct u_config_s
+{
+    TAILQ_ENTRY(u_config_s) np; /* next & prev pointers */
+    char *key;                  /* config item key name */
+    char *value;                /* config item value    */
+    u_config_list_t children;   /* subkeys              */
+    u_config_t *parent;         /* parent config obj    */
+};
+
+/* get() callback helper struct */
+struct u_config_buf_s
+{
+    char *data;
+    size_t len;
+};
+
+/* file system pre-defined driver */
+extern u_config_driver_t u_config_drv_fs;
+extern u_config_driver_t u_config_drv_mem;
+
+static u_config_t *u_config_get_root (u_config_t *c);
+static int u_config_do_set_key (u_config_t *c, const char *key, const char *val,
+    int overwrite, u_config_t **pchild);
+static int cs_getline (u_config_gets_t cb, void *arg, u_string_t *ln);
+static int u_config_do_load_drv (u_config_t *c, u_config_driver_t *drv, 
+        void *arg, int overwrite);
+static int u_config_include (u_config_t *c, u_config_driver_t *drv, 
+        u_config_t *inckey, int overwrite);
+static void u_config_del_key (u_config_t *c, u_config_t *child);
+static int u_config_to_str (u_config_t *c, u_string_t *s);
+static char *u_config_buf_gets (void *arg, char *buf, size_t size);
+
+
 /**
     \defgroup config Configuration
     \{
@@ -51,9 +88,12 @@
         The value in parameters is always a string (no quotes needed) whose 
         case is preserved.
 
-        It is also possible to use variable substitution which allows to 
-        define a symbol name to be replaced by an arbitrary text string, with 
-        the classic bottom-up scoping.
+        It is possible to use variable substitution which allows to define a 
+        symbol name to be replaced by an arbitrary text string, with the 
+        classic bottom-up scoping.
+        
+        Also, by means of the \c "include" directive it is possible to load 
+        other configuration files into the one which is currently parsed.
 
         A simple example follows:
     \code
@@ -110,43 +150,35 @@
 
     When you're done, don't forget to release the top-level ::u_config_t 
     object via ::u_config_free.
+
+    \note   By means of the ::u_config_driver_t abstraction, any data source 
+            is available for storing textual ::u_config_t objects.  It is 
+            sufficient to supply a set of custom callbacks interfacing the
+            desired storage system.
+
+    \note   An ::u_config_t object can be marshalled/unmarshalled via the 
+            ::u_config_save_to_buf and ::u_config_load_from_buf functions
+            respectively.  As such it can be used as a generic message 
+            framing facility (though not particularly space efficient).
  */
-
-TAILQ_HEAD(u_config_list_s, u_config_s);
-typedef struct u_config_list_s u_config_list_t;
-
-struct u_config_s
-{
-    TAILQ_ENTRY(u_config_s) np; /* next & prev pointers */
-    char *key;                  /* config item key name */
-    char *value;                /* config item value    */
-    u_config_list_t children;   /* subkeys              */
-    u_config_t *parent;         /* parent config obj    */
-};
-
-/* file system pre-defined driver */
-extern u_config_driver_t u_config_drv_fs;
-extern u_config_driver_t u_config_drv_mem;
-
-/* forward declarations */
-static int u_config_include(u_config_t*, u_config_driver_t*, u_config_t*, int);
 
 /**
- * \brief  Sort config children 
+ *  \brief  Sort config children 
  *
- * Sort config children using the given comparison function. 
+ *  Sort config children using the given comparison function. 
  *
- * The comparison function must return an integer less than, equal to, or
- * greater than zero if the first argument is considered to be respectively
- * less than, equal to, or greater than the second.
+ *  The comparison function must return an integer less than, equal to, or
+ *  greater than zero if the first argument is respectively less than, 
+ *  equal to, or greater than the second.
  *
- * \param c             configuration object
- * \param config_cmp    comparison function
+ *  \param  c           an ::u_config_t object
+ *  \param  config_cmp  a function which compares two ::u_config_t objects
  *
- * \return \c 0 on success, not zero on failure
+ *  \retval  0  on success
+ *  \retval ~0  on failure
  */
-int u_config_sort_children(u_config_t *c, 
-        int(*config_cmp)(u_config_t**, u_config_t**))
+int u_config_sort_children (u_config_t *c, 
+        int (*config_cmp)(u_config_t **, u_config_t **))
 {
     u_config_t *child;
     int i, count;
@@ -158,7 +190,7 @@ int u_config_sort_children(u_config_t *c,
         count++;
 
     /* create an array of pointers */
-    children = u_zalloc(count * sizeof(u_config_t*));
+    children = u_zalloc(count * sizeof(u_config_t *));
     dbg_err_if(children == NULL);
 
     /* populate the array of children */
@@ -167,8 +199,8 @@ int u_config_sort_children(u_config_t *c,
         children[i++] = child;
 
     /* sort the list */
-    qsort(children, count, sizeof(u_config_t*), 
-            (int(*)(const void*,const void*))config_cmp);
+    qsort(children, count, sizeof(u_config_t *), 
+            (int(*)(const void *,const void *)) config_cmp);
 
     /* remove all items from the list */
     while((child = TAILQ_FIRST(&c->children)) != NULL)
@@ -188,18 +220,18 @@ err:
 }
 
 /**
- * \brief  Print configuration to the given file descriptor
+ *  \brief  Print configuration to the given file stream pointer
  *
- * Print a configuration object and its children to \c fp. For each config
- * object all keys/values pair will be printed.
+ *  Print a configuration object and its children to \c fp. For each config
+ *  object all keys/values pair will be printed.
  *
- * \param c     configuration object
- * \param fp    output file descriptor
- * \param lev   nesting level; must be zero
+ *  \param  c   an ::u_config_t object 
+ *  \param  fp  reference to a file stream opened for writing
+ *  \param  lev nesting level; must be zero
  *
- * \return nothing
+ *  \return nothing
  */
-void u_config_print_to_fp(u_config_t *c, FILE *fp, int lev)
+void u_config_print_to_fp (u_config_t *c, FILE *fp, int lev)
 {
 #define U_CONFIG_INDENT(fp, l)  \
     do { int i; for(i = 1; i < l; ++i) fputs("  ", fp); } while (0);
@@ -235,15 +267,15 @@ void u_config_print_to_fp(u_config_t *c, FILE *fp, int lev)
 }
 
 /**
- * \brief  Print configuration to \c stdout
+ *  \brief  Print configuration to \c stdout
  *
- * Print a configuration object and its children to \c stdout. For each config
- * object all keys/values pair will be printed.
+ *  Print a configuration object and its children to \c stdout. For each config
+ *  object all keys/values pair will be printed.
  *
- * \param c     configuration object
- * \param lev   nesting level; must be zero
+ *  \param  c   configuration object
+ *  \param  lev nesting level; must be zero
  *
- * \return nothing
+ *  \return nothing
  */
 void u_config_print(u_config_t *c, int lev)
 {
@@ -251,7 +283,21 @@ void u_config_print(u_config_t *c, int lev)
     return;
 }
 
-int u_config_add_child(u_config_t *c, const char *key, u_config_t **pc)
+/**
+ *  \brief  Add a child node with a given key to the supplied ::u_config_t 
+ *          object
+ *
+ *  Create a child ::u_config_t object with key \p key, attached to the 
+ *  supplied \p c.
+ *
+ *  \param  c   the parent ::u_config_t object
+ *  \param  key the key which will be assigned to the newly created child
+ *  \param  pc  the newly created child attached to \p pc
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on failure
+ */
+int u_config_add_child (u_config_t *c, const char *key, u_config_t **pc)
 {
     u_config_t *child = NULL;
 
@@ -270,8 +316,19 @@ err:
     return ~0;
 }
 
-/* get n-th child item called key */
-u_config_t* u_config_get_child_n(u_config_t *c, const char *key, int n)
+/**
+ *  \brief  Get the n-th child by a given key
+ *
+ *  Get the child with key \p key at index \p n from \p c.
+ *
+ *  \param  c   the parent ::u_config_t object
+ *  \param  key the key that must be searched
+ *  \param  n   the index for the child object that we are expected to retrieve
+ *
+ *  \return the reference to the child if found, or \c NULL if no child was 
+ *          found
+ */
+u_config_t *u_config_get_child_n (u_config_t *c, const char *key, int n)
 {
     u_config_t *item;
 
@@ -284,51 +341,96 @@ u_config_t* u_config_get_child_n(u_config_t *c, const char *key, int n)
     return NULL; /* not found */
 }
 
-u_config_t* u_config_get_child(u_config_t *c, const char *key)
+/**
+ *  \brief  Get a child with a given key
+ *
+ *  Get the child with key \p key from its parent ::u_config_t object \p c
+ *
+ *  \param  c   the parent ::u_config_t object
+ *  \param  key the key that shall be searched
+ *
+ *  \return the reference to the found child, or \c NULL if no child was found
+ */
+u_config_t *u_config_get_child (u_config_t *c, const char *key)
 {
     return u_config_get_child_n(c, key, 0);
 }
 
-int u_config_get_subkey_nth(u_config_t *c, const char *subkey, int n, 
-    u_config_t **pc)
+/**
+ *  \brief  Get the n-th configuration object child corresponding to a given 
+ *          subkey
+ *
+ *  Get the child config object corresponding to the given subkey \p subkey 
+ *  at index \p n
+ *
+ *  \param  c       the parent ::u_config_t object
+ *  \param  subkey  a subkey value
+ *  \param  n       the index at which the child object is retrieved
+ *  \param  pc      a result argument carrying the found object reference
+ *                  if the search was successful
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on error (i.e. no match)
+ */
+int u_config_get_subkey_nth (u_config_t *c, const char *subkey, int n, 
+        u_config_t **pc)
 {
     u_config_t *child = NULL;
     char *first_key = NULL, *p;
 
-    if((p = strchr(subkey, '.')) == NULL)
+    if ((p = strchr(subkey, '.')) == NULL)
     {
-        if((child = u_config_get_child_n(c, subkey, n)) != NULL)
+        if ((child = u_config_get_child_n(c, subkey, n)) != NULL)
         {
             *pc = child;
             return 0;
         } 
-    } else {
-        if((first_key = u_strndup(subkey, p-subkey)) != NULL)
+    } 
+    else 
+    {
+        if ((first_key = u_strndup(subkey, p - subkey)) != NULL)
         {
             child = u_config_get_child(c, first_key);
             U_FREE(first_key);
         }
-        if(child != NULL)
+
+        if (child != NULL)
             return u_config_get_subkey(child, ++p, pc);
     }
-    return ~0; /* not found */
 
+    return ~0; /* not found */
 }
 
-int u_config_get_subkey(u_config_t *c, const char *subkey, u_config_t **pc)
+/**
+ *  \brief  Get a child configuration object corresponding to a given subkey
+ *
+ *  Get a child config object (actually the first one) corresponding to the 
+ *  given subkey \p subkey from parent \p c
+ *
+ *  \param  c       the parent ::u_config_t object
+ *  \param  subkey  a subkey value
+ *  \param  pc      the found child (if found) as a result argument
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on error (i.e. no match)
+ */
+int u_config_get_subkey (u_config_t *c, const char *subkey, u_config_t **pc)
 {
     return u_config_get_subkey_nth(c, subkey, 0, pc);
 }
 
-static u_config_t* u_config_get_root(u_config_t *c)
-{
-    while(c->parent)
-        c = c->parent;
-    return c;
-}
-
-/** \brief  Assign \p val to \p c's key */
-int u_config_set_value(u_config_t *c, const char *val)
+/**
+ *  \brief  Assign \p val to \p c's key
+ *
+ *  Assign the given value \p val to the ::u_config_t object \p c
+ *
+ *  \param  c   the ::u_config_t object that will be manipulated
+ *  \param  val the value that will be assigned to \p c
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on error
+ */
+int u_config_set_value (u_config_t *c, const char *val)
 {
     u_config_t *root, *ignore;
     const char *varval, *vs, *ve, *p;
@@ -400,6 +502,504 @@ err:
     return ~0;
 }
 
+/**
+ *  \brief  Append the given key/value pair into a config object
+ *
+ *  Append the given \p key, \p val pair into the supplied ::u_config_t object
+ *  \p c.
+ *
+ *  \param  c   the ::u_config_t object that is manipulated
+ *  \param  key the key to insert
+ *  \param  val the value to insert
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on error
+ */
+int u_config_add_key (u_config_t *c, const char *key, const char *val)
+{
+    return u_config_do_set_key(c, key, val, 0 /* don't overwrite */, NULL);
+}
+
+/**
+ *  \brief  Put the given key/value pair into a config object
+ *
+ *  Put the given \p key, \p val pair into the supplied ::u_config_t object
+ *  \p c.  If the same key is found into \p c, it is overwritten.
+ *
+ *  \param  c   the ::u_config_t object that is manipulated
+ *  \param  key the key to insert
+ *  \param  val the value to insert
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on error
+ */
+int u_config_set_key (u_config_t *c, const char *key, const char *val)
+{
+    return u_config_do_set_key(c, key, val, 1 /* overwrite */, NULL);
+}
+
+/**
+ *  \brief  Load from an opaque data source
+ *
+ *  Load configuration data from a data source; a gets()-like function must
+ *  be provided by the caller to read the configuration line-by-line.
+ *
+ *  \param  c           an ::u_config_t object
+ *  \param  cb          line reader callback with \c gets(3) prototype
+ *  \param  arg         opaque argument passed to the \p cb function
+ *  \param  overwrite   if set to \c 1 overwrite keys with the same name,
+ *                      otherwise new key with the same name will be added
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on error
+ */
+int u_config_load_from (u_config_t *c, u_config_gets_t cb, void *arg, 
+        int overwrite)
+{
+    u_config_driver_t drv = { NULL, NULL, cb, NULL };
+
+    dbg_err_if(u_config_do_load_drv(c, &drv, arg, overwrite));
+
+    return 0;
+err:
+    return ~0;
+}
+
+/**
+ *  \brief  Load a configuration file.
+ *
+ *  Fill a config object with key/value pairs loaded from the configuration
+ *  file linked to the file descriptor \p fd. If \c overwrite is not zero,
+ *  values of keys with the same name will overwrite previous values, otherwise
+ *  new keys with the same name will be added.
+ *
+ *  \param  c           a ::u_config_t object
+ *  \param  fd          file descriptor opened for reading
+ *  \param  overwrite   if set to \c 1 overwrite keys with the same name,
+ *                      otherwise new key with the same name will be added
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on error
+ */
+int u_config_load (u_config_t *c, int fd, int overwrite)
+{
+    FILE *file = NULL;
+
+    /* must dup because fclose() calls close(2) on fd */
+    file = fdopen(dup(fd), "r");
+    dbg_err_if(file == NULL);
+
+    dbg_err_if(u_config_do_load_drv(c, &u_config_drv_fs, file, overwrite));
+
+    fclose(file);
+
+    return 0;
+err:
+    U_FCLOSE(file);
+    return ~0;
+}
+
+/**
+ *  \brief  Create a configuration object read from a configuration file
+ *
+ *  Create a configuration object reading from a config file
+ *
+ *  \param  file      the configuration file path name
+ *  \param  pc        value-result that will get the new configuration object
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on error
+ */
+int u_config_load_from_file (const char *file, u_config_t **pc)
+{
+    dbg_return_if (file == NULL, ~0);
+    dbg_return_if (pc == NULL, ~0);
+
+    dbg_err_if (u_config_load_from_drv(file, &u_config_drv_fs, 0, pc));
+
+    return 0;
+err:
+    return ~0;
+}
+
+/**
+ *  \brief  Create a config object
+ *
+ *  Create a new ::u_config_t object. The returned object is completely empty,
+ *  use ::u_config_set_key to set its key/value pairs
+ *
+ *  \param  pc  value-result that will get the new configuration object
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on failure
+ */
+int u_config_create (u_config_t **pc)
+{
+    u_config_t *c = NULL;
+
+    c = u_zalloc(sizeof(u_config_t));
+    dbg_err_sif (c == NULL);
+
+    TAILQ_INIT(&c->children);
+
+    *pc = c;
+
+    return 0;
+err:
+    if(c)
+        u_config_free(c);
+    return ~0;
+}
+
+/**
+ *  \brief  Remove a child (and all its sub-children) from a config object
+ *
+ *  Remove a child and all its sub-children from a config object.
+ *
+ *  \param  c       parent ::u_config_t object
+ *  \param  child   child to remove
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on failure
+ */
+int u_config_del_child (u_config_t *c, u_config_t *child)
+{
+    u_config_t *item;
+
+    TAILQ_FOREACH(item, &c->children, np)
+    {
+        if(item == child)   /* found */
+        {   
+            u_config_del_key(c, child);
+            dbg_err_if(u_config_free(child));
+            return 0;
+        }
+    }
+
+err:
+    return ~0;
+}
+
+/**
+ *  \brief  Free a config object and all its children.
+ *
+ *  Free a config object and all its children.
+ *
+ *  \param  c   configuration object
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on failure
+ */
+int u_config_free (u_config_t *c)
+{
+    u_config_t *child = NULL;
+
+    if (c)
+    {
+        /* free all children */
+        while ((child = TAILQ_FIRST(&c->children)) != NULL)
+        {
+            u_config_del_key(c, child);
+            (void) u_config_free(child);
+        }
+
+        /* free parent */
+        U_FREE(c->key);
+        U_FREE(c->value);
+        u_free(c);
+    }
+
+    return 0;
+}
+
+/**
+ *  \brief  Return the key of a config object.
+ *
+ *  Return the key string of the supplied ::u_config_t object \p c
+ *
+ *  \param  c   an ::u_config_t object
+ *
+ *  \return the key string reference on success (which could be \c NULL), 
+ *          and \c NULL if \p c is \c NULL
+ */
+const char *u_config_get_key (u_config_t *c)
+{
+    dbg_return_if (c == NULL, NULL);
+
+    return c->key;
+}
+
+/**
+ *  \brief  Return the value of a config object.
+ *
+ *  Return the value string of a config object.
+ *
+ *  \param  c   configuration object
+ *
+ *  \return the value string on success (which could be \c NULL), and \c NULL 
+ *          if \p c is \c NULL
+ */
+const char *u_config_get_value (u_config_t *c)
+{
+    dbg_return_if (c == NULL, NULL);
+
+    return c->value;
+}
+
+/**
+ *  \brief  Return the value of a subkey.
+ *
+ *  Return the value of the child config object whose key is \p subkey.
+ *
+ *  \param  c       configuration object
+ *  \param  subkey  the key value of the child config object
+ *
+ *  \return the value string on success, \c NULL on failure
+ */
+const char *u_config_get_subkey_value (u_config_t *c, const char *subkey)
+{
+    u_config_t *skey;
+
+    nop_err_if(u_config_get_subkey(c, subkey, &skey));
+
+    return u_config_get_value(skey);
+err:
+    return NULL;
+}
+
+/**
+ *  \brief  Return the value of an integer subkey.
+ *
+ *  Return the integer value (::u_atoi is used for conversion) of the child 
+ *  config object whose key is \p subkey.
+ *
+ *  \param  c       configuration object
+ *  \param  subkey  the key value of the child config object
+ *  \param  def     the value to return if the key is missing
+ *  \param  out     on exit will get the integer value of the key
+ *
+ *  \retval  0  on success
+ *  \retval ~0  if the key value is not an int
+ */
+int u_config_get_subkey_value_i (u_config_t *c, const char *subkey, int def, 
+        int *out)
+{
+    const char *v;
+
+    if((v = u_config_get_subkey_value(c, subkey)) == NULL)
+    {
+        *out = def;
+        return 0;
+    }
+
+    dbg_err_if (u_atoi(v, out));
+
+    return 0;
+err:
+    return ~0;
+}
+
+/**
+ *  \brief  Return the value of a boolean subkey.
+ *
+ *  Return the bool value of the child config object whose key is \p subkey.
+ *  Recognized bool values are (case insensitive) \c yes/no, \c 1/0, 
+ *  \c enable/disable.
+ *
+ *  \param c         configuration object
+ *  \param subkey    the key value of the child config object
+ *  \param def       the value to return if the key is missing 
+ *  \param out       on exit will get the bool value of the key
+ *
+ *  \retval  0  on success
+ *  \retval ~0  if the key value is not a bool keyword
+ */
+int u_config_get_subkey_value_b (u_config_t *c, const char *subkey, int def, 
+        int *out)
+{
+    const char *true_words[]  = { "yes", "enable", "1", "on", NULL };
+    const char *false_words[] = { "no", "disable", "0", "off", NULL };
+    const char *v, *w;
+    int i;
+
+    if((v = u_config_get_subkey_value(c, subkey)) == NULL)
+    {
+        *out = def;
+        return 0;
+    }
+
+    for(i = 0; (w = true_words[i]) != NULL; ++i)
+    {
+        if(!strcasecmp(v, w))
+        {
+            *out = 1;
+            return 0; /* ok */
+        }
+    }
+
+    for(i = 0; (w = false_words[i]) != NULL; ++i)
+    {
+        if(!strcasecmp(v, w))
+        {
+            *out = 0;
+            return 0; /* ok */
+        }
+    }
+
+    return ~0; /* not-bool value */
+}
+
+/**
+ *  \brief  Load a configuration object using the supplied ::u_config_driver_t
+ *
+ *  Load a configuration object from the resource specified by \p uri, using 
+ *  the supplied ::u_config_driver_t \p drv.  If successful, the loaded object
+ *  will be returned as a result-argument at \p *pc.
+ *
+ *  \param  uri         a string indicating the name of the resource from which
+ *                      the config object will be loaded.  If set (i.e. non
+ *                      \c NULL), it is supplied as-is to the open callback of 
+ *                      the \p drv object 
+ *  \param  drv         the configured ::u_config_driver_t that implements the
+ *                      interface to the resorce from which the config object
+ *                      is loaded
+ *  \param  overwrite   if set to \c 1 keys with the same name will be 
+ *                      overwritten, otherwise a key with the same name of
+ *                      an already existing one will be appended
+ *  \param  pc          on success, contains the reference to the created
+ *                      ::u_config_t object
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on failure
+ */
+int u_config_load_from_drv (const char *uri, u_config_driver_t *drv, 
+        int overwrite, u_config_t **pc)
+{
+    u_config_t *c = NULL;
+    void *arg = NULL;
+
+    dbg_err_if (uri == NULL);
+    dbg_err_if (pc == NULL);
+    dbg_err_if (drv == NULL);
+
+    dbg_err_if (drv->gets == NULL);
+
+    dbg_err_if (u_config_create(&c));
+
+    if(drv->open)
+        dbg_err_if (drv->open(uri, &arg));
+
+    dbg_err_if (u_config_do_load_drv(c, drv, arg, overwrite));
+
+    if(drv->close)
+        dbg_err_if (drv->close(arg));
+
+    *pc = c;
+
+    return 0;
+err:
+    if(arg && drv->close)
+        drv->close(arg);
+    if(c)
+        u_config_free(c);
+    return ~0;
+}
+
+/**
+ *  \brief  Tell if a given config object has children nodes
+ *
+ *  Tell if the supplied ::u_config_t object \p c has at least one child node
+ *
+ *  \param  c   an ::u_config_t object
+ *
+ *  \retval  1  if answer is yes
+ *  \retval  0  if answer is no
+ */
+int u_config_has_children (u_config_t *c)
+{
+    return (TAILQ_FIRST(&c->children) != NULL);
+}
+
+/**
+ *  \brief  Marshall a config object into a memory buffer
+ *
+ *  Serialize the supplied ::u_config_t object \p c and push it into the 
+ *  \p size bytes memory buffer \p buf.  In case the supplied buffer is too 
+ *  small the function returns an error.
+ *
+ *  \param  c       the candidate ::u_config_t object for serialization
+ *  \param  buf     a pre-allocated buffer of \p size bytes
+ *  \param  size    size in bytes of \p buf
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on failure
+ */
+int u_config_save_to_buf (u_config_t *c, char *buf, size_t size)
+{
+    u_string_t *s = NULL;
+
+    dbg_err_if(u_string_create(NULL, 0, &s));
+
+    dbg_err_if(u_config_to_str(c, s));
+
+    /* buffer too small */
+    warn_err_if(u_string_len(s) >= size);
+
+    (void) u_strlcpy(buf, u_string_c(s), size);
+
+    u_string_free(s);
+
+    return 0;
+err:
+    if(s)
+        u_string_free(s);
+    return ~0;
+}
+
+/**
+ *  \brief  Unmarshall a config object from a memory buffer
+ *
+ *  Read a config object from the memory buffer \p buf.  In case of success,
+ *  the newly created ::u_config_t object is given back via the result-argument
+ *  \p pc.
+ *
+ *  \param  buf a memory buffer containing a serialized config object
+ *  \param  len the dimension of \p buf in bytes
+ *  \param  pc  a result-argument carrying the deserialized config object
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on failure
+ */
+int u_config_load_from_buf (char *buf, size_t len, u_config_t **pc)
+{
+    u_config_driver_t drv = { NULL, NULL, u_config_buf_gets, NULL };
+    struct u_config_buf_s arg = { buf, len };
+    u_config_t *c = NULL;
+
+    dbg_err_if(u_config_create(&c));
+
+    dbg_err_if(u_config_do_load_drv(c, &drv, &arg, 0));
+
+    *pc = c;
+
+    return 0;
+err:
+    if(c)
+        u_config_free(c);
+    return ~0;
+}
+
+/**
+ *      \}
+ */
+
+static u_config_t *u_config_get_root (u_config_t *c)
+{
+    while(c->parent)
+        c = c->parent;
+    return c;
+}
+
 static int u_config_do_set_key(u_config_t *c, const char *key, const char *val, 
     int overwrite, u_config_t **pchild)
 {
@@ -431,17 +1031,7 @@ err:
     return ~0;
 }
 
-int u_config_add_key(u_config_t *c, const char *key, const char *val)
-{
-    return u_config_do_set_key(c, key, val, 0 /* don't overwrite */, NULL);
-}
-
-int u_config_set_key(u_config_t *c, const char *key, const char *val)
-{
-    return u_config_do_set_key(c, key, val, 1 /* overwrite */, NULL);
-}
-
-static int cs_getline(u_config_gets_t cb, void *arg, u_string_t *ln)
+static int cs_getline (u_config_gets_t cb, void *arg, u_string_t *ln)
 {
     enum { BUFSZ = 1024 };
     char buf[BUFSZ], *p = NULL;
@@ -468,7 +1058,7 @@ err:
     return ~0;
 }
 
-static int u_config_do_load_drv(u_config_t *c, u_config_driver_t *drv, 
+static int u_config_do_load_drv (u_config_t *c, u_config_driver_t *drv, 
         void *arg, int overwrite)
 {
     enum { MAX_NEST_LEV = 20 };
@@ -547,8 +1137,8 @@ static int u_config_do_load_drv(u_config_t *c, u_config_driver_t *drv,
         dbg_err_if(u_string_set(value, p, strlen(p)));
         dbg_err_if(u_string_trim(value));
 
-        if(!strcmp(u_string_c(key), "include") ||       /* forced dependency */
-                !strcmp(u_string_c(key), "-include"))   /* optional dependency */
+        if(!strcmp(u_string_c(key), "include") ||     /* forced dependency */
+                !strcmp(u_string_c(key), "-include")) /* optional dependency */
         {
             crit_err_ifm(u_string_len(value) == 0, "missing include filename");
 
@@ -596,7 +1186,7 @@ err:
     return ~0;
 }
 
-static int u_config_include(u_config_t *c, u_config_driver_t *drv, 
+static int u_config_include (u_config_t *c, u_config_driver_t *drv, 
         u_config_t *inckey, int overwrite)
 {
     u_config_t *subkey;
@@ -621,7 +1211,7 @@ static int u_config_include(u_config_t *c, u_config_driver_t *drv,
 
     dbg_err_if(p == NULL);
 
-    crit_err_ifm ( drv->open == NULL,
+    crit_err_ifm (drv->open == NULL,
         "'include' feature used but the 'open' driver callback is not defined");
 
     /* resolv the include filename */
@@ -650,372 +1240,13 @@ err:
     return ~0;
 }
 
-/**
- * \brief  Delete a child config object.
- *
- *  Delete a child config object. \c child must be a child of \c c.
- *
- * \param c         configuration object
- * \param child     the config object to delete
- *
- */
-static void u_config_del_key(u_config_t *c, u_config_t *child)
+/*  Delete a child config object. 'child' must be a child of 'c' */
+static void u_config_del_key (u_config_t *c, u_config_t *child)
 {
     TAILQ_REMOVE(&c->children, child, np);
 }
 
-/**
- * \brief  Load from an opaque data source
- *
- *  Load configuration data from a data source; a gets()-like function must
- *  be provided by the caller to read the configuration line-by-line.
- *
- *  Using this interface is not possibile to use the 'include' command; use
- *  u_config_load_from_file or u_config_load_from_drv instead.
- *
- * \param c         configuration object
- * \param cb        gets()-like callback
- * \param arg       opaque argument passed to the 'cb' function
- * \param overwrite     if 1 overwrite keys with the same name otherwise new
- *
- */
-int u_config_load_from(u_config_t *c, u_config_gets_t cb, 
-    void *arg, int overwrite)
-{
-    u_config_driver_t drv = { NULL, NULL, cb, NULL };
-
-    dbg_err_if(u_config_do_load_drv(c, &drv, arg, overwrite));
-
-    return 0;
-err:
-    return ~0;
-}
-
-/**
- * \brief  Load a configuration file.
- *
- *  Fill a config object with key/value pairs loaded from the configuration
- *  file linked to the descriptor \c fd. If \c overwrite is not zero 
- *  values of keys with the same name will overwrite previous values otherwise
- *  new keys with the same name will be added.
- *
- * \param c             configuration object
- * \param fd            file descriptor 
- * \param overwrite     if 1 overwrite keys with the same name otherwise new
- *                      key with the same name will be added
- *
- * \return \c 0 on success, not-zero on error.
- */
-int u_config_load(u_config_t *c, int fd, int overwrite)
-{
-    FILE *file = NULL;
-
-    /* must dup because fclose() calls close(2) on fd */
-    file = fdopen(dup(fd), "r");
-    dbg_err_if(file == NULL);
-
-    dbg_err_if(u_config_do_load_drv(c, &u_config_drv_fs, file, overwrite));
-
-    fclose(file);
-
-    return 0;
-err:
-    U_FCLOSE(file);
-    return ~0;
-}
-
-/**
- * \brief  Create a configuration object reading from a config file
- *
- * Create a configuration object reading from a config file
- *
- * \param file      file descriptor 
- * \param pc        value-result that will get the new configuration object
- *
- * \return \c 0 on success, not-zero on error.
- */
-int u_config_load_from_file (const char *file, u_config_t **pc)
-{
-    dbg_return_if (file == NULL, ~0);
-    dbg_return_if (pc == NULL, ~0);
-
-    dbg_err_if (u_config_load_from_drv(file, &u_config_drv_fs, 0, pc));
-
-    return 0;
-err:
-    return ~0;
-}
-
-/**
- * \brief  Create a config object.
- *
- *  Create a config object. Use u_config_set_key(...) to set its key/value 
- *  pairs.
- *
- * \param pc        value-result that will get the new configuration object
- *
- * \return \c 0 on success, not-zero on error.
- */
-int u_config_create(u_config_t **pc)
-{
-    u_config_t *c = NULL;
-
-    c = u_zalloc(sizeof(u_config_t));
-    dbg_err_if(c == NULL);
-
-    TAILQ_INIT(&c->children);
-
-    *pc = c;
-
-    return 0;
-err:
-    if(c)
-        u_config_free(c);
-    return ~0;
-}
-
-/**
- * \brief  Remove a child (and all its sub-children) from a config object
- *
- * Remove a child and  all its sub-children from a config object.
- *
- * \param c     configuration object
- * \param child     child to remove
- *
- * \return \c 0 on success, not zero on failure
- */
-int u_config_del_child(u_config_t *c, u_config_t *child)
-{
-    u_config_t *item;
-
-    TAILQ_FOREACH(item, &c->children, np)
-    {
-        if(item == child)
-        {   /* found */
-            u_config_del_key(c, child);
-            dbg_err_if(u_config_free(child));
-            return 0;
-        }
-    }
-
-err:
-    return ~0;
-}
-
-/**
- * \brief  Free a config object and all its children.
- *
- *  Free a config object and all its children.
- *
- * \param c     configuration object
- *
- * \return \c 0 on success, not zero on failure
- */
-int u_config_free(u_config_t *c)
-{
-    u_config_t *child = NULL;
-    if(c)
-    {
-        /* free all children */
-        while((child = TAILQ_FIRST(&c->children)) != NULL)
-        {
-            u_config_del_key(c, child);
-            dbg_err_if(u_config_free(child));
-        }
-        /* free parent */
-        if(c->key)
-            U_FREE(c->key);
-        if(c->value)
-            U_FREE(c->value);
-        U_FREE(c);
-    }
-    return 0;
-err:
-    return ~0;
-}
-
-/**
- * \brief  Return the key of a config object.
- *
- *  Return the key string of a config object.
- *
- * \param c         configuration object
- *
- * \return The key string pointer on success, \c NULL on failure
- */
-const char* u_config_get_key(u_config_t *c)
-{
-    dbg_err_if(!c);
-
-    return c->key;
-err:
-    return NULL;
-}
-
-/**
- * \brief  Return the value of a config object.
- *
- *  Return the value string of a config object.
- *
- * \param c         configuration object
- *
- * \return The value string pointer on success, \c NULL on failure
- */
-const char* u_config_get_value(u_config_t *c)
-{
-    dbg_err_if(!c);
-    
-    return c->value;
-err:
-    return NULL;
-}
-
-/**
- * \brief  Return the value of a subkey.
- *
- *  Return the value of the child config object whose key is \c subkey.
- *
- * \param c         configuration object
- * \param subkey    the key value of the child config object
- *
- * \return The value string pointer on success, \c NULL on failure
- */
-const char* u_config_get_subkey_value(u_config_t *c, const char *subkey)
-{
-    u_config_t *skey;
-
-    nop_err_if(u_config_get_subkey(c, subkey, &skey));
-
-    return u_config_get_value(skey);
-err:
-    return NULL;
-}
-
-/**
- * \brief  Return the value of an integer subkey.
- *
- *  Return the integer value (atoi is used for conversion) of the child config 
- *  object whose key is \c subkey.
- *
- * \param c         configuration object
- * \param subkey    the key value of the child config object
- * \param def       the value to return if the key is missing
- * \param out       on exit will get the integer value of the key
- *
- * \return 0 on success, not zero if the key value is not an int
- */
-int u_config_get_subkey_value_i(u_config_t *c, const char *subkey, int def, 
-    int *out)
-{
-    const char *v;
-    char *ep = NULL;
-    long l;
-
-    if((v = u_config_get_subkey_value(c, subkey)) == NULL)
-    {
-        *out = def; 
-        return 0;
-    }
-
-    l = strtol(v, &ep, 0);
-    dbg_err_if(*ep != '\0'); /* dirty int value (for ex. 123text) */
-
-    /* same cast used by atoi */
-    *out = (int)l;
-
-    return 0;
-err:
-    return ~0;
-}
-
-/**
- * \brief  Return the value of an bool subkey.
- *
- *  Return the bool value of the child config object whose key is \c subkey.
- *
- *  Recognized bool values are (case insensitive) yes/no, 1/0, enable/disable.
- *
- * \param c         configuration object
- * \param subkey    the key value of the child config object
- * \param def       the value to return if the key is missing 
- * \param out       on exit will get the bool value of the key
- *
- * \return 0 on success, not zero if the key value is not a bool keyword
- */
-int u_config_get_subkey_value_b(u_config_t *c, const char *subkey, int def,  
-    int *out)
-{
-    const char *true_words[]  = { "yes", "enable", "1", "on", NULL };
-    const char *false_words[] = { "no", "disable", "0", "off", NULL };
-    const char *v, *w;
-    int i;
-
-    if((v = u_config_get_subkey_value(c, subkey)) == NULL)
-    {
-        *out = def;
-        return 0;
-    }
-
-    for(i = 0; (w = true_words[i]) != NULL; ++i)
-    {
-        if(!strcasecmp(v, w))
-        {
-            *out = 1;
-            return 0; /* ok */
-        }
-    }
-
-    for(i = 0; (w = false_words[i]) != NULL; ++i)
-    {
-        if(!strcasecmp(v, w))
-        {
-            *out = 0;
-            return 0; /* ok */
-        }
-    }
-
-    return ~0; /* not-bool value */
-}
-
-int u_config_load_from_drv(const char *uri, u_config_driver_t *drv, 
-        int overwrite, u_config_t **pc)
-{
-    u_config_t *c = NULL;
-    void *arg = NULL;
-
-    dbg_err_if (uri == NULL);
-    dbg_err_if (pc == NULL);
-    dbg_err_if (drv == NULL);
-
-    dbg_err_if (drv->gets == NULL);
-
-    dbg_err_if (u_config_create(&c));
-
-    if(drv->open)
-        dbg_err_if (drv->open(uri, &arg));
-
-    dbg_err_if (u_config_do_load_drv(c, drv, arg, overwrite));
-
-    if(drv->close)
-        dbg_err_if (drv->close(arg));
-
-    *pc = c;
-
-    return 0;
-err:
-    if(arg && drv->close)
-        drv->close(arg);
-    if(c)
-        u_config_free(c);
-    return ~0;
-}
-
-int u_config_has_children(u_config_t *c)
-{
-    return (TAILQ_FIRST(&c->children) != NULL);
-}
-
-static int u_config_to_str(u_config_t *c, u_string_t *s)
+static int u_config_to_str (u_config_t *c, u_string_t *s)
 {
     u_config_t *item;
 
@@ -1042,36 +1273,7 @@ err:
     return ~0;
 }
 
-int u_config_save_to_buf(u_config_t *c, char *buf, size_t size)
-{
-    u_string_t *s = NULL;
-
-    dbg_err_if(u_string_create(NULL, 0, &s));
-
-    dbg_err_if(u_config_to_str(c, s));
-
-    /* buffer too small */
-    warn_err_if(u_string_len(s) >= size);
-
-    (void) u_strlcpy(buf, u_string_c(s), size);
-
-    u_string_free(s);
-
-    return 0;
-err:
-    if(s)
-        u_string_free(s);
-    return ~0;
-}
-
-/* gets() callback helper struct */
-struct u_config_buf_s
-{
-    char *data;
-    size_t len;
-};
-
-static char* u_config_buf_gets(void *arg, char *buf, size_t size)
+static char *u_config_buf_gets (void *arg, char *buf, size_t size)
 {
     struct u_config_buf_s *g = (struct u_config_buf_s*)arg;
     char *s = buf;
@@ -1105,28 +1307,3 @@ static char* u_config_buf_gets(void *arg, char *buf, size_t size)
 err:
     return NULL;
 }
-
-int u_config_load_from_buf(char *buf, size_t len, u_config_t **pc)
-{
-    u_config_driver_t drv = { NULL, NULL, u_config_buf_gets, NULL };
-    struct u_config_buf_s arg = { buf, len };
-    u_config_t *c = NULL;
-
-    dbg_err_if(u_config_create(&c));
-
-    dbg_err_if(u_config_do_load_drv(c, &drv, &arg, 0));
-
-    *pc = c;
-
-    return 0;
-err:
-    if(c)
-        u_config_free(c);
-    return ~0;
-}
-
-
-/**
- *      \}
- */
-

@@ -12,25 +12,74 @@
 extern "C" {
 #endif
 
+/* forward decl */
+struct u_config_s;
+
 /**
  *  \addtogroup config
  *  \{
  */
 
-/* forward decl */
-struct u_config_s;
-
 /** \brief  Configuration base type */
 typedef struct u_config_s u_config_t;
 
+/** \brief  Configuration loading driver callbacks */
 struct u_config_driver_s
 {
-    int (*open)(const char *uri, void **parg);
-    int (*close)(void *arg);
-    char *(*gets)(void *arg, char *buf, size_t size);
-    int (*resolv)(const char *name, char *uri, size_t uri_bufsz);
+    int (*open) (const char *uri, void **parg);
+    /**<    
+     *  Open the the resource pointed by \p uri and return its opaque handler
+     *  through the \p parg result argument.  The \p *parg (e.g. a file stream
+     *  pointer in case of a file system ::u_config_driver_t) will be possibly 
+     *  used by subsequent u_config_driver_s::close and u_config_driver_s::gets
+     *  callbacks.
+     *
+     *  \retval  0  on success
+     *  \retval ~0  on failure
+     */
+
+    int (*close) (void *arg);
+    /**< 
+     *  Close the (previously u_config_driver_s::open'ed) resource pointed by
+     *  \p arg. 
+     *
+     *  \retval  0  on success
+     *  \retval ~0  on failure
+     */
+
+    char *(*gets) (void *arg, char *buf, size_t size);
+    /**<  
+     *  fgets(3)-like function using a generic resource pointer \p arg.
+     *  The function reads at most one less than the number of characters 
+     *  specified by \p size from the resource handler pointed by \p arg, 
+     *  and stores them in the string \p buf.  Reading stops when a newline 
+     *  character is found, at end-of-file or error.  The newline, if any, 
+     *  is retained.  If any characters are read and there is no error, a 
+     *  \c \\0 character is appended to end the string.
+     *
+     *  \return Upon successful completion, a pointer to the string is 
+     *          returned.  If end-of-file occurs before any characters are 
+     *          read, return \c NULL and the buffer contents remain 
+     *          unchanged.  If an error occurs, return \c NULL and the 
+     *          buffer contents are indeterminate.
+     */
+
+    int (*resolv) (const char *name, char *uri, size_t uri_bufsz);
+    /**< 
+     *  Resolver function for mapping relative to absolute resource names, 
+     *  e.g. when handling an \c include directive from within another resource
+     *  object).  In case of success, the resolved \p uri can be used as first 
+     *  argument to a subsequent u_config_driver_s::open call.
+     *  The \p name argument is the relative resource name, \p uri is a
+     *  pre-alloc'd string of \p uri_bufsz bytes which will store the absolute
+     *  resource name in case the resolution is successful.
+     *
+     *  \retval  0  on success
+     *  \retval ~0  on failure
+     */
 };
 
+/** \brief  Configuration loading driver type */
 typedef struct u_config_driver_s u_config_driver_t;
 
 /**
