@@ -384,36 +384,38 @@ static int test_u_atoi (void)
         /* minimum value for INT_MAX (16-bit) */
         {   "32767",    32767,  0   },  
 
-        /* the string may begin with an arbitrary amount of white space 
-         * (as deter mined by isspace(3)) followed by a single optional `+' 
-         * or `-' sign. conversion stop at the first character which is not 
-         * a valid base-10 digit */
-        {   "123abc",   123,    0   },
-        {   "  +1+1",   1,      0   },
-        {   "abc123",   dummy,  ~0  },
-        {   "1b2c3",    1,      0   },
-        {   "bongo",    dummy,  ~0  },
+        /* check mixed numeric/non-numeric strings
+         * man strtol(3): the string may begin with an arbitrary amount of 
+         * white space (as determined by isspace(3)) followed by a single 
+         * optional `+' or `-' sign. conversion stop at the first character 
+         * which is not a valid base-10 digit */
+        {   "123abc",   123,    0   },  /* stop at 'a' */
+        {   "  +1+1",   1,      0   },  /* stop at the second '+' */
+        {   "abc123",   dummy,  ~0  },  /* stop at 'a' */
+        {   "1b2c3",    1,      0   },  /* stop at 'b' */
+        {   "bongo",    dummy,  ~0  },  /* stop at 'b' */
 
         /* check underflows */
 #if (INT_MIN < (-2147483647 - 1))       /* less than 32-bit */
-        {   "-2147483648",  dummy,      ~0 },
+        {   "-2147483648",  dummy,      ~0  },
 #elif (INT_MIN == (-2147483647 - 1))    /* 32-bit */
-        {   "-2147483648", -2147483648, 0 },
-        {   "-2147483649",  dummy,      ~0 },
+        {   "-2147483648", -2147483648, 0   },
+        {   "-2147483649",  dummy,      ~0  },
 #else                                   /* more than 32-bit */
-        {   "-2147483649", -2147483649, 0 },
+        {   "-2147483649", -2147483649, 0   },
 #endif
 
         /* check overflows */
 #if (INT_MAX < 2147483647)              /* less than 32-bit */
-        {   "2147483647",   dummy,      ~0 },
+        {   "2147483647",   dummy,      ~0  },
 #elif (INT_MAX == 2147483647)           /* 32-bit */
-        {   "2147483647",   2147483647, 0 },
-        {   "2147483648",   dummy,      ~0 },
-#else
+        {   "2147483647",   2147483647, 0   },
+        {   "2147483648",   dummy,      ~0  },
+#else                                   /* more than 32-bit */
+        {   "2147483648",   2147483648, 0   },
 #endif
 
-        {   NULL,       0,      0   }
+        {   NULL,   0,  0   }
     };
 
     for (i = 0; vt[i].in; ++i)

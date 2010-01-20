@@ -81,6 +81,9 @@ at configuration:
     - \c --no_sctp: to disable SCTP protocol support
     - \c --no_unixsock: to disable UNIX IPC support
 
+If you need to enable compatibility with (some, not all) 1.X interfaces, 
+specify the \c --compat_1x command line switch.
+
 \section    build Build, Test and Install
 
 When you are done with the configure step, you can build LibU bits and 
