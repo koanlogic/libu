@@ -4,45 +4,51 @@
 
 #include <stdlib.h>
 #include <errno.h>
-
 #include <toolbox/str.h>
 #include <toolbox/misc.h>
 #include <toolbox/carpal.h>
 #include <toolbox/memory.h>
 
-/**
- *  \defgroup string String
- *  \{
- */
+enum { BLOCK_SIZE = 64 };
 
 /* null strings will be bound to the null char* */
 static char null_cstr[1] = { 0 };
-static char* null = null_cstr;
+static char *null = null_cstr;
 
 /* internal string struct */
 struct u_string_s
 {
     char *data;
-    size_t data_sz, data_len, shift_cnt;
+    size_t data_sz;     /* total malloc'c bytes starting from .data */
+    size_t data_len;    /* strlen(3) of the NUL-terminated string */
+    size_t shift_cnt;
 };
 
-static int u_string_do_vprintf(u_string_t *, int, const char *, va_list);
+static int u_string_do_vprintf (u_string_t *, int, const char *, va_list);
 
 /**
- * \brief  Remove leading and trailing blanks
- *
- * Remove leading and trailing blanks from the given string
- *
- * \param s     string object
- *
- * \return \c 0 on success, not zero on failure
+    \defgroup string String
+    \{
+        The \ref string module ...
  */
-int u_string_trim(u_string_t *s)
+
+/**
+ *  \brief  Remove leading and trailing blanks
+ *
+ *  Remove leading and trailing blanks from the given string
+ *
+ *  \param  s   an ::u_string_t object
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on failure
+ */
+int u_string_trim (u_string_t *s)
 {
-    if(s->data_len)
+    dbg_return_if (s == NULL, ~0);
+
+    if (s->data_len > 0)
     {
         u_trim(s->data);
-
         s->data_len = strlen(s->data);
     }
 
@@ -50,89 +56,105 @@ int u_string_trim(u_string_t *s)
 }
 
 /**
- * \brief  Set the length of a string (shortening it)
- * 
+ *  \brief  Set the length of a string (shortening it)
  *
- * \param s     string object
- * \param len   on success \a s will be \a len chars long
+ *  Set the length of the supplied string \p s to \p len
  *
- * \return \c 0 on success, not zero on failure
+ *  \param  s   an ::u_string_t object
+ *  \param  len new (shorter) length of \p s
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on failure
  */
-int u_string_set_length(u_string_t *s, size_t len)
+int u_string_set_length (u_string_t *s, size_t len)
 {
-    dbg_err_if(len > s->data_len);
+    dbg_return_if (s == NULL, ~0);
+    dbg_return_if (len > s->data_len, ~0);
 
-    if(len < s->data_len)
+    if (len < s->data_len)
     {
         s->data_len = len;
-        s->data[len] = 0;
+        s->data[len] = '\0';
     }
 
+    /* if (len == s->data_len) do nothing */ 
+
     return 0;
-err:
-    return ~0;
 }
 
 /**
- * \brief  Return the string length
+ *  \brief  Return the string length
  *
- * Return the length of the given string.
+ *  Return the length of the given string \p s
  *
- * \param s     string object
+ *  \param  s   an ::u_string_t object
  *
- * \return the string length
+ *  \return the string length
  */
-inline size_t u_string_len(u_string_t *s)
+inline size_t u_string_len (u_string_t *s)
 {
+    dbg_return_if (s == NULL, 0);
+
     return s->data_len;
 }
 
 /**
- * \brief  Return the string value
+ *  \brief  Return the string value
  *
- * Return the const char* value of the given string object. Such const char*
- * value cannot be modified, realloc'd or free'd.
+ *  Return the NUL-terminated C string handled by the given ::u_string_t 
+ *  object \p s.  Such const value cannot be modified, realloc'd nor free'd.
  *
- * \param s     string object
+ *  \param  s   an ::u_string_t object
  *
- * \return the string value or NULL if the string is empty
+ *  \return the string value or \c NULL if the string is empty
  */
-inline const char *u_string_c(u_string_t *s)
+inline const char *u_string_c (u_string_t *s)
 {
+    dbg_return_if (s == NULL, NULL);
+
     return s->data;
 }
 
 /**
- * \brief  Copy the value of a string to another
+ *  \brief  Copy the value of a string to another
  *
- * Copy \a src string to \a dst string. 
+ *  Copy \p src string to \p dst string.  Both \p src and \p dst must be
+ *  already TODO...
  *
- * \param dst   destination string
- * \param src   source string
+ *  \param  dst destination ::u_string_t object
+ *  \param  src source ::u_string_t object
  *
- * \return \c 0 on success, not zero on failure
+ *  \retval  0  on success
+ *  \retval ~0  on failure
  */
-inline int u_string_copy(u_string_t *dst, u_string_t *src)
+inline int u_string_copy (u_string_t *dst, u_string_t *src)
 {
-    u_string_clear(dst);
+    dbg_return_if (dst == NULL, ~0);
+    dbg_return_if (src == NULL, ~0);
+
+    (void) u_string_clear(dst);
+
     return u_string_append(dst, src->data, src->data_len);
 }
 
 /**
- * \brief  Clear a string
+ *  \brief  Clear a string
  *
- * Totally erase the content of the given string.
+ *  Erase the content of the given ::u_string_t object \p s
  *
- * \param s     string object
+ *  \param  s   an ::u_string_t object
  *
- * \return \c 0 on success, not zero on failure
+ *  \retval  0  on success
+ *  \retval ~0  on failure
  */
-int u_string_clear(u_string_t *s)
+int u_string_clear (u_string_t *s)
 {
-    /* clear the string but not deallocate the buffer */
-    if(s->data_sz)
+    dbg_return_if (s == NULL, ~0);
+
+    /* clear the string but do not free the buffer */
+    if (s->data_sz)
     {
-        s->data[0] = 0;
+        s->data[0] = '\0';
         s->data_len = 0;
     }
 
@@ -140,104 +162,111 @@ int u_string_clear(u_string_t *s)
 }
 
 /**
- * \brief  Create a new string
+ *  \brief  Create a new string
  *
- * Create a new string object and save its pointer to \a *ps.
+ *  Create a new ::u_string_t object and save its reference to \p *ps.
+ *  If \p buf is not \c NULL (and <code>len > 0</code>), the string will be 
+ *  initialized with the content of \p buf
  *
- * If \a buf is not NULL (and \a len > 0) the string will be initialized with
- * the content of \a buf.
+ *  \param  buf initial string value, or \c NULL
+ *  \param  len length of \p buf
+ *  \param  ps  result argument that will get the newly created ::u_string_t
+ *              object on success
  *
- * \param buf   initial string value
- * \param len   length of \a buf
- * \param ps    on success will get the new string object
- *
- * \return \c 0 on success, not zero on failure
+ *  \retval  0  on success
+ *  \retval ~0  on failure
  */
-int u_string_create(const char *buf, size_t len, u_string_t **ps)
+int u_string_create (const char *buf, size_t len, u_string_t **ps)
 {
     u_string_t *s = NULL;
 
-    s = u_zalloc(sizeof(u_string_t));
-    dbg_err_sif(s == NULL);
+    dbg_return_if (ps == NULL, ~0);
+
+    dbg_err_sif ((s = u_zalloc(sizeof(u_string_t))) == NULL);
 
     s->data = null;
 
-    if(buf)
-        dbg_err_if(u_string_append(s, buf, len));
+    if (buf)
+        dbg_err_if (u_string_append(s, buf, len));
 
     *ps = s;
 
     return 0;
 err:
+    if (s)
+        u_string_free(s);
     return ~0;
 }
 
-
 /**
- * \brief  Free a string
+ *  \brief  Free a string
  *
- * Release all resources and free the given string object.
+ *  Release all resources allocated to the supplied ::u_string_t object \p s 
  *
- * \param s     string object
+ *  \param  s   the ::u_string_t object that will be destroyed
  *
- * \return \c 0 on success, not zero on failure
+ *  \retval  0  always
  */
-int u_string_free(u_string_t *s)
+int u_string_free (u_string_t *s)
 {
-    if(s)
+    if (s)
     {
-        if(s->data_sz)
+        if (s->data_sz)
             U_FREE(s->data);
-        U_FREE(s);
+        u_free(s);
     }
+
     return 0;
 }
 
-
 /**
- * \brief  Set the value of a string
+ *  \brief  Set the value of a string
  *
- * Set the value of \a s to \a buf.
+ *  Set the value of the supplied \p s to \p buf
  *
- * \param s     string object
- * \param buf   the value that will be copied to \a s
- * \param len   length of \a buf
+ *  \param  s   an ::u_string_t object
+ *  \param  buf the value that will be assigned to \p s
+ *  \param  len length of \p buf
  *
- * \return \c 0 on success, not zero on failure
+ *  \retval  0  on success
+ *  \retval ~0  on failure
  */
-int u_string_set(u_string_t *s, const char *buf, size_t len)
+int u_string_set (u_string_t *s, const char *buf, size_t len)
 {
-    u_string_clear(s);
+    dbg_return_if (s == NULL, ~0);
+
+    (void) u_string_clear(s);
+
     return u_string_append(s, buf, len);
 }
 
 /**
- * \brief  Enlarge the underlying memory block of the given buffer
+ *  \brief  Enlarge the underlying memory block of the given buffer
  *
- * Enlarge the buffer data block to (at least) \a size bytes.
+ *  Enlarge the buffer data block of the supplied ::u_string_t object \p s 
+ *  to (at least) \p size bytes.
  *
- * \param s     string object
- * \param size  requested size
+ *  \param  s       an ::u_string_t object
+ *  \param  size    the requested new size
  *
- * \return \c 0 on success, not zero on failure
+ *  \retval  0  on success
+ *  \retval ~0  on failure
  */
-int u_string_reserve(u_string_t *s, size_t size)
+int u_string_reserve (u_string_t *s, size_t size)
 {
-    char *nbuf;
+    char *nbuf = NULL;
 
-    dbg_err_if(s == NULL);
-
-    if(size <= s->data_sz)
-        return 0; /* nothing to do */
+    dbg_return_if (s == NULL, ~0);
+    nop_return_if (size <= s->data_sz, 0);
    
-    /* size plus 1 char to store a '\0' */
-    nbuf = u_realloc( ((s->data == null) ? NULL : s->data), size+1);
-    dbg_err_if(nbuf == NULL);
+    /* realloc requested size plus 1 char to store the terminating '\0' */
+    nbuf = u_realloc(((s->data == null) ? NULL : s->data), size + 1);
+    dbg_err_sif (nbuf == NULL);
 
     /* zero terminate it */
-    nbuf[size] = 0;
+    nbuf[size] = '\0';
 
-    s->data = (void*)nbuf;
+    s->data = (void *) nbuf;
     s->data_sz = size;
 
     return 0;
@@ -245,17 +274,147 @@ err:
     return ~0;
 }
 
+/**
+ *  \brief  Set or append a printf-style format string to the given string
+ *
+ *  Set or append (depending on \p clear value) the printf-style format string 
+ *  \p fmt to the given ::u_string_t object \p s
+ *
+ *  \param  s     an ::u_string_t object
+ *  \param  clear \c 1 to set, \c 0 to append
+ *  \param  fmt   printf-style format
+ *  \param  ...   variable list of arguments that feed \p fmt
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on failure
+ */
+int u_string_do_printf (u_string_t *s, int clear, const char *fmt, ...)
+{
+    int rc;
+    va_list ap;
 
-static int u_string_do_vprintf(u_string_t *s, int clear, const char *fmt, 
+    va_start(ap, fmt);
+    rc = u_string_do_vprintf(s, clear, fmt, ap);
+    va_end(ap);
+
+    return rc;
+}
+
+/**
+ *  \brief  Append a NUL-terminated string to a string object
+ *
+ *  Append the NUL-terminated string \p buf to the ::u_string_t object \p s
+ *
+ *  \param  s   an ::u_string_t object
+ *  \param  buf NUL-terminated string that will be appended to \p s
+ *  \param  len length of \p buf
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on failure
+ */
+int u_string_append (u_string_t *s, const char *buf, size_t len)
+{
+    size_t nsz, min;
+
+    dbg_return_if (s == NULL, ~0);
+    dbg_return_if (buf == NULL, ~0);
+    nop_return_if (len == 0, 0);    /* nothing to do */
+
+    /* if there's not enough space on s->data alloc a bigger buffer */
+    if (s->data_len + len + 1 > s->data_sz)
+    {
+        min = s->data_len + len + 1; /* min required buffer length */
+        nsz = s->data_sz;
+        while (nsz <= min)
+            nsz += (BLOCK_SIZE << s->shift_cnt++);
+
+        dbg_err_if (u_string_reserve(s, nsz));
+    }
+
+    /* append this chunk to the data buffer */
+    strncpy(s->data + s->data_len, buf, len);
+    s->data_len += len;
+    s->data[s->data_len] = '\0';
+    
+    return 0;
+err:
+    return ~0;
+}
+
+/**
+ *  \brief  Set the string from sprintf-style arguments
+ *
+ *  Set an ::u_string_t object \p s from the sprintf-style arguments \p fmt
+ *
+ *  \param  s   an ::u_string_t object
+ *  \param  fmt printf-style format
+ *  \param  ... variable list of arguments that feed \p fmt
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on failure
+ */
+int u_string_sprintf (u_string_t *s, const char *fmt, ...)
+{
+    int rc;
+    va_list ap;
+
+    va_start(ap, fmt);
+    rc = u_string_do_vprintf(s, 1, fmt, ap);
+    va_end(ap);
+
+    return rc;
+}
+
+/**
+ * \brief  Append a printf-style format string to the given string
+ *
+ * Append a printf-style format string to the given string.
+ *
+ * \param s     string object
+ * \param fmt   printf-style format
+ * \param ...   variable list of arguments
+ *
+ * \return \c 0 on success, not zero on failure
+ */
+
+/**
+ *  \brief  Set the string from sprintf-style arguments
+ *
+ *  Append the format string \p fmt to the supplied ::u_string_t object \p s 
+ *
+ *  \param  s   an ::u_string_t object
+ *  \param  fmt printf-style format
+ *  \param  ... variable list of arguments that feed \p fmt
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on failure
+ */
+int u_string_aprintf (u_string_t *s, const char *fmt, ...)
+{
+    int rc;
+    va_list ap;
+
+    va_start(ap, fmt);
+    rc = u_string_do_vprintf(s, 0, fmt, ap);
+    va_end(ap);
+
+    return rc;
+}
+
+/**
+ *      \}
+ */
+
+static int u_string_do_vprintf (u_string_t *s, int clear, const char *fmt, 
         va_list ap)
 {
     size_t sz, avail;
     va_list apcpy;
 
-    dbg_return_if(s == NULL, ~0);
-    dbg_return_if(fmt == NULL, ~0);
+    dbg_return_if (s == NULL, ~0);
+    dbg_return_if (fmt == NULL, ~0);
 
-    if(clear)
+    if (clear)
         u_string_clear(s);
 
 again:
@@ -274,11 +433,10 @@ again:
 
     if (sz >= avail)
     {
-
-        dbg_err_if(u_string_reserve(s, s->data_sz + s->data_len + 2*sz + 1));
+        dbg_err_if (u_string_reserve(s, s->data_sz + s->data_len + 2 * sz + 1));
 
         /* trunc the buffer again since vsnprintf could have overwritten '\0' */
-        s->data[s->data_len] = 0;
+        s->data[s->data_len] = '\0';
 
         goto again;
     }
@@ -290,140 +448,3 @@ again:
 err:
     return ~0;
 }
-
-int u_string_do_printf(u_string_t *s, int clear, const char *fmt, ...)
-{
-    va_list ap;
-
-    va_start(ap, fmt);
-    dbg_err_if (u_string_do_vprintf(s, clear, fmt, ap));
-    va_end(ap);
-
-    return 0;
-err:
-    va_end(ap);
-    return ~0;
-}
-
-
-/**
- * \brief  Append a char* to a string
- *
- * Append a char* value to the given string. 
- *
- * \param s     string object
- * \param buf   the value that will be appended to \a s
- * \param len   length of \a buf
- *
- * \return \c 0 on success, not zero on failure
- */
-int u_string_append(u_string_t *s, const char *buf, size_t len)
-{
-    size_t nsz, min;
-
-    if(!len)
-        return 0; /* nothing to do */
-
-    /* if there's not enough space on s->data alloc a bigger buffer */
-    if(s->data_len + len + 1 > s->data_sz)
-    {
-        min = s->data_len + len + 1; /* min required buffer length */
-        nsz = s->data_sz;
-        while(nsz <= min)
-            nsz += (BLOCK_SIZE << s->shift_cnt++);
-
-        dbg_err_if(u_string_reserve(s, nsz));
-    }
-
-    /* append this chunk to the data buffer */
-    strncpy(s->data + s->data_len, buf, len);
-    s->data_len += len;
-    s->data[s->data_len] = 0;
-    
-    return 0;
-err:
-    return ~0;
-}
-
-/**
- * \def u_string_sprintf
- * \brief  Set the string from sprintf-style arguments
- *
- * Set a string from the sprintf-style arguments
- *
- * \param s     string object
- * \param fmt   printf-style format
- * \param ...   variable list of arguments
- *
- * \return \c 0 on success, not zero on failure
- */
-int u_string_sprintf(u_string_t *s, const char *fmt, ...)
-{
-    va_list ap;
-
-    va_start(ap, fmt);
-    dbg_err_if (u_string_do_vprintf(s, 1, fmt, ap));
-    va_end(ap);
-
-    return 0;
-err:
-    va_end(ap);
-    return ~0;
-}
-
-
-/**
- * \brief  Append a printf-style format string to the given string
- *
- * Append a printf-style format string to the given string.
- *
- * \param s     string object
- * \param fmt   printf-style format
- * \param ...   variable list of arguments
- *
- * \return \c 0 on success, not zero on failure
- */
-int u_string_aprintf(u_string_t *s, const char *fmt, ...)
-{
-    va_list ap;
-
-    va_start(ap, fmt);
-    dbg_err_if (u_string_do_vprintf(s, 0, fmt, ap));
-    va_end(ap);
-
-    return 0;
-err:
-    va_end(ap);
-    return ~0;
-}
-
-
-/**
- * \def u_string_ncat
- * \brief  Append at most \p len characterss to a string
- *
- * Append a char* value to the given string. 
- *
- * \param s     string object
- * \param buf   the value that will be appended to \a s
- * \param len   length of \a buf
- *
- * \return \c 0 on success, not zero on failure
- */
-
-/**
- * \def u_string_cat
- * \brief  Append a char* to a string
- *
- * Append a char* value to the given string. 
- *
- * \param s     string object
- * \param buf   the value that will be appended to \a s
- *
- * \return \c 0 on success, not zero on failure
- */
-
-
-/**
- *      \}
- */

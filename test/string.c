@@ -9,6 +9,8 @@
 #include <signal.h>
 #include <u/libu.h>
 
+U_TEST_SUITE(string);
+
 static int test_u_str(void)
 {
     u_string_t *s = NULL;
