@@ -43,7 +43,7 @@ extern u_config_driver_t u_config_drv_mem;
 
 static u_config_t *u_config_get_root (u_config_t *c);
 static int u_config_do_set_key (u_config_t *c, const char *key, const char *val,
-    int overwrite, u_config_t **pchild);
+        int overwrite, u_config_t **pchild);
 static int cs_getline (u_config_gets_t cb, void *arg, u_string_t *ln);
 static int u_config_do_load_drv (u_config_t *c, u_config_driver_t *drv, 
         void *arg, int overwrite);
@@ -200,7 +200,7 @@ int u_config_sort_children (u_config_t *c,
 
     /* sort the list */
     qsort(children, count, sizeof(u_config_t *), 
-            (int(*)(const void *,const void *)) config_cmp);
+            (int(*)(const void *, const void *)) config_cmp);
 
     /* remove all items from the list */
     while((child = TAILQ_FIRST(&c->children)) != NULL)
@@ -1003,8 +1003,8 @@ static u_config_t *u_config_get_root (u_config_t *c)
     return c;
 }
 
-static int u_config_do_set_key(u_config_t *c, const char *key, const char *val, 
-    int overwrite, u_config_t **pchild)
+static int u_config_do_set_key(u_config_t *c, const char *key, const char *val,
+        int overwrite, u_config_t **pchild)
 {
     u_config_t *child = NULL;
     char *p, *child_key;
@@ -1168,7 +1168,6 @@ static int u_config_do_load_drv (u_config_t *c, u_config_driver_t *drv,
                         u_string_c(key), 
                         u_string_len(value) ? u_string_c(value) : NULL, 
                         overwrite, NULL));
-
     }
     
     u_string_free(lastkey);
