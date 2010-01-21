@@ -227,7 +227,7 @@ void* u_list_first(u_list_t *list, void **it)
  *
  *  void *it;
  *  my_t *my;
- *  for(my = u_list_first(list, &it); my; my = u_list_next(list, &ut))
+ *  for(my = u_list_first(list, &it); my; my = u_list_next(list, &it))
  *      ...
  * 
  *  \return \c the requested item or NULL if \c item is the last one

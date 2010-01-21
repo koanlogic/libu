@@ -54,6 +54,10 @@ typedef enum {
         U_ARRAY_TYPE_LONG_LONG,             /**< <tt>long long</tt> */
         U_ARRAY_TYPE_U_LONG_LONG,           /**< <tt>unsigned long long</tt> */
 #endif  /* HAVE_LONG_LONG */
+#ifdef HAVE_INTMAX_T
+        U_ARRAY_TYPE_INTMAX,                /**< <tt>intmax_t</tt> */
+        U_ARRAY_TYPE_U_INTMAX,              /**< <tt>uintmax_t</tt> */
+#endif  /* HAVE_INTMAX_T */
         U_ARRAY_TYPE_FLOAT,                 /**< \c float */
         U_ARRAY_TYPE_DOUBLE,                /**< \c double */
 #ifdef HAVE_LONG_DOUBLE
@@ -212,6 +216,21 @@ int u_array_get_long_long (u_array_t *da, size_t idx, long long *pv);
 /** \brief  Getter for the \c unsigned \c long \c long type */
 int u_array_get_u_long_long (u_array_t *da, size_t idx, unsigned long long *pv);
 #endif  /* HAVE_LONG_LONG */
+
+#ifdef HAVE_INTMAX_T
+/** \brief  Setter for the \c intmax_t type */
+int u_array_set_intmax (u_array_t *da, size_t idx, intmax_t v, intmax_t *pold);
+
+/** \brief  Setter for the \c uintmax_t type */
+int u_array_set_u_intmax (u_array_t *da, size_t idx, uintmax_t v, 
+        uintmax_t *pold);
+
+/** \brief  Getter for the \c intmax_t type */
+int u_array_get_intmax (u_array_t *da, size_t idx, intmax_t *pv);
+
+/** \brief  Getter for the \c uintmax_t type */
+int u_array_get_u_intmax (u_array_t *da, size_t idx, uintmax_t *pv);
+#endif  /* HAVE_INTMAX_T */
 
 #ifdef HAVE_LONG_DOUBLE
 /** \brief  Setter for the \c long \c double type */

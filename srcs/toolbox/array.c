@@ -39,6 +39,10 @@ static size_t sizeof_type[U_ARRAY_TYPE_MAX + 1] =
     sizeof(long long),              /* U_ARRAY_TYPE_LONG_LONG           */
     sizeof(unsigned long long),     /* U_ARRAY_TYPE_U_LONG_LONG         */
 #endif  /* HAVE_LONG_LONG */
+#ifdef HAVE_INTMAX_T
+    sizeof(intmax_t),               /* U_ARRAY_TYPE_INTMAX              */
+    sizeof(uintmax_t),              /* U_ARRAY_TYPE_U_INTMAX            */
+#endif  /* HAVE_INTMAX_T */
     sizeof(float),                  /* U_ARRAY_TYPE_FLOAT               */
     sizeof(double),                 /* U_ARRAY_TYPE_DOUBLE              */
 #ifdef HAVE_LONG_DOUBLE
@@ -249,6 +253,11 @@ U_ARRAY_GETSET_F(_bool, U_ARRAY_TYPE_BOOL, bool)
 U_ARRAY_GETSET_F(_long_long, U_ARRAY_TYPE_LONG_LONG, long long)
 U_ARRAY_GETSET_F(_u_long_long, U_ARRAY_TYPE_U_LONG_LONG, unsigned long long)
 #endif  /* HAVE_LONG_LONG */
+
+#ifdef HAVE_INTMAX_T
+U_ARRAY_GETSET_F(_intmax, U_ARRAY_TYPE_INTMAX, intmax_t)
+U_ARRAY_GETSET_F(_u_intmax, U_ARRAY_TYPE_U_INTMAX, uintmax_t)
+#endif  /* HAVE_INTMAX_T */
 
 #ifdef HAVE_LONG_DOUBLE
 U_ARRAY_GETSET_F(_long_double, U_ARRAY_TYPE_LONG_DOUBLE, long double)
