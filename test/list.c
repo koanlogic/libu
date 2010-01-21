@@ -15,19 +15,15 @@ static int test_list_iterator(void)
 {
     enum { ITERS = 300 };
     u_list_t *l = NULL;
-    int i, tot0, tot1;
     void *it;
-    int v;
+    size_t j;
+    intptr_t i, v, tot0, tot1;
 
     con_err_if(u_list_create(&l));
-    
-    u_list_foreach(l, v, it)
-    {
-        con_err("expecting no items!");
-    }
 
-    tot0 = 0;
-    for(i = 1; i < ITERS; ++i)
+    con_err_ifm (u_list_count(l), "expecting no items!");
+
+    for (tot0 = 0, i = 1; i < ITERS; ++i)
     {
         con_err_if(u_list_add(l, (void*)i));
         tot0 += i;
@@ -39,23 +35,30 @@ static int test_list_iterator(void)
         tot0 += i;
     }
 
-    tot1 = 0;
-    u_list_foreach(l, v, it)
+    for (tot1 = 0, v = (intptr_t) u_list_first(l, &it); 
+            v != 0;
+            v = (intptr_t) u_list_next(l, &it))
+    {
         tot1 += v;
+    }
 
     con_err_if(tot0 != tot1);
 
     /* remove some items */
     size_t c = u_list_count(l)/2;
-    for(i = 0; i < c; ++i)
+    for(j = 0; j < c; ++j)
     {
         u_list_del_n(l, 0, (void*)&v);
         tot0 -= v;
     }
 
-    tot1 = 0;
-    u_list_foreach(l, v, it)
+    for (tot1 = 0, v = (intptr_t) u_list_first(l, &it); 
+            v != 0; 
+            v = (intptr_t) u_list_next(l, &it))
+    {
         tot1 += v;
+    }
+
     con_err_if(tot0 != tot1);
 
     u_list_free(l);
@@ -69,7 +72,8 @@ static int test_list_ins (void)
 {
     enum { ITERS = 3 };
     u_list_t *l = NULL;
-    int i;
+//    int i;
+    uintptr_t i;
     void* prev;
 
     con_err_if(u_list_create(&l));
@@ -88,7 +92,7 @@ static int test_list_ins (void)
     con_err_if(u_list_insert(l, (void*)99, u_list_count(l)));
 
     con_err_if(u_list_del_n(l, 0, &prev));
-    con_err_if((int)prev != 99);
+    con_err_if((uintptr_t) prev != 99);
 
     con_err_if(u_list_del_n(l, u_list_count(l)-1, &prev));
     con_err_if((int)prev != 99);
@@ -101,14 +105,14 @@ static int test_list_ins (void)
     for(i = 0; i < ITERS; ++i)
         con_err_if(u_list_insert(l, (void*)99, 2));
 
-    for(i = 0; i < ITERS; ++i)
+    for (i = 0; i < ITERS; ++i)
     {
-        con_err_if(u_list_del_n(l, 2, &prev));
-        con_err_if((int)prev != 99);
+        con_err_if (u_list_del_n(l, 2, &prev));
+        con_err_if ((uintptr_t) prev != 99);
     }
 
-    for(i = 0; i < u_list_count(l); ++i)
-        con_err_if(i != (int)u_list_get_n(l, i));
+    for (i = 0; i < (uintptr_t) u_list_count(l); ++i)
+        con_err_if (i != (uintptr_t) u_list_get_n(l, i));
 
     u_list_free(l);
 
