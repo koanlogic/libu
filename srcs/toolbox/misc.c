@@ -723,12 +723,13 @@ int u_atoi (const char *nptr, int *pi)
  
     tmp = strtol(nptr, &endptr, 10);
     
-    /* chech if no valid digits where supplied:
-     * glibc does not handle this as an explicit error */
-    dbg_err_ifm (nptr == endptr, "no digits here");
-    
     dbg_err_sif (tmp == 0 && errno == EINVAL);
     dbg_err_sif ((tmp == LONG_MIN || tmp == LONG_MAX) && errno == ERANGE);
+
+    /* check if no valid digit string was supplied
+     * glibc does not handle this as an explicit error (would return
+     * 0 with errno unset) */
+    dbg_err_ifm (nptr == endptr, "invalid base10 string: %s", nptr);
 
     /* check overflows/underflows when int bits are less than long bits */
 #if (INT_MAX < LONG_MAX) 
