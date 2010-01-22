@@ -63,16 +63,15 @@ static int test_list_iterator(void)
 
     u_list_free(l);
 
-    return 0;
+    return U_TEST_EXIT_SUCCESS;
 err:
-    return ~0;
+    return U_TEST_EXIT_FAILURE;
 }
 
 static int test_list_ins (void)
 {
     enum { ITERS = 3 };
     u_list_t *l = NULL;
-//    int i;
     uintptr_t i;
     void* prev;
 
@@ -116,9 +115,12 @@ static int test_list_ins (void)
 
     u_list_free(l);
 
-    return 0;
+    return U_TEST_EXIT_SUCCESS;
 err:
-    return ~0;
+    if (l)
+        u_list_free(l);
+
+    return U_TEST_EXIT_FAILURE;
 }
 
 U_TEST_SUITE( list )

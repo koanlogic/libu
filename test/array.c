@@ -36,11 +36,11 @@ static int test_resize (void)
 
     u_array_free(da);
 
-    return 0;
+    return U_TEST_EXIT_SUCCESS;
 err:
     u_array_free(da);
 
-    return -1;
+    return U_TEST_EXIT_FAILURE;
 }
 
 static int test_short (void)
@@ -60,11 +60,11 @@ static int test_short (void)
 
     u_array_free(da);
 
-    return 0;
+    return U_TEST_EXIT_SUCCESS;
 err:
     u_array_free(da);
 
-    return -1;
+    return U_TEST_EXIT_FAILURE;
 }
 
 static int test_ptr (void)
@@ -94,11 +94,11 @@ static int test_ptr (void)
 
     u_array_free(da);
 
-    return 0;
+    return U_TEST_EXIT_SUCCESS;
 err:
     u_array_free(da);
 
-    return -1;
+    return U_TEST_EXIT_FAILURE;
 }
 
 static int test_u_short (void)
@@ -118,11 +118,11 @@ static int test_u_short (void)
 
     u_array_free(da);
 
-    return 0;
+    return U_TEST_EXIT_SUCCESS;
 err:
     u_array_free(da);
 
-    return -1;
+    return U_TEST_EXIT_FAILURE;
 }
 
 static int test_char (void)
@@ -142,11 +142,11 @@ static int test_char (void)
 
     u_array_free(da);
 
-    return 0;
+    return U_TEST_EXIT_SUCCESS;
 err:
     u_array_free(da);
 
-    return -1;
+    return U_TEST_EXIT_FAILURE;
 }
 
 static int test_u_char (void)
@@ -166,11 +166,11 @@ static int test_u_char (void)
 
     u_array_free(da);
 
-    return 0;
+    return U_TEST_EXIT_SUCCESS;
 err:
     u_array_free(da);
 
-    return -1;
+    return U_TEST_EXIT_FAILURE;
 }
 
 U_TEST_SUITE( array )

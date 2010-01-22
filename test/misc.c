@@ -177,11 +177,11 @@ static int test_u_rdwr(void)
         unlink(fn);
     }
 
-    return 0;
+    return U_TEST_EXIT_SUCCESS;
 err:
     u_con("failed. file: %s file_size: %d, buf_size: %d", fn, 
             file_size, buf_size);
-    return 1;
+    return U_TEST_EXIT_FAILURE;
 }
 
 static int test_u_strtok (void)
@@ -320,10 +320,10 @@ static int test_u_strtok (void)
         tv = NULL;
     }
 
-    return 0;
+    return U_TEST_EXIT_SUCCESS;
 err:
     u_strtok_cleanup(tv, nelems);
-    return ~0;
+    return U_TEST_EXIT_FAILURE;
 }
 
 static int test_u_path_snprintf(void)
@@ -365,9 +365,9 @@ static int test_u_path_snprintf(void)
                 vt[i].src, vt[i].exp, buf);
     }
 
-    return 0;
+    return U_TEST_EXIT_SUCCESS;
 err:
-    return ~0;
+    return U_TEST_EXIT_FAILURE;
 }
 
 static int test_u_atoi (void)
@@ -434,9 +434,9 @@ static int test_u_atoi (void)
         }
     }
 
-    return 0;
+    return U_TEST_EXIT_SUCCESS;
 err:
-    return ~0;
+    return U_TEST_EXIT_FAILURE;
 }
 
 U_TEST_SUITE(misc)

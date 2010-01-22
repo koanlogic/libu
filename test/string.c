@@ -36,9 +36,9 @@ static int test_u_str(void)
 
     u_string_free(s);
 
-    return 0;
+    return U_TEST_EXIT_SUCCESS;
 err:
-    return ~0;
+    return U_TEST_EXIT_FAILURE;
 }
 
 U_TEST_SUITE( string )

@@ -132,6 +132,8 @@ struct u_pwd_rec_s
     steve:colonel:cropper
     donald:duck:dunn
         \endcode
+       Note that the password field is in clear-text: in fact there was
+       no hash callback supplied to the ::u_pwd_init_file function.
  */
 
 

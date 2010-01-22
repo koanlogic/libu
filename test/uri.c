@@ -89,10 +89,10 @@ static int test_uri_parser (void)
         u_uri_free(u), u = NULL;
     }
 
-    return 0;
+    return U_TEST_EXIT_SUCCESS;
 err:
     u_uri_free(u);
-    return ~0;
+    return U_TEST_EXIT_FAILURE;
 }
 
 U_TEST_SUITE (uri)

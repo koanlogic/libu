@@ -22,7 +22,7 @@
  *
  *  Add the test case function \p f to the test pool
  *
- *  \param  f   a function with ::test_runner_t prototype
+ *  \param  f   a function with ::u_test_runner_t prototype
  */
 #define U_TEST_CASE_ADD( f ) \
     if( f () ) { _test_cnt++; _test_fail++; u_con("[FAILED] %s", #f); }  \
@@ -49,11 +49,18 @@
 
 int u_test_run(int argc, char **argv);
 
-/** \brief  The prototype for a test function.  The function must return
- *          \c 0 on success, \c ~0 on error. */
-typedef int (*test_runner_t)(void);
+/** \brief  Return code for ::u_test_runner_t functions */
+typedef enum
+{
+    U_TEST_EXIT_SUCCESS = 0,    /**< test case succeeded */
+    U_TEST_EXIT_FAILURE = 1     /**< test case failed */
+} u_test_ret_t;
 
-extern test_runner_t _mods[], *_top;
+/** \brief  The prototype for a test function.  The function must return
+ *          ::U_TEST_EXIT_SUCCESS on success, ::U_TEST_EXIT_FAILURE on error */
+typedef int (*u_test_runner_t)(void);
+
+extern u_test_runner_t _mods[], *_top;
 extern char *_mods_nm[], **_top_nm;
 extern int _test_cnt, _test_ok, _test_fail;
 extern int _verbose;

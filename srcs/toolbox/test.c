@@ -6,8 +6,8 @@
 
 enum { MAX_MODS = 1024 };
 
-test_runner_t _mods[MAX_MODS] = { NULL };
-test_runner_t *_top = _mods;
+u_test_runner_t _mods[MAX_MODS] = { NULL };
+u_test_runner_t *_top = _mods;
 
 char *_mods_nm[MAX_MODS] = { NULL };
 char **_top_nm = _mods_nm;
@@ -31,9 +31,10 @@ static int run_test_module(const char *module);
         user can organise its own software validation suite.  
         Basically you define a test suite, which in turn comprises a set of
         test cases (aka unit tests), and recall it in the main test program.
-        Each test case is associated to a ::test_runner_t routine which takes
-        no arguments and, by convention, is requested to return \c 0 in case 
-        the unit test succeeds and non-zero otherwise.
+        Each test case is associated to a ::u_test_runner_t routine which 
+        takes no arguments and, by convention, is requested to return 
+        ::U_TEST_EXIT_SUCCESS in case the unit test succeeds and 
+        ::U_TEST_EXIT_FAILURE otherwise.
         A test case is attached to its "mother" test suite with the
         ::U_TEST_CASE_ADD macro; on the other hand, a test suite is attached 
         to the main test program with the ::U_TEST_SUITE_ADD macro, as shown
@@ -43,18 +44,18 @@ static int run_test_module(const char *module);
     {
         dbg_err_if (...);
 
-        return 0; 
+        return U_TEST_EXIT_SUCCESS; 
     err:
-        return ~0;
+        return U_TEST_EXIT_FAILURE;
     }
 
     int test_case_2 (void)
     {
         dbg_err_if (...);
 
-        return 0; 
+        return U_TEST_EXIT_SUCCESS; 
     err:
-        return ~0;
+        return U_TEST_EXIT_FAILURE;
     }
 
     U_TEST_SUITE( mysuite1 )
@@ -113,7 +114,7 @@ static int run_test_module(const char *module);
  */
 int u_test_run(int argc, char **argv)
 {
-    test_runner_t *p;
+    u_test_runner_t *p;
     char **pn;
     int i;
 

@@ -1,8 +1,14 @@
 #include <u/libu.h>
 #include <string.h>
 
+U_TEST_SUITE(hmap);
 
-static int example_static()
+static size_t _sample_hash (void *key, size_t size);
+static int _sample_comp(void *key1, void *key2);
+static u_string_t *_sample_str(u_hmap_o_t *obj);
+static u_hmap_o_t *_sample_obj(int key, const char *val);
+
+static int example_static (void)
 {
     u_hmap_t *hmap = NULL;
     u_hmap_o_t *obj = NULL;
@@ -43,14 +49,14 @@ static int example_static()
     /* free hmap and options */
     u_hmap_free(hmap);
     
-    return 0;
+    return U_TEST_EXIT_SUCCESS;
 err:
     U_FREEF(hmap, u_hmap_free);
 
-    return ~0;
+    return U_TEST_EXIT_FAILURE;
 }
 
-static int example_dynamic_own_hmap()
+static int example_dynamic_own_hmap (void)
 {
     u_hmap_opts_t *opts = NULL;
     u_hmap_t *hmap = NULL;
@@ -97,16 +103,16 @@ static int example_dynamic_own_hmap()
     u_hmap_opts_free(opts);
     u_hmap_free(hmap);
 
-    return 0;
+    return U_TEST_EXIT_SUCCESS;
 
 err:
     U_FREEF(opts, u_hmap_opts_free);
     U_FREEF(hmap, u_hmap_free);
 
-    return ~0;
+    return U_TEST_EXIT_FAILURE;
 }
 
-static int example_dynamic_own_user()
+static int example_dynamic_own_user (void)
 {
     u_hmap_t *hmap = NULL;
     u_hmap_o_t *obj = NULL;
@@ -166,15 +172,15 @@ static int example_dynamic_own_user()
     /* free hmap (options and elements are freed automatically) */
     u_hmap_free(hmap);
 
-    return 0;
+    return U_TEST_EXIT_SUCCESS;
 
 err:
     U_FREEF(hmap, u_hmap_free);
 
-    return ~0;
+    return U_TEST_EXIT_FAILURE;
 }
 
-static int example_no_overwrite()
+static int example_no_overwrite (void)
 {
 #define MAP_INSERT(hmap, key, val, obj) \
     switch (u_hmap_put(hmap, u_hmap_o_new(key, val), &obj)) { \
@@ -214,22 +220,21 @@ static int example_no_overwrite()
     u_hmap_opts_free(opts);
     u_hmap_free(hmap);
 
-    return 0;
-
+    return U_TEST_EXIT_SUCCESS;
 err:
     U_FREEF(opts, u_hmap_opts_free);
     U_FREEF(hmap, u_hmap_free);
 
-    return ~0;
+    return U_TEST_EXIT_FAILURE;
 #undef MAP_INSERT
 }
 
-size_t _sample_hash(void *key, size_t size)
+static size_t _sample_hash(void *key, size_t size)
 {
     return (*((int *) key) % size);
 }
 
-int _sample_comp(void *key1, void *key2)
+static int _sample_comp(void *key1, void *key2)
 {
     int k1 = *((int *) key1),
         k2 = *((int *) key2);
@@ -237,7 +242,7 @@ int _sample_comp(void *key1, void *key2)
     return k1 < k2 ? -1 : ((k1 > k2)? 1 : 0);
 }
 
-u_string_t *_sample_str(u_hmap_o_t *obj)
+static u_string_t *_sample_str(u_hmap_o_t *obj)
 {
     enum { MAX_OBJ_STR = 256 };
     char buf[MAX_OBJ_STR];
@@ -256,7 +261,7 @@ err:
 }
 
 /* Allocate (key, value) pair dynamically */
-u_hmap_o_t *_sample_obj(int key, const char *val)
+static u_hmap_o_t *_sample_obj(int key, const char *val)
 {
     u_hmap_o_t *new = NULL;
 
@@ -282,7 +287,7 @@ err:
     return NULL;
 }
 
-static int example_types_custom()
+static int example_types_custom (void)
 {
 #define MAP_INSERT(hmap, k, v) \
     dbg_err_if ((obj = _sample_obj(k, v)) == NULL); \
@@ -327,16 +332,16 @@ static int example_types_custom()
     u_hmap_opts_free(opts);
     u_hmap_free(hmap);
 
-    return 0;
+    return U_TEST_EXIT_SUCCESS;
 err:
     U_FREEF(opts, u_hmap_opts_free);
     U_FREEF(hmap, u_hmap_free);
 
-    return ~0;
+    return U_TEST_EXIT_FAILURE;
 #undef MAP_INSERT
 }
 
-static int test_resize()
+static int test_resize (void)
 {
     enum { NUM_ELEMS = 100000, MAX_STR = 256 };
     u_hmap_opts_t *opts = NULL;
@@ -373,16 +378,16 @@ static int test_resize()
     u_hmap_opts_free(opts);
     u_hmap_free(hmap);
     
-    return 0;
+    return U_TEST_EXIT_SUCCESS;
 
 err:
     U_FREEF(opts, u_hmap_opts_free);
     U_FREEF(hmap, u_hmap_free);
 
-    return ~0;
+    return U_TEST_EXIT_FAILURE;
 }
 
-static int test_linear()
+static int test_linear (void)
 {
     enum { NUM_ELEMS = 100000, MAX_STR = 256 };
     u_hmap_opts_t *opts = NULL;
@@ -420,13 +425,13 @@ static int test_linear()
     u_hmap_opts_free(opts);
     u_hmap_free(hmap);
     
-    return 0;
+    return U_TEST_EXIT_SUCCESS;
 
 err:
     U_FREEF(opts, u_hmap_opts_free);
     U_FREEF(hmap, u_hmap_free);
 
-    return ~0;
+    return U_TEST_EXIT_FAILURE;
 }
 
 U_TEST_SUITE(hmap)
