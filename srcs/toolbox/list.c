@@ -19,23 +19,37 @@ struct u_list_s
 };
 
 /**
- *  \defgroup list Lists
- *  \{
+    \defgroup list Lists
+    \{
+        The \ref list module implements a linked list.  Elements - actually
+        element pointers - can be added appended at the end of an ::u_list_t
+        object (via ::u_list_add), or inserted at a given position (via 
+        ::u_list_insert).  Element can be retrieved and deleted by index 
+        (::u_list_get_n, ::u_list_del_n), and also evicted by direct reference
+        (::u_list_del).  The ::u_list_foreach iterator is provided for safe,
+        easy and efficient traversal of list objects. 
+
+        \note   Element pointers are never owned by the ::u_list_t object to 
+                which they are linked.  The disposal of the resources (possibly)
+                allocated on the element is up to the user, e.g. when calling
+                ::u_list_del_n, use the result-argument \p *pptr to pass the 
+                "real" object to its dtor.
  */
 
 /**
  *  \brief  Create a new list object
  *
- *  \param plist   the newly created list object as a result argument
+ *  \param  plist   the newly created ::u_list_t object as a result argument
  *
- *  \return \c 0 on success, \c ~0 on error
+ *  \retval  0  on success
+ *  \retval ~0  on failure
  */ 
-int u_list_create(u_list_t **plist)
+int u_list_create (u_list_t **plist)
 {
     u_list_t *list = NULL;
 
     list = u_zalloc(sizeof(u_list_t));
-    dbg_err_if(list == NULL); 
+    dbg_err_sif (list == NULL); 
 
     TAILQ_INIT(&list->head);
 
@@ -49,14 +63,16 @@ err:
 }
 
 /**
- *  \brief  Free the list object: note the list doesn't own the pointers in it,
- *          the client must free them
+ *  \brief  Free a list object
  *
- *  \param list    the list object that has to be disposed
+ *  Free the supplied ::u_list_t object \p list.  Note the list doesn't own 
+ *  the pointers in it: the client must free them
+ *
+ *  \param  list    the ::u_list_t object that has to be disposed
  *
  *  \return nothing 
  */ 
-void u_list_free(u_list_t *list)
+void u_list_free (u_list_t *list)
 {
     dbg_return_if(list == NULL, );
 
@@ -70,12 +86,15 @@ void u_list_free(u_list_t *list)
 /**
  *  \brief  Push an element to the list
  *
- *  \param list    the parent list object (created via u_list_new)
- *  \param ptr     the element that has to be push'd
+ *  Push the supplied pointer \p ptr to the ::u_list_t object \p list
  *
- *  \return \c 0 on success, \c ~0 on error
+ *  \param  list    the parent ::u_list_t object (created via ::u_list_create)
+ *  \param  ptr     the the reference to the element that has to be push'd
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on failure
  */ 
-int u_list_add(u_list_t *list, void *ptr)
+int u_list_add (u_list_t *list, void *ptr)
 {
     return u_list_insert(list, ptr, list->count);
 }
@@ -83,12 +102,15 @@ int u_list_add(u_list_t *list, void *ptr)
 /**
  *  \brief  Pop an element from the list
  *
- *  \param list    the parent list object (created via u_list_new)
- *  \param ptr     the element that has to be pop'd
+ *  Evict the element referenced by \p ptr from the ::u_list_t object \p list
  *
- *  \return \c 0 if \p ptr has been removed, \c ~0 if \p ptr was not found
+ *  \param  list    the parent ::u_list_t object (created via ::u_list_create)
+ *  \param  ptr     reference to the element that has to be evicted
+ *
+ *  \retval  0  if \p ptr has been successfully removed
+ *  \retval ~0  if \p ptr was not found
  */ 
-int u_list_del(u_list_t *list, void *ptr)
+int u_list_del (u_list_t *list, void *ptr)
 {
     u_list_item_t *item = NULL;
 
@@ -109,26 +131,32 @@ int u_list_del(u_list_t *list, void *ptr)
 /**
  *  \brief  Count elements in list
  *
- *  \param list    a list object
+ *  Count the number of elements actually present in the supplied ::u_list_t 
+ *  object \p list
+ *
+ *  \param  list    the ::u_list_t object that has to be queried
  *
  *  \return the number of elements in \p list
  */ 
-size_t u_list_count(u_list_t *list)
+size_t u_list_count (u_list_t *list)
 {
-    /* a SIGBUS is better than returning 0 if list == NULL */
+    /* a SIGBUS/SIGSEGV is better than returning 0 if list == NULL */
+    /* NOTE: perhaps we could use ssize_t instead, and return -1 on error */
     return list->count;
 }
 
 /**
  *  \brief  Get the n-th element in list
  *
- *  \param list    a list object
- *  \param n       the ordinal of the element that should be retrieved
+ *  Get the element at index position \p n from the ::u_list_t object \p list
  *
- *  \return the pointer to the n-th element or \c NULL if no n-th element has
- *          been found
+ *  \param  list    an ::u_list_t object
+ *  \param  n       the index of the element that we are supposed to retrieve
+ *
+ *  \return the pointer to the n-th element or \c NULL if no element was
+ *          found at index \p n
  */ 
-void* u_list_get_n(u_list_t *list, size_t n)
+void *u_list_get_n (u_list_t *list, size_t n)
 {
     u_list_item_t *item = NULL;
 
@@ -147,21 +175,25 @@ void* u_list_get_n(u_list_t *list, size_t n)
 /**
  *  \brief  Insert an element at the given position
  *
- *  \param list    the parent list object (created via u_list_new)
- *  \param ptr     the element that has to be push'd
- *  \param n       the position in the list (from zero to N)
+ *  Insert the supplied element \p ptr into the ::u_list_t object list at 
+ *  index \p n
  *
- *  \return \c 0 on success, \c ~0 on error
+ *  \param  list    the parent ::u_list_t object (created via ::u_list_create)
+ *  \param  ptr     the element that has to be push'd
+ *  \param  n       the position in the list (from zero to ::u_list_count)
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on failure
  */ 
-int u_list_insert(u_list_t *list, void *ptr, size_t n)
+int u_list_insert (u_list_t *list, void *ptr, size_t n)
 {
     u_list_item_t *prev, *item = NULL;
 
     dbg_return_if (list == NULL, ~0);
     dbg_return_if (n > list->count, ~0);
 
-    item = (u_list_item_t*)u_zalloc(sizeof(u_list_item_t));
-    dbg_err_if(item == NULL);
+    item = u_zalloc(sizeof(u_list_item_t));
+    dbg_err_sif (item == NULL);
 
     item->ptr = ptr;
             
@@ -193,12 +225,15 @@ err:
 /**
  *  \brief  Return the first item of the list and initialize the iterator
  *
- *  \param list     the list object (created via u_list_new)
- *  \param it       opaque iterator object
+ *  Return the first item of the supplied ::u_list_t object and initialize the 
+ *  opaque iterator \p it
  *
- *  \return \c the first item or NULL if the list is empty 
+ *  \param  list    the ::u_list_t object (created via ::u_list_create)
+ *  \param  it      opaque iterator object of type \c void**
+ *
+ *  \return the first item or \c NULL if the list is empty 
  */ 
-void* u_list_first(u_list_t *list, void **it)
+void *u_list_first (u_list_t *list, void **it)
 {
     u_list_item_t *item;
 
@@ -220,21 +255,30 @@ void* u_list_first(u_list_t *list, void **it)
 /**
  *  \brief  Return the next element while iterating over a list 
  *
- *  \param list     the list object (created via u_list_new)
- *  \param it       opaque iterator object
+ *  Return the next element while iterating over the supplied ::u_list_t
+ *  object \p list.  The \p it iterator must have been already initialized
+ *  via a previous call to ::u_list_first
  *
- *  Example: iterate on a u_list
+ *  \param  list    an ::u_list_t object created via ::u_list_create
+ *  \param  it      opaque iterator already initialized with ::u_list_first
  *
- *  void *it;
- *  my_t *my;
- *  for(my = u_list_first(list, &it); my; my = u_list_next(list, &it))
- *      ...
- * 
- *  \return \c the requested item or NULL if \c item is the last one
+ *  List iteration example:
+ *  \code
+    void *it;
+    my_t *my;
+
+    // indifferently one could have used: u_list_foreach (list, my, it) { ... }
+    for (my = u_list_first(list, &it); my; my = u_list_next(list, &it))
+        do_something_with(my);
+    ...
+ *  \endcode
+ *
+ *  \return the requested item or \c NULL if the last item in list was reached
+ *
  *  \see u_list_foreach
  *  \see u_list_iforeach
  */ 
-void* u_list_next(u_list_t *list, void **it)
+void *u_list_next (u_list_t *list, void **it)
 {
     u_list_item_t *item;
 
@@ -258,13 +302,18 @@ void* u_list_next(u_list_t *list, void **it)
 /**
  *  \brief  Delete an element given its position in the list
  *
- *  \param list    the parent list object (created via u_list_new)
- *  \param n       element position in the list
- *  \param pptr    element original pointer
+ *  Delete the element at index \p n from the supplied ::u_list_t object 
+ *  \p list and give back the reference to the stored object via the result
+ *  argument \p pptr.  At a later stage \c *pptr can be appropriately destroyed.
  *
- *  \return \c 0 if \p ptr has been removed, \c ~0 if \p ptr was not found
+ *  \param  list    the parent ::u_list_t object (created via ::u_list_create)
+ *  \param  n       element position in the list
+ *  \param  pptr    element reference
+ *
+ *  \retval  0  if \p ptr has been removed
+ *  \retval ~0  if \p ptr was not found
  */ 
-int u_list_del_n(u_list_t *list, size_t n, void **pptr)
+int u_list_del_n (u_list_t *list, size_t n, void **pptr)
 {
     u_list_item_t *item = NULL;
 
@@ -292,11 +341,16 @@ int u_list_del_n(u_list_t *list, size_t n, void **pptr)
 /**
  *  \brief  Remove all elements from the list
  *
- *  \param list    the list object 
+ *  Remove all elements from the supplied ::u_list_t object \p list.  Beware
+ *  that the referenced objects - if any - won't be available anymore and 
+ *  could be lost (usually causing memory leaking).
  *
- *  \return \c 0 on success, \c ~0 on error
+ *  \param  list    the ::u_list_t object that must be reset
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on failure
  */ 
-int u_list_clear(u_list_t *list)
+int u_list_clear (u_list_t *list)
 {
     u_list_item_t *item;
 
