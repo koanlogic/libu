@@ -23,6 +23,10 @@ ifndef NO_NET
     SRCS += uri.c
 endif
 
+ifndef NO_PQUEUE
+    SRCS += pqueue.c
+endif
+
 LDADD += ../srcs/libu.a
 
 include prog.mk

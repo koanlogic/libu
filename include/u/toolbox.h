@@ -19,41 +19,45 @@
 
 #ifndef NO_NET
   #include <u/toolbox/net.h>
-#endif
+#endif  /* !NO_NET */
 
 #ifndef NO_ENV
   #include <u/toolbox/env.h>
-#endif
+#endif  /* !NO_ENV */
 
 #ifndef NO_HMAP
   #include <u/toolbox/hmap.h>
-#endif
+#endif  /* !NO_HMAP */
 
 #ifndef NO_CONFIG
   #include <u/toolbox/config.h>
-#endif
+#endif  /* !NO_CONFIG */
 
 #ifndef NO_FS
   #include <u/toolbox/fs.h>
-#endif
+#endif  /* !NO_FS */
 
 #ifndef NO_PWD
   #ifdef NO_HMAP
     #include <u/toolbox/hmap.h>
-  #endif
+  #endif    /* NO_HMAP */
   #include <u/toolbox/pwd.h>
-#endif
+#endif  /* !NO_PWD */
 
 #ifndef NO_LIST
   #include <u/toolbox/list.h>
-#endif
+#endif  /* !NO_LIST */
 
 #ifndef NO_ARRAY
   #include <u/toolbox/array.h>
-#endif
+#endif  /* !NO_ARRAY */
 
 #ifndef NO_RB
   #include <u/toolbox/rb.h>
-#endif
+#endif  /* !NO_RB */
+
+#ifndef NO_PQUEUE
+  #include <u/toolbox/pqueue.h>
+#endif  /* !NO_PQUEUE */
 
 #endif  /* !_LIBU_TOOLBOX_H_ */

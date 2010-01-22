@@ -42,6 +42,14 @@
         *_top_nm = u_strdup( #name ); ++_top_nm; *_top_nm = NULL;   \
     } while(0)
 
+/* carpal additions for tests */
+#define u_test_err_if(expr)             msg_err_if(u_test_, expr)
+#define u_test_err_ifm(expr, ...)       msg_err_ifm(u_test_, expr, __VA_ARGS__)
+#define u_test_( err, ...)              u_test_err_write( err, __VA_ARGS__)
+#define u_test_err_write(err, ...)  \
+    (printf("[%s:%d:%s] ", __FILE__, __LINE__, __FUNCTION__),   \
+     printf(__VA_ARGS__), printf("\n"))
+
 /* 1.x compat names */
 #define U_TEST_MODULE_USE   U_TEST_SUITE_ADD
 #define U_TEST_RUN          U_TEST_CASE_ADD
