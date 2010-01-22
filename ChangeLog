@@ -1,4 +1,4 @@
-$Id: ChangeLog,v 1.94 2010/01/22 04:35:35 tho Exp $
+$Id: ChangeLog,v 1.95 2010/01/22 10:17:29 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
@@ -20,7 +20,9 @@ LibU 2.0.0
 	  new --no_sctp command line option to explicitly disable SCTP bits
 	- [pwd] internally use u_strtok instead of deprecated u_tokenize 
 	- [array] u_array_set_ptr and u_array_get_ptr interfaces changed;
-	  added interfaces for intmax_t and uintmax_t types
+	  added interfaces for intmax_t and uintmax_t types; use C99 types 
+	  explicitly (_Complex and _Bool), to avoid clash with bool and complex 
+	  possibly #define'd by the user
 	- [misc] some minor fixes
 	- [string] minor fixes and cleanup
 	- [buf] added u_buf_save interface
@@ -36,8 +38,8 @@ LibU 1.4.0
 	- [config] u_config_get_subkey_value_b bug fix
 	- [list] u_list_clear added
 	- [misc] u_strlcpy and u_strlcat added
-	- added shared lib support for MinGW, Cygwin, Solaris and Dragonfly BSD
-	  (need MaKL >= 1.8.x)
+	- added shared lib support for MinGW, Cygwin, Solaris and Dragonfly BSD:
+	  need MaKL >= 1.8.x
 	- [list] u_list_foreach and u_list_iforeach macros added
 	- [list] u_list_first and u_list_next added to efficiently iterate on lists
 	- [misc] added u_strtok_cleanup facility 

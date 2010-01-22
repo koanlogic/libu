@@ -24,9 +24,9 @@ struct u_array_s
 static size_t sizeof_type[U_ARRAY_TYPE_MAX + 1] =
 {
     0,                              /* U_ARRAY_TYPE_UNSET  = 0          */
-#ifdef HAVE_BOOL
-    sizeof(bool),                   /* U_ARRAY_TYPE_BOOL                */
-#endif  /* HAVE_BOOL */
+#ifdef HAVE__BOOL
+    sizeof(_Bool),                  /* U_ARRAY_TYPE_BOOL                */
+#endif  /* HAVE__BOOL */
     sizeof(char),                   /* U_ARRAY_TYPE_CHAR                */
     sizeof(unsigned char),          /* U_ARRAY_TYPE_U_CHAR              */
     sizeof(short),                  /* U_ARRAY_TYPE_SHORT               */
@@ -48,34 +48,74 @@ static size_t sizeof_type[U_ARRAY_TYPE_MAX + 1] =
 #ifdef HAVE_LONG_DOUBLE
     sizeof(long double),            /* U_ARRAY_TYPE_LONG_DOUBLE         */
 #endif  /* HAVE_LONG_DOUBLE */
-#ifdef HAVE_FLOAT_COMPLEX
-    sizeof(float complex),          /* U_ARRAY_TYPE_FLOAT_COMPLEX       */
-#endif  /* HAVE_FLOAT_COMPLEX */
-#ifdef HAVE_DOUBLE_COMPLEX
-    sizeof(double complex),         /* U_ARRAY_TYPE_DOUBLE_COMPLEX      */
-#endif  /* HAVE_DOUBLE_COMPLEX */
-#ifdef HAVE_LONG_DOUBLE_COMPLEX
-    sizeof(long double complex),    /* U_ARRAY_TYPE_LONG_DOUBLE_COMPLEX */
-#endif  /* HAVE_LONG_DOUBLE_COMPLEX */
+#ifdef HAVE_FLOAT__COMPLEX
+    sizeof(float _Complex),         /* U_ARRAY_TYPE_FLOAT_COMPLEX       */
+#endif  /* HAVE_FLOAT__COMPLEX */
+#ifdef HAVE_DOUBLE__COMPLEX
+    sizeof(double _Complex),        /* U_ARRAY_TYPE_DOUBLE_COMPLEX      */
+#endif  /* HAVE_DOUBLE__COMPLEX */
+#ifdef HAVE_LONG_DOUBLE__COMPLEX
+    sizeof(long double _Complex),   /* U_ARRAY_TYPE_LONG_DOUBLE_COMPLEX */
+#endif  /* HAVE_LONG_DOUBLE__COMPLEX */
     sizeof(void *)                  /* U_ARRAY_TYPE_PTR                 */
 };
 
 #define MAX_NSLOTS(da)  (SIZE_MAX / sizeof_type[da->type])
 
 /**
- *  \defgroup array Dynamic Arrays
- *  \{
- *      A dynamic array has a type, which is the type of its elements.
- *      The type of the dynamic array is declared when a new array instance 
- *      is created via ::u_array_create and must be one of the types 
- *      in ::u_array_type_t.  Available types are the standard C types 
- *      supported by the target platform, plus a generic pointer type for 
- *      user defined types.  A couple of getter/setter methods is provided for 
- *      each ::u_array_type_t entry, e.g. see ::u_array_get_char and 
- *      ::u_array_set_char.
- *      \note The getter/setter interfaces for generic pointers are different
- *            from all the other, see ::u_array_get_ptr and ::u_array_set_ptr
- *            for details.
+    \defgroup array Dynamic Arrays
+    \{
+        A dynamic array has a type, which is the type of its elements.
+        The type of the dynamic array is declared when a new array instance 
+        is created via ::u_array_create and must be one of the types 
+        in ::u_array_type_t.  Available types are the standard C types 
+        supported by the target platform, plus a generic pointer type for 
+        user defined types.  A couple of getter/setter methods is provided for 
+        each ::u_array_type_t entry, e.g. see ::u_array_get_char and 
+        ::u_array_set_char.
+
+        The following is some toy code showing basic operations (create,
+        set, get, destroy) using double precision complex numbers (C99):
+    \code          
+    u_array_t *a = NULL;
+    size_t idx;
+    long double _Complex c0, c1;
+
+    // create an array to store double precision complex numbers
+    // array resize is handled transparently
+    con_err_if (u_array_create(U_ARRAY_TYPE_LONG_DOUBLE_COMPLEX, 0, &a));
+
+    // insert values from 0+0i to 10+10i at increasing indexes,
+    // also check that what has been inserted matches what we get back
+    for (idx = 0; idx < 10; idx++)
+    {
+        c0 = idx + idx * _Complex_I; 
+        con_err_if (u_array_set_long_double_complex(a, idx, c0, NULL));
+        con_err_if (u_array_get_long_double_complex(a, idx, &c1));
+        con_err_if (creal(c0) != creal(c1) || cimag(c0) != cimag(c1));
+    }
+
+    // now overwrite previously set values with new ones
+    for (idx = 0; idx < 10; idx++)
+    {
+        long double _Complex c2;
+
+        c0 = (idx + 10) + (idx + 10) * _Complex_I;
+        con_err_if (u_array_set_long_double_complex(a, idx, c0, &c2));
+        u_con("overwrite %lf + %lfi at %zu with %lf + %lfi", 
+                creal(c2), cimag(c2), idx, creal(c0), cimag(c0)); 
+        con_err_if (u_array_get_long_double_complex(a, idx, &c1));
+        con_err_if (creal(c0) != creal(c1) || cimag(c0) != cimag(c1));
+    }
+
+    // ok, enough stress, dispose it :)
+    u_array_free(a);
+    \endcode
+
+        \note The getter/setter interfaces for generic pointers are different
+              from all the other, see ::u_array_get_ptr and ::u_array_set_ptr
+              for details.
+
  */
 
 /**
@@ -245,9 +285,9 @@ U_ARRAY_GETSET_F(_u_long, U_ARRAY_TYPE_U_LONG, unsigned long)
 U_ARRAY_GETSET_F(_float, U_ARRAY_TYPE_FLOAT, float)
 U_ARRAY_GETSET_F(_double, U_ARRAY_TYPE_DOUBLE, double)
 
-#ifdef HAVE_BOOL
-U_ARRAY_GETSET_F(_bool, U_ARRAY_TYPE_BOOL, bool)
-#endif  /* HAVE_BOOL */
+#ifdef HAVE__BOOL
+U_ARRAY_GETSET_F(_bool, U_ARRAY_TYPE_BOOL, _Bool)
+#endif  /* HAVE__BOOL */
 
 #ifdef HAVE_LONG_LONG
 U_ARRAY_GETSET_F(_long_long, U_ARRAY_TYPE_LONG_LONG, long long)
@@ -263,17 +303,17 @@ U_ARRAY_GETSET_F(_u_intmax, U_ARRAY_TYPE_U_INTMAX, uintmax_t)
 U_ARRAY_GETSET_F(_long_double, U_ARRAY_TYPE_LONG_DOUBLE, long double)
 #endif  /* HAVE_LONG_DOUBLE */
 
-#ifdef HAVE_FLOAT_COMPLEX
-U_ARRAY_GETSET_F(_float_complex, U_ARRAY_TYPE_FLOAT_COMPLEX, float complex)
-#endif  /* HAVE_FLOAT_COMPLEX */
+#ifdef HAVE_FLOAT__COMPLEX
+U_ARRAY_GETSET_F(_float_complex, U_ARRAY_TYPE_FLOAT_COMPLEX, float _Complex)
+#endif  /* HAVE_FLOAT__COMPLEX */
 
-#ifdef HAVE_DOUBLE_COMPLEX
-U_ARRAY_GETSET_F(_double_complex, U_ARRAY_TYPE_DOUBLE_COMPLEX, double complex)
-#endif  /* HAVE_DOUBLE_COMPLEX */
+#ifdef HAVE_DOUBLE__COMPLEX
+U_ARRAY_GETSET_F(_double_complex, U_ARRAY_TYPE_DOUBLE_COMPLEX, double _Complex)
+#endif  /* HAVE_DOUBLE__COMPLEX */
 
-#ifdef HAVE_LONG_DOUBLE_COMPLEX
-U_ARRAY_GETSET_F(_long_double_complex, U_ARRAY_TYPE_LONG_DOUBLE_COMPLEX, long double complex)
-#endif  /* HAVE_LONG_DOUBLE_COMPLEX */
+#ifdef HAVE_LONG_DOUBLE__COMPLEX
+U_ARRAY_GETSET_F(_long_double_complex, U_ARRAY_TYPE_LONG_DOUBLE_COMPLEX, long double _Complex)
+#endif  /* HAVE_LONG_DOUBLE__COMPLEX */
 
 /**
  *  \brief Dynamic array setter interface for generic pointer values.

@@ -6,7 +6,7 @@
 #define _U_ARRAY_H_
 
 #include <u/libu_conf.h>
-#ifdef HAVE_BOOL
+#ifdef HAVE__BOOL
 #include <stdbool.h>
 #endif
 #ifdef HAVE_COMPLEX
@@ -39,9 +39,9 @@ extern "C" {
  *         types. */
 typedef enum {
         U_ARRAY_TYPE_UNSET = 0,             /**< no type */
-#ifdef HAVE_BOOL
-        U_ARRAY_TYPE_BOOL,                  /**< \c bool */
-#endif  /* HAVE_BOOL */
+#ifdef HAVE__BOOL
+        U_ARRAY_TYPE_BOOL,                  /**< \c _Bool */
+#endif  /* HAVE__BOOL */
         U_ARRAY_TYPE_CHAR,                  /**< \c char */
         U_ARRAY_TYPE_U_CHAR,                /**< <tt>unsigned char</tt> */
         U_ARRAY_TYPE_SHORT,                 /**< <tt>short int</tt> */
@@ -55,23 +55,23 @@ typedef enum {
         U_ARRAY_TYPE_U_LONG_LONG,           /**< <tt>unsigned long long</tt> */
 #endif  /* HAVE_LONG_LONG */
 #ifdef HAVE_INTMAX_T
-        U_ARRAY_TYPE_INTMAX,                /**< <tt>intmax_t</tt> */
-        U_ARRAY_TYPE_U_INTMAX,              /**< <tt>uintmax_t</tt> */
+        U_ARRAY_TYPE_INTMAX,                /**< \c intmax_t */
+        U_ARRAY_TYPE_U_INTMAX,              /**< \c uintmax_t */
 #endif  /* HAVE_INTMAX_T */
         U_ARRAY_TYPE_FLOAT,                 /**< \c float */
         U_ARRAY_TYPE_DOUBLE,                /**< \c double */
 #ifdef HAVE_LONG_DOUBLE
         U_ARRAY_TYPE_LONG_DOUBLE,           /**< <tt>long double</tt> */
 #endif  /* HAVE_LONG_DOUBLE */
-#ifdef HAVE_FLOAT_COMPLEX
-        U_ARRAY_TYPE_FLOAT_COMPLEX,         /**< <tt>float complex</tt> */
-#endif  /* HAVE_FLOAT_COMPLEX */
-#ifdef HAVE_DOUBLE_COMPLEX
-        U_ARRAY_TYPE_DOUBLE_COMPLEX,        /**< <tt>double complex</tt> */
-#endif  /* HAVE_DOUBLE_COMPLEX */
-#ifdef HAVE_LONG_DOUBLE_COMPLEX
-        U_ARRAY_TYPE_LONG_DOUBLE_COMPLEX,   /**< <tt>long double complex</tt> */
-#endif  /* HAVE_LONG_DOUBLE_COMPLEX */
+#ifdef HAVE_FLOAT__COMPLEX
+        U_ARRAY_TYPE_FLOAT_COMPLEX,         /**< <tt>float _Complex</tt> */
+#endif  /* HAVE_FLOAT__COMPLEX */
+#ifdef HAVE_DOUBLE__COMPLEX
+        U_ARRAY_TYPE_DOUBLE_COMPLEX,        /**< <tt>double _Complex</tt> */
+#endif  /* HAVE_DOUBLE__COMPLEX */
+#ifdef HAVE_LONG_DOUBLE__COMPLEX
+        U_ARRAY_TYPE_LONG_DOUBLE_COMPLEX,  /**< <tt>long double _Complex</tt> */
+#endif  /* HAVE_LONG_DOUBLE__COMPLEX */
         U_ARRAY_TYPE_PTR,                   /**< generic pointer */
         U_ARRAY_TYPE_MAX = U_ARRAY_TYPE_PTR
 } u_array_type_t;
@@ -193,13 +193,13 @@ int u_array_get_double (u_array_t *da, size_t idx, double *pv);
 void *u_array_set_ptr (u_array_t *da, size_t idx, void *v, int *prc);
 void *u_array_get_ptr (u_array_t *da, size_t idx, int *prc);
 
-#ifdef HAVE_BOOL
-/** \brief  Setter for the \c bool type */
-int u_array_set_bool (u_array_t *da, size_t idx, bool v, bool *pold);
+#ifdef HAVE__BOOL
+/** \brief  Setter for the \c _Bool type */
+int u_array_set_bool (u_array_t *da, size_t idx, _Bool v, _Bool *pold);
 
-/** \brief  Getter for the \c bool type */
-int u_array_get_bool (u_array_t *da, size_t idx, bool *pv);
-#endif  /* HAVE_BOOL */
+/** \brief  Getter for the \c _Bool type */
+int u_array_get_bool (u_array_t *da, size_t idx, _Bool *pv);
+#endif  /* HAVE__BOOL */
 
 #ifdef HAVE_LONG_LONG
 /** \brief  Setter for the \c long \c long type */
@@ -241,33 +241,33 @@ int u_array_set_long_double (u_array_t *da, size_t idx, long double v,
 int u_array_get_long_double (u_array_t *da, size_t idx, long double *pv);
 #endif  /* HAVE_LONG_DOUBLE */
 
-#ifdef HAVE_FLOAT_COMPLEX
-/** \brief  Setter for the \c float \c complex type */
-int u_array_set_float_complex (u_array_t *da, size_t idx, float complex v, 
-        float complex *pold);
+#ifdef HAVE_FLOAT__COMPLEX
+/** \brief  Setter for the \c float \c _Complex type */
+int u_array_set_float_complex (u_array_t *da, size_t idx, float _Complex v, 
+        float _Complex *pold);
 
-/** \brief  Getter for the \c float \c complex type */
-int u_array_get_float_complex (u_array_t *da, size_t idx, float complex *pv);
-#endif  /* HAVE_FLOAT_COMPLEX */
+/** \brief  Getter for the \c float \c _Complex type */
+int u_array_get_float_complex (u_array_t *da, size_t idx, float _Complex *pv);
+#endif  /* HAVE_FLOAT__COMPLEX */
 
-#ifdef HAVE_DOUBLE_COMPLEX
-/** \brief  Setter for the \c double \c complex type */
-int u_array_set_double_complex (u_array_t *da, size_t idx, double complex v, 
-        double complex *pold);
+#ifdef HAVE_DOUBLE__COMPLEX
+/** \brief  Setter for the \c double \c _Complex type */
+int u_array_set_double_complex (u_array_t *da, size_t idx, double _Complex v, 
+        double _Complex *pold);
 
-/** \brief  Getter for the \c double \c complex type */
-int u_array_get_double_complex (u_array_t *da, size_t idx, double complex *pv);
-#endif  /* HAVE_DOUBLE_COMPLEX */
+/** \brief  Getter for the \c double \c _Complex type */
+int u_array_get_double_complex (u_array_t *da, size_t idx, double _Complex *pv);
+#endif  /* HAVE_DOUBLE__COMPLEX */
 
-#ifdef HAVE_LONG_DOUBLE_COMPLEX
-/** \brief  Setter for the \c long \c double \c complex type */
+#ifdef HAVE_LONG_DOUBLE__COMPLEX
+/** \brief  Setter for the \c long \c double \c _Complex type */
 int u_array_set_long_double_complex (u_array_t *da, size_t idx, 
-        long double complex v, long double complex *pold);
+        long double _Complex v, long double _Complex *pold);
 
-/** \brief  Getter for the \c long \c double \c complex type */
+/** \brief  Getter for the \c long \c double \c _Complex type */
 int u_array_get_long_double_complex (u_array_t *da, size_t idx, 
-        long double complex *pv);
-#endif  /* HAVE_LONG_DOUBLE_COMPLEX */
+        long double _Complex *pv);
+#endif  /* HAVE_LONG_DOUBLE__COMPLEX */
 
 /**
  *  \}

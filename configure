@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.88 2010/01/21 18:21:59 tho Exp $
+# $Id: configure,v 1.89 2010/01/22 10:17:29 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -71,10 +71,10 @@ makl_optional           1    "featx"   "doxygen"    "PATH_DOXYGEN"
 makl_checktype          0   "long double"
 makl_checktype          0   "long long"
 makl_checktype          0   "intmax_t"              "<stdint.h>"
-makl_checktype          0   "bool"                  "<stdbool.h>"
-makl_checktype          0   "float complex"         "<complex.h>"
-makl_checktype          0   "double complex"        "<complex.h>"
-makl_checktype          0   "long double complex"   "<complex.h>"
+makl_checktype          0   "_Bool"                 "<stdbool.h>"
+makl_checktype          0   "float _Complex"        "<complex.h>"
+makl_checktype          0   "double _Complex"       "<complex.h>"
+makl_checktype          0   "long double _Complex"  "<complex.h>"
 makl_checktype          0   "pid_t"                 "<sys/types.h>"
 makl_checktype          0   "ssize_t"               "<sys/types.h>"
 makl_checktype          0   "socklen_t"         \
