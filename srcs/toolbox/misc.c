@@ -384,7 +384,7 @@ err:
  *  \param buf  destination buffer
  *  \param sz   size of \p str
  *  \param sep  path separator to use (\c / or \c \)
- *  \param fmt  printf format string
+ *  \param fmt  printf(3) format string
  *
  *  \retval 0   on success
  *  \retval ~0  on failure

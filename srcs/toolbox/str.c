@@ -311,7 +311,7 @@ err:
 }
 
 /**
- *  \brief  Set or append a printf-style format string to the given string
+ *  \brief  Set or append a printf-style formatted string to the given string
  *
  *  Set or append (depending on \p clear value) the printf-style format string 
  *  \p fmt to the given ::u_string_t object \p s
@@ -402,9 +402,9 @@ int u_string_sprintf (u_string_t *s, const char *fmt, ...)
 }
 
 /**
- * \brief  Append a printf-style format string to the given string
+ * \brief  Append a printf-style formatted string to the given string
  *
- * Append a printf-style format string to the given string.
+ * Append a printf-style formatted string to the given string.
  *
  * \param s     string object
  * \param fmt   printf-style format

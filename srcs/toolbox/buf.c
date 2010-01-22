@@ -315,7 +315,7 @@ int u_buf_free (u_buf_t *ubuf)
  *  the buffer (::u_buf_len).
  *
  *  \param  ubuf    a previously allocated ::u_buf_t object
- *  \param  fmt     \c printf like format string
+ *  \param  fmt     printf(3) format string
  *  \param  ...     variable list of arguments used by the \p fmt
  *
  *  \retval  0  on success
