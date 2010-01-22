@@ -715,12 +715,17 @@ int u_sleep(unsigned int secs)
  */
 int u_atoi (const char *nptr, int *pi)
 {
+    char *endptr;
     long int tmp, saved_errno = errno;
 
     dbg_return_if (nptr == NULL, ~0);
     dbg_return_if (pi == NULL, ~0);
  
-    tmp = strtol(nptr, (char **) NULL, 10);
+    tmp = strtol(nptr, &endptr, 10);
+    
+    /* chech if no valid digits where supplied:
+     * glibc does not handle this as an explicit error */
+    dbg_err_ifm (nptr == endptr, "no digits here");
     
     dbg_err_sif (tmp == 0 && errno == EINVAL);
     dbg_err_sif ((tmp == LONG_MIN || tmp == LONG_MAX) && errno == ERANGE);
