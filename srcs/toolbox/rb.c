@@ -117,17 +117,28 @@ int u_rb_create (size_t hint_sz, u_rb_t **prb)
  
     dbg_err_sif (ftruncate(fd, rb->sz) == -1);
 
-    /* mmap 2 * rb->sz bytes */
+    /* mmap 2*rb->sz bytes. this is just a commodity map that will be 
+     * discarded by the two following "half" maps.  we use it just to let the 
+     * system choose a suitable base address (one that we are sure it's 
+     * a multiple of the page size) that we can safely reuse later on when
+     * pretending to MAP_FIXED */
     rb->base = mmap(NULL, rb->sz << 1, PROT_NONE, 
             MAP_ANON | MAP_PRIVATE, -1, 0);
     dbg_err_sif (rb->base == MAP_FAILED);
+
+    /* POSIX: "The mapping established by mmap() shall replace any previous 
+     * mappings for those whole pages containing any part of the address space 
+     * of the process starting at pa and continuing for len bytes."
+     * So, next two mappings replace in-toto the first 'rb->base' map which
+     * does not need to be explicitly munmap'd */
  
-    /* first half of the mmap'd region */
+    /* first half of the mmap'd region.  use MAP_SHARED in order to avoid 
+     * less efficient copy-on-write in u_rb_write */
     dbg_err_sif (mmap(rb->base, rb->sz, PROT_READ | PROT_WRITE, 
             MAP_FIXED | MAP_SHARED, fd, 0) != rb->base);
  
     /* second half */
-    dbg_err_sif (mmap(rb->base + rb->sz, rb->sz, PROT_READ | PROT_WRITE, 
+    dbg_err_sif (mmap(rb->base + rb->sz, rb->sz, PROT_READ | PROT_WRITE,
             MAP_FIXED | MAP_SHARED, fd, 0) != rb->base + rb->sz);
  
     /* dispose the file descriptor */
@@ -155,6 +166,9 @@ void u_rb_free (u_rb_t *rb)
 {
     nop_return_if (rb == NULL, );
 
+    /* "All pages containing a part of the indicated range are unmapped",
+     * hence the following single munmap with a double length should be ok for 
+     * both previous (contiguous) mmap's */
     dbg_return_sif (rb->base && (munmap(rb->base, rb->sz << 1) == -1), );
     u_free(rb);
 
