@@ -50,38 +50,38 @@ err:
     return ~0;
 }
 
+struct mystruct_s {
+    char *a;
+    char *b;
+};
+typedef struct mystruct_s mystruct_t;
+
+void mystruct_free (u_hmap_o_t *obj)
+{
+    mystruct_t *myval;
+
+    if (obj == NULL || 
+            obj->val == NULL)
+        return;
+
+    /* key is static so we only need to free value */
+    myval = obj->val;
+
+    u_free(myval->a);
+    u_free(myval->b);
+    u_free(myval);
+};
+
+mystruct_t *mystruct_create()
+{
+    mystruct_t *myval = (mystruct_t *) u_zalloc(sizeof(mystruct_t));
+    myval->a = strdup("first string");
+    myval->b = strdup("second string");
+    return myval;
+}
+
 static int example_easy_dynamic()
 {
-    struct mystruct_s {
-        char *a;
-        char *b;
-    };
-    typedef struct mystruct_s mystruct_t;
-
-    void mystruct_free (u_hmap_o_t *obj)
-    {
-        mystruct_t *myval;
-
-        if (obj == NULL || 
-                obj->val == NULL)
-            return;
-
-        /* key is static so we only need to free value */
-        myval = obj->val;
-
-        u_free(myval->a);
-        u_free(myval->b);
-        u_free(myval);
-    };
-
-    mystruct_t *mystruct_create()
-    {
-        mystruct_t *myval = (mystruct_t *) u_zalloc(sizeof(mystruct_t));
-        myval->a = strdup("first string");
-        myval->b = strdup("second string");
-        return myval;
-    }
-
     u_hmap_t *hmap = NULL;
     mystruct_t *mystruct;
 
