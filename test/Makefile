@@ -3,6 +3,8 @@ include ../Makefile.conf
 
 PROG = runtest
 
+CFLAGS += -fnested-functions
+
 SRCS += main.c
 SRCS += misc.c 
 SRCS += string.c 

@@ -27,8 +27,8 @@
 /* policy queue object */
 struct u_hmap_q_s 
 {
-    void *key,
-         *o;
+    void *key;
+    void *o;
 
     TAILQ_ENTRY(u_hmap_q_s) next;
 };
@@ -65,33 +65,102 @@ struct u_hmap_s
 };
 typedef struct u_hmap_e_s u_hmap_e_t;
 
-static int _get (u_hmap_t *hmap, void *key, 
+static int __get (u_hmap_t *hmap, void *key, 
         u_hmap_o_t **o);
 
-static int _opts_check (u_hmap_opts_t *opts);
-static int _pcy_setup (u_hmap_t *hmap);
-static const char *_pcy2str(u_hmap_pcy_type_t policy);
+static int __opts_check (u_hmap_opts_t *opts);
+static int __pcy_setup (u_hmap_t *hmap);
+static const char *__pcy2str(u_hmap_pcy_type_t policy);
 
-static void _o_free (u_hmap_t *hmap, u_hmap_o_t *obj);
+static void __o_free (u_hmap_t *hmap, u_hmap_o_t *obj);
 
-static u_hmap_q_t *_q_o_new (void *key);
-static void _q_o_free (u_hmap_q_t *s);
+static u_hmap_q_t *__q_o_new (void *key);
+static void __q_o_free (u_hmap_q_t *s);
 
-static size_t _f_hash (void *key, size_t size);
-static int _f_comp (void *k1, void *k2);
-static void _f_free (u_hmap_o_t *obj);
-static u_string_t *_f_str (u_hmap_o_t *obj);
+static size_t __f_hash (void *key, size_t size);
+static int __f_comp (void *k1, void *k2);
+static void __f_free (u_hmap_o_t *obj);
+static u_string_t *__f_str (u_hmap_o_t *obj);
 
-static int _queue_push (u_hmap_t *hmap, u_hmap_o_t *obj, 
+static int __queue_push (u_hmap_t *hmap, u_hmap_o_t *obj, 
         u_hmap_q_t **data);
-static int _queue_push_count (u_hmap_t *hmap, u_hmap_o_t *obj,
+static int __queue_push_count (u_hmap_t *hmap, u_hmap_o_t *obj,
         u_hmap_q_t **counts);
-static int _queue_pop_front (u_hmap_t *hmap, u_hmap_o_t **obj);
-static int _queue_pop_back (u_hmap_t *hmap, u_hmap_o_t **obj);
+static int __queue_pop_front (u_hmap_t *hmap, u_hmap_o_t **obj);
+static int __queue_pop_back (u_hmap_t *hmap, u_hmap_o_t **obj);
 
-static int _resize(u_hmap_t *hmap);
-static int _next_prime(size_t *prime, size_t sz, size_t *idx);
+static int __resize(u_hmap_t *hmap);
+static int __next_prime(size_t *prime, size_t sz, size_t *idx);
 
+int u_hmap_easy_new (u_hmap_t **hmap)
+{
+    u_hmap_opts_t opts;
+
+    u_hmap_opts_init(&opts);
+    opts.options |= U_HMAP_OPTS_NO_OVERWRITE;
+    opts.options |= U_HMAP_OPTS_OWNSDATA;
+
+    /* normally default is to free() objects, but in easy implementation we
+     * suggest using u_hmap_easy_set_freefunc() */
+    opts.f_free = NULL;
+
+    dbg_err_if (u_hmap_new(&opts, hmap));
+
+    return U_HMAP_ERR_NONE;
+err:
+    return U_HMAP_ERR_FAIL;
+}
+
+void u_hmap_easy_free (u_hmap_t *hmap)
+{
+    dbg_err_if (hmap == NULL);
+
+    u_hmap_free(hmap);
+err:
+    return; 
+}
+
+int u_hmap_easy_set_freefunc (u_hmap_t *hmap, void (*f_free)(u_hmap_o_t *obj))
+{
+    dbg_err_if (hmap == NULL);
+    dbg_err_if (f_free == NULL);
+
+    hmap->opts->f_free = f_free;
+
+    return U_HMAP_ERR_NONE;
+err:
+    return U_HMAP_ERR_FAIL;
+}
+
+int u_hmap_easy_put (u_hmap_t *hmap, void *key, void *val)
+{
+    int rc;
+    u_hmap_o_t *obj = NULL;
+
+    dbg_err_if ((obj = u_hmap_o_new(key, val)) == NULL);
+    dbg_err_if ((rc = u_hmap_put(hmap, obj, NULL)));
+    
+    return U_HMAP_ERR_NONE;
+err:
+    /* don't free 'obj' because hmap owns it and will free it */
+    return (rc ? rc : U_HMAP_ERR_FAIL);
+}
+
+void *u_hmap_easy_get (u_hmap_t *hmap, void *key)
+{
+    u_hmap_o_t *obj = NULL;
+
+    dbg_err_if (u_hmap_get(hmap, key, &obj));
+
+    return obj->val;
+err:
+    return NULL;
+}
+
+int u_hmap_easy_del (u_hmap_t *hmap, void *key)
+{
+    return (u_hmap_del(hmap, key, NULL));
+}
 
 /**
  * \brief Get a string representation of an error code
@@ -115,7 +184,7 @@ const char *u_hmap_strerror (u_hmap_ret_t rc)
 }
 
 /* Default hash function */
-static size_t _f_hash (void *key, size_t size)
+static size_t __f_hash (void *key, size_t size)
 {
     size_t h = 0;
     unsigned char *k = (unsigned char *) key;
@@ -136,7 +205,7 @@ static size_t _f_hash (void *key, size_t size)
 }
 
 /* Default comparison function for key comparison */
-static int _f_comp (void *k1, void *k2) 
+static int __f_comp (void *k1, void *k2) 
 {
     dbg_ifb (k1 == NULL) return -1;    
     dbg_ifb (k2 == NULL) return -1;  
@@ -144,17 +213,17 @@ static int _f_comp (void *k1, void *k2)
     return strcmp((char *)k1, (char *)k2);
 }
 
-/* Default function for freeing hmap objects  */
-static void _f_free (u_hmap_o_t *obj)
+/* Default function for freeing hmap key and value */
+static void __f_free (u_hmap_o_t *obj)
 {
     dbg_ifb (obj == NULL) return;
 
-    u_free(obj->key); 
+    u_free((void *)obj->key); 
     u_free(obj->val); 
 }
 
 /* Default string representation of objects */
-static u_string_t *_f_str (u_hmap_o_t *obj)
+static u_string_t *__f_str (u_hmap_o_t *obj)
 {
     enum { MAX_OBJ_STR = 256 };
     char buf[MAX_OBJ_STR];
@@ -177,7 +246,7 @@ err:
 }
 
 /* Check validity of options */
-static int _opts_check (u_hmap_opts_t *opts)
+static int __opts_check (u_hmap_opts_t *opts)
 {
     dbg_err_if (opts == NULL);
 
@@ -197,7 +266,7 @@ err:
 }
 
 /* Setup policy parameters */
-static int _pcy_setup (u_hmap_t *hmap) 
+static int __pcy_setup (u_hmap_t *hmap) 
 {
     dbg_return_if (hmap == NULL, ~0);
 
@@ -209,18 +278,18 @@ static int _pcy_setup (u_hmap_t *hmap)
             hmap->pcy.ops = 0;
             break;
         case U_HMAP_PCY_LRU:
-            hmap->pcy.push = _queue_push;
-            hmap->pcy.pop = _queue_pop_back;
+            hmap->pcy.push = __queue_push;
+            hmap->pcy.pop = __queue_pop_back;
             hmap->pcy.ops = U_HMAP_PCY_OP_PUT | U_HMAP_PCY_OP_GET;
             break;
         case U_HMAP_PCY_FIFO:
-            hmap->pcy.push = _queue_push;
-            hmap->pcy.pop = _queue_pop_back;
+            hmap->pcy.push = __queue_push;
+            hmap->pcy.pop = __queue_pop_back;
             hmap->pcy.ops = U_HMAP_PCY_OP_PUT;
             break;
         case U_HMAP_PCY_LFU:
-            hmap->pcy.push = _queue_push_count;
-            hmap->pcy.pop = _queue_pop_front;
+            hmap->pcy.push = __queue_push_count;
+            hmap->pcy.pop = __queue_pop_front;
             hmap->pcy.ops = U_HMAP_PCY_OP_PUT | U_HMAP_PCY_OP_GET;
             break;
         default:
@@ -257,13 +326,13 @@ int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **hmap)
     if (opts)
     {
         dbg_err_if (u_hmap_opts_copy(c->opts, opts));
-        dbg_err_if (_opts_check(c->opts));
+        dbg_err_if (__opts_check(c->opts));
     }
     u_hmap_opts_dbg(c->opts);
-    dbg_err_if (_pcy_setup(c));
+    dbg_err_if (__pcy_setup(c));
 
     c->size = c->opts->size;
-    dbg_err_if (_next_prime(&c->size, c->size, &c->px));
+    dbg_err_if (__next_prime(&c->size, c->size, &c->px));
     c->threshold = U_HMAP_RATE_FULL * c->size;
 
     dbg_err_sif ((c->hmap = (u_hmap_e_t *) 
@@ -393,14 +462,14 @@ int u_hmap_del (u_hmap_t *hmap, void *key, u_hmap_o_t **obj)
     if (obj)
         *obj = NULL;
 
-    if (_get(hmap, key, &o))
+    if (__get(hmap, key, &o))
         return U_HMAP_ERR_FAIL;
 
     dbg_err_if (o == NULL);
     LIST_REMOVE(o, next);
 
     if (hmap->opts->options & U_HMAP_OPTS_OWNSDATA)
-        _o_free(hmap, o);
+        __o_free(hmap, o);
     else
         if (obj)
             *obj = o;
@@ -414,8 +483,7 @@ err:
 }
 
 /* Retrieve an hmap element given a key */
-static int _get (u_hmap_t *hmap, void *key, 
-                       u_hmap_o_t **o)
+static int __get (u_hmap_t *hmap, void *key, u_hmap_o_t **o)
 {
     u_hmap_o_t *obj;
     u_hmap_e_t *x;
@@ -428,13 +496,13 @@ static int _get (u_hmap_t *hmap, void *key,
 
 	hash = hmap->opts->f_hash(key, hmap->size);
 
-	if (hmap->opts->f_hash != &_f_hash && 
+	if (hmap->opts->f_hash != &__f_hash && 
 			!(hmap->opts->options & U_HMAP_OPTS_HASH_STRONG)) {
 		enum { MAX_INT = 20 };
 		char h[MAX_INT];
 
 		u_snprintf(h, MAX_INT, "%u", hash);
-		hash = _f_hash(h, hmap->size);
+		hash = __f_hash(h, hmap->size);
 	}
 
 	x = &hmap->hmap[hash];
@@ -520,7 +588,7 @@ void u_hmap_pcy_dbg (u_hmap_t *hmap)
 }
 
 /* pop the front of an object queue */
-static int _queue_pop_front (u_hmap_t *hmap, u_hmap_o_t **obj)
+static int __queue_pop_front (u_hmap_t *hmap, u_hmap_o_t **obj)
 {
     u_hmap_q_t *first;
 
@@ -529,7 +597,7 @@ static int _queue_pop_front (u_hmap_t *hmap, u_hmap_o_t **obj)
     dbg_err_if ((first = TAILQ_FIRST(&hmap->pcy.queue)) == NULL);
     dbg_err_if (u_hmap_del(hmap, first->key, obj));
     TAILQ_REMOVE(&hmap->pcy.queue, first, next);
-    _q_o_free(first);
+    __q_o_free(first);
 
     return U_HMAP_ERR_NONE;
 
@@ -538,7 +606,7 @@ err:
 }
 
 /* pop the back of an object queue */
-static int _queue_pop_back (u_hmap_t *hmap, u_hmap_o_t **obj)
+static int __queue_pop_back (u_hmap_t *hmap, u_hmap_o_t **obj)
 {
     u_hmap_q_t *last;
 
@@ -548,7 +616,7 @@ static int _queue_pop_back (u_hmap_t *hmap, u_hmap_o_t **obj)
             == NULL);
     dbg_err_if (u_hmap_del(hmap, last->key, obj));
     TAILQ_REMOVE(&hmap->pcy.queue, last, next);
-    _q_o_free(last);
+    __q_o_free(last);
     
     return U_HMAP_ERR_NONE;
 
@@ -557,7 +625,7 @@ err:
 }
 
 /* push object data onto queue */
-static int _queue_push (u_hmap_t *hmap, u_hmap_o_t *obj,
+static int __queue_push (u_hmap_t *hmap, u_hmap_o_t *obj,
         u_hmap_q_t **data)
 {
     u_hmap_q_t *new;
@@ -568,7 +636,7 @@ static int _queue_push (u_hmap_t *hmap, u_hmap_o_t *obj,
 
     if (*data == NULL) 
     {  /* no reference to queue entry */
-        dbg_err_if ((new = _q_o_new(obj->key)) == NULL);
+        dbg_err_if ((new = __q_o_new(obj->key)) == NULL);
         TAILQ_INSERT_HEAD(&hmap->pcy.queue, new, next);
         *data = new;
     } else { /* have element in queue - move to head */
@@ -582,7 +650,7 @@ err:
 }
 
 /* Increment count data object and push onto queue */
-static int _queue_push_count (u_hmap_t *hmap, u_hmap_o_t *obj, 
+static int __queue_push_count (u_hmap_t *hmap, u_hmap_o_t *obj, 
         u_hmap_q_t **counts)
 {
     u_hmap_q_t *new, *t;
@@ -594,7 +662,7 @@ static int _queue_push_count (u_hmap_t *hmap, u_hmap_o_t *obj,
 
     if (*counts == NULL) /* no reference to queue entry */
     {  
-        dbg_err_if ((new = _q_o_new(obj->key)) == NULL);
+        dbg_err_if ((new = __q_o_new(obj->key)) == NULL);
         TAILQ_INSERT_HEAD(&hmap->pcy.queue, new, next);
         *counts = TAILQ_FIRST(&hmap->pcy.queue);
         dbg_err_sif ((count = (int *) u_zalloc(sizeof(int))) == NULL);
@@ -651,7 +719,7 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
     if (hmap->sz >= hmap->threshold) {
         u_dbg("hmap full");
         if (hmap->opts->policy == U_HMAP_PCY_NONE) {
-            dbg_err_if (_resize(hmap));
+            dbg_err_if (__resize(hmap));
         } else {
             u_dbg("freeing according to policy %d", hmap->opts->policy);
             dbg_err_if (hmap->pcy.pop(hmap, old));
@@ -660,13 +728,13 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
 
     hash = hmap->opts->f_hash(obj->key, hmap->size);
 
-    if (hmap->opts->f_hash != &_f_hash &&
+    if (hmap->opts->f_hash != &__f_hash &&
             !(hmap->opts->options & U_HMAP_OPTS_HASH_STRONG)) {
         enum { MAX_INT = 20 };
         char h[MAX_INT];
 
         u_snprintf(h, MAX_INT, "%u", hash);
-        hash = _f_hash(h, hmap->size);
+        hash = __f_hash(h, hmap->size);
     }
 
     if (hmap->opts->policy != U_HMAP_PCY_NONE &&
@@ -702,7 +770,7 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
                             /* XXX pop from policy queue */
 
                             if (hmap->opts->options & U_HMAP_OPTS_OWNSDATA)
-                                _o_free(hmap, o);
+                                __o_free(hmap, o);
                             else
                                 if (old)
                                     *old = o;
@@ -713,7 +781,7 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
                         } else {
 
                             if (hmap->opts->options & U_HMAP_OPTS_OWNSDATA)
-                                _o_free(hmap, obj);                          
+                                __o_free(hmap, obj);                          
                             else
                                 if (old) 
                                     *old = obj; 
@@ -763,7 +831,7 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
                                 /* XXX pop from policy queue */
 
                                 if (hmap->opts->options & U_HMAP_OPTS_OWNSDATA)
-                                    _o_free(hmap, obj);
+                                    __o_free(hmap, obj);
                                 else 
                                     if (old)
                                         *old = obj;
@@ -774,7 +842,7 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
                             } else {
 
                                 if (hmap->opts->options & U_HMAP_OPTS_OWNSDATA)
-                                    _o_free(hmap, obj);
+                                    __o_free(hmap, obj);
                                 else 
                                     if (old)
                                         *old = obj;
@@ -819,7 +887,7 @@ int u_hmap_get (u_hmap_t *hmap, void *key, u_hmap_o_t **obj)
     dbg_err_if (key == NULL);
     dbg_err_if (obj == NULL);
 
-    if (_get(hmap, key, obj)) 
+    if (__get(hmap, key, obj)) 
     {
         *obj = NULL;
         return U_HMAP_ERR_FAIL;
@@ -951,7 +1019,7 @@ void u_hmap_free (u_hmap_t *hmap)
         while ((obj = LIST_FIRST(&hmap->hmap[i])) != NULL) 
         {
             LIST_REMOVE(obj, next);
-            _o_free(hmap, obj);
+            __o_free(hmap, obj);
         }
     }
 
@@ -961,7 +1029,7 @@ void u_hmap_free (u_hmap_t *hmap)
     while ((data = TAILQ_FIRST(&hmap->pcy.queue)) != NULL) 
     {
         TAILQ_REMOVE(&hmap->pcy.queue, data, next);
-        _q_o_free(data);
+        __q_o_free(data);
     }
 
     u_free(hmap->opts);
@@ -1039,10 +1107,10 @@ void u_hmap_opts_init (u_hmap_opts_t *opts)
     opts->max = U_HMAP_MAX_ELEMS;
     opts->policy = U_HMAP_PCY_NONE;
     opts->options = 0;
-    opts->f_hash = &_f_hash;
-    opts->f_comp = &_f_comp;
-    opts->f_free = &_f_free;
-    opts->f_str = &_f_str;
+    opts->f_hash = &__f_hash;
+    opts->f_comp = &__f_comp;
+    opts->f_free = &__f_free;
+    opts->f_str = &__f_str;
     
     return;
 }
@@ -1075,11 +1143,11 @@ void u_hmap_opts_dbg (u_hmap_opts_t *opts)
     u_dbg("[hmap options]");
     u_dbg("size: %u", opts->size);
     u_dbg("max: %u", opts->max);
-    u_dbg("policy: %s", _pcy2str(opts->policy));
-    u_dbg("ownsdata: %d, &f_free: %x", 
-            (opts->options & U_HMAP_OPTS_OWNSDATA)>0,
-            &opts->f_free);
-    u_dbg("no_overwrite: %d", (opts->options & U_HMAP_OPTS_NO_OVERWRITE)>0);
+    u_dbg("policy: %s", __pcy2str(opts->policy));
+    u_dbg("ownsdata: %d, f_free: %p", 
+            opts->options & U_HMAP_OPTS_OWNSDATA,
+            opts->f_free);
+    u_dbg("no_overwrite: %d", opts->options & U_HMAP_OPTS_NO_OVERWRITE);
 }
 
 /**
@@ -1101,8 +1169,7 @@ u_hmap_o_t *u_hmap_o_new (void *key, void *val)
     dbg_return_if (key == NULL, NULL);
     dbg_return_if (val == NULL, NULL);
 
-    dbg_err_sif ((obj = (u_hmap_o_t *) 
-                u_zalloc(sizeof(u_hmap_o_t))) == NULL);
+    dbg_err_sif ((obj = (u_hmap_o_t *) u_zalloc(sizeof(u_hmap_o_t))) == NULL);
     
     obj->key = key;
     obj->val = val;
@@ -1138,7 +1205,7 @@ void u_hmap_o_free (u_hmap_o_t *obj)
  */
 
 /* Free a data object including content if U_HMAP_OPTS_OWNSDATA */
-static void _o_free (u_hmap_t *hmap, u_hmap_o_t *obj)
+static void __o_free (u_hmap_t *hmap, u_hmap_o_t *obj)
 {
     dbg_ifb (hmap == NULL) return;
     dbg_ifb (obj == NULL) return;
@@ -1153,7 +1220,7 @@ static void _o_free (u_hmap_t *hmap, u_hmap_o_t *obj)
 }
 
 /* Allocate a new queue data object */
-static u_hmap_q_t *_q_o_new (void *key)
+static u_hmap_q_t *__q_o_new (void *key)
 {
     u_hmap_q_t *data = NULL;
 
@@ -1173,7 +1240,7 @@ err:
 }
 
 /* Free a data queue object */
-static void _q_o_free (u_hmap_q_t *data)
+static void __q_o_free (u_hmap_q_t *data)
 {
     dbg_ifb (data == NULL) return;
 
@@ -1182,7 +1249,7 @@ static void _q_o_free (u_hmap_q_t *data)
 }
 
 /* Get a string representation of a policy */
-static const char *_pcy2str (u_hmap_pcy_type_t policy)
+static const char *__pcy2str (u_hmap_pcy_type_t policy)
 {
     switch (policy)
     {
@@ -1198,7 +1265,7 @@ static const char *_pcy2str (u_hmap_pcy_type_t policy)
     return NULL;
 }
 
-static int _next_prime(size_t *prime, size_t sz, size_t *idx) 
+static int __next_prime(size_t *prime, size_t sz, size_t *idx) 
 {
     static size_t primes[] = {
         13, 19, 29, 41, 59, 79, 107, 149, 197, 263, 347, 457, 599, 787, 1031,
@@ -1234,7 +1301,7 @@ err:
     return ~0;    
 }
 
-static int _resize(u_hmap_t *hmap)
+static int __resize(u_hmap_t *hmap)
 {
     u_hmap_opts_t *newopts = NULL;
     u_hmap_t *newmap = NULL;
@@ -1251,7 +1318,7 @@ static int _resize(u_hmap_t *hmap)
     dbg_err_if (u_hmap_opts_copy(newopts, hmap->opts));
     
     /* set rate and create the new hashmap */
-    dbg_err_if (_next_prime(&newopts->size, 
+    dbg_err_if (__next_prime(&newopts->size, 
             U_HMAP_RATE_RESIZE * newopts->size, 
             &hmap->px));
     dbg_err_if (u_hmap_new(newopts, &newmap));

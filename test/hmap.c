@@ -3,12 +3,121 @@
 
 U_TEST_SUITE(hmap);
 
-static size_t _sample_hash (void *key, size_t size);
-static int _sample_comp(void *key1, void *key2);
-static u_string_t *_sample_str(u_hmap_o_t *obj);
-static u_hmap_o_t *_sample_obj(int key, const char *val);
+static size_t __sample_hash (void *key, size_t size);
+static int __sample_comp(void *key1, void *key2);
+static u_string_t *__sample_str(u_hmap_o_t *obj);
+static u_hmap_o_t *__sample_obj(int key, const char *val);
 
-static int example_static (void)
+static int example_easy_static()
+{
+    u_hmap_t *hmap = NULL;
+    char *vals[] = { "zero", "one", "two", "three" };
+
+    u_dbg("example_easy_static()");
+
+    dbg_err_if (u_hmap_easy_new(&hmap));
+
+    dbg_err_if (u_hmap_easy_put(hmap, "0", vals[0]));
+    dbg_err_if (u_hmap_easy_put(hmap, "1", vals[1]));
+    dbg_err_if (u_hmap_easy_put(hmap, "2", vals[2]));
+    dbg_err_if (u_hmap_easy_put(hmap, "3", vals[4]));
+
+    /* value that doesn't exist */
+    dbg_err_if (u_hmap_easy_get(hmap, "4") != NULL);
+
+    /* test deletion */
+    dbg_err_if (u_hmap_easy_del(hmap, "3"));
+    dbg_err_if (u_hmap_easy_get(hmap, "3") != NULL);
+    dbg_err_if (u_hmap_easy_put(hmap, "3", "THREE"));
+
+    /* print out all values */
+    dbg_err_if (strcmp(u_hmap_easy_get(hmap, "0"), vals[0]) != 0);
+    dbg_err_if (strcmp(u_hmap_easy_get(hmap, "1"), vals[1]) != 0);
+    dbg_err_if (strcmp(u_hmap_easy_get(hmap, "2"), vals[2]) != 0);
+    dbg_err_if (strcmp(u_hmap_easy_get(hmap, "3"), "THREE") != 0);
+
+    /* test overwrite - should fail */
+    dbg_err_if (u_hmap_easy_put(hmap, "2", "TWO") == 0);
+    dbg_err_if (strcmp(u_hmap_easy_get(hmap, "2"), "two") != 0);
+
+    u_hmap_easy_free(hmap);
+
+    return 0;
+err:
+    if (hmap)
+        u_hmap_easy_free(hmap);
+
+    return ~0;
+}
+
+static int example_easy_dynamic()
+{
+    struct mystruct_s {
+        char *a;
+        char *b;
+    };
+    typedef struct mystruct_s mystruct_t;
+
+    void mystruct_free (u_hmap_o_t *obj)
+    {
+        mystruct_t *myval;
+
+        if (obj == NULL || 
+                obj->val == NULL)
+            return;
+
+        /* key is static so we only need to free value */
+        myval = obj->val;
+
+        u_free(myval->a);
+        u_free(myval->b);
+        u_free(myval);
+    };
+
+    mystruct_t *mystruct_create()
+    {
+        mystruct_t *myval = (mystruct_t *) u_zalloc(sizeof(mystruct_t));
+        myval->a = strdup("first string");
+        myval->b = strdup("second string");
+        return myval;
+    }
+
+    u_hmap_t *hmap = NULL;
+    mystruct_t *mystruct;
+
+    u_dbg("example_easy_dynamic()");
+
+    dbg_err_if (u_hmap_easy_new(&hmap));
+
+    /* setup custom free function */
+    dbg_err_if (u_hmap_easy_set_freefunc(hmap, &mystruct_free));
+
+    /* insert 3 objects */
+    dbg_err_if (u_hmap_easy_put(hmap, "a", mystruct_create()));
+    dbg_err_if (u_hmap_easy_put(hmap, "b", mystruct_create()));
+    dbg_err_if (u_hmap_easy_put(hmap, "c", mystruct_create()));
+
+    /* test overwrite - should fail */
+    dbg_err_if (u_hmap_easy_put(hmap, "b", mystruct_create()) == 0);
+
+    /* check a value */
+    dbg_err_if ((mystruct = u_hmap_easy_get(hmap, "a")) == NULL);
+    dbg_err_if (strcmp(mystruct->a, "first string") != 0);
+    dbg_err_if (strcmp(mystruct->b, "second string") != 0);
+    
+    /* internal objects freed automatically using custom function */
+    u_hmap_easy_free(hmap);
+
+    return 0;
+err:
+
+    if (hmap)
+        u_hmap_easy_free(hmap);
+
+    return ~0;
+}
+
+static int example_static()
 {
     u_hmap_t *hmap = NULL;
     u_hmap_o_t *obj = NULL;
@@ -229,12 +338,12 @@ err:
 #undef MAP_INSERT
 }
 
-static size_t _sample_hash(void *key, size_t size)
+static size_t __sample_hash(void *key, size_t size)
 {
     return (*((int *) key) % size);
 }
 
-static int _sample_comp(void *key1, void *key2)
+static int __sample_comp(void *key1, void *key2)
 {
     int k1 = *((int *) key1),
         k2 = *((int *) key2);
@@ -242,7 +351,7 @@ static int _sample_comp(void *key1, void *key2)
     return k1 < k2 ? -1 : ((k1 > k2)? 1 : 0);
 }
 
-static u_string_t *_sample_str(u_hmap_o_t *obj)
+static u_string_t *__sample_str(u_hmap_o_t *obj)
 {
     enum { MAX_OBJ_STR = 256 };
     char buf[MAX_OBJ_STR];
@@ -261,7 +370,7 @@ err:
 }
 
 /* Allocate (key, value) pair dynamically */
-static u_hmap_o_t *_sample_obj(int key, const char *val)
+static u_hmap_o_t *__sample_obj(int key, const char *val)
 {
     u_hmap_o_t *new = NULL;
 
@@ -290,7 +399,7 @@ err:
 static int example_types_custom (void)
 {
 #define MAP_INSERT(hmap, k, v) \
-    dbg_err_if ((obj = _sample_obj(k, v)) == NULL); \
+    dbg_err_if ((obj = __sample_obj(k, v)) == NULL); \
     dbg_err_if (u_hmap_put(hmap, obj, NULL));
 
     u_hmap_opts_t *opts = NULL;
@@ -302,9 +411,9 @@ static int example_types_custom (void)
     dbg_err_if (u_hmap_opts_new(&opts));
     opts->options |= U_HMAP_OPTS_OWNSDATA | U_HMAP_OPTS_HASH_STRONG;
     opts->size = 3;
-    opts->f_hash = &_sample_hash;
-    opts->f_comp = &_sample_comp;
-    opts->f_str = &_sample_str;
+    opts->f_hash = &__sample_hash;
+    opts->f_comp = &__sample_comp;
+    opts->f_str = &__sample_str;
 
     dbg_err_if (u_hmap_new(opts, &hmap));
 
@@ -437,6 +546,8 @@ err:
 U_TEST_SUITE(hmap)
 {
     /* examples */
+    U_TEST_CASE_ADD( example_easy_static );
+    U_TEST_CASE_ADD( example_easy_dynamic );
     U_TEST_CASE_ADD( example_static );
     U_TEST_CASE_ADD( example_dynamic_own_hmap );
     U_TEST_CASE_ADD( example_dynamic_own_user );
