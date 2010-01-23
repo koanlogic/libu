@@ -241,7 +241,7 @@ err:
  */ 
 void u_uri_free (u_uri_t *u)
 {
-    dbg_return_if (u == NULL, )
+    dbg_return_if (u == NULL, );
 
     U_FREE(u->scheme);
     U_FREE(u->userinfo);
