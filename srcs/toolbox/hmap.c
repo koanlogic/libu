@@ -134,13 +134,13 @@ err:
 
 int u_hmap_easy_put (u_hmap_t *hmap, void *key, void *val)
 {
-    int rc;
+    int rc = U_HMAP_ERR_NONE;
     u_hmap_o_t *obj = NULL;
 
     dbg_err_if ((obj = u_hmap_o_new(key, val)) == NULL);
     dbg_err_if ((rc = u_hmap_put(hmap, obj, NULL)));
     
-    return U_HMAP_ERR_NONE;
+    return rc;
 err:
     /* don't free 'obj' because hmap owns it and will free it */
     return (rc ? rc : U_HMAP_ERR_FAIL);
