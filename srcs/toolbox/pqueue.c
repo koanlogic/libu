@@ -36,11 +36,16 @@ static int u_pq_append (u_pq_t *q, int pos, double priority, const void *ptr);
  *      the time of insertion of the element) by which the queue is explicitly 
  *      ordered.
  *
- *      When the queue is full, an element will be pushed into the queue -
- *      by shifting lower/higher priority elements to the right - or discarded,
- *      depending on its own priority, the overall queue policy (one of
- *      ::U_PQ_KEEP_HIGHEST or ::U_PQ_KEEP_LOWEST), and the priority of the 
- *      already inserted elements.
+ *      Pushing an element will always succeed if the queue is not full.
+ *
+ *      If the queue is full the pushed element will be inserted only if its
+ *      score is better then the score of one or more of the existing 
+ *      elements. It such case the element having the worst score will be 
+ *      discarded.
+ *
+ *      Use ::U_PQ_KEEP_LOWEST as the second parameter to ::u_pq_create if 
+ *      you want to keep elements with lowest priorities, ::U_PQ_KEEP_HIGHEST 
+ *      otherwise.
  *
  *      The set of available primitives is very simple: creation (via
  *      ::u_pq_create), insertion (::u_pq_push), iteration (the ::u_pq_foreach
