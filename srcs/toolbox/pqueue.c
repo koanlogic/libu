@@ -6,7 +6,7 @@
 #include <u/libu.h>
 #include <toolbox/pqueue.h>
 
-#define u_pq_test_prio(q, prio, t1, t2) \
+#define u_pq_test_score(q, prio, t1, t2) \
     ((q->policy == U_PQ_KEEP_HIGHEST) ? \
         prio > q->items[t1].priority : prio < q->items[t2].priority)
 
@@ -81,7 +81,7 @@ int u_pq_push (u_pq_t *q, double prio, const void *ptr)
     /* if the queue is full, test supplied element priority against
      * last element priority and queue policy to choose if we need to 
      * skip insertion or proceed by overwriting the last element */
-    if (u_pq_test_prio(q, prio, q->last, q->last))
+    if (u_pq_test_score(q, prio, q->last, q->last))
     {
         waslast = q->last;
 
@@ -212,7 +212,7 @@ static int u_pq_append (u_pq_t *q, int pos, double prio, const void *ptr)
         goto end;
     }
 
-    if (!u_pq_test_prio(q, prio, q->last, q->last))
+    if (!u_pq_test_score(q, prio, q->last, q->last))
     {
         q->items[pos].prev = q->last;
         q->items[pos].next = -1;
@@ -223,7 +223,7 @@ static int u_pq_append (u_pq_t *q, int pos, double prio, const void *ptr)
     {
         for (t = q->last; t != -1; prevt = t, t = q->items[t].prev)
         {
-            if (!u_pq_test_prio(q, prio, t, t))
+            if (!u_pq_test_score(q, prio, t, t))
                 break;
         }
 
