@@ -74,6 +74,7 @@ inclusion of specific bits selectively using the following switches:
     - \c --no_list: to disable the \ref list module
     - \c --no_array: to disable the \ref array module
     - \c --no_ringbuffer: to disable the \ref rb module
+    - \c --no_pqueue: to disable the \ref pq module
 
 Also, some specific features regarding the networking code can be disabled
 at configuration:
@@ -111,7 +112,7 @@ int facility = LOG_LOCAL0;
 
 int main (void)
 {
-    con("Hello LibU world !");
+    u_con("Hello LibU world !");
     return 0;
 }
 \endcode

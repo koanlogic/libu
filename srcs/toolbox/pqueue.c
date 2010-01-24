@@ -29,29 +29,29 @@ struct u_pq_s
 static int u_pq_append (u_pq_t *q, int pos, double priority, const void *ptr);
 
 /**
- *  \defgroup   pq  Priority Queue
- *  \{
- *      The \ref pq module implements a fixed width array of generic elements
- *      (pointers) each of which is tagged with a given priority (chosen at
- *      the time of insertion of the element) by which the queue is explicitly 
- *      ordered.
- *
- *      Pushing an element will always succeed if the queue is not full.
- *
- *      If the queue is full the pushed element will be inserted only if its
- *      score is better then the score of one or more of the existing 
- *      elements. It such case the element having the worst score will be 
- *      discarded.
- *
- *      Use ::U_PQ_KEEP_LOWEST as the second parameter to ::u_pq_create if 
- *      you want to keep elements with lowest priorities, ::U_PQ_KEEP_HIGHEST 
- *      otherwise.
- *
- *      The set of available primitives is very simple: creation (via
- *      ::u_pq_create), insertion (::u_pq_push), iteration (the ::u_pq_foreach
- *      macro) and destruction (::u_pq_free): clearly there is no explicit 
- *      deletion interface since dropping an element is an implicit outcome
- *      of the insertion op when the queue is full.
+    \defgroup pq Priority Queues
+    \{
+        The \ref pq module implements a fixed width array of generic elements
+        (pointers) each of which is tagged with a given priority (chosen at
+        the time of insertion of the element) by which the queue is explicitly 
+        ordered.
+  
+        Pushing an element will always succeed if the queue is not full.
+  
+        If the queue is full the pushed element will be inserted only if its
+        score is better then the score of one or more of the existing 
+        elements. It such case the element having the worst score will be 
+        discarded.
+  
+        Use ::U_PQ_KEEP_LOWEST as the second parameter to ::u_pq_create if 
+        you want to keep elements with lowest priorities, ::U_PQ_KEEP_HIGHEST 
+        otherwise.
+  
+        The set of available primitives is very simple: creation (via
+        ::u_pq_create), insertion (::u_pq_push), iteration (the ::u_pq_foreach
+        macro) and destruction (::u_pq_free): clearly there is no explicit 
+        deletion interface since dropping an element is an implicit outcome
+        of the insertion op when the queue is full.
  */
 
 /**

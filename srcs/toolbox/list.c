@@ -22,12 +22,12 @@ struct u_list_s
     \defgroup list Lists
     \{
         The \ref list module implements a linked list.  Elements - actually
-        element pointers - can be added appended at the end of an ::u_list_t
+        element pointers - can be appended at the end of an ::u_list_t
         object (via ::u_list_add), or inserted at a given position (via 
         ::u_list_insert).  Element can be retrieved and deleted by index 
         (::u_list_get_n, ::u_list_del_n), and also evicted by direct reference
         (::u_list_del).  The ::u_list_foreach iterator is provided for safe,
-        easy and efficient traversal of list objects. 
+        easy and efficient (forward) traversal of list objects. 
 
         \note   Element pointers are never owned by the ::u_list_t object to 
                 which they are linked.  The disposal of the resources (possibly)

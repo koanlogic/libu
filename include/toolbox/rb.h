@@ -5,7 +5,11 @@
 #ifndef _U_RB_H_
 #define _U_RB_H_
 
-#include <u/libu.h>
+#include <u/libu_conf.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif  /* __cplusplus */
 
 /* forward decl */
 struct u_rb_s;
@@ -31,5 +35,9 @@ size_t u_rb_avail (u_rb_t *rb);
 /**
  *  \}
  */ 
+
+#ifdef __cplusplus
+}
+#endif  /* __cplusplus */
 
 #endif  /* !_U_RB_H_ */

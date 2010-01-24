@@ -15,14 +15,17 @@ struct u_pqitem_s;
 struct u_pq_s;
 
 /**
- *  \addtogroup pqueue
+ *  \addtogroup pq
  *  \{
  */ 
 
 /** \brief  Queue Policies */
 typedef enum { 
-    U_PQ_KEEP_HIGHEST,  /**< drop lower priority elements first */
-    U_PQ_KEEP_LOWEST    /**< drop higher priority elements first */
+    U_PQ_KEEP_HIGHEST,  
+    /**< begin dropping lower priority elements when queue becomes full */
+
+    U_PQ_KEEP_LOWEST    
+    /**< begin dropping higher priority elements when queue becomes full */
 } u_pq_policy_t;
 
 /** \brief Queue item slot */
@@ -51,7 +54,7 @@ double u_pq_prio (u_pq_t *q, size_t t);
 #define u_pq_foreach_reverse(q, t)  \
     for (t = u_pq_last(q); t != -1; t = u_pq_prev(q, t))
 
-/** \brief  Traverse the queue in reverse priority order 
+/** \brief  Traverse the queue in priority order 
  *  
  *  \param  q   ::u_pq_t object to be traversed
  *  \param  t   iterator variable (\c int type)
