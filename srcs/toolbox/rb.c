@@ -7,7 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <toolbox/rb.h>
+#include <u/toolbox/rb.h>
+#include <u/toolbox/misc.h>
+#include <u/toolbox/carpal.h>
 
 #if defined(HAVE_SYSCONF) && defined(_SC_PAGE_SIZE)
   #define u_vm_page_sz  sysconf(_SC_PAGE_SIZE)

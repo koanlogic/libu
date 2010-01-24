@@ -287,21 +287,25 @@ U_URI_GETSET_F(path)
 U_URI_GETSET_F(query)
 U_URI_GETSET_F(fragment)
 
-/** \brief  Print an ::u_uri_t object to \c stderr (DEBUG) */
-void u_uri_print (u_uri_t *u)
+/** \brief  Print an ::u_uri_t object to \c stderr (DEBUG/TEST) */
+void u_uri_print (u_uri_t *u, int extended)
 {
     dbg_return_if (u == NULL, );
 
-    u_con("scheme: %s", u->scheme ? u->scheme : "__NOT_SET__");
-    u_con("userinfo: %s", u->userinfo ? u->userinfo : "__NOT_SET__");
-    u_con("user: %s", u->user ? u->user : "__NOT_SET__");
-    u_con("pwd: %s", u->pwd ? u->pwd : "__NOT_SET__");
-    u_con("host: %s", u->host ? u->host : "__NOT_SET__");
-    u_con("port: %s", u->port ? u->port : "__NOT_SET__");
-    u_con("authority: %s", u->authority ? u->authority : "__NOT_SET__");
-    u_con("path: %s", u->path ? u->path : "__NOT_SET__");
-    u_con("query: %s", u->query ? u->query : "__NOT_SET__");
-    u_con("fragment: %s", u->fragment ? u->fragment : "__NOT_SET__");
+    u_con("   scheme: %s", u->scheme ? u->scheme : "");
+    u_con("authority: %s", u->authority ? u->authority : "");
+    u_con("     path: %s", u->path ? u->path : "");
+    u_con("    query: %s", u->query ? u->query : "");
+    u_con(" fragment: %s", u->fragment ? u->fragment : "");
+
+    if (extended)
+    {
+        u_con(" userinfo: %s", u->userinfo ? u->userinfo : "");
+        u_con("     user: %s", u->user ? u->user : "");
+        u_con("      pwd: %s", u->pwd ? u->pwd : "");
+        u_con("     host: %s", u->host ? u->host : "");
+        u_con("     port: %s", u->port ? u->port : "");
+    }
 
     return;
 }

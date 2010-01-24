@@ -8,14 +8,14 @@
 #include <u/libu_conf.h>
 #ifdef HAVE__BOOL
 #include <stdbool.h>
-#endif
+#endif  /* HAVE__BOOL */
 #ifdef HAVE_COMPLEX
 #include <complex.h>
-#endif
+#endif  /* HAVE_COMPLEX */
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif  /* __cplusplus */
 
 /**
  * \addtogroup array
@@ -26,13 +26,13 @@ extern "C" {
  *          compile time via \c -DU_ARRAY_NSLOTS_DFL=nnn flag)  */
 #ifndef U_ARRAY_NSLOTS_DFL
 #define U_ARRAY_NSLOTS_DFL 512
-#endif
+#endif  /* !U_ARRAY_NSLOTS_DFL */
 
 /** \brief  right-pad when doing dynamic resize (can be changed at compile 
  *          time via \c -DU_ARRAY_RESIZE_PAD=nnn flag) */
 #ifndef U_ARRAY_RESIZE_PAD
 #define U_ARRAY_RESIZE_PAD 100
-#endif
+#endif  /* !U_ARRAY_RESIZE_PAD */
 
 /** \brief Available dynamic array types, i.e. the standard C types supported 
  *         by the target platform, plus an any type pointer for user defined 
@@ -275,6 +275,6 @@ int u_array_get_long_double_complex (u_array_t *da, size_t idx,
 
 #ifdef __cplusplus
 }
-#endif
+#endif  /* __cplusplus */
 
 #endif /* !_U_ARRAY_H_ */

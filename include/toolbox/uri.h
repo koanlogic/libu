@@ -50,7 +50,7 @@ int u_uri_crumble (const char *s, u_uri_opts_t opts, u_uri_t **pu);
 int u_uri_knead (u_uri_t *u, char s[U_URI_STRMAX]);
 
 /* print u_uri_t internal state */
-void u_uri_print (u_uri_t *u);
+void u_uri_print (u_uri_t *u, int extended);
 
 /* getter/setter methods for u_uri_t objects */
 

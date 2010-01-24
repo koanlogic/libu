@@ -1,6 +1,15 @@
+/* 
+ * Copyright (c) 2005-2010 by KoanLogic s.r.l. - All rights reserved.  
+ */
+
 #ifndef _LIBU_TEST_H_
 #define _LIBU_TEST_H_
-#include <u/libu.h>
+
+#include <u/libu_conf.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif  /* __cplusplus */
 
 /**
  *  \addtogroup test
@@ -77,4 +86,8 @@ extern int _verbose;
  *  \}
  */
 
-#endif
+#ifdef __cplusplus
+}
+#endif  /* __cplusplus */
+
+#endif  /* !_LIBU_TEST_H_ */
