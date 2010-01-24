@@ -16,9 +16,7 @@
  * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#include <u/libu_conf.h>
-#include <sys/types.h>
-#include <string.h>
+#include <u/missing/strlcpy.h>
 
 #ifndef HAVE_STRLCPY
 /*
@@ -26,11 +24,7 @@
  * will be copied.  Always NUL terminates (unless siz == 0).
  * Returns strlen(src); if retval >= siz, truncation occurred.
  */
-size_t 
-strlcpy(dst, src, siz)
-	char *dst;
-	const char *src;
-	size_t siz;
+size_t strlcpy(char *dst, const char *src, size_t siz)
 {
 	char *d = dst;
 	const char *s = src;
@@ -54,6 +48,6 @@ strlcpy(dst, src, siz)
 
 	return(s - src - 1);	/* count does not include NUL */
 }
-#else
-size_t strlcpy(char *, const char *, size_t);
-#endif
+#else   /* HAVE_STRLCPY */
+size_t strlcpy (char *, const char *, size_t);
+#endif  /* !HAVE_STRLCPY */

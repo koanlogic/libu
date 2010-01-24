@@ -1,25 +1,27 @@
 /* 
  * Copyright (c) 2005-2010 by KoanLogic s.r.l. - All rights reserved.  
  */
-#ifndef _LIBU_STRCAT_H_
-#define _LIBU_STRCAT_H_
+#ifndef _LIBU_STRLCAT_H_
+#define _LIBU_STRLCAT_H_
+
 #include <u/libu_conf.h>
 #include <sys/types.h>
-
-#ifdef HAVE_STRCAT
 #include <string.h>
-#else
+
+#ifdef HAVE_STRLCAT
+#include <string.h>
+#else   /* !HAVE_STRLCAT */
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif  /* __cplusplus */
 
 size_t strlcat(char *dst, const char *src, size_t siz);
 
 #ifdef __cplusplus
 }
-#endif
+#endif  /* __cplusplus */
 
-#endif
+#endif  /* HAVE_STRLCAT */
 
-#endif
+#endif  /* !_LIBU_STRLCAT_H_ */

@@ -17,11 +17,11 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <u/libu_conf.h>
-#include <sys/types.h>
-#include <string.h>
+#include <u/missing/strlcat.h>
 
 #ifndef HAVE_STRLCAT
+
+#include <string.h>
 
 /*
  * Appends src to string dst of size siz (unlike strncat, siz is the
@@ -30,11 +30,7 @@
  * Returns strlen(src) + MIN(siz, strlen(initial dst)).
  * If retval >= siz, truncation occurred.
  */
-size_t
-strlcat(dst, src, siz)
-	char *dst;
-	const char *src;
-	size_t siz;
+size_t strlcat (char *dst, const char *src, size_t siz)
 {
 	char *d = dst;
 	const char *s = src;
@@ -60,6 +56,6 @@ strlcat(dst, src, siz)
 
 	return(dlen + (s - src));	/* count does not include NUL */
 }
-#else
-size_t strlcat(char *, const char *, size_t);
-#endif
+#else   /* HAVE_STRLCAT */
+size_t strlcat (char *, const char *, size_t);
+#endif  /* !HAVE_STRLCAT */

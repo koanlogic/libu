@@ -59,22 +59,14 @@ static unsigned int __time_seed (void);
 static const unsigned char padchar[] =
     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-int
-mkstemps(path, slen)
-    char *path;
-    int slen;
+int mkstemps(char *path, int slen)
 {
     int fd;
 
     return (_gettemp(path, &fd, 0, slen) ? fd : -1);
 }
 
-static int
-_gettemp(path, doopen, domkdir, slen)
-    char *path;
-    int *doopen;
-    int domkdir;
-    int slen;
+static int _gettemp(char *path, int *doopen, int domkdir, int slen)
 {
     char *start, *trv, *suffp;
     char *pad;

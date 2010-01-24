@@ -13,13 +13,13 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif  /* __cplusplus */
 
 int mkstemps (char *template, int suffixlen);
 
 #ifdef __cplusplus
 }
-#endif
+#endif  /* __cplusplus */
 
 #endif  /* HAVE_MKTEMP */
 
