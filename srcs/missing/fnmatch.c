@@ -37,9 +37,8 @@
  * Compares a filename or pathname to a pattern.
  */
 
-#include <missing/fnmatch.h>
+#include <u/missing/fnmatch.h>
 
-#include <assert.h>
 #include <ctype.h>
 #include <string.h>
 
@@ -47,8 +46,7 @@
 
 static const char *rangematch(const char *, int, int);
 
-static inline int
-foldcase(int ch, int flags)
+static inline int foldcase(int ch, int flags)
 {
 
 	if ((flags & FNM_CASEFOLD) != 0 && isupper(ch))
@@ -58,10 +56,7 @@ foldcase(int ch, int flags)
 
 #define	FOLDCASE(ch, flags)	foldcase((unsigned char)(ch), (flags))
 
-int
-fnmatch(pattern, string, flags)
-	const char *pattern, *string;
-	int flags;
+int fnmatch (const char *pattern, const char *string, int flags)
 {
 	const char *stringstart;
 	char c, test;
@@ -145,10 +140,7 @@ fnmatch(pattern, string, flags)
 	/* NOTREACHED */
 }
 
-static const char *
-rangematch(pattern, test, flags)
-	const char *pattern;
-	int test, flags;
+static const char *rangematch (const char *pattern, int test, int flags)
 {
 	int negate, ok;
 	char c, c2;
