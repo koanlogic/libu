@@ -136,8 +136,8 @@ static int uri2addr (u_uri_t *u, u_net_scheme_map_t *m, u_net_addr_t *a);
         - <code> udp6://[fe80::200:f8ff:fe21:67cf]:65432 </code>
         - <code> sctp4://myhost:9999 </code>
   
-        Note that IPv6 numeric addresses must be enclosed by brackets as per 
-        RFC 2732.  
+        Note that IPv6 numeric addresses must be enclosed with brackets as per 
+        RFC 3986.
   
         Also, the wildcard address is specified with a \c '*', and the same 
         representation is used to let the kernel choose an ephemeral port for 
@@ -147,8 +147,8 @@ static int uri2addr (u_uri_t *u, u_net_scheme_map_t *m, u_net_addr_t *a);
 
         There exist two ways to obtain a socket descriptor: the first creates
         and consumes an address object without the caller ever noticing it and
-        is ideal one-shot initialization and use, e.g. a passive socket which
-        is created once and accept'ed multiple times during the process 
+        is ideal for one-shot initialization and use, e.g. a passive socket 
+        which is created once and accept'ed multiple times during the process 
         lifetime:
     \code
     int sd, asd;

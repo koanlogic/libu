@@ -254,6 +254,8 @@ void u_uri_free (u_uri_t *u)
     U_FREE(u->query);
     U_FREE(u->fragment);
     u_free(u);
+
+    return;
 }
 
 #define U_URI_GETSET_F(field)                                       \
@@ -268,6 +270,7 @@ int u_uri_set_##field (u_uri_t *uri, const char *val)               \
     dbg_return_if (uri == NULL, ~0);                                \
     dbg_return_if (val == NULL, ~0);                                \
                                                                     \
+    U_FREE(uri->field);                                             \
     dbg_return_sif ((uri->field = u_strdup(val)) == NULL, ~0);      \
                                                                     \
     return 0;                                                       \
