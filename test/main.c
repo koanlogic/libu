@@ -21,6 +21,9 @@ int main(int argc, char **argv)
 #ifndef NO_PQUEUE
     U_TEST_SUITE_ADD(pqueue);
 #endif
+#ifndef NO_RB
+    U_TEST_SUITE_ADD(rb);
+#endif
 
     return u_test_run(argc, argv);
 }
