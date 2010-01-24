@@ -132,12 +132,14 @@ int u_rb_create (size_t hint_sz, u_rb_t **prb)
      * So, next two mappings replace in-toto the first 'rb->base' map which
      * does not need to be explicitly munmap'd */
  
-    /* first half of the mmap'd region.  use MAP_SHARED in order to avoid 
-     * less efficient copy-on-write in u_rb_write */
+    /* first half of the mmap'd region.  use MAP_SHARED to "twin" the two
+     * mmap'd regions: each byte stored at a given offset in the first half
+     * will show up at the same offset in the second half and viceversa */
     dbg_err_sif (mmap(rb->base, rb->sz, PROT_READ | PROT_WRITE, 
             MAP_FIXED | MAP_SHARED, fd, 0) != rb->base);
- 
-    /* second half */
+  
+    /* second half is first's twin: they are attached to the same file 
+     * descriptor 'fd', hence their pairing is handled at the OS level */
     dbg_err_sif (mmap(rb->base + rb->sz, rb->sz, PROT_READ | PROT_WRITE,
             MAP_FIXED | MAP_SHARED, fd, 0) != rb->base + rb->sz);
  
