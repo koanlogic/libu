@@ -31,17 +31,7 @@
  * SUCH DAMAGE.
  */
 
-#include <u/libu.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <limits.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <unistd.h>
+#include <u/missing/mkstemps.h>
 
 #ifdef OS_WIN
 #include <windows.h>
@@ -52,6 +42,18 @@
 #endif
 
 #ifndef HAVE_MKSTEMPS
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <limits.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include <unistd.h>
 
 static int _gettemp(char *, int *, int, int);
 static unsigned int __time_seed (void);
@@ -165,6 +167,6 @@ static unsigned int __time_seed (void)
     return seed;
 }
 
-#else
+#else   /* HAVE_MKSTEMPS */
 int mkstemps (char *template, int suffixlen);
 #endif  /* !HAVE_MKSTEMPS */

@@ -8,7 +8,7 @@
 #include <u/libu_conf.h>
 
 #ifdef HAVE_MKSTEMPS
-  #include <stdlib.h>
+#include <stdlib.h>
 #else   /* !HAVE_MKSTEMPS */
 
 #ifdef __cplusplus
