@@ -232,7 +232,7 @@ int u_net_uri2addr (const char *uri, u_net_mode_t mode, u_net_addr_t **pa)
 
     /* decode address and map the uri scheme to a suitable set of socket 
      * creation parameters */
-    dbg_err_if (u_uri_crumble(uri, 0, &u));
+    dbg_err_if (u_uri_crumble(uri, U_URI_OPT_NONE, &u));
     dbg_err_if ((s = u_uri_get_scheme(u)) == NULL);
     dbg_err_ifm (scheme_mapper(s, &smap), "unsupported URI scheme: %s", s);
 

@@ -41,7 +41,7 @@ int u_pq_first (u_pq_t *q);
 int u_pq_last (u_pq_t *q);
 int u_pq_prev (u_pq_t *q, size_t t);
 int u_pq_next (u_pq_t *q, size_t t);
-int u_pq_prio (u_pq_t *q, size_t t);
+double u_pq_prio (u_pq_t *q, size_t t);
 
 /** \brief  Traverse the queue in reverse priority order 
  *  

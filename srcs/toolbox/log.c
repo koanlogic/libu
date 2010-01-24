@@ -2,9 +2,6 @@
  * Copyright (c) 2005-2010 by KoanLogic s.r.l. - All rights reserved.  
  */
 
-static const char rcsid[] =
-    "$Id: log.c,v 1.10 2009/12/25 19:42:12 tho Exp $";
-
 #include <sys/types.h>
 #include <errno.h>
 #include <stdio.h>
@@ -197,9 +194,7 @@ int u_console_write_ex(int err, const char* file, int line,
     char strerr[STRERR_BUFSZ], errmsg[STRERR_BUFSZ];
 
     /* when writing to console the following parameters are not used */
-    file = NULL;
-    line = 0;
-    func = NULL;
+    u_unused_args(file, line, func);
 
     save_errno(savederr);
 

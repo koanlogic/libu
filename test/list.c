@@ -16,7 +16,7 @@ static int test_list_iterator(void)
     enum { ITERS = 300 };
     u_list_t *l = NULL;
     void *it;
-    size_t j;
+    size_t j, c;
     intptr_t i, v, tot0, tot1;
 
     con_err_if(u_list_create(&l));
@@ -45,7 +45,7 @@ static int test_list_iterator(void)
     con_err_if(tot0 != tot1);
 
     /* remove some items */
-    size_t c = u_list_count(l)/2;
+    c = u_list_count(l)/2;
     for(j = 0; j < c; ++j)
     {
         u_list_del_n(l, 0, (void*)&v);

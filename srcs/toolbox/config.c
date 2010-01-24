@@ -39,7 +39,6 @@ struct u_config_buf_s
 
 /* file system pre-defined driver */
 extern u_config_driver_t u_config_drv_fs;
-extern u_config_driver_t u_config_drv_mem;
 
 static u_config_t *u_config_get_root (u_config_t *c);
 static int u_config_do_set_key (u_config_t *c, const char *key, const char *val,
@@ -1278,8 +1277,8 @@ err:
 static char *u_config_buf_gets (void *arg, char *buf, size_t size)
 {
     struct u_config_buf_s *g = (struct u_config_buf_s*)arg;
-    char *s = buf;
-    int c;
+    char c, *s = buf;
+/*  int c; */
 
     dbg_err_if(arg == NULL);
     dbg_err_if(buf == NULL);

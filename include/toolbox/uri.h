@@ -26,6 +26,9 @@ struct u_uri_s;     /* fwd decl */
  *          ::u_uri_new */
 typedef enum
 {
+    U_URI_OPT_NONE = 0x00,
+    /**< use default parsing algorithm */
+
     U_URI_OPT_DONT_PARSE_USERINFO = 0x01,
     /**< do not try to split user":"password in userinfo */
 

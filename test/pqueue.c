@@ -6,8 +6,8 @@ U_TEST_SUITE(pqueue);
 /* push 'mode's */
 enum { FIX_SEQ = 0, RND_SEQ = 1 };
 
-static int push (int keeplowest, int pqueue_len, int push_count, int mode);
-static int test_bounds (int which);
+static int push (u_pq_policy_t policy, int pqueue_len, int push_count, int mode);
+static int test_bounds (u_pq_policy_t policy);
 static int double_cmp (const void *d0, const void *d1);
 
 /* test cases */
@@ -21,10 +21,10 @@ static int double_cmp (const void *d0, const void *d1)
     const double *a = (const double *) d0;
     const double *b = (const double *) d1;
 
-    return *a - *b;
+    return (int) (*a - *b);
 }
 
-static int push (int keeplowest, int pqueue_len, int push_count, int mode)
+static int push (u_pq_policy_t policy, int pqueue_len, int push_count, int mode)
 {
     enum { SCORES_LEN = 10240 };
     u_pq_t *q = NULL;
@@ -33,7 +33,7 @@ static int push (int keeplowest, int pqueue_len, int push_count, int mode)
     unsigned int seed = (mode == RND_SEQ) ? time(NULL) : 12345;
 
     u_test_err_if (push_count >= SCORES_LEN);
-    u_test_err_if (u_pq_create(pqueue_len, keeplowest, &q));
+    u_test_err_if (u_pq_create(pqueue_len, policy, &q));
 
     srand(seed);
 
@@ -56,7 +56,7 @@ static int push (int keeplowest, int pqueue_len, int push_count, int mode)
 
     u_pq_foreach (q, t)
     {
-        int x = (keeplowest ? i : push_count - 1 - i);
+        int x = ((policy == U_PQ_KEEP_LOWEST) ? i : push_count - 1 - i);
         nexpected--;
         sc = scores[x];
         u_test_err_if (u_pq_prio(q, t) != sc);
@@ -75,8 +75,8 @@ err:
     return ~0;
 }
 
-/* 'which' is one of U_PQ_KEEP_LOWEST | U_PQ_KEEP_HIGHEST */
-static int test_bounds (int which)
+/* 'policy' is one of U_PQ_KEEP_LOWEST | U_PQ_KEEP_HIGHEST */
+static int test_bounds (u_pq_policy_t policy)
 {
     enum { PQUEUE_LEN_MAX = 128 };
     enum { MAX_PUSHES = 512 };
@@ -85,7 +85,7 @@ static int test_bounds (int which)
     for (pqueue_len = 2; pqueue_len < PQUEUE_LEN_MAX; ++pqueue_len)
     {
         for (t = 2; t < MAX_PUSHES; ++t)
-            u_test_err_if (push(which, pqueue_len, t, RND_SEQ));
+            u_test_err_if (push(policy, pqueue_len, t, RND_SEQ));
     }
 
     return U_TEST_EXIT_SUCCESS;
@@ -105,9 +105,9 @@ static int test_highest (void)
 
 static int test1_asc (void)
 {
-    u_test_err_if (push(1, 3, 2, FIX_SEQ));
-    u_test_err_if (push(1, 2, 3, FIX_SEQ));
-    u_test_err_if (push(1, 2, 4, FIX_SEQ));
+    u_test_err_if (push(U_PQ_KEEP_LOWEST, 3, 2, FIX_SEQ));
+    u_test_err_if (push(U_PQ_KEEP_LOWEST, 2, 3, FIX_SEQ));
+    u_test_err_if (push(U_PQ_KEEP_LOWEST, 2, 4, FIX_SEQ));
 
     return U_TEST_EXIT_SUCCESS;
 err:
@@ -116,10 +116,10 @@ err:
 
 static int test1_desc (void)
 {
-    u_test_err_if (push(0, 3, 2, FIX_SEQ));
-    u_test_err_if (push(0, 2, 3, FIX_SEQ));
-    u_test_err_if (push(0, 2, 5, FIX_SEQ));
-    u_test_err_if (push(0, 2, 4, FIX_SEQ));
+    u_test_err_if (push(U_PQ_KEEP_HIGHEST, 3, 2, FIX_SEQ));
+    u_test_err_if (push(U_PQ_KEEP_HIGHEST, 2, 3, FIX_SEQ));
+    u_test_err_if (push(U_PQ_KEEP_HIGHEST, 2, 5, FIX_SEQ));
+    u_test_err_if (push(U_PQ_KEEP_HIGHEST, 2, 4, FIX_SEQ));
 
     return U_TEST_EXIT_SUCCESS;
 err:
@@ -128,8 +128,8 @@ err:
 
 static int test2_asc (void)
 {
-    u_test_err_if (push(1, 3, 2, RND_SEQ));
-    u_test_err_if (push(1, 2, 3, RND_SEQ));
+    u_test_err_if (push(U_PQ_KEEP_LOWEST, 3, 2, RND_SEQ));
+    u_test_err_if (push(U_PQ_KEEP_LOWEST, 2, 3, RND_SEQ));
 
     return U_TEST_EXIT_SUCCESS;
 err:
@@ -138,8 +138,8 @@ err:
 
 static int test2_desc (void)
 {
-    u_test_err_if (push(0, 3, 2, RND_SEQ));
-    u_test_err_if (push(0, 2, 3, RND_SEQ));
+    u_test_err_if (push(U_PQ_KEEP_HIGHEST, 3, 2, RND_SEQ));
+    u_test_err_if (push(U_PQ_KEEP_HIGHEST, 2, 3, RND_SEQ));
 
     return U_TEST_EXIT_SUCCESS;
 err:

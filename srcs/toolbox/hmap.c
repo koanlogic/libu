@@ -33,17 +33,18 @@ struct u_hmap_q_s
     TAILQ_ENTRY(u_hmap_q_s) next;
 };
 
+enum {
+    U_HMAP_PCY_OP_PUT = 0x1,
+    U_HMAP_PCY_OP_GET = 0x2
+};
+
 /* hmap policy representation */
 struct u_hmap_pcy_s 
 {
     int (*pop)(u_hmap_t *hmap, u_hmap_o_t **obj); 
     int (*push)(u_hmap_t *hmap, u_hmap_o_t *obj,
             u_hmap_q_t **data); 
-
-    enum {
-        U_HMAP_PCY_OP_PUT = 0x1,
-        U_HMAP_PCY_OP_GET = 0x2
-    } ops;
+    int ops;    /* bitwise inclusive OR of U_HMAP_PCY_OP_* values */
     
     TAILQ_HEAD(u_hmap_q_h_s, u_hmap_q_s) queue;
 };
@@ -333,7 +334,7 @@ int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **hmap)
 
     c->size = c->opts->size;
     dbg_err_if (__next_prime(&c->size, c->size, &c->px));
-    c->threshold = U_HMAP_RATE_FULL * c->size;
+    c->threshold = (size_t) (U_HMAP_RATE_FULL * c->size);
 
     dbg_err_sif ((c->hmap = (u_hmap_e_t *) 
                 u_zalloc(sizeof(u_hmap_e_t) * 

@@ -184,7 +184,7 @@ int u_pq_prev (u_pq_t *q, size_t t) { return q->items[t].prev; }
 int u_pq_next (u_pq_t *q, size_t t) { return q->items[t].next; }
 
 /** \brief  Return the priority of the element at the given position */
-int u_pq_prio (u_pq_t *q, size_t t) { return q->items[t].priority; }
+double u_pq_prio (u_pq_t *q, size_t t) { return q->items[t].priority; }
 
 /** \brief  Return the reference to the items array */
 u_pqitem_t *u_pq_items (u_pq_t *q) { return q->items; }

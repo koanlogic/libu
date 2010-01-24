@@ -61,6 +61,7 @@ OPTION can be defined as follows:
 --do_test           build and run unit tests
 
 --compat_1x         enable compatibility with libu 1.X
+--enable_icc_warns  enable Intel CC warnings
 
 Legend:
   <*>: required dependency

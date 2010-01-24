@@ -96,7 +96,7 @@ static int gen_file(const char *fn, unsigned int *phash)
         c = (size < buf_size ? size : buf_size);
 
         for(i = 0; i < c; ++i)
-            buf[i] = i; /* just fill buf somehow */
+            buf[i] = (char) i; /* just fill buf somehow */
 
         con_err_if(u_write(fd, buf, c) < 0);
 
