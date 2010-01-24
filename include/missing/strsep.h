@@ -3,22 +3,23 @@
  */
 #ifndef _LIBU_STRSEP_H_
 #define _LIBU_STRSEP_H_
+
 #include <u/libu_conf.h>
 
 #ifdef HAVE_STRSEP
 #include <string.h>
-#else
+#else   /* !HAVE_STRSEP */
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif  /* __cplusplus */
 
-char * strsep(char **, const char *);
+char *strsep(char **, const char *);
 
 #ifdef __cplusplus
 }
-#endif
+#endif  /* __cplusplus */
 
-#endif
+#endif  /* HAVE_STRSEP */
 
-#endif
+#endif  /* _LIBU_STRSEP_H_ */

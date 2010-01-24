@@ -29,10 +29,12 @@
  * SUCH DAMAGE.
  */
 
-#include <u/libu_conf.h>
-#include <string.h>
+#include <u/missing/strsep.h>
 
 #ifndef HAVE_STRSEP
+
+#include <stdio.h>
+
 /*
  * Get next token from string *stringp, where tokens are possibly-empty
  * strings separated by characters from delim.  
@@ -44,10 +46,7 @@
  *
  * If *stringp is NULL, strsep returns NULL.
  */
-char *
-strsep(stringp, delim)
-	char **stringp;
-	const char *delim;
+char *strsep(char **stringp, const char *delim) 
 {
 	char *s;
 	const char *spanp;
@@ -74,7 +73,7 @@ strsep(stringp, delim)
 	/* NOTREACHED */
 }
 
-#else
-char* strsep(char **, const char *);
-#endif 
+#else   /* HAVE_STRSEP */
+char *strsep(char **, const char *);
+#endif  /* !HAVE_STRSEP */
 

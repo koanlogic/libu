@@ -41,14 +41,15 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <u/libu_conf.h>
+#include <u/missing/strtok_r.h>
 
 #ifndef HAVE_STRTOK_R
+
+#include <stdio.h>
 #include <stddef.h>
 #include <string.h>
 
-char *
-strtok_r(char *s, const char *delim, char **last)
+char *strtok_r(char *s, const char *delim, char **last)
 {
     char *spanp;
     int c, sc;
@@ -109,6 +110,6 @@ cont:
     /* NOTREACHED */
 }
 
-#else
+#else   /* HAVE_STRTOK_R */
 char *strtok_r(char *s, const char *delim, char **last);
-#endif 
+#endif  /* !HAVE_STRTOK_R */ 
