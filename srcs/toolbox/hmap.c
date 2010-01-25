@@ -66,7 +66,7 @@ struct u_hmap_s
 };
 typedef struct u_hmap_e_s u_hmap_e_t;
 
-static int __get (u_hmap_t *hmap, void *key, 
+static int __get (u_hmap_t *hmap, const void *key, 
         u_hmap_o_t **o);
 
 static int __opts_check (u_hmap_opts_t *opts);
@@ -75,11 +75,11 @@ static const char *__pcy2str(u_hmap_pcy_type_t policy);
 
 static void __o_free (u_hmap_t *hmap, u_hmap_o_t *obj);
 
-static u_hmap_q_t *__q_o_new (void *key);
+static u_hmap_q_t *__q_o_new (const void *key);
 static void __q_o_free (u_hmap_q_t *s);
 
-static size_t __f_hash (void *key, size_t size);
-static int __f_comp (void *k1, void *k2);
+static size_t __f_hash (const void *key, size_t size);
+static int __f_comp (const void *k1, const void *k2);
 static void __f_free (u_hmap_o_t *obj);
 static u_string_t *__f_str (u_hmap_o_t *obj);
 
@@ -133,7 +133,7 @@ err:
     return U_HMAP_ERR_FAIL;
 }
 
-int u_hmap_easy_put (u_hmap_t *hmap, void *key, void *val)
+int u_hmap_easy_put (u_hmap_t *hmap, const void *key, void *val)
 {
     int rc = U_HMAP_ERR_NONE;
     u_hmap_o_t *obj = NULL;
@@ -147,7 +147,7 @@ err:
     return (rc ? rc : U_HMAP_ERR_FAIL);
 }
 
-void *u_hmap_easy_get (u_hmap_t *hmap, void *key)
+void *u_hmap_easy_get (u_hmap_t *hmap, const void *key)
 {
     u_hmap_o_t *obj = NULL;
 
@@ -158,7 +158,7 @@ err:
     return NULL;
 }
 
-int u_hmap_easy_del (u_hmap_t *hmap, void *key)
+int u_hmap_easy_del (u_hmap_t *hmap, const void *key)
 {
     return (u_hmap_del(hmap, key, NULL));
 }
@@ -185,7 +185,7 @@ const char *u_hmap_strerror (u_hmap_ret_t rc)
 }
 
 /* Default hash function */
-static size_t __f_hash (void *key, size_t size)
+static size_t __f_hash (const void *key, size_t size)
 {
     size_t h = 0;
     unsigned char *k = (unsigned char *) key;
@@ -206,7 +206,7 @@ static size_t __f_hash (void *key, size_t size)
 }
 
 /* Default comparison function for key comparison */
-static int __f_comp (void *k1, void *k2) 
+static int __f_comp (const void *k1, const void *k2) 
 {
     dbg_ifb (k1 == NULL) return -1;    
     dbg_ifb (k2 == NULL) return -1;  
@@ -229,13 +229,12 @@ static u_string_t *__f_str (u_hmap_o_t *obj)
     enum { MAX_OBJ_STR = 256 };
     char buf[MAX_OBJ_STR];
     u_string_t *s = NULL;
-    char *key,
-         *val;
+    const char *key, *val;
 
     dbg_err_if (obj == NULL);
 
-    key = (char *) obj->key,
-    val = (char *) obj->val;
+    key = (const char *) obj->key,
+    val = (const char *) obj->val;
 
     dbg_err_if (u_snprintf(buf, MAX_OBJ_STR, "[%s:%s]", key, val));    
     dbg_err_if (u_string_create(buf, strlen(buf)+1, &s));
@@ -453,7 +452,7 @@ err:
  * 
  * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
  */
-int u_hmap_del (u_hmap_t *hmap, void *key, u_hmap_o_t **obj) 
+int u_hmap_del (u_hmap_t *hmap, const void *key, u_hmap_o_t **obj) 
 {
     u_hmap_o_t *o = NULL;
 
@@ -484,7 +483,7 @@ err:
 }
 
 /* Retrieve an hmap element given a key */
-static int __get (u_hmap_t *hmap, void *key, u_hmap_o_t **o)
+static int __get (u_hmap_t *hmap, const void *key, u_hmap_o_t **o)
 {
     u_hmap_o_t *obj;
     u_hmap_e_t *x;
@@ -882,7 +881,7 @@ end:
  * 
  * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
  */
-int u_hmap_get (u_hmap_t *hmap, void *key, u_hmap_o_t **obj) 
+int u_hmap_get (u_hmap_t *hmap, const void *key, u_hmap_o_t **obj) 
 {
     dbg_err_if (hmap == NULL);
     dbg_err_if (key == NULL);
@@ -977,7 +976,7 @@ err:
  * 
  * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
  */
-int u_hmap_foreach_keyval(u_hmap_t *hmap, int f(void *key, void *val))
+int u_hmap_foreach_keyval(u_hmap_t *hmap, int f(const void *key, void *val))
 {
     struct u_hmap_o_s *obj;
     size_t i;
@@ -1163,7 +1162,7 @@ void u_hmap_opts_dbg (u_hmap_opts_t *opts)
  *
  * \return pointer to a new u_hmap_o_t 
  */
-u_hmap_o_t *u_hmap_o_new (void *key, void *val)
+u_hmap_o_t *u_hmap_o_new (const void *key, void *val)
 {
     u_hmap_o_t *obj = NULL;
 
@@ -1172,7 +1171,7 @@ u_hmap_o_t *u_hmap_o_new (void *key, void *val)
 
     dbg_err_sif ((obj = (u_hmap_o_t *) u_zalloc(sizeof(u_hmap_o_t))) == NULL);
     
-    obj->key = key;
+    obj->key = (void *) key;
     obj->val = val;
     obj->pqe = NULL;
 
@@ -1221,7 +1220,7 @@ static void __o_free (u_hmap_t *hmap, u_hmap_o_t *obj)
 }
 
 /* Allocate a new queue data object */
-static u_hmap_q_t *__q_o_new (void *key)
+static u_hmap_q_t *__q_o_new (const void *key)
 {
     u_hmap_q_t *data = NULL;
 
@@ -1230,7 +1229,7 @@ static u_hmap_q_t *__q_o_new (void *key)
     dbg_err_sif ((data = (u_hmap_q_t *)
                 u_zalloc(sizeof(u_hmap_q_t))) == NULL);
 
-    data->key = key;
+    data->key = (void *) key;
     data->o = NULL;
     
     return data;

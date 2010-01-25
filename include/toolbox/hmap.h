@@ -73,9 +73,9 @@ struct u_hmap_opts_s {
                               
 
     /** hash function to be used in hashhmap */
-    size_t (*f_hash)(void *key, size_t buckets);   
+    size_t (*f_hash)(const void *key, size_t buckets);   
     /** function for key comparison */
-    int (*f_comp)(void *k1, void *k2);   
+    int (*f_comp)(const void *k1, const void *k2);   
     /** function for freeing an object */
     void (*f_free)(u_hmap_o_t *obj);   
     /** function to get a string representation of a (key, val) object */
@@ -85,25 +85,25 @@ struct u_hmap_opts_s {
 /* u_hmap_easy_* - simplified interface */
 int u_hmap_easy_new (u_hmap_t **hmap);
 int u_hmap_easy_set_freefunc (u_hmap_t *hmap, void (*f_free)(u_hmap_o_t *obj));
-int u_hmap_easy_put (u_hmap_t *hmap, void *key, void *val); 
-void *u_hmap_easy_get (u_hmap_t *hmap, void *key); 
-int u_hmap_easy_del (u_hmap_t *hmap, void *key); 
+int u_hmap_easy_put (u_hmap_t *hmap, const void *key, void *val); 
+void *u_hmap_easy_get (u_hmap_t *hmap, const void *key); 
+int u_hmap_easy_del (u_hmap_t *hmap, const void *key); 
 void u_hmap_easy_free (u_hmap_t *hmap);
 
 /* u_hmap_* */
 int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **hmap);
 int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old);
-int u_hmap_get (u_hmap_t *hmap, void *key, u_hmap_o_t **obj);
-int u_hmap_del (u_hmap_t *hmap, void *key, u_hmap_o_t **obj);
+int u_hmap_get (u_hmap_t *hmap, const void *key, u_hmap_o_t **obj);
+int u_hmap_del (u_hmap_t *hmap, const void *key, u_hmap_o_t **obj);
 int u_hmap_copy (u_hmap_t *to, u_hmap_t *from);
 void u_hmap_free (u_hmap_t *hmap);
 int u_hmap_foreach (u_hmap_t *hmap, int f(void *val));
-int u_hmap_foreach_keyval (u_hmap_t *hmap, int f(void *key, void *val));
+int u_hmap_foreach_keyval (u_hmap_t *hmap, int f(const void *key, void *val));
 int u_hmap_foreach_arg (u_hmap_t *hmap, int f(void *val, void *arg), void *arg);
 const char *u_hmap_strerror (u_hmap_ret_t);
 
 /* u_hmap_o_* */
-u_hmap_o_t *u_hmap_o_new (void *key, void *val);
+u_hmap_o_t *u_hmap_o_new (const void *key, void *val);
 void u_hmap_o_free (u_hmap_o_t *obj);
 
 /* u_hmap_opts_* */

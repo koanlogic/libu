@@ -3,8 +3,8 @@
 
 U_TEST_SUITE(hmap);
 
-static size_t __sample_hash (void *key, size_t size);
-static int __sample_comp(void *key1, void *key2);
+static size_t __sample_hash (const void *key, size_t size);
+static int __sample_comp(const void *key1, const void *key2);
 static u_string_t *__sample_str(u_hmap_o_t *obj);
 static u_hmap_o_t *__sample_obj(int key, const char *val);
 
@@ -338,12 +338,12 @@ err:
 #undef MAP_INSERT
 }
 
-static size_t __sample_hash(void *key, size_t size)
+static size_t __sample_hash(const void *key, size_t size)
 {
     return (*((int *) key) % size);
 }
 
-static int __sample_comp(void *key1, void *key2)
+static int __sample_comp(const void *key1, const void *key2)
 {
     int k1 = *((int *) key1),
         k2 = *((int *) key2);
