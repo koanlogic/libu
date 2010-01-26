@@ -27,6 +27,7 @@ struct u_rb_s
     size_t sz;      /* ring buffer size */
     size_t wr_off;  /* write offset */
     size_t rd_off;  /* read offset */
+    int opts;       /* options */
 };
 
 static char *write_addr (u_rb_t *rb);
@@ -53,7 +54,7 @@ static size_t round_sz (size_t sz);
     u_rb_t *rb = NULL;
 
     // create a ring buffer of size (at least) 1024 bytes
-    dbg_err_if (u_rb_create(1024, &rb));
+    dbg_err_if (u_rb_create(1024, U_RB_OPT_NONE, &rb));
 
     // you can get the actual size of the buffer by using u_rb_size
     con("ring buffer (@%p) of size %zu", rb, (rb_sz = u_rb_size(rb)));
@@ -95,18 +96,19 @@ static size_t round_sz (size_t sz);
  *
  *  \param  hint_sz the suggested size in bytes for the ring buffer (the actual
  *                  size could be more than that because of alignement needs)
+ *  \param  opts    Bitwise inclusive OR of ::u_rb_opts_t values
  *  \param  prb     result argument which holds the reference to the newly
  *                  created ::u_rb_t object
  *
  *  \retval  0  on success
  *  \retval -1  on error
  */
-int u_rb_create (size_t hint_sz, u_rb_t **prb)
+int u_rb_create (size_t hint_sz, int opts, u_rb_t **prb)
 {
     int fd = -1;
     u_rb_t *rb = NULL;
     char path[] = "/tmp/rb-XXXXXX";
-    
+
     dbg_err_sif ((rb = u_zalloc(sizeof(u_rb_t))) == NULL);
     dbg_err_sif ((fd = mkstemp(path)) == -1);
     dbg_err_sif (u_remove(path));
@@ -116,6 +118,7 @@ int u_rb_create (size_t hint_sz, u_rb_t **prb)
     rb->sz = round_sz(hint_sz);
     rb->wr_off = 0;
     rb->rd_off = 0;
+    rb->opts = opts;
  
     dbg_err_sif (ftruncate(fd, rb->sz) == -1);
 
@@ -261,6 +264,46 @@ ssize_t u_rb_read (u_rb_t *rb, void *b, size_t b_sz)
     /* fall through */
 end:
     return to_be_read;
+}
+
+/**
+ *  \brief  Read from the ring buffer with minimum overhead
+ *
+ *  Try to read \p *pb_sz bytes of data from the ring buffer \p rb and return
+ *  the pointer to the start of data.  The ::U_RB_OPT_USE_CONTIGUOUS_MEM 
+ *  option must have been set when creating \p rb.
+ *
+ *  \param  rb      reference to an already allocated ::u_rb_t object where 
+ *                  data will be read from
+ *  \param  pb_sz   number of bytes that the caller wants to be read.  On 
+ *                  successful return (i.e. non \c NULL) the value will be 
+ *                  filled with the number of bytes actually read.
+ *
+ *  \return the address to the start of read data, or \c NULL on error (which
+ *          includes the "no data ready" condition).
+ *
+ *  \note   In case there is no data ready to be read a \c NULL is returned,
+ *          with <code>*pb_sz == 0</code>.  Any other error condition won't 
+ *          touch the supplied \p *pb_sz value.
+ */
+void *u_rb_fast_read (u_rb_t *rb, size_t *pb_sz)
+{
+    void *data = NULL;
+
+    dbg_return_if (rb == NULL, NULL);
+    dbg_return_if (!(rb->opts & U_RB_OPT_USE_CONTIGUOUS_MEM), NULL);
+    dbg_return_if (pb_sz == NULL, NULL);
+    dbg_return_if (*pb_sz > u_rb_size(rb), NULL);
+
+    /* if there is nothing ready to be read go out immediately */
+    nop_goto_if (!(*pb_sz = U_MIN(u_rb_ready(rb), *pb_sz)), end);
+
+    data = read_addr(rb);
+    read_incr(rb, *pb_sz);
+
+    /* fall through */
+end:
+    return data;
 }
 
 /**

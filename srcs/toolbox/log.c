@@ -194,7 +194,7 @@ int u_console_write_ex(int err, const char* file, int line,
     char strerr[STRERR_BUFSZ], errmsg[STRERR_BUFSZ];
 
     /* when writing to console the following parameters are not used */
-    u_unused_args(file, line, func);
+    file = NULL, line = 0, func = NULL;
 
     save_errno(savederr);
 
