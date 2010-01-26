@@ -12,7 +12,7 @@ int main (int ac, char *av[])
     char ibuf[1024], obuf[512], c;
 
     /* create the ring buffer */
-    con_err_if (u_rb_create(RB_SZ, &rb));
+    con_err_if (u_rb_create(RB_SZ, U_RB_OPT_NONE, &rb));
 
     u_con("rb created at %p with size %zu", rb, (rb_sz = u_rb_size(rb)));
     u_con("bytes available: %zu", u_rb_avail(rb));
