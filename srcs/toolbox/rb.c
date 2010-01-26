@@ -44,7 +44,7 @@ static size_t round_sz (size_t sz);
         from the buffer.  When the buffer fills up (i.e. the reader is less
         efficient that the writer) any subsequent ::u_rb_write operation will
         fail until more space is made available either by an explicit reset of 
-        the buffer - which done via ::u_rb_clear - or by an ::u_rb_read 
+        the buffer - which is done via ::u_rb_clear - or by an ::u_rb_read 
         operation.  The ::u_rb_avail and ::u_rb_ready functions can be used
         by the writer and the reader respectively to test if their actions
         can be taken.
@@ -79,9 +79,15 @@ static size_t round_sz (size_t sz);
     }
     \endcode
 
-    \note   The \ref rb module is not thread safe: should you need to use it
-            in a MT scenario, you'll have to wrap the ::u_rb_t into a mutexed 
-            object and bound the relevant operations to the mutex acquisition.
+    \note
+
+    - The \ref rb module is not thread safe: should you need to use it in a MT 
+      scenario, you'll have to wrap the ::u_rb_t into a mutexed object and 
+      bound the relevant operations to the mutex acquisition.
+
+    - A read interface which minimises overhead (::u_rb_fast_read) is enabled 
+      on ::u_rb_t objects created with the ::U_RB_OPT_USE_CONTIGUOUS_MEM flag 
+      set.
  */
  
 /**
