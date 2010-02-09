@@ -3,6 +3,28 @@
 
 int facility = LOG_LOCAL0;
 
+int test_suite_TS1_register (test_t *t);
+int test_suite_TS2_register (test_t *t);
+
+int main (void)
+{
+    test_t *t = NULL;
+
+    con_err_if (test_new("my test", &t));
+    con_err_if (test_suite_TS1_register(t));
+    con_err_if (test_suite_TS2_register(t));
+    con_err_if (test_run(t));
+
+    test_free(t);
+
+    return EXIT_SUCCESS;
+err:
+    test_free(t);
+    return EXIT_FAILURE;
+}
+
+/* should go in a separate file */
+
 int test_suite_TS1_register (test_t *t)
 {
     test_suite_t *ts = NULL;
@@ -53,18 +75,4 @@ err:
     return ~0;
 }
 
-int main (void)
-{
-    test_t *t = NULL;
 
-    con_err_if (test_new("my test", &t));
-    con_err_if (test_suite_TS1_register(t)); 
-    con_err_if (test_suite_TS2_register(t)); 
-    con_err_if (test_run(t));
-    test_free(t);
-
-    return EXIT_SUCCESS;
-err:
-    test_free(t);
-    return EXIT_FAILURE;
-}
