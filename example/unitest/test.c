@@ -36,6 +36,7 @@ struct test_obj_s
     _Bool sequenced;                /* True if sequenced */
     unsigned int rank;              /* Scheduling rank: low have higher prio */
     char id[TEST_ID_MAX];           /* Test object identifier: MUST be unique */
+    int status;                     /* test exit code: TEST_{SUCCESS,FAILURE} */
     TAILQ_ENTRY(test_obj_s) links;  /* Sibling test cases/suites */
     TD deps;                        /* Test cases/suites we depend on */
 };
@@ -116,7 +117,7 @@ static int test_suite_report_txt (FILE *fp, test_suite_t *ts,
 static int test_sequencer (test_t *t);
 static int test_scheduler (test_t *t);
 static void test_print (test_t *t);
-static int test_reper (test_t *t);
+static int test_reporter (test_t *t);
 static int test_rep_txt (FILE *fp, test_t *t, test_rep_tag_t tag);
 
 int test_run (test_t *t)
@@ -124,7 +125,7 @@ int test_run (test_t *t)
 //    test_print(t);
     con_err_if (test_sequencer(t));
     con_err_if (test_scheduler(t));
-    con_err_if (test_reper(t));
+    con_err_if (test_reporter(t));
 
     return 0;
 err:
@@ -701,6 +702,7 @@ static int test_obj_init (const char *id, test_what_t what, test_obj_t *to)
     to->parent = NULL;
     to->sequenced = false;
     to->rank = 0;
+    to->status = TEST_SUCCESS;
     dbg_err_if (u_strlcpy(to->id, id, sizeof to->id)); 
 
     return 0;
@@ -765,6 +767,7 @@ static int test_scheduler (test_t *t)
 static int test_suite_scheduler (test_obj_t *to)
 {
     int rc;
+    test_obj_t *tco;
     test_suite_t *ts;
 
     dbg_return_if (to == NULL || (ts = TS_HANDLE(to)) == NULL, ~0);
@@ -775,7 +778,15 @@ static int test_suite_scheduler (test_obj_t *to)
     rc = test_obj_scheduler(&ts->test_cases, test_case_scheduler);
 
     /* Update stats for reporting. */
-    /* TODO */
+    TAILQ_FOREACH (tco, &ts->test_cases.objs, links)
+    {
+        /* If any of our test cases failed, set the overall status to FAILURE */
+        if (tco->status != TEST_SUCCESS)
+        {
+            ts->o.status = TEST_FAILURE;
+            break;
+        }
+    }
 
     return rc;
 }
@@ -787,7 +798,7 @@ static int test_case_scheduler (test_obj_t *to)
     return 0;
 }
 
-static int test_reper (test_t *t)
+static int test_reporter (test_t *t)
 {
     test_obj_t *tso, *tco;
     test_suite_t *ts;
@@ -839,14 +850,16 @@ static int test_suite_report_txt (FILE *fp, test_suite_t *ts,
     if (tag == TEST_REP_TAIL)
         return 0;
 
-    (void) fprintf(fp, "\t%s\n", ts->o.id);
+    (void) fprintf(fp, "\t[%s] %s\n", 
+            ts->o.status == TEST_SUCCESS ? "PASS" : "FAIL", ts->o.id);
 
     return 0;
 }
 
 static int test_case_report_txt (FILE *fp, test_case_t *tc)
 {
-    (void) fprintf(fp, "\t\t%s\n", tc->o.id);
+    (void) fprintf(fp, "\t\t[%s] %s\n",
+            tc->o.status == TEST_SUCCESS ? "PASS" : "FAIL", tc->o.id);
 
     return 0;
 }

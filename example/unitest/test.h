@@ -10,6 +10,9 @@ typedef struct test_suite_s test_suite_t;
 struct test_s;
 typedef struct test_s test_t;
 
+/* Exit status of unit tests. */
+enum { TEST_SUCCESS = 0, TEST_FAILURE = 1 };
+
 typedef enum { TEST_CASE_T, TEST_SUITE_T } test_what_t;
 typedef enum { TEST_REP_HEAD, TEST_REP_TAIL } test_rep_tag_t;
 
