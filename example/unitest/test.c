@@ -874,17 +874,17 @@ static int test_suite_report_txt (FILE *fp, test_suite_t *ts,
     (void) strftime(e, sizeof e, "%a %Y-%m-%d %H:%M:%S %Z", 
             localtime(&ts->o.stop));
 
-    (void) fprintf(fp, "\t[%s] %s\n", 
+    (void) fprintf(fp, "\t* [%s] %s\n", 
             ts->o.status == TEST_SUCCESS ? "PASS" : "FAIL", ts->o.id);
-    (void) fprintf(fp, "\t       begin: %s\n", buf);
-    (void) fprintf(fp, "\t         end: %s\n", buf);
+    (void) fprintf(fp, "\t       begin: %s\n", b);
+    (void) fprintf(fp, "\t         end: %s\n", e);
 
     return 0;
 }
 
 static int test_case_report_txt (FILE *fp, test_case_t *tc)
 {
-    (void) fprintf(fp, "\t\t[%s] %s\n",
+    (void) fprintf(fp, "\t\t* [%s] %s\n",
             tc->o.status == TEST_SUCCESS ? "PASS" : "FAIL", tc->o.id);
 
     return 0;
