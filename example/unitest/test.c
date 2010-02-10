@@ -10,17 +10,17 @@
 typedef struct 
 { 
     unsigned int currank;
-    TAILQ_HEAD(, test_obj_s) objs;
+    LIST_HEAD(, test_obj_s) objs;
 } TO;
 
 /* Test dependencies list header. */
-typedef TAILQ_HEAD(, test_dep_s) TD;
+typedef LIST_HEAD(, test_dep_s) TD;
 
 /* A test suite/case dependency (identified by its label). */
 struct test_dep_s
 {
     char id[TEST_ID_MAX];           /* Tag of the declared dependency */
-    TAILQ_ENTRY(test_dep_s) links;  /* Sibling deps */
+    LIST_ENTRY(test_dep_s) links;  /* Sibling deps */
 };
 
 typedef struct test_dep_s test_dep_t;
@@ -36,8 +36,9 @@ struct test_obj_s
     _Bool sequenced;                /* True if sequenced */
     unsigned int rank;              /* Scheduling rank: low have higher prio */
     char id[TEST_ID_MAX];           /* Test object identifier: MUST be unique */
-    int status;                     /* test exit code: TEST_{SUCCESS,FAILURE} */
-    TAILQ_ENTRY(test_obj_s) links;  /* Sibling test cases/suites */
+    int status;                     /* Test exit code: TEST_{SUCCESS,FAILURE} */
+    time_t start, stop;             /* Test case/suite begin/end timestamps */
+    LIST_ENTRY(test_obj_s) links;   /* Sibling test cases/suites */
     TD deps;                        /* Test cases/suites we depend on */
 };
 
@@ -64,12 +65,12 @@ struct test_s
     char id[TEST_ID_MAX];   /* Test id */
     TO test_suites;         /* Head of TSs list */
     char outfn[4096];       /* Output file name */
-    FILE *fp;               /* Output file stream pointer */
+    time_t start, stop;     /* Test begin/end timestamps */
 
     /* Test report hook functions */
-    int (*t_rep)(FILE *, struct test_s *, test_rep_tag_t);
-    int (*ts_rep)(FILE *, struct test_suite_s *, test_rep_tag_t);
-    int (*tc_rep)(FILE *, struct test_case_s *);
+    test_rep_f t_rep_cb;
+    test_suite_rep_f ts_rep_cb;
+    test_case_rep_f tc_rep_cb;
 };
 
 /* Get test suite handle by its '.o(bject)' field. */
@@ -189,7 +190,7 @@ int test_suite_new (const char *id, test_suite_t **pts)
     dbg_return_if (pts == NULL, ~0);
 
     dbg_err_sif ((ts = u_malloc(sizeof *ts)) == NULL);
-    TAILQ_INIT(&ts->test_cases.objs);
+    LIST_INIT(&ts->test_cases.objs);
     ts->test_cases.currank = 0;
 
     dbg_err_if (test_obj_init(id, TEST_SUITE_T, &ts->o));
@@ -214,7 +215,7 @@ void test_suite_free (test_suite_t *ts)
     test_obj_free(&ts->o);
 
     /* Free test cases. */
-    TAILQ_FOREACH_SAFE (to, &ts->test_cases.objs, links, nto)
+    LIST_FOREACH_SAFE (to, &ts->test_cases.objs, links, nto)
     {
         tc = TC_HANDLE(to);
         test_case_free(tc);
@@ -234,7 +235,7 @@ void test_free (test_t *t)
         return;
 
     /* Free all children test suites. */
-    TAILQ_FOREACH_SAFE (to, &t->test_suites.objs, links, nto)
+    LIST_FOREACH_SAFE (to, &t->test_suites.objs, links, nto)
     {
         ts = TS_HANDLE(to);
         test_suite_free(ts);
@@ -251,7 +252,7 @@ int test_set_test_rep (test_t *t, test_rep_f func)
     dbg_return_if (t == NULL, ~0);
     dbg_return_if (func == NULL, ~0);
 
-    t->t_rep = func;
+    t->t_rep_cb = func;
 
     return 0;
 }
@@ -261,7 +262,7 @@ int test_set_test_case_rep (test_t *t, test_case_rep_f func)
     dbg_return_if (t == NULL, ~0);
     dbg_return_if (func == NULL, ~0);
 
-    t->tc_rep = func;
+    t->tc_rep_cb = func;
 
     return 0;
 }
@@ -271,7 +272,7 @@ int test_set_test_suite_rep (test_t *t, test_suite_rep_f func)
     dbg_return_if (t == NULL, ~0);
     dbg_return_if (func == NULL, ~0);
 
-    t->ts_rep = func;
+    t->ts_rep_cb = func;
 
     return 0;
 }
@@ -294,16 +295,17 @@ int test_new (const char *id, test_t **pt)
 
     dbg_err_sif ((t = u_malloc(sizeof *t)) == NULL);
 
-    TAILQ_INIT(&t->test_suites.objs);
+    LIST_INIT(&t->test_suites.objs);
     t->test_suites.currank = 0;
     dbg_err_if (u_strlcpy(t->id, id, sizeof t->id));
     t->currank = 0;
+    t->start = t->stop = -1;
     (void) u_strlcpy(t->outfn, TEST_OUTFN_DFL, sizeof t->outfn);
 
     /* Set default report routines (may be overwritten). */
-    t->t_rep = test_rep_txt;
-    t->ts_rep = test_suite_report_txt;
-    t->tc_rep = test_case_report_txt;
+    t->t_rep_cb = test_rep_txt;
+    t->ts_rep_cb = test_suite_report_txt;
+    t->tc_rep_cb = test_case_report_txt;
 
     *pt = t;
 
@@ -352,7 +354,7 @@ int test_case_add (test_case_t *tc, test_suite_t *ts)
     dbg_return_if (tc == NULL, ~0);
     dbg_return_if (ts == NULL, ~0);
 
-    TAILQ_INSERT_HEAD(&ts->test_cases.objs, &tc->o, links);
+    LIST_INSERT_HEAD(&ts->test_cases.objs, &tc->o, links);
     tc->o.parent = &ts->test_cases;
     tc->o.ptest = ts->o.ptest;
 
@@ -364,7 +366,7 @@ int test_suite_add (test_suite_t *ts, test_t *t)
     dbg_return_if (t == NULL, ~0);
     dbg_return_if (ts == NULL, ~0);
 
-    TAILQ_INSERT_HEAD(&t->test_suites.objs, &ts->o, links);
+    LIST_INSERT_HEAD(&t->test_suites.objs, &ts->o, links);
     ts->o.parent = &t->test_suites;
     ts->o.ptest = t;
 
@@ -379,7 +381,7 @@ void test_print (test_t *t)
 
     u_con("[test] %s", t->id);  
 
-    TAILQ_FOREACH (to, &t->test_suites.objs, links)
+    LIST_FOREACH (to, &t->test_suites.objs, links)
         test_suite_print(TS_HANDLE(to));
 
     return;
@@ -394,10 +396,10 @@ static void test_suite_print (test_suite_t *ts)
 
     test_obj_print(4, &ts->o);
 
-    TAILQ_FOREACH (td, &ts->o.deps, links)
+    LIST_FOREACH (td, &ts->o.deps, links)
         test_dep_print(4, td);
 
-    TAILQ_FOREACH (to, &ts->test_cases.objs, links)
+    LIST_FOREACH (to, &ts->test_cases.objs, links)
         test_case_print(TC_HANDLE(to));
 
     return;
@@ -411,7 +413,7 @@ static void test_case_print (test_case_t *tc)
 
     test_obj_print(8, &tc->o);
 
-    TAILQ_FOREACH (td, &tc->o.deps, links)
+    LIST_FOREACH (td, &tc->o.deps, links)
         test_dep_print(8, td);
 
     return;
@@ -470,7 +472,7 @@ static test_dep_t *test_dep_search (TD *h, const char *id)
     dbg_return_if (h == NULL, NULL);
     dbg_return_if (id == NULL, NULL);
 
-    TAILQ_FOREACH (td, h, links)
+    LIST_FOREACH (td, h, links)
     {
         if (!strcmp(td->id, id))
             return td;
@@ -486,7 +488,7 @@ static test_obj_t *test_obj_search (TO *h, const char *id)
     dbg_return_if (h == NULL, NULL);
     dbg_return_if (id == NULL, NULL);
 
-    TAILQ_FOREACH (to, &h->objs, links)
+    LIST_FOREACH (to, &h->objs, links)
     {
         if (!strcmp(to->id, id))
             return to;
@@ -500,7 +502,7 @@ static int test_obj_add (test_obj_t *to, TO *parent)
     dbg_return_if (to == NULL, ~0);
     dbg_return_if (parent == NULL, ~0);
 
-    TAILQ_INSERT_HEAD(&parent->objs, to, links);
+    LIST_INSERT_HEAD(&parent->objs, to, links);
     to->parent = parent;
 
     return 0;
@@ -556,7 +558,7 @@ static int test_obj_dep_add (test_dep_t *td, test_obj_t *to)
      * insert it into the dependency list for this test case/suite. */
     if (test_dep_search(&to->deps, to->id) == NULL)
     {
-        TAILQ_INSERT_HEAD(&to->deps, td, links);
+        LIST_INSERT_HEAD(&to->deps, td, links);
     }
     else
         u_free(td);
@@ -578,7 +580,7 @@ static void test_obj_free (test_obj_t *to)
 
     /* Just free the attached deps list: expect 'to' being a pointer to a
      * test object in a bigger malloc'd chunk (suite or case). */
-    TAILQ_FOREACH_SAFE (td, &to->deps, links, ntd)
+    LIST_FOREACH_SAFE (td, &to->deps, links, ntd)
         test_dep_free(td); 
 
     return;
@@ -589,9 +591,9 @@ static test_obj_t *test_obj_pick_top (TO *h)
     /* Top element is a (not already sequenced) test object with no deps. */
     test_obj_t *to;
 
-    TAILQ_FOREACH (to, &h->objs, links)
+    LIST_FOREACH (to, &h->objs, links)
     {
-        if (to->sequenced == false && TAILQ_EMPTY(&to->deps))
+        if (to->sequenced == false && LIST_EMPTY(&to->deps))
         {
             /* Record the reached depth: it will be used by the
              * next evicted element. */
@@ -631,16 +633,16 @@ static int test_obj_sequencer (TO *h)
 
     /* Test if we got out because of a cycle in deps, i.e. check if we 
      * still have any non-sequenced test case/suite. */
-    TAILQ_FOREACH (to, &h->objs, links)
+    LIST_FOREACH (to, &h->objs, links)
     {
         dbg_err_ifm (to->sequenced == false, 
                 "%s not sequenced: dependency loop !", to->id);
     }
 
     /* A test suite need to recur into its test cases. */
-    if ((fto = TAILQ_FIRST(&h->objs)) && fto->what == TEST_SUITE_T)
+    if ((fto = LIST_FIRST(&h->objs)) && fto->what == TEST_SUITE_T)
     {
-        TAILQ_FOREACH (to, &h->objs, links)
+        LIST_FOREACH (to, &h->objs, links)
         {
             ts = TS_HANDLE(to);
             dbg_err_if (test_obj_sequencer(&ts->test_cases));
@@ -661,16 +663,16 @@ static int test_obj_evict_id (TO *h, const char *id)
 
     /* Delete from the deps list of every test suite, all the records
      * matching the given id. */
-    TAILQ_FOREACH (to, &h->objs, links)
+    LIST_FOREACH (to, &h->objs, links)
     {
-        TAILQ_FOREACH (td, &to->deps, links)
+        LIST_FOREACH (td, &to->deps, links)
         {
             if (!strcmp(td->id, id))
             {
                 /* Set the rank of the evicted object to the actual
                  * depth +1 in the sequencing array */
                 to->rank = to->parent->currank + 1;
-                TAILQ_REMOVE(&to->deps, td, links); 
+                LIST_REMOVE(td, links); 
                 test_dep_free(td);
                 break;
             }
@@ -697,12 +699,13 @@ static int test_obj_init (const char *id, test_what_t what, test_obj_t *to)
     dbg_return_if (id == NULL, ~0);
     dbg_return_if (to == NULL, ~0);
 
-    TAILQ_INIT(&to->deps);
+    LIST_INIT(&to->deps);
     to->what = what;
     to->parent = NULL;
     to->sequenced = false;
     to->rank = 0;
     to->status = TEST_SUCCESS;
+    to->start = to->stop = -1;
     dbg_err_if (u_strlcpy(to->id, id, sizeof to->id)); 
 
     return 0;
@@ -747,7 +750,7 @@ static int test_obj_scheduler (TO *h, int (*sched)(test_obj_t *))
     {
         /* Go through all the test objs and select those at the
          * current scheduling rank. */
-        TAILQ_FOREACH (to, &h->objs, links)
+        LIST_FOREACH (to, &h->objs, links)
         {
             if (to->rank == r)
                 dbg_err_if (sched(to));
@@ -774,11 +777,17 @@ static int test_suite_scheduler (test_obj_t *to)
 
     u_con("now scheduling test suite %s", ts->o.id);
 
+    /* Record test suite begin timestamp. */
+    ts->o.start = time(NULL);
+
     /* Go through children test cases. */
     rc = test_obj_scheduler(&ts->test_cases, test_case_scheduler);
 
+    /* Record test suite end timestamp. */
+    ts->o.stop = time(NULL);
+
     /* Update stats for reporting. */
-    TAILQ_FOREACH (tco, &ts->test_cases.objs, links)
+    LIST_FOREACH (tco, &ts->test_cases.objs, links)
     {
         /* If any of our test cases failed, set the overall status to FAILURE */
         if (tco->status != TEST_SUCCESS)
@@ -800,34 +809,40 @@ static int test_case_scheduler (test_obj_t *to)
 
 static int test_reporter (test_t *t)
 {
+    FILE *fp;
     test_obj_t *tso, *tco;
     test_suite_t *ts;
+    test_rep_f t_rep;
+    test_case_rep_f tc_rep;
+    test_suite_rep_f ts_rep;
 
     dbg_return_if (t == NULL, ~0);
 
-    dbg_err_sif ((t->fp = fopen(t->outfn, "w")) == NULL);
+    /* The three following tests are rather paranoid because the
+     * setters explicitly check that the supplied function is != NULL. */
+    dbg_return_if ((t_rep = t->t_rep_cb) == NULL, ~0);
+    dbg_return_if ((ts_rep = t->ts_rep_cb) == NULL, ~0);
+    dbg_return_if ((tc_rep = t->tc_rep_cb) == NULL, ~0);
 
-    if (t->t_rep)
-        dbg_err_if (t->t_rep(t->fp, t, TEST_REP_HEAD));
+    dbg_err_sif ((fp = fopen(t->outfn, "w")) == NULL);
 
-    TAILQ_FOREACH (tso, &t->test_suites.objs, links)
+    dbg_err_if (t_rep(fp, t, TEST_REP_HEAD));
+
+    LIST_FOREACH (tso, &t->test_suites.objs, links)
     {
         ts = TS_HANDLE(tso);
 
-        if (t->ts_rep)
-            dbg_err_if (t->ts_rep(t->fp, ts, TEST_REP_HEAD));
+        dbg_err_if (ts_rep(fp, ts, TEST_REP_HEAD));
 
-        TAILQ_FOREACH (tco, &ts->test_cases.objs, links)
-            if (t->tc_rep)
-                dbg_err_if (t->tc_rep(t->fp, TC_HANDLE(tco)));
+        LIST_FOREACH (tco, &ts->test_cases.objs, links)
+            dbg_err_if (tc_rep(fp, TC_HANDLE(tco)));
 
-        if (t->ts_rep)
-            dbg_err_if (t->ts_rep(t->fp, ts, TEST_REP_TAIL));
+        dbg_err_if (ts_rep(fp, ts, TEST_REP_TAIL));
     }
 
-    dbg_err_if (t->t_rep(t->fp, t, TEST_REP_TAIL));
+    dbg_err_if (t_rep(fp, t, TEST_REP_TAIL));
 
-    (void) fclose(t->fp);
+    (void) fclose(fp);
 
     return 0;
 err:
@@ -847,11 +862,22 @@ static int test_rep_txt (FILE *fp, test_t *t, test_rep_tag_t tag)
 static int test_suite_report_txt (FILE *fp, test_suite_t *ts, 
         test_rep_tag_t tag)
 {
+    test_obj_t *to;
+    char b[80], e[80];
+
     if (tag == TEST_REP_TAIL)
         return 0;
 
+    (void) strftime(b, sizeof b, "%a %Y-%m-%d %H:%M:%S %Z", 
+            localtime(&ts->o.start));
+
+    (void) strftime(e, sizeof e, "%a %Y-%m-%d %H:%M:%S %Z", 
+            localtime(&ts->o.stop));
+
     (void) fprintf(fp, "\t[%s] %s\n", 
             ts->o.status == TEST_SUCCESS ? "PASS" : "FAIL", ts->o.id);
+    (void) fprintf(fp, "\t       begin: %s\n", buf);
+    (void) fprintf(fp, "\t         end: %s\n", buf);
 
     return 0;
 }
