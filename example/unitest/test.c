@@ -12,7 +12,7 @@ typedef struct
 
 typedef TAILQ_HEAD(, test_dep_s) TD;
 
-/* test suite or case dependency */
+/* Test suite or case dependency. */
 struct test_dep_s
 {
     char id[TEST_ID_MAX];           /* tag of the declared dependency */
@@ -21,33 +21,34 @@ struct test_dep_s
 
 typedef struct test_dep_s test_dep_t;
 
-/* generic test data container */
+/* Generic test data container. */
 struct test_obj_s
 {
     TO *parent;                     /* ... */
     _Bool sequenced;                /* true if sequenced */
     unsigned int rank;              /* scheduling rank */
-    char id[TEST_ID_MAX];           /* MUST be unique */
+    char id[TEST_ID_MAX];           /* test object identifier: MUST be unique */
     TAILQ_ENTRY(test_obj_s) links;  /* sibling test cases/suites */
     TD deps;                        /* test cases/suites we depend on */
 };
 
 typedef struct test_obj_s test_obj_t;
 
-/* a test case */
+/* A test case. */
 struct test_case_s
 {
     int (*func) (struct test_case_s *);
     test_obj_t o;
 };
 
-/* a test suite */
+/* A test suite. */
 struct test_suite_s
 {
     TO test_cases;  /* head of tc list */
     test_obj_t o;
 };
 
+/* A test. */
 struct test_s
 {
     unsigned int currank;   /* current TS rank when sequencing */
@@ -70,6 +71,8 @@ static void test_obj_free (test_obj_t *to);
 static void test_obj_print (char nindent, test_what_t what, test_obj_t *to);
 static int test_obj_dep_add (test_dep_t *td, test_obj_t *to, test_what_t what);
 static int test_obj_sequencer (TO *h, test_what_t what);
+static int test_obj_depends_on (const char *id, const char *depid, 
+        test_what_t what, TO *parent);
 
 static void test_dep_free (test_dep_t *td);
 static int test_dep_new (const char *id, test_dep_t **ptd);
@@ -109,6 +112,16 @@ int test_suite_dep_register (const char *id, test_suite_t *ts)
 err:
     test_dep_free(td);
     return ~0;
+}
+
+int test_case_depends_on (const char *tcid, const char *depid, test_suite_t *ts)
+{
+    return test_obj_depends_on(tcid, depid, TEST_CASE_T, &ts->test_cases);
+}
+
+int test_suite_depends_on (const char *tsid, const char *depid, test_t *t)
+{
+    return test_obj_depends_on(tsid, depid, TEST_SUITE_T, &t->test_suites);
 }
 
 int test_case_dep_register (const char *id, test_case_t *tc)
@@ -612,3 +625,29 @@ static int test_obj_init (const char *id, test_obj_t *to)
 err:
     return ~0;
 }
+
+static int test_obj_depends_on (const char *id, const char *depid, 
+        test_what_t what, TO *parent)
+{
+    test_obj_t *to;
+    test_dep_t *td = NULL;
+
+    /* The object for which we are adding the dependency must be already
+     * in place. */
+    dbg_err_if ((to = test_obj_search(parent, id)) == NULL);
+
+    /* Check if the same dependency is already recorded. */
+    if ((td = test_dep_search(&to->deps, depid)))
+        return 0;
+
+    /* In case it is a new dependency, create and stick it to the object
+     * deps list. */
+    dbg_err_if (test_dep_new(depid, &td));
+    dbg_err_if (test_obj_dep_add(td, to, what));
+
+    return 0;
+err:
+    test_dep_free(td);
+    return ~0;
+}
+
