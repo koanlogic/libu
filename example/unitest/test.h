@@ -11,8 +11,15 @@ struct test_s;
 typedef struct test_s test_t;
 
 typedef enum { TEST_CASE_T, TEST_SUITE_T } test_what_t;
+typedef enum { TEST_REP_HEAD, TEST_REP_TAIL } test_rep_tag_t;
 
+/* Unit test function prototype. */
 typedef int (*test_f)(test_case_t *);
+
+/* Report functions' prototypes. */
+typedef int (*test_rep_f)(FILE *, test_t *, test_rep_tag_t);
+typedef int (*test_case_rep_f)(FILE *, test_case_t *);
+typedef int (*test_suite_rep_f)(FILE *, test_suite_t *, test_rep_tag_t);
 
 int test_case_new (const char *id, test_f func, test_case_t **ptc);
 int test_case_add (test_case_t *tc, test_suite_t *ts);
@@ -29,6 +36,11 @@ int test_suite_dep_register (const char *id, test_suite_t *ts);
 int test_suite_depends_on (const char *tsid, const char *depid, test_t *t);
 
 int test_new (const char *id, test_t **pt);
+int test_set_outfn (test_t *t, const char *outfn);
+int test_set_test_suite_rep (test_t *t, test_suite_rep_f func);
+int test_set_test_case_rep (test_t *t, test_case_rep_f func);
+int test_set_test_rep (test_t *t, test_rep_f func);
+
 void test_free (test_t *t);
 int test_run(test_t *t);
 
