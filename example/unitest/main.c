@@ -31,13 +31,13 @@ int test_suite_TS1_register (test_t *t)
 
     /* 
      * - test suite "TS 1":
-     *      - test case "TC 1.1" 
-     *      - test case "TC 1.2" which depends on "TC 1.1"
+     *      - test case "TC 1.1" which depends on "TC 1.2"
+     *      - test case "TC 1.2"
      */
     con_err_if (test_suite_new("TS 1", &ts));
     con_err_if (test_case_register("TC 1.1", NULL, ts));
     con_err_if (test_case_register("TC 1.2", NULL, ts));
-    con_err_if (test_case_depends_on("TC 1.2", "TC 1.1", ts));
+    con_err_if (test_case_depends_on("TC 1.1", "TC 1.2", ts));
 
     return test_suite_add(ts, t);
 err:

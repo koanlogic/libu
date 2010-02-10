@@ -15,8 +15,8 @@ typedef TAILQ_HEAD(, test_dep_s) TD;
 /* Test suite or case dependency. */
 struct test_dep_s
 {
-    char id[TEST_ID_MAX];           /* tag of the declared dependency */
-    TAILQ_ENTRY(test_dep_s) links;  /* sibling deps */
+    char id[TEST_ID_MAX];           /* Tag of the declared dependency */
+    TAILQ_ENTRY(test_dep_s) links;  /* Sibling deps */
 };
 
 typedef struct test_dep_s test_dep_t;
@@ -24,12 +24,13 @@ typedef struct test_dep_s test_dep_t;
 /* Generic test data container. */
 struct test_obj_s
 {
-    TO *parent;                     /* ... */
-    _Bool sequenced;                /* true if sequenced */
-    unsigned int rank;              /* scheduling rank */
-    char id[TEST_ID_MAX];           /* test object identifier: MUST be unique */
-    TAILQ_ENTRY(test_obj_s) links;  /* sibling test cases/suites */
-    TD deps;                        /* test cases/suites we depend on */
+    test_what_t what;               /* Test suite/case */
+    TO *parent;                     /* Head of the list we're attached to */
+    _Bool sequenced;                /* True if sequenced */
+    unsigned int rank;              /* Scheduling rank: low have higher prio */
+    char id[TEST_ID_MAX];           /* Test object identifier: MUST be unique */
+    TAILQ_ENTRY(test_obj_s) links;  /* Sibling test cases/suites */
+    TD deps;                        /* Test cases/suites we depend on */
 };
 
 typedef struct test_obj_s test_obj_t;
@@ -64,15 +65,15 @@ struct test_s
 
 static int test_obj_add (test_obj_t *to, TO *parent);
 static int test_obj_evict_id (TO *h, const char *id);
-static int test_obj_init (const char *id, test_obj_t *to);
+static int test_obj_init (const char *id, test_what_t what, test_obj_t *to);
 static test_obj_t *test_obj_pick_top (TO *h);
 static test_obj_t *test_obj_search (TO *h, const char *id);
 static void test_obj_free (test_obj_t *to);
-static void test_obj_print (char nindent, test_what_t what, test_obj_t *to);
-static int test_obj_dep_add (test_dep_t *td, test_obj_t *to, test_what_t what);
-static int test_obj_sequencer (TO *h, test_what_t what);
-static int test_obj_depends_on (const char *id, const char *depid, 
-        test_what_t what, TO *parent);
+static void test_obj_print (char nindent, test_obj_t *to);
+static int test_obj_dep_add (test_dep_t *td, test_obj_t *to);
+static int test_obj_sequencer (TO *h);
+static int test_obj_scheduler (TO *h, int (*sched)(test_obj_t *));
+static int test_obj_depends_on (const char *id, const char *depid, TO *parent);
 
 static void test_dep_free (test_dep_t *td);
 static int test_dep_new (const char *id, test_dep_t **ptd);
@@ -81,11 +82,14 @@ static test_dep_t *test_dep_search (TD *h, const char *id);
 
 static void test_case_print (test_case_t *tc);
 static int test_case_dep_add (test_dep_t *td, test_case_t *tc);
+static int test_case_scheduler (test_obj_t *to);
 
+static int test_suite_scheduler (test_obj_t *to);
 static void test_suite_print (test_suite_t *ts);
 static int test_suite_dep_add (test_dep_t *td, test_suite_t *ts);
 
 static int test_sequencer (test_t *t);
+static int test_scheduler (test_t *t);
 static void test_print (test_t *t);
 
 int test_run (test_t *t)
@@ -95,6 +99,7 @@ int test_run (test_t *t)
     con_err_if (test_sequencer(t));
     u_con("\n** after sequencing");
     test_print(t);
+    con_err_if (test_scheduler(t));
 
     return 0;
 err:
@@ -116,12 +121,12 @@ err:
 
 int test_case_depends_on (const char *tcid, const char *depid, test_suite_t *ts)
 {
-    return test_obj_depends_on(tcid, depid, TEST_CASE_T, &ts->test_cases);
+    return test_obj_depends_on(tcid, depid, &ts->test_cases);
 }
 
 int test_suite_depends_on (const char *tsid, const char *depid, test_t *t)
 {
-    return test_obj_depends_on(tsid, depid, TEST_SUITE_T, &t->test_suites);
+    return test_obj_depends_on(tsid, depid, &t->test_suites);
 }
 
 int test_case_dep_register (const char *id, test_case_t *tc)
@@ -161,7 +166,7 @@ int test_suite_new (const char *id, test_suite_t **pts)
     TAILQ_INIT(&ts->test_cases.objs);
     ts->test_cases.currank = 0;
 
-    dbg_err_if (test_obj_init(id, &ts->o));
+    dbg_err_if (test_obj_init(id, TEST_SUITE_T, &ts->o));
 
     *pts = ts;
 
@@ -258,7 +263,7 @@ int test_case_new (const char *id, test_f func, test_case_t **ptc)
     dbg_return_if (ptc == NULL, ~0);
 
     dbg_err_sif ((tc = u_malloc(sizeof *tc)) == NULL);
-    dbg_err_if (test_obj_init(id, &tc->o));
+    dbg_err_if (test_obj_init(id, TEST_CASE_T, &tc->o));
 
     tc->func = func;
 
@@ -313,7 +318,7 @@ static void test_suite_print (test_suite_t *ts)
 
     dbg_return_if (ts == NULL, );
 
-    test_obj_print(4, TEST_SUITE_T, &ts->o);
+    test_obj_print(4, &ts->o);
 
     TAILQ_FOREACH (td, &ts->o.deps, links)
         test_dep_print(4, td);
@@ -330,7 +335,7 @@ static void test_case_print (test_case_t *tc)
 
     dbg_return_if (tc == NULL, );
 
-    test_obj_print(8, TEST_CASE_T, &tc->o);
+    test_obj_print(8, &tc->o);
 
     TAILQ_FOREACH (td, &tc->o.deps, links)
         test_dep_print(8, td);
@@ -338,12 +343,12 @@ static void test_case_print (test_case_t *tc)
     return;
 }
 
-static void test_obj_print (char nindent, test_what_t what, test_obj_t *to)
+static void test_obj_print (char nindent, test_obj_t *to)
 {
     dbg_return_if (to == NULL, );
 
     u_con("%*c=> [%s] %s", 
-            nindent, ' ', what == TEST_CASE_T ? "case" : "suite", to->id);
+            nindent, ' ', to->what == TEST_CASE_T ? "case" : "suite", to->id);
 
     /* attributes */
     u_con("%*c    .rank = %u", nindent, ' ', to->rank);  
@@ -429,17 +434,17 @@ static int test_obj_add (test_obj_t *to, TO *parent)
 
 static int test_suite_dep_add (test_dep_t *td, test_suite_t *ts)
 {
-    return test_obj_dep_add(td, &ts->o, TEST_SUITE_T);
+    return test_obj_dep_add(td, &ts->o);
 }
 
-static int test_case_dep_add (test_dep_t *td, test_case_t *ts)
+static int test_case_dep_add (test_dep_t *td, test_case_t *tc)
 {
-    return test_obj_dep_add(td, &ts->o, TEST_CASE_T);
+    return test_obj_dep_add(td, &tc->o);
 }
 
 /* It MUST be called AFTER the test case/suite on which it is established 
  * has been added. */
-static int test_obj_dep_add (test_dep_t *td, test_obj_t *to, test_what_t what)
+static int test_obj_dep_add (test_dep_t *td, test_obj_t *to)
 {
 #if IMPLICIT_OBJ
     test_obj_t *nto = NULL;
@@ -456,7 +461,7 @@ static int test_obj_dep_add (test_dep_t *td, test_obj_t *to, test_what_t what)
      * test cases/suites (depending on 'what') list. */
     if (test_obj_search(to->parent, to->id) == NULL)
     {
-        switch (what) 
+        switch (to->what) 
         {
             case TEST_CASE_T:
                 dbg_err_sif (test_case_new(td->id, &tc));
@@ -529,11 +534,14 @@ static test_obj_t *test_obj_pick_top (TO *h)
  * test objects which are at the same "dependency-depth" so that the scheduler
  * can exec tests in the same rank-pool in parallel.  We are also interested 
  * in creating a a partial order for cases where the scheduler is forced to 
- * run sequentially (i.e. no system fork(2) or by explicit user request) [TODO].
+ * run sequentially (i.e. no system fork(2) or by explicit user request).
+ * In this respect, the ranking algorithm creates a partition of the 
+ * case/suite's sets into equivalency classes from where any element can be 
+ * picked at will (until EC exhaustion) to create a suitable sequence.
  * NOTE that higher ranks mean lower priority */
-static int test_obj_sequencer (TO *h, test_what_t what)
+static int test_obj_sequencer (TO *h)
 {
-    test_obj_t *to;
+    test_obj_t *to, *fto;
     test_suite_t *ts;
 
     dbg_return_if (h == NULL, ~0);
@@ -556,12 +564,12 @@ static int test_obj_sequencer (TO *h, test_what_t what)
     }
 
     /* A test suite need to recur into its test cases. */
-    if (what == TEST_SUITE_T)
+    if ((fto = TAILQ_FIRST(&h->objs)) && fto->what == TEST_SUITE_T)
     {
         TAILQ_FOREACH (to, &h->objs, links)
         {
             ts = TS_HANDLE(to);
-            dbg_err_if (test_obj_sequencer(&ts->test_cases, TEST_CASE_T)); 
+            dbg_err_if (test_obj_sequencer(&ts->test_cases));
         }
     }
 
@@ -607,15 +615,16 @@ static int test_sequencer (test_t *t)
 {
     dbg_return_if (t == NULL, ~0);
 
-    return test_obj_sequencer(&t->test_suites, TEST_SUITE_T);
+    return test_obj_sequencer(&t->test_suites);
 }
 
-static int test_obj_init (const char *id, test_obj_t *to)
+static int test_obj_init (const char *id, test_what_t what, test_obj_t *to)
 {
     dbg_return_if (id == NULL, ~0);
     dbg_return_if (to == NULL, ~0);
 
     TAILQ_INIT(&to->deps);
+    to->what = what;
     to->parent = NULL;
     to->sequenced = false;
     to->rank = 0;
@@ -626,8 +635,7 @@ err:
     return ~0;
 }
 
-static int test_obj_depends_on (const char *id, const char *depid, 
-        test_what_t what, TO *parent)
+static int test_obj_depends_on (const char *id, const char *depid, TO *parent)
 {
     test_obj_t *to;
     test_dep_t *td = NULL;
@@ -643,7 +651,7 @@ static int test_obj_depends_on (const char *id, const char *depid,
     /* In case it is a new dependency, create and stick it to the object
      * deps list. */
     dbg_err_if (test_dep_new(depid, &td));
-    dbg_err_if (test_obj_dep_add(td, to, what));
+    dbg_err_if (test_obj_dep_add(td, to));
 
     return 0;
 err:
@@ -651,3 +659,51 @@ err:
     return ~0;
 }
 
+static int test_obj_scheduler (TO *h, int (*sched)(test_obj_t *))
+{
+    unsigned int r;
+    test_obj_t *to;
+
+    dbg_return_if (h == NULL, ~0);
+    dbg_return_if (sched == NULL, ~0);
+
+    /* First lower rank TO's (i.e. highest priority). */
+    for (r = 0; r <= h->currank; ++r)
+    {
+        /* Go through all the test objs and select those at the
+         * current scheduling rank. */
+        TAILQ_FOREACH (to, &h->objs, links)
+        {
+            if (to->rank == r)
+                dbg_err_if (sched(to));
+        }
+    }
+
+    return 0;
+err:
+    return ~0;
+}
+
+static int test_scheduler (test_t *t)
+{
+    return test_obj_scheduler(&t->test_suites, test_suite_scheduler);
+}
+
+static int test_suite_scheduler (test_obj_t *to)
+{
+    test_suite_t *ts;
+
+    dbg_return_if (to == NULL || (ts = TS_HANDLE(to)) == NULL, ~0);
+
+    u_con("now scheduling test suite %s", ts->o.id);
+
+    /* Go through children test cases. */
+    return test_obj_scheduler(&ts->test_cases, test_case_scheduler);
+}
+
+static int test_case_scheduler (test_obj_t *to)
+{
+    dbg_return_if (to == NULL, ~0);
+    u_con("now scheduling test case %s [TODO]", to->id);
+    return 0;
+}
