@@ -9,7 +9,7 @@
 /* Generic test objects list header. */
 typedef struct 
 { 
-    unsigned int currank;
+    unsigned int currank, nchildren;
     LIST_HEAD(, test_obj_s) objs;
 } TO;
 
@@ -20,7 +20,7 @@ typedef LIST_HEAD(, test_dep_s) TD;
 struct test_dep_s
 {
     char id[TEST_ID_MAX];           /* Tag of the declared dependency */
-    LIST_ENTRY(test_dep_s) links;  /* Sibling deps */
+    LIST_ENTRY(test_dep_s) links;   /* Sibling deps */
 };
 
 typedef struct test_dep_s test_dep_t;
@@ -31,7 +31,6 @@ typedef struct test_dep_s test_dep_t;
 struct test_obj_s
 {
     test_what_t what;               /* Test suite/case */
-    struct test_s *ptest;           /* The overall parent test */
     TO *parent;                     /* Head of the list we're attached to */
     _Bool sequenced;                /* True if sequenced */
     unsigned int rank;              /* Scheduling rank: low have higher prio */
@@ -49,13 +48,16 @@ struct test_case_s
 {
     int (*func) (struct test_case_s *); /* The unit test function */
     test_obj_t o;                       /* Test case attributes */
+    pid_t pid;                          /* Process Id when exec'd in subproc */
+    struct test_suite_s *pts;           /* Parent test suite */
 };
 
 /* A test suite. */
 struct test_suite_s
 {
-    TO test_cases;  /* head of TCs list */
-    test_obj_t o;   /* Test suite attributes */
+    TO test_cases;      /* Head of TCs list */
+    test_obj_t o;       /* Test suite attributes */
+    struct test_s *pt;  /* Parent test */
 };
 
 /* A test. */
@@ -66,6 +68,7 @@ struct test_s
     TO test_suites;         /* Head of TSs list */
     char outfn[4096];       /* Output file name */
     time_t start, stop;     /* Test begin/end timestamps */
+    _Bool sandboxed;        /* True if TC's exec'd in subproc */
 
     /* Test report hook functions */
     test_rep_f t_rep_cb;
@@ -106,6 +109,11 @@ static void test_case_print (test_case_t *tc);
 static int test_case_dep_add (test_dep_t *td, test_case_t *tc);
 static int test_case_scheduler (test_obj_t *to);
 static int test_case_report_txt (FILE *fp, test_case_t *tc);
+static int test_case_exec (test_case_t *tc);
+
+/* Test cases routines. */
+static int test_cases_reap (TO *h);
+static test_case_t *test_cases_search_by_pid (TO *h, pid_t pid);
 
 /* Test suite routines. */
 static int test_suite_scheduler (test_obj_t *to);
@@ -301,6 +309,8 @@ int test_new (const char *id, test_t **pt)
     t->currank = 0;
     t->start = t->stop = -1;
     (void) u_strlcpy(t->outfn, TEST_OUTFN_DFL, sizeof t->outfn);
+    t->sandboxed = true;    /* the default is to spawn sub-processes to 
+                               execute test cases */
 
     /* Set default report routines (may be overwritten). */
     t->t_rep_cb = test_rep_txt;
@@ -340,6 +350,7 @@ int test_case_new (const char *id, test_f func, test_case_t **ptc)
     dbg_err_if (test_obj_init(id, TEST_CASE_T, &tc->o));
 
     tc->func = func;
+    tc->pid = -1;
 
     *ptc = tc;
 
@@ -356,7 +367,7 @@ int test_case_add (test_case_t *tc, test_suite_t *ts)
 
     LIST_INSERT_HEAD(&ts->test_cases.objs, &tc->o, links);
     tc->o.parent = &ts->test_cases;
-    tc->o.ptest = ts->o.ptest;
+    tc->pts = ts;
 
     return 0;
 }
@@ -368,7 +379,7 @@ int test_suite_add (test_suite_t *ts, test_t *t)
 
     LIST_INSERT_HEAD(&t->test_suites.objs, &ts->o, links);
     ts->o.parent = &t->test_suites;
-    ts->o.ptest = t;
+    ts->pt = t;
 
     return 0;
 }
@@ -740,10 +751,13 @@ err:
 static int test_obj_scheduler (TO *h, int (*sched)(test_obj_t *))
 {
     unsigned int r;
-    test_obj_t *to;
+    test_obj_t *to, *tmp;
+    test_case_t *ftc;
 
     dbg_return_if (h == NULL, ~0);
     dbg_return_if (sched == NULL, ~0);
+
+    h->nchildren = 0;
 
     /* First lower rank TO's (i.e. highest priority). */
     for (r = 0; r <= h->currank; ++r)
@@ -753,13 +767,76 @@ static int test_obj_scheduler (TO *h, int (*sched)(test_obj_t *))
         LIST_FOREACH (to, &h->objs, links)
         {
             if (to->rank == r)
-                dbg_err_if (sched(to));
+                (void) sched(to);
+        }
+
+        /* (Possibly) reap children test cases. */
+        if ((tmp = LIST_FIRST(&h->objs)) && tmp->what == TEST_CASE_T)
+        {
+            if (ftc = TC_HANDLE(tmp), ftc->pts->pt->sandboxed == true)
+            {
+                dbg_if (test_cases_reap(h));
+            }
         }
     }
 
     return 0;
+}
+
+static int test_cases_reap (TO *h)
+{
+    int status;
+    pid_t child;
+    test_case_t *tc;
+
+    dbg_return_if (h == NULL, ~0);
+
+    while (h->nchildren > 0)
+    {
+        if ((child = waitpid(-1, &status, 0)) == -1)
+        {
+            if (errno == EINTR)         /* Interrupted, try again */
+                continue;
+            else if (errno == ECHILD)   /* No more child processes */
+                break;
+            else                        /* THIS IS BAD */
+                con_err_sifm (1, "waitpid failed badly, test aborted");
+        }
+
+        /* TODO check what drove us here (i.e. stop, term, cont) */
+
+        if ((tc = test_cases_search_by_pid(h, child)) == NULL)
+        {
+            u_con("not a waited test case: %d", child);
+            continue;
+        }
+
+        h->nchildren -= 1;
+ 
+        /* Update test case stats. */
+        tc->o.stop = time(NULL);
+    }
+
+    con_err_ifm (h->nchildren != 0, 
+            "%u child(ren) still in wait !", h->nchildren);
+
+    return 0;
 err:
     return ~0;
+}
+
+static test_case_t *test_cases_search_by_pid (TO *h, pid_t pid)
+{
+    test_obj_t *to;
+    test_case_t *tc;
+
+    LIST_FOREACH (to, &h->objs, links)
+    {
+        if (tc = TC_HANDLE(to), tc->pid == pid)
+            return tc;
+    }
+
+    return NULL;
 }
 
 static int test_scheduler (test_t *t)
@@ -803,7 +880,46 @@ static int test_suite_scheduler (test_obj_t *to)
 static int test_case_scheduler (test_obj_t *to)
 {
     dbg_return_if (to == NULL, ~0);
-    u_con("now scheduling test case %s [TODO]", to->id);
+
+    /* TODO handle no-fork */
+
+    return test_case_exec(TC_HANDLE(to));
+}
+
+static int test_case_exec (test_case_t *tc)
+{
+    pid_t pid;
+
+    dbg_return_if (tc == NULL, ~0);
+
+    if (tc->func == NULL)
+        return 0;
+
+    if (tc->pts->pt->sandboxed == false)
+    {
+        /* TODO report */
+        return tc->func(tc);
+    }
+
+    switch (pid = fork())
+    {
+        case -1:
+            u_warn("test case %s spawn failed: %s", tc->o.id, strerror(errno));
+            return ~0;
+        case 0:
+            exit(tc->func(tc));
+        default:
+            break;
+    }
+
+    tc->pid = pid;                  /* Set test case process pid */
+    tc->o.parent->nchildren += 1;   /* Tell the test_case's head we have one
+                                       more child */
+
+    u_con("<%d> started test case %s with pid %d",
+            getpid(), tc->o.id, tc->pid);
+
+    /* always return ok here, the reaper will know the test exit status */
     return 0;
 }
 
@@ -862,7 +978,6 @@ static int test_rep_txt (FILE *fp, test_t *t, test_rep_tag_t tag)
 static int test_suite_report_txt (FILE *fp, test_suite_t *ts, 
         test_rep_tag_t tag)
 {
-    test_obj_t *to;
     char b[80], e[80];
 
     if (tag == TEST_REP_TAIL)
