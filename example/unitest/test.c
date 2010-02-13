@@ -69,6 +69,8 @@ struct test_s
     char outfn[4096];       /* Output file name */
     time_t start, stop;     /* Test begin/end timestamps */
     _Bool sandboxed;        /* True if TC's exec'd in subproc */
+    int max_parallel;       /* ... */
+    _Bool verbose;          /* If true, be chatty */
 
     /* Test report hook functions */
     test_rep_f t_rep_cb;
@@ -126,12 +128,17 @@ static int test_suite_report_txt (FILE *fp, test_suite_t *ts,
 static int test_sequencer (test_t *t);
 static int test_scheduler (test_t *t);
 static void test_print (test_t *t);
+static int test_getopt (int ac, char *av[], test_t *t);
+static void test_usage (const char *msg);
+static int test_set_outfmt (test_t *t, const char *fmt);
 static int test_reporter (test_t *t);
 static int test_rep_txt (FILE *fp, test_t *t, test_rep_tag_t tag);
 
-int test_run (test_t *t)
+int test_run (int ac, char *av[], test_t *t)
 {
 //    test_print(t);
+
+    con_err_if (test_getopt(ac, av, t));
     con_err_if (test_sequencer(t));
     con_err_if (test_scheduler(t));
     con_err_if (test_reporter(t));
@@ -750,32 +757,85 @@ err:
 
 static int test_obj_scheduler (TO *h, int (*sched)(test_obj_t *))
 {
-    unsigned int r;
-    test_obj_t *to, *tmp;
+    _Bool simple_sched = false;
+    unsigned int r, parallel = 0;
+    test_obj_t *to, *fto, *tptr;
     test_case_t *ftc;
 
     dbg_return_if (h == NULL, ~0);
     dbg_return_if (sched == NULL, ~0);
 
+    /* Pop the first element in list which will be used to reconnect to its 
+     * upper layer relatives (i.e. test suite & test). */
+    if ((fto = LIST_FIRST(&h->objs)) == NULL)
+        return 0;   /* List empty, go out. */
+
+    /* Initialize the spawned children (i.e. test cases) counter to 0.
+     * It will be incremented on each test_case_exec() invocation, when 
+     * in sandboxed mode. */
     h->nchildren = 0;
 
-    /* First lower rank TO's (i.e. highest priority). */
+    /* See which kind of scheduler we need to use. */
+    if (fto->what == TEST_SUITE_T)
+        simple_sched = true;
+    else
+        simple_sched = (ftc = TC_HANDLE(fto), ftc->pts->pt->sandboxed == true)
+            ? false : true;
+
+    /* Go through all the test objs and select those at the current scheduling 
+     * rank: first lower rank TO's (i.e. highest priority). */
     for (r = 0; r <= h->currank; ++r)
     {
-        /* Go through all the test objs and select those at the
-         * current scheduling rank. */
-        LIST_FOREACH (to, &h->objs, links)
+        /* TS's and non-sandboxed TC's are simply scheduled one-by-one. */
+        if (simple_sched == true)
         {
-            if (to->rank == r)
-                (void) sched(to);
-        }
-
-        /* (Possibly) reap children test cases. */
-        if ((tmp = LIST_FIRST(&h->objs)) && tmp->what == TEST_CASE_T)
-        {
-            if (ftc = TC_HANDLE(tmp), ftc->pts->pt->sandboxed == true)
+            LIST_FOREACH (to, &h->objs, links)
             {
-                dbg_if (test_cases_reap(h));
+                if (to->rank == r)
+                    (void) sched(to);
+            }
+        }
+        else    
+        {
+            /* Sandboxed TC's scheduling logic is slightly more complex:
+             * we run them in chunks of TEST_MAX_PARALLEL cardinality, then
+             * we reap the whole chunk and start again with another one, until
+             * the list has been traversed. 'tptr' is the pointer to the next 
+             * TC to be run. */
+
+            tptr = LIST_FIRST(&h->objs);
+
+        resched:
+            for (to = tptr; to != NULL; to = LIST_NEXT(to, links))
+            {
+                if (to->rank == r)
+                {
+                    /* Schedule a TC at the current rank. */
+                    dbg_if (sched(to));
+            
+                    /* See if we reached this chunk's upper bound. */
+                    if ((parallel += 1) == TEST_MAX_PARALLEL)
+                    {
+                        /* Save restart reference and jump to reap. */
+                        tptr = LIST_NEXT(to, links);
+                        goto reap;
+                    }
+                }
+                    
+                /* Make sure 'tptr' is unset, so that, in case we go out on 
+                 * loop exhaustion, the reaper branch knows that we don't need
+                 * to be restarted. */
+                tptr = NULL;
+            }
+
+        reap:
+            dbg_if (test_cases_reap(h));
+
+            /* If 'tptr' was set, it means that we need to restart. */
+            if (tptr != NULL)
+            {
+                parallel = 0;       /* Reset parallel counter. */
+                goto resched;       /* Go to sched again. */
             }
         }
     }
@@ -888,6 +948,7 @@ static int test_case_scheduler (test_obj_t *to)
 
 static int test_case_exec (test_case_t *tc)
 {
+    int rc;
     pid_t pid;
 
     dbg_return_if (tc == NULL, ~0);
@@ -897,8 +958,9 @@ static int test_case_exec (test_case_t *tc)
 
     if (tc->pts->pt->sandboxed == false)
     {
+        rc = tc->func(tc);
         /* TODO report */
-        return tc->func(tc);
+        return 0;
     }
 
     switch (pid = fork())
@@ -1002,5 +1064,54 @@ static int test_case_report_txt (FILE *fp, test_case_t *tc)
     (void) fprintf(fp, "\t\t* [%s] %s\n",
             tc->o.status == TEST_SUCCESS ? "PASS" : "FAIL", tc->o.id);
 
+    return 0;
+}
+
+static int test_getopt (int ac, char *av[], test_t *t)
+{
+    int c;
+
+    dbg_return_if (t == NULL, ~0);
+
+    while ((c = getopt(ac, av, "o:f:p:vsh")) != -1)
+    {
+        switch (c)
+        {
+            case 'o':   /* Output file. */
+                (void) u_strlcpy(t->outfn, optarg, sizeof t->outfn);
+                break;
+            case 'f':   /* Output format. */
+                if (test_set_outfmt(t, optarg))
+                    test_usage("bad output format");
+                break;
+            case 'p':   /* Max number of test cases running in parallel. */
+                if (u_atoi(optarg, &t->max_parallel))
+                    test_usage("bad max parallel");
+                break;
+            case 'v':   /* Increment verbosity. */
+                t->verbose = true;
+                break;
+            case 's':   /* Serialized (i.e. !sandboxed) test cases. */
+                t->sandboxed = false;
+                break;
+            case 'h': default:
+                test_usage(NULL);
+                break;
+        } 
+    }
+
+    /* TODO global check */
+    
+    return 0;
+}
+
+static void test_usage (const char *msg)
+{
+    /* TODO */
+    exit(1);
+}
+
+static int test_set_outfmt (test_t *t, const char *fmt)
+{
     return 0;
 }

@@ -11,14 +11,14 @@ int TC_2_2 (test_case_t *tc);
 int test_suite_TS1_register (test_t *t);
 int test_suite_TS2_register (test_t *t);
 
-int main (void)
+int main (int argc, char *argv[])
 {
     test_t *t = NULL;
 
     con_err_if (test_new("my test", &t));
     con_err_if (test_suite_TS1_register(t));
     con_err_if (test_suite_TS2_register(t));
-    con_err_if (test_run(t));
+    con_err_if (test_run(argc, argv, t));
 
     test_free(t);
 

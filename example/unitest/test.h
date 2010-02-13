@@ -24,6 +24,11 @@ typedef int (*test_rep_f)(FILE *, test_t *, test_rep_tag_t);
 typedef int (*test_case_rep_f)(FILE *, test_case_t *);
 typedef int (*test_suite_rep_f)(FILE *, test_suite_t *, test_rep_tag_t);
 
+/* Maximum number of running test cases. */
+#ifndef TEST_MAX_PARALLEL
+#define TEST_MAX_PARALLEL   32
+#endif  /* !TEST_MAX_PARALLEL */
+
 int test_case_new (const char *id, test_f func, test_case_t **ptc);
 int test_case_add (test_case_t *tc, test_suite_t *ts);
 void test_case_free (test_case_t *tc);
@@ -45,6 +50,6 @@ int test_set_test_case_rep (test_t *t, test_case_rep_f func);
 int test_set_test_rep (test_t *t, test_rep_f func);
 
 void test_free (test_t *t);
-int test_run(test_t *t);
+int test_run (int ac, char *av[], test_t *t);
 
 #endif  /* !_TEST__H_ */
