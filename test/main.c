@@ -24,6 +24,7 @@ int main(int argc, char **argv)
 #ifndef NO_RB
     U_TEST_SUITE_ADD(rb);
 #endif
+    U_TEST_SUITE_ADD(pwd);
 
     return u_test_run(argc, argv);
 }

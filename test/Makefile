@@ -31,6 +31,8 @@ ifndef NO_RB
     SRCS += rb.c
 endif
 
+SRCS += pwd.c
+
 LDADD += ../srcs/libu.a
 
 include prog.mk
