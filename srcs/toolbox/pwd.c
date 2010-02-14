@@ -14,7 +14,7 @@ static int u_pwd_db_new (u_pwd_t *pwd);
 static int u_pwd_db_term (u_pwd_t *pwd);
 static int u_pwd_db_load (u_pwd_t *pwd);
 static int u_pwd_db_push (u_pwd_t *pwd, u_pwd_rec_t *rec);
-static void __hmap_pwd_rec_free (u_hmap_o_t *obj);  /* hook hmap free */
+static void __hmap_pwd_rec_free (void *val);  /* hook hmap free */
 
 /* misc */
 static int u_pwd_load (u_pwd_t *pwd);
@@ -593,8 +593,7 @@ static int u_pwd_retr_mem (u_pwd_t *pwd, const char *user,
         u_warn("error reloading master pwd file: using stale cache");
 
     dbg_err_if (pwd->db == NULL);
-    dbg_err_if (u_hmap_get(pwd->db, user, &hobj));
-    *prec = (u_pwd_rec_t *) hobj->val;
+    *prec = (u_pwd_rec_t *) u_hmap_easy_get(pwd->db, user);
 
     return 0;
 err:
@@ -624,13 +623,14 @@ static int u_pwd_db_new (u_pwd_t *pwd)
 {
     u_hmap_opts_t hopts;
 
-    dbg_return_if (pwd == NULL, ~0);
+    dbg_err_if (pwd == NULL);
 
     u_hmap_opts_init(&hopts);
-    hopts.options |= U_HMAP_OPTS_OWNSDATA;
-    hopts.f_free = __hmap_pwd_rec_free;
+    dbg_err_if (u_hmap_opts_set_val_freefunc(&hopts, &__hmap_pwd_rec_free));
             
-    return u_hmap_new(&hopts, &pwd->db);
+    return u_hmap_easy_new(&hopts, &pwd->db);
+err:
+    return ~0;
 }
 
 static int u_pwd_db_term (u_pwd_t *pwd)
@@ -639,7 +639,7 @@ static int u_pwd_db_term (u_pwd_t *pwd)
         
     nop_return_if (pwd->db == NULL, 0);
             
-    u_hmap_free(pwd->db);
+    u_hmap_easy_free(pwd->db);
     pwd->db = NULL;
 
     return 0;
@@ -724,25 +724,12 @@ err:
 
 static int u_pwd_db_push (u_pwd_t *pwd, u_pwd_rec_t *rec)
 {
-    char *hkey = NULL;
-    u_hmap_o_t *hobj = NULL;
-
     dbg_return_if (pwd->db == NULL, ~0);
     dbg_return_if (rec == NULL, ~0);
     dbg_return_if (rec->user == NULL, ~0);
 
-    hkey = u_strdup(rec->user);
-    dbg_err_if (hkey == NULL);
-
-    hobj = u_hmap_o_new((void *) hkey, (void *) rec);
-    dbg_err_if (hobj == NULL);
-
-    return u_hmap_put(pwd->db, hobj, NULL);
+    return u_hmap_easy_put(pwd->db, rec->user, (const void *) rec);
 err:
-    if (hkey)
-        u_free(hkey);
-    if (hobj)
-        u_hmap_o_free(hobj);
     return ~0;
 }
 
@@ -795,14 +782,13 @@ err:
 }
 
 /* hmap glue */
-static void __hmap_pwd_rec_free (u_hmap_o_t *obj)
+static void __hmap_pwd_rec_free (void *val)
 {
     u_pwd_t fake_pwd;
 
     fake_pwd.in_memory = 1;
 
-    U_FREE(obj->key);
-    u_pwd_rec_free(&fake_pwd, (u_pwd_rec_t *) obj->val);
+    u_pwd_rec_free(&fake_pwd, (u_pwd_rec_t *) val);
 
     return;
 }
