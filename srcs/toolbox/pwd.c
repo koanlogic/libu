@@ -348,9 +348,6 @@ void u_pwd_rec_free (u_pwd_t *pwd, u_pwd_rec_t *rec)
     dbg_return_if (pwd == NULL, );
     dbg_return_if (rec == NULL, );
 
-    /* only records coming from non hash-map'd pwd's shall be free'd */
-    nop_return_if (pwd->in_memory, );
-
     U_FREE(rec->user);
     U_FREE(rec->pass);
     U_FREE(rec->opaque);
@@ -583,6 +580,7 @@ static int u_pwd_retr_mem (u_pwd_t *pwd, const char *user,
         u_pwd_rec_t **prec)
 {
     u_hmap_o_t *hobj = NULL;
+    u_pwd_rec_t *pr = NULL;
 
     dbg_return_if (pwd == NULL, ~0);
     dbg_return_if (user == NULL, ~0);
@@ -593,7 +591,11 @@ static int u_pwd_retr_mem (u_pwd_t *pwd, const char *user,
         u_warn("error reloading master pwd file: using stale cache");
 
     dbg_err_if (pwd->db == NULL);
-    *prec = (u_pwd_rec_t *) u_hmap_easy_get(pwd->db, user);
+
+    pr = (u_pwd_rec_t *) u_hmap_easy_get(pwd->db, user);
+    dbg_err_if (pr == NULL);
+
+    *prec = pr;
 
     return 0;
 err:
