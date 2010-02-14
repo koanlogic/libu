@@ -23,16 +23,6 @@
 #define U_HMAP_RATE_FULL     0.75
 #define U_HMAP_RATE_RESIZE   3
 
-
-/* policy queue object */
-struct u_hmap_q_s 
-{
-    void *key;
-    void *o;
-
-    TAILQ_ENTRY(u_hmap_q_s) next;
-};
-
 enum {
     U_HMAP_PCY_OP_PUT = 0x1,
     U_HMAP_PCY_OP_GET = 0x2
@@ -93,19 +83,28 @@ static int __queue_pop_back (u_hmap_t *hmap, u_hmap_o_t **obj);
 static int __resize(u_hmap_t *hmap);
 static int __next_prime(size_t *prime, size_t sz, size_t *idx);
 
-int u_hmap_easy_new (u_hmap_t **hmap)
+int u_hmap_easy_new (u_hmap_opts_t *opts, u_hmap_t **phmap)
 {
-    u_hmap_opts_t opts;
+    u_hmap_opts_t newopts;
 
-    u_hmap_opts_init(&opts);
-    opts.options |= U_HMAP_OPTS_NO_OVERWRITE;
-    opts.options |= U_HMAP_OPTS_OWNSDATA;
+    dbg_err_if (phmap == NULL);
 
-    /* normally default is to free() objects, but in easy implementation we
-     * suggest using u_hmap_easy_set_freefunc() */
-    opts.f_free = NULL;
+    u_hmap_opts_init(&newopts);
 
-    dbg_err_if (u_hmap_new(&opts, hmap));
+    if (opts) {
+        dbg_err_if (u_hmap_opts_copy(&newopts, opts));
+        if (newopts.options == 0) {
+            newopts.options |= U_HMAP_OPTS_NO_OVERWRITE;
+            newopts.options |= U_HMAP_OPTS_OWNSDATA;
+        }
+    } else {
+        newopts.options |= U_HMAP_OPTS_NO_OVERWRITE;
+        newopts.options |= U_HMAP_OPTS_OWNSDATA;
+    }
+    newopts.easy = 1;
+    newopts.f_free = NULL;
+
+    dbg_err_if (u_hmap_new(&newopts, phmap));
 
     return U_HMAP_ERR_NONE;
 err:
@@ -121,24 +120,12 @@ err:
     return; 
 }
 
-int u_hmap_easy_set_freefunc (u_hmap_t *hmap, void (*f_free)(u_hmap_o_t *obj))
-{
-    dbg_err_if (hmap == NULL);
-    dbg_err_if (f_free == NULL);
-
-    hmap->opts->f_free = f_free;
-
-    return U_HMAP_ERR_NONE;
-err:
-    return U_HMAP_ERR_FAIL;
-}
-
-int u_hmap_easy_put (u_hmap_t *hmap, const void *key, void *val)
+int u_hmap_easy_put (u_hmap_t *hmap, const char *key, const void *val)
 {
     int rc = U_HMAP_ERR_NONE;
     u_hmap_o_t *obj = NULL;
 
-    dbg_err_if ((obj = u_hmap_o_new(key, val)) == NULL);
+    dbg_err_if ((obj = u_hmap_o_new(hmap, key, val)) == NULL);
     dbg_err_if ((rc = u_hmap_put(hmap, obj, NULL)));
     
     return rc;
@@ -147,7 +134,7 @@ err:
     return (rc ? rc : U_HMAP_ERR_FAIL);
 }
 
-void *u_hmap_easy_get (u_hmap_t *hmap, const void *key)
+void *u_hmap_easy_get (u_hmap_t *hmap, const char *key)
 {
     u_hmap_o_t *obj = NULL;
 
@@ -158,7 +145,7 @@ err:
     return NULL;
 }
 
-int u_hmap_easy_del (u_hmap_t *hmap, const void *key)
+int u_hmap_easy_del (u_hmap_t *hmap, const char *key)
 {
     return (u_hmap_del(hmap, key, NULL));
 }
@@ -210,7 +197,7 @@ static int __f_comp (const void *k1, const void *k2)
 {
     dbg_ifb (k1 == NULL) return -1;    
     dbg_ifb (k2 == NULL) return -1;  
-    
+
     return strcmp((char *)k1, (char *)k2);
 }
 
@@ -219,7 +206,7 @@ static void __f_free (u_hmap_o_t *obj)
 {
     dbg_ifb (obj == NULL) return;
 
-    u_free((void *)obj->key); 
+    u_free(obj->key); 
     u_free(obj->val); 
 }
 
@@ -233,8 +220,10 @@ static u_string_t *__f_str (u_hmap_o_t *obj)
 
     dbg_err_if (obj == NULL);
 
-    key = (const char *) obj->key,
-    val = (const char *) obj->val;
+    key = (obj->hmap->opts->key_type == U_HMAP_OPTS_DATATYPE_STRING) ? 
+        (const char *) obj->key : "";
+    val = (obj->hmap->opts->val_type == U_HMAP_OPTS_DATATYPE_STRING) ?
+        (const char *) obj->val : "";
 
     dbg_err_if (u_snprintf(buf, MAX_OBJ_STR, "[%s:%s]", key, val));    
     dbg_err_if (u_string_create(buf, strlen(buf)+1, &s));
@@ -242,6 +231,7 @@ static u_string_t *__f_str (u_hmap_o_t *obj)
     return s;
 
 err:
+    U_FREE(s);
     return NULL;
 }
 
@@ -308,26 +298,31 @@ static int __pcy_setup (u_hmap_t *hmap)
  * manipulated incorrectly.
  * 
  * \param opts      options to be passed to the hmap
- * \param hmap      on success contains the hmap options object
+ * \param phmap      on success contains the hmap options object
  * 
  * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
  */
-int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **hmap)
+int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **phmap)
 {
     size_t i;
     u_hmap_t *c = NULL;
 
     /* allow (opts == NULL) */
-    dbg_return_if (hmap == NULL, ~0);
+    dbg_return_if (phmap == NULL, ~0);
    
     dbg_return_sif ((c = (u_hmap_t *) u_zalloc(sizeof(u_hmap_t))) == NULL, ~0);
     
     dbg_err_if (u_hmap_opts_new(&c->opts));
     if (opts)
-    {
         dbg_err_if (u_hmap_opts_copy(c->opts, opts));
-        dbg_err_if (__opts_check(c->opts));
-    }
+
+    /* if key or value are strings we know how to display them */
+    if (c->opts->f_str == NULL && 
+            (c->opts->key_type == U_HMAP_OPTS_DATATYPE_STRING ||
+            c->opts->val_type == U_HMAP_OPTS_DATATYPE_STRING))
+        c->opts->f_str = &__f_str;
+
+    dbg_err_if (__opts_check(c->opts));
     u_hmap_opts_dbg(c->opts);
     dbg_err_if (__pcy_setup(c));
 
@@ -348,13 +343,13 @@ int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **hmap)
     u_dbg("[hmap]");
     u_dbg("threshold: %u", c->threshold);
 
-    *hmap = c;
+    *phmap = c;
 
     return U_HMAP_ERR_NONE;
 
 err:
     u_free(c);
-    *hmap = NULL;    
+    *phmap = NULL;    
     return U_HMAP_ERR_FAIL;
 }
 
@@ -914,7 +909,7 @@ err:
  * 
  * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
  */
-int u_hmap_foreach (u_hmap_t *hmap, int f(void *val))
+int u_hmap_foreach (u_hmap_t *hmap, int f(const void *val))
 {
     u_hmap_o_t *obj;
     size_t i;
@@ -946,7 +941,8 @@ err:
  * 
  * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
  */
-int u_hmap_foreach_arg (u_hmap_t *hmap, int f(void *val, void *arg), void *arg)
+int u_hmap_foreach_arg (u_hmap_t *hmap, int f(const void *val, const void *arg), 
+        void *arg)
 {
     size_t i;
     u_hmap_o_t *obj;
@@ -976,7 +972,7 @@ err:
  * 
  * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
  */
-int u_hmap_foreach_keyval(u_hmap_t *hmap, int f(const void *key, void *val))
+int u_hmap_foreach_keyval(u_hmap_t *hmap, int f(const void *key, const void *val))
 {
     struct u_hmap_o_s *obj;
     size_t i;
@@ -1109,8 +1105,15 @@ void u_hmap_opts_init (u_hmap_opts_t *opts)
     opts->options = 0;
     opts->f_hash = &__f_hash;
     opts->f_comp = &__f_comp;
-    opts->f_free = &__f_free;
-    opts->f_str = &__f_str;
+    opts->f_free = NULL;
+    opts->key_type = U_HMAP_OPTS_DATATYPE_STRING;
+    opts->val_type = U_HMAP_OPTS_DATATYPE_POINTER;
+    opts->f_key_free = NULL;
+    opts->f_val_free = NULL;
+    opts->f_str = NULL;
+    opts->key_sz = sizeof(void *);
+    opts->val_sz = sizeof(void *);
+    opts->easy = 0;
     
     return;
 }
@@ -1141,13 +1144,16 @@ void u_hmap_opts_dbg (u_hmap_opts_t *opts)
     dbg_ifb (opts == NULL) return;
 
     u_dbg("[hmap options]");
+    u_dbg("easy: %d", opts->easy);
     u_dbg("size: %u", opts->size);
     u_dbg("max: %u", opts->max);
     u_dbg("policy: %s", __pcy2str(opts->policy));
-    u_dbg("ownsdata: %d, f_free: %p", 
+    u_dbg("ownsdata: %d, f_free: %p, f_key_free: %p, f_val_free: %p", 
             opts->options & U_HMAP_OPTS_OWNSDATA,
-            opts->f_free);
+            opts->f_free, opts->f_key_free, opts->f_val_free);
+    u_dbg("f_str: %p", opts->f_str);
     u_dbg("no_overwrite: %d", opts->options & U_HMAP_OPTS_NO_OVERWRITE);
+    u_dbg("key type: %d, val type: %d", opts->key_type, opts->val_type);
 }
 
 /**
@@ -1157,28 +1163,66 @@ void u_hmap_opts_dbg (u_hmap_opts_t *opts)
  * user is responsible for allocation and deallocation of these objects and
  * their content. If the option U_HMAP_OPTS_OWNSDATA is set 
  *
+ * \param hmap      reference to parent hmap
  * \param key       pointer to the key
  * \param val       pointer to the oject
  *
  * \return pointer to a new u_hmap_o_t 
  */
-u_hmap_o_t *u_hmap_o_new (const void *key, void *val)
+u_hmap_o_t *u_hmap_o_new (u_hmap_t *hmap, const void *key, const void *val)
 {
     u_hmap_o_t *obj = NULL;
 
+    dbg_return_if (hmap == NULL, NULL);
     dbg_return_if (key == NULL, NULL);
     dbg_return_if (val == NULL, NULL);
 
     dbg_err_sif ((obj = (u_hmap_o_t *) u_zalloc(sizeof(u_hmap_o_t))) == NULL);
+    obj->hmap = hmap;
     
-    obj->key = (void *) key;
-    obj->val = val;
+    if (hmap->opts->options & U_HMAP_OPTS_OWNSDATA) {
+
+        /* internalise key */
+        switch (hmap->opts->key_type) {
+            case U_HMAP_OPTS_DATATYPE_POINTER:
+                obj->key = (void *) key;
+                break;
+            case U_HMAP_OPTS_DATATYPE_STRING:
+                dbg_err_if ((obj->key = u_strdup((const char *) key)) == NULL);
+                break;
+            case U_HMAP_OPTS_DATATYPE_OPAQUE:
+                dbg_err_if ((obj->key = u_zalloc(hmap->opts->key_sz)) == NULL);
+                memcpy(obj->key, key, hmap->opts->key_sz);
+                break;
+        }
+
+        /* internalise value */
+        switch (hmap->opts->val_type) {
+            case U_HMAP_OPTS_DATATYPE_POINTER:
+                obj->val = (void *) val;
+                break;
+            case U_HMAP_OPTS_DATATYPE_STRING:
+                dbg_err_if ((obj->val = u_strdup((const char *) val)) == NULL);
+                break;
+            case U_HMAP_OPTS_DATATYPE_OPAQUE:
+                dbg_err_if ((obj->val = u_zalloc(hmap->opts->val_sz)) == NULL);
+                memcpy(obj->val, val, hmap->opts->val_sz);
+                break;
+        }
+
+    } else {  /* data owned by user - do not internalise, just set pointers */
+        
+        obj->key = (void *) key;
+        obj->val = (void *) val;
+    }
+
     obj->pqe = NULL;
 
     return obj;
  
 err:
-    u_free(obj);
+    U_FREEF(obj, u_hmap_o_free);
+
     return NULL;
 }
 
@@ -1204,16 +1248,35 @@ void u_hmap_o_free (u_hmap_o_t *obj)
  *      \}
  */
 
-/* Free a data object including content if U_HMAP_OPTS_OWNSDATA */
+/* Free a data object including content (only if U_HMAP_OPTS_OWNSDATA) */
 static void __o_free (u_hmap_t *hmap, u_hmap_o_t *obj)
 {
     dbg_ifb (hmap == NULL) return;
     dbg_ifb (obj == NULL) return;
 
-    if (hmap->opts->options & U_HMAP_OPTS_OWNSDATA) 
-    {
-        if (hmap->opts->f_free)
-            hmap->opts->f_free(obj);
+    if (hmap->opts->f_free) {
+        hmap->opts->f_free(obj);
+    } else {
+        switch (hmap->opts->key_type) {
+            case U_HMAP_OPTS_DATATYPE_POINTER:
+                if (hmap->opts->f_key_free)
+                    hmap->opts->f_key_free(obj->key);
+                break;
+            case U_HMAP_OPTS_DATATYPE_STRING:
+            case U_HMAP_OPTS_DATATYPE_OPAQUE:
+                u_free(obj->key);
+                break;
+        }
+        switch (hmap->opts->val_type) {
+            case U_HMAP_OPTS_DATATYPE_POINTER:
+                if (hmap->opts->f_val_free)
+                    hmap->opts->f_val_free(obj->val);
+                break;
+            case U_HMAP_OPTS_DATATYPE_STRING:
+            case U_HMAP_OPTS_DATATYPE_OPAQUE:
+                u_free(obj->val);
+                break;
+        }
     }
 
     u_hmap_o_free(obj); 
@@ -1342,6 +1405,197 @@ static int __resize(u_hmap_t *hmap)
 
     return 0;
 
+err:
+    return ~0;
+}
+
+int u_hmap_opts_set_size (u_hmap_opts_t *opts, int sz)
+{
+    dbg_err_if (opts == NULL || sz <= 0);
+
+    opts->size = sz;
+
+    return 0;
+err:
+    return ~0;
+}
+
+int u_hmap_opts_set_max (u_hmap_opts_t *opts, int max)
+{
+    dbg_err_if (opts == NULL || max <= 0);
+
+    opts->max = max;
+
+    return 0;
+err:
+    return ~0;
+}
+
+int u_hmap_opts_set_type (u_hmap_opts_t *opts, int type)
+{
+    dbg_err_if (opts == NULL);
+
+    dbg_err_if (type < 0 || type > U_HMAP_TYPE_LAST);
+
+    opts->type = type;
+
+    return 0;
+err:
+    return ~0;
+}
+
+int u_hmap_opts_set_policy (u_hmap_opts_t *opts, int policy)
+{
+    dbg_err_if (opts == NULL || policy < 0 || policy > U_HMAP_TYPE_LAST);
+
+    opts->policy = policy; 
+
+    return 0;
+err:
+    return ~0;
+}
+
+/* not valid for simplified interface */
+int u_hmap_opts_set_options (u_hmap_opts_t *opts, int options)
+{
+    dbg_err_if (opts == NULL || opts->easy); 
+
+    opts->options |= U_HMAP_OPTS_OWNSDATA;
+
+    return 0;
+err:
+    return ~0;
+}
+
+/* not valid for simplified interface */
+int u_hmap_opts_set_hashfunc (u_hmap_opts_t *opts, 
+        size_t (*f_hash)(const void *key, size_t buckets))
+{
+    dbg_err_if (opts == NULL || f_hash == NULL || opts->easy); 
+
+    opts->f_hash = f_hash;
+
+    return 0;
+err:
+    return ~0;
+}
+
+/* not valid for simplified interface */
+int u_hmap_opts_set_compfunc (u_hmap_opts_t *opts, 
+        int (*f_comp)(const void *k1, const void *k2))
+{
+    dbg_err_if (opts == NULL || f_comp == NULL || opts->easy); 
+
+    opts->f_comp = f_comp;
+
+    return 0;
+err:
+    return ~0;
+}
+
+/* not valid for simplified interface */
+int u_hmap_opts_set_freefunc (u_hmap_opts_t *opts, 
+        void (*f_free)(u_hmap_o_t *obj))
+{
+    dbg_err_if (opts == NULL || opts->easy); 
+
+    opts->f_free = f_free;
+
+    return 0;
+err:
+    return ~0;
+}
+
+int u_hmap_opts_set_strfunc (u_hmap_opts_t *opts, 
+        u_string_t *(*f_str)(u_hmap_o_t *obj))
+{
+    dbg_err_if (opts == NULL);
+
+    opts->f_str = f_str;
+
+    return 0;
+err:
+    return ~0;
+}
+
+int u_hmap_opts_set_key_type (u_hmap_opts_t *opts, 
+        u_hmap_options_datatype_t type)
+{
+    dbg_err_if (opts == NULL ||
+            (type < 0 || type > U_HMAP_OPTS_DATATYPE_LAST));
+
+    /* not valid for simplified interface */
+    dbg_err_if (opts->easy);
+
+    opts->key_type = type;
+
+    return 0;
+err:
+    return ~0;
+}
+
+int u_hmap_opts_set_key_sz (u_hmap_opts_t *opts, size_t sz)
+{
+    dbg_err_if (opts == NULL || 
+            sz == 0);
+
+    /* not valid for simplified interface */
+    dbg_err_if (opts->easy);
+
+    opts->key_sz = sz;
+
+    return 0;
+err:
+    return ~0;
+}
+
+int u_hmap_opts_set_key_freefunc (u_hmap_opts_t *opts, 
+        void (*f_free)(const void *key))
+{
+    dbg_err_if (opts == NULL);
+
+    /* not valid for simplified interface */
+    dbg_err_if (opts->easy);
+
+    opts->f_key_free = f_free;
+
+    return 0;
+err:
+    return ~0;
+}
+
+int u_hmap_opts_set_val_type (u_hmap_opts_t *opts, 
+        u_hmap_options_datatype_t type)
+{
+    dbg_err_if (opts == NULL ||
+            (type < 0 || type > U_HMAP_OPTS_DATATYPE_LAST));
+
+    opts->val_type = type;
+
+    return 0;
+err:
+    return ~0;
+}
+
+int u_hmap_opts_set_val_sz (u_hmap_opts_t *opts, size_t sz)
+{
+    dbg_err_if (opts == NULL || 
+            sz == 0);
+
+    opts->val_sz = sz;
+
+    return 0;
+err:
+    return ~0;
+}
+
+int u_hmap_opts_set_val_freefunc (u_hmap_opts_t *opts, void (*f_free)(void *val))
+{
+    dbg_err_if (opts == NULL);
+
+    opts->f_val_free = f_free;
+
+    return 0;
 err:
     return ~0;
 }
