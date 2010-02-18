@@ -1,7 +1,9 @@
 /* 
  * Copyright (c) 2005-2010 by KoanLogic s.r.l. - All rights reserved.  
  */
-
+/* solo oggetto in freefunc */
+/* string interface */
+/* overwrite? */
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -1460,7 +1462,7 @@ int u_hmap_opts_set_options (u_hmap_opts_t *opts, int options)
 {
     dbg_err_if (opts == NULL || opts->easy); 
 
-    opts->options |= U_HMAP_OPTS_OWNSDATA;
+    opts->options |= options;
 
     return 0;
 err:
