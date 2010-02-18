@@ -579,7 +579,6 @@ err:
 static int u_pwd_retr_mem (u_pwd_t *pwd, const char *user, 
         u_pwd_rec_t **prec)
 {
-    u_hmap_o_t *hobj = NULL;
     u_pwd_rec_t *pr = NULL;
 
     dbg_return_if (pwd == NULL, ~0);
@@ -731,8 +730,6 @@ static int u_pwd_db_push (u_pwd_t *pwd, u_pwd_rec_t *rec)
     dbg_return_if (rec->user == NULL, ~0);
 
     return u_hmap_easy_put(pwd->db, rec->user, (const void *) rec);
-err:
-    return ~0;
 }
 
 /* 

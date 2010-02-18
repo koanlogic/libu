@@ -72,7 +72,6 @@ static void __q_o_free (u_hmap_q_t *s);
 
 static size_t __f_hash (const void *key, size_t size);
 static int __f_comp (const void *k1, const void *k2);
-static void __f_free (u_hmap_o_t *obj);
 static u_string_t *__f_str (u_hmap_o_t *obj);
 
 static int __queue_push (u_hmap_t *hmap, u_hmap_o_t *obj, 
@@ -177,7 +176,7 @@ const char *u_hmap_strerror (u_hmap_ret_t rc)
 static size_t __f_hash (const void *key, size_t size)
 {
     size_t h = 0;
-    unsigned char *k = (unsigned char *) key;
+    const unsigned char *k = (const unsigned char *) key;
 
     dbg_ifb (key == NULL) return -1;
 
@@ -200,16 +199,7 @@ static int __f_comp (const void *k1, const void *k2)
     dbg_ifb (k1 == NULL) return -1;    
     dbg_ifb (k2 == NULL) return -1;  
 
-    return strcmp((char *)k1, (char *)k2);
-}
-
-/* Default function for freeing hmap key and value */
-static void __f_free (u_hmap_o_t *obj)
-{
-    dbg_ifb (obj == NULL) return;
-
-    u_free(obj->key); 
-    u_free(obj->val); 
+    return strcmp((const char *)k1, (const char *)k2);
 }
 
 /* Default string representation of objects */
@@ -252,7 +242,6 @@ static int __opts_check (u_hmap_opts_t *opts)
     dbg_err_if (opts->f_comp == NULL);
 
     return U_HMAP_ERR_NONE;
-
 err:
     return U_HMAP_ERR_FAIL;
 }
@@ -300,7 +289,7 @@ static int __pcy_setup (u_hmap_t *hmap)
  * manipulated incorrectly.
  * 
  * \param opts      options to be passed to the hmap
- * \param phmap      on success contains the hmap options object
+ * \param phmap     on success contains the hmap options object
  * 
  * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
  */
@@ -1187,7 +1176,7 @@ u_hmap_o_t *u_hmap_o_new (u_hmap_t *hmap, const void *key, const void *val)
         /* internalise key */
         switch (hmap->opts->key_type) {
             case U_HMAP_OPTS_DATATYPE_POINTER:
-                obj->key = (void *) key;
+                memcpy(&obj->key, &key, sizeof obj->key);
                 break;
             case U_HMAP_OPTS_DATATYPE_STRING:
                 dbg_err_if ((obj->key = u_strdup((const char *) key)) == NULL);
@@ -1201,7 +1190,7 @@ u_hmap_o_t *u_hmap_o_new (u_hmap_t *hmap, const void *key, const void *val)
         /* internalise value */
         switch (hmap->opts->val_type) {
             case U_HMAP_OPTS_DATATYPE_POINTER:
-                obj->val = (void *) val;
+                memcpy(&obj->val, &val, sizeof obj->val);
                 break;
             case U_HMAP_OPTS_DATATYPE_STRING:
                 dbg_err_if ((obj->val = u_strdup((const char *) val)) == NULL);
@@ -1213,9 +1202,8 @@ u_hmap_o_t *u_hmap_o_new (u_hmap_t *hmap, const void *key, const void *val)
         }
 
     } else {  /* data owned by user - do not internalise, just set pointers */
-        
-        obj->key = (void *) key;
-        obj->val = (void *) val;
+        memcpy(&obj->key, &key, sizeof obj->key);
+        memcpy(&obj->val, &val, sizeof obj->val);
     }
 
     obj->pqe = NULL;
@@ -1294,7 +1282,7 @@ static u_hmap_q_t *__q_o_new (const void *key)
     dbg_err_sif ((data = (u_hmap_q_t *)
                 u_zalloc(sizeof(u_hmap_q_t))) == NULL);
 
-    data->key = (void *) key;
+    memcpy(&data->key, &key, sizeof data->key);
     data->o = NULL;
     
     return data;
