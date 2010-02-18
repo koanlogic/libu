@@ -1176,7 +1176,7 @@ u_hmap_o_t *u_hmap_o_new (u_hmap_t *hmap, const void *key, const void *val)
         /* internalise key */
         switch (hmap->opts->key_type) {
             case U_HMAP_OPTS_DATATYPE_POINTER:
-                memcpy(&obj->key, &key, sizeof obj->key);
+                memcpy(&obj->key, &key, sizeof(void **));
                 break;
             case U_HMAP_OPTS_DATATYPE_STRING:
                 dbg_err_if ((obj->key = u_strdup((const char *) key)) == NULL);
@@ -1190,7 +1190,7 @@ u_hmap_o_t *u_hmap_o_new (u_hmap_t *hmap, const void *key, const void *val)
         /* internalise value */
         switch (hmap->opts->val_type) {
             case U_HMAP_OPTS_DATATYPE_POINTER:
-                memcpy(&obj->val, &val, sizeof obj->val);
+                memcpy(&obj->val, &val, sizeof(void **));
                 break;
             case U_HMAP_OPTS_DATATYPE_STRING:
                 dbg_err_if ((obj->val = u_strdup((const char *) val)) == NULL);
@@ -1202,8 +1202,8 @@ u_hmap_o_t *u_hmap_o_new (u_hmap_t *hmap, const void *key, const void *val)
         }
 
     } else {  /* data owned by user - do not internalise, just set pointers */
-        memcpy(&obj->key, &key, sizeof obj->key);
-        memcpy(&obj->val, &val, sizeof obj->val);
+        memcpy(&obj->key, &key, sizeof(void **));
+        memcpy(&obj->val, &val, sizeof(void **));
     }
 
     obj->pqe = NULL;
@@ -1282,7 +1282,7 @@ static u_hmap_q_t *__q_o_new (const void *key)
     dbg_err_sif ((data = (u_hmap_q_t *)
                 u_zalloc(sizeof(u_hmap_q_t))) == NULL);
 
-    memcpy(&data->key, &key, sizeof data->key);
+    memcpy(&data->key, &key, sizeof(void **));
     data->o = NULL;
     
     return data;
