@@ -1,3 +1,7 @@
+/*
+ *  ...
+ */ 
+
 #ifndef _TEST__H_
 #define _TEST__H_
 
@@ -11,7 +15,7 @@ struct test_s;
 typedef struct test_s test_t;
 
 /* Exit status of unit tests. */
-enum { TEST_SUCCESS = 0, TEST_FAILURE = 1 };
+enum { TEST_SUCCESS = 0, TEST_FAILURE = 1, TEST_ABORTED = 2 };
 
 typedef enum { TEST_CASE_T, TEST_SUITE_T } test_what_t;
 typedef enum { TEST_REP_HEAD, TEST_REP_TAIL } test_rep_tag_t;
@@ -28,6 +32,16 @@ typedef int (*test_suite_rep_f)(FILE *, test_suite_t *, test_rep_tag_t);
 #ifndef TEST_MAX_PARALLEL
 #define TEST_MAX_PARALLEL   32
 #endif  /* !TEST_MAX_PARALLEL */
+
+/* Max len of a test suite/case identifier */
+#ifndef TEST_ID_MAX
+#define TEST_ID_MAX     128
+#endif  /* !TEST_ID_MAX */
+
+/* Default test report file name */
+#ifndef TEST_OUTFN_DFL
+#define TEST_OUTFN_DFL  "./report.txt"  
+#endif  /* !TEST_OUTFN_DFL */
 
 int test_case_new (const char *id, test_f func, test_case_t **ptc);
 int test_case_add (test_case_t *tc, test_suite_t *ts);

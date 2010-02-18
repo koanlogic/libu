@@ -1,10 +1,18 @@
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <u/libu.h>
 #include "test.h"
 
-#define TEST_ID_MAX     128
+static _Bool g_verbose;   /* If true, be chatty */
+#define CHAT(...)   do { if (g_verbose) printf(__VA_ARGS__); } while (0)
 
-#define TEST_OUTFN_DFL  "./report.txt"  /* Default test report file name */
+typedef enum {
+    TEST_REPFMT_TXT,
+    TEST_REPFMT_XML,
+    TEST_REPFMT_HTML
+} test_out_fmt_t;
 
 /* Generic test objects list header. */
 typedef struct 
@@ -63,14 +71,14 @@ struct test_suite_s
 /* A test. */
 struct test_s
 {
-    unsigned int currank;   /* Current TS rank when sequencing */
-    char id[TEST_ID_MAX];   /* Test id */
-    TO test_suites;         /* Head of TSs list */
-    char outfn[4096];       /* Output file name */
-    time_t start, stop;     /* Test begin/end timestamps */
-    _Bool sandboxed;        /* True if TC's exec'd in subproc */
-    int max_parallel;       /* ... */
-    _Bool verbose;          /* If true, be chatty */
+    unsigned int currank;       /* Current TS rank when sequencing */
+    char id[TEST_ID_MAX];       /* Test id */
+    TO test_suites;             /* Head of TSs list */
+    char outfn[4096];           /* Output file name */
+    time_t start, stop;         /* Test begin/end timestamps */
+    _Bool sandboxed;            /* True if TC's exec'd in subproc */
+    unsigned int max_parallel;  /* max # of test cases executed in parallel */
+    test_out_fmt_t out_fmt;     /* Report output format */
 
     /* Test report hook functions */
     test_rep_f t_rep_cb;
@@ -129,14 +137,17 @@ static int test_sequencer (test_t *t);
 static int test_scheduler (test_t *t);
 static void test_print (test_t *t);
 static int test_getopt (int ac, char *av[], test_t *t);
-static void test_usage (const char *msg);
+static void test_usage (const char *prog, const char *msg);
 static int test_set_outfmt (test_t *t, const char *fmt);
 static int test_reporter (test_t *t);
 static int test_rep_txt (FILE *fp, test_t *t, test_rep_tag_t tag);
 
+/* Misc routines. */
+static const char *test_status_str (int status);
+
 int test_run (int ac, char *av[], test_t *t)
 {
-//    test_print(t);
+    //test_print(t);
 
     con_err_if (test_getopt(ac, av, t));
     con_err_if (test_sequencer(t));
@@ -318,6 +329,8 @@ int test_new (const char *id, test_t **pt)
     (void) u_strlcpy(t->outfn, TEST_OUTFN_DFL, sizeof t->outfn);
     t->sandboxed = true;    /* the default is to spawn sub-processes to 
                                execute test cases */
+    t->max_parallel = TEST_MAX_PARALLEL;
+    g_verbose = false;
 
     /* Set default report routines (may be overwritten). */
     t->t_rep_cb = test_rep_txt;
@@ -802,8 +815,10 @@ static int test_obj_scheduler (TO *h, int (*sched)(test_obj_t *))
              * we reap the whole chunk and start again with another one, until
              * the list has been traversed. 'tptr' is the pointer to the next 
              * TC to be run. */
+            test_case_t *tc;
 
             tptr = LIST_FIRST(&h->objs);
+            tc = TC_HANDLE(tptr);
 
         resched:
             for (to = tptr; to != NULL; to = LIST_NEXT(to, links))
@@ -814,7 +829,7 @@ static int test_obj_scheduler (TO *h, int (*sched)(test_obj_t *))
                     dbg_if (sched(to));
             
                     /* See if we reached this chunk's upper bound. */
-                    if ((parallel += 1) == TEST_MAX_PARALLEL)
+                    if ((parallel += 1) == tc->pts->pt->max_parallel)
                     {
                         /* Save restart reference and jump to reap. */
                         tptr = LIST_NEXT(to, links);
@@ -863,17 +878,38 @@ static int test_cases_reap (TO *h)
                 con_err_sifm (1, "waitpid failed badly, test aborted");
         }
 
-        /* TODO check what drove us here (i.e. stop, term, cont) */
-
         if ((tc = test_cases_search_by_pid(h, child)) == NULL)
         {
-            u_con("not a waited test case: %d", child);
+            CHAT("not a waited test case: %d\n", child);
             continue;
         }
+
+        /* Here we assume that a test case which received a SIGSTOP
+         * is going to be resumed (i.e. CONT'inued) independently. */
+        if (WIFSTOPPED(status))
+            continue;
 
         h->nchildren -= 1;
  
         /* Update test case stats. */
+        if (WIFEXITED(status))
+        {
+            /* The test case terminated normally, that is, by calling exit(3) 
+             * or _exit(2), or by returning from main().  
+             * We expect a compliant test case to return one of TEST_FAILURE
+             * or TEST_SUCCESS. */
+            tc->o.status = WEXITSTATUS(status);
+            dbg_if (tc->o.status != TEST_SUCCESS && 
+                    tc->o.status != TEST_FAILURE);
+        }
+        else if (WIFSIGNALED(status))
+        {
+            /* The test case was terminated by a signal. */
+            tc->o.status = TEST_ABORTED;
+            CHAT("test case %s terminated by signal %d\n", tc->o.id, 
+                    WTERMSIG(status));
+        }
+
         tc->o.stop = time(NULL);
     }
 
@@ -912,7 +948,7 @@ static int test_suite_scheduler (test_obj_t *to)
 
     dbg_return_if (to == NULL || (ts = TS_HANDLE(to)) == NULL, ~0);
 
-    u_con("now scheduling test suite %s", ts->o.id);
+    CHAT("now scheduling test suite %s\n", ts->o.id);
 
     /* Record test suite begin timestamp. */
     ts->o.start = time(NULL);
@@ -941,7 +977,7 @@ static int test_case_scheduler (test_obj_t *to)
 {
     dbg_return_if (to == NULL, ~0);
 
-    /* TODO handle no-fork */
+    CHAT("now scheduling test case %s\n", to->id);
 
     return test_case_exec(TC_HANDLE(to));
 }
@@ -956,10 +992,17 @@ static int test_case_exec (test_case_t *tc)
     if (tc->func == NULL)
         return 0;
 
+    /* Record test case begin timestamp. */
+    tc->o.start = time(NULL);
+
     if (tc->pts->pt->sandboxed == false)
     {
-        rc = tc->func(tc);
-        /* TODO report */
+        dbg_if ((rc = tc->func(tc)) != TEST_SUCCESS && rc != TEST_FAILURE);
+
+        /* update test case stats */
+        tc->o.status = rc;
+        tc->o.stop = time(NULL);
+
         return 0;
     }
 
@@ -978,7 +1021,7 @@ static int test_case_exec (test_case_t *tc)
     tc->o.parent->nchildren += 1;   /* Tell the test_case's head we have one
                                        more child */
 
-    u_con("<%d> started test case %s with pid %d",
+    CHAT("<%d> started test case %s with pid %d\n",
             getpid(), tc->o.id, tc->pid);
 
     /* always return ok here, the reaper will know the test exit status */
@@ -1040,10 +1083,13 @@ static int test_rep_txt (FILE *fp, test_t *t, test_rep_tag_t tag)
 static int test_suite_report_txt (FILE *fp, test_suite_t *ts, 
         test_rep_tag_t tag)
 {
-    char b[80], e[80];
+    time_t elapsed;
+    char b[80], e[80], d[80];
 
     if (tag == TEST_REP_TAIL)
         return 0;
+
+    elapsed = ts->o.stop - ts->o.start;
 
     (void) strftime(b, sizeof b, "%a %Y-%m-%d %H:%M:%S %Z", 
             localtime(&ts->o.start));
@@ -1051,25 +1097,50 @@ static int test_suite_report_txt (FILE *fp, test_suite_t *ts,
     (void) strftime(e, sizeof e, "%a %Y-%m-%d %H:%M:%S %Z", 
             localtime(&ts->o.stop));
 
-    (void) fprintf(fp, "\t* [%s] %s\n", 
-            ts->o.status == TEST_SUCCESS ? "PASS" : "FAIL", ts->o.id);
+    (void) strftime(d, sizeof d, "%M:%S", localtime(&elapsed));
+
+    (void) fprintf(fp, "\t* [%s] %s\n",
+            test_status_str(ts->o.status), ts->o.id);
     (void) fprintf(fp, "\t       begin: %s\n", b);
     (void) fprintf(fp, "\t         end: %s\n", e);
+    (void) fprintf(fp, "\t     elapsed: %s\n", d);
 
     return 0;
 }
 
+static const char *test_status_str (int status)
+{
+    switch (status)
+    {
+        case TEST_SUCCESS:
+            return "PASS";
+        case TEST_FAILURE:
+            return "FAIL";
+        case TEST_ABORTED:
+            return "ABRT";
+        default:
+            return "?";
+    }
+}
+
 static int test_case_report_txt (FILE *fp, test_case_t *tc)
 {
+    char d[80];
+    time_t elapsed;
+
+    elapsed = tc->o.stop - tc->o.start;
+    (void) strftime(d, sizeof d, "%M:%S", localtime(&elapsed));
+
     (void) fprintf(fp, "\t\t* [%s] %s\n",
-            tc->o.status == TEST_SUCCESS ? "PASS" : "FAIL", tc->o.id);
+            test_status_str(tc->o.status), tc->o.id);
+    (void) fprintf(fp, "\t\t     elapsed: %s\n", d);
 
     return 0;
 }
 
 static int test_getopt (int ac, char *av[], test_t *t)
 {
-    int c;
+    int c, mp;
 
     dbg_return_if (t == NULL, ~0);
 
@@ -1077,41 +1148,68 @@ static int test_getopt (int ac, char *av[], test_t *t)
     {
         switch (c)
         {
-            case 'o':   /* Output file. */
+            case 'o':   /* Report file. */
                 (void) u_strlcpy(t->outfn, optarg, sizeof t->outfn);
                 break;
-            case 'f':   /* Output format. */
+            case 'f':   /* Report format. */
                 if (test_set_outfmt(t, optarg))
-                    test_usage("bad output format");
+                    test_usage(av[0], "bad report format");
                 break;
             case 'p':   /* Max number of test cases running in parallel. */
-                if (u_atoi(optarg, &t->max_parallel))
-                    test_usage("bad max parallel");
+                if (u_atoi(optarg, &mp) || mp < 0)
+                    test_usage(av[0], "bad max parallel");
+                t->max_parallel = (unsigned int) mp;
                 break;
             case 'v':   /* Increment verbosity. */
-                t->verbose = true;
+                g_verbose = true;
                 break;
             case 's':   /* Serialized (i.e. !sandboxed) test cases. */
                 t->sandboxed = false;
                 break;
             case 'h': default:
-                test_usage(NULL);
+                test_usage(av[0], NULL);
                 break;
         } 
     }
 
-    /* TODO global check */
-    
     return 0;
 }
 
-static void test_usage (const char *msg)
+static void test_usage (const char *prog, const char *msg)
 {
-    /* TODO */
+    const char *us = 
+        "                                                                   \n"
+        "Synopsis: %s [options]                                             \n"
+        "                                                                   \n"
+        "   where \'options\' is a combination of the following:            \n"
+        "                                                                   \n"
+        "       -o <file>           Set the report output file              \n"
+        "       -f <txt|xml|html>   Choose report output format             \n"
+        "       -p <number>         Set the max number of parallel tests    \n"
+        "       -v                  Be chatty                               \n"
+        "       -s                  Serialize test cases (non sandboxed)    \n"
+        "       -h                  Print this help                         \n"
+        "                                                                   \n"
+        ;
+    
+    (void) fprintf(stderr, us, prog ? prog : "unitest");
+
     exit(1);
 }
 
 static int test_set_outfmt (test_t *t, const char *fmt)
 {
+    dbg_return_if (t == NULL, ~0);
+    dbg_return_if (fmt == NULL, ~0);
+
+    if (!strcasecmp(fmt, "txt"))
+        t->out_fmt = TEST_REPFMT_TXT;
+    else if (!strcasecmp(fmt, "xml"))
+        t->out_fmt = TEST_REPFMT_XML;
+    else if (!strcasecmp(fmt, "html"))
+        t->out_fmt = TEST_REPFMT_HTML;
+    else
+        return ~0;
+
     return 0;
 }

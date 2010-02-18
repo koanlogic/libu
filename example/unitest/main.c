@@ -78,7 +78,7 @@ err:
 int TC_1_1 (test_case_t *tc)
 {
     u_con("hello TC_1_1");
-    return TEST_SUCCESS;
+    return TEST_FAILURE;
 }
 
 int TC_1_2 (test_case_t *tc)
@@ -97,6 +97,8 @@ int TC_2_1 (test_case_t *tc)
 
 int TC_2_2 (test_case_t *tc)
 {
+    char r[1];
     u_con("hello TC_2_2");
+    //abort();
     return TEST_SUCCESS;
 }
