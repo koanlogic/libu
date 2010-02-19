@@ -15,7 +15,7 @@ int main (int argc, char *argv[])
 {
     test_t *t = NULL;
 
-    con_err_if (test_new("my test", &t));
+    con_err_if (test_new("MY_TEST", &t));
     con_err_if (test_suite_TS1_register(t));
     con_err_if (test_suite_TS2_register(t));
     con_err_if (test_run(argc, argv, t));
@@ -77,6 +77,8 @@ err:
  */
 int TC_1_1 (test_case_t *tc)
 {
+    char *x = malloc(10);
+
     u_con("hello TC_1_1");
     return TEST_SUCCESS;
 }
@@ -84,6 +86,7 @@ int TC_1_1 (test_case_t *tc)
 int TC_1_2 (test_case_t *tc)
 {
     unsigned int ts = 5;
+    char *x = malloc(1000);
 
     u_con("hello TC_1_2 (sleeping)");
 
@@ -92,12 +95,13 @@ again:
     if (ts > 0 && errno == EINTR)
         goto again;
 
-    return TEST_FAILURE;
+    return TEST_SUCCESS;
 }
 
 int TC_2_1 (test_case_t *tc)
 {
     unsigned int ts = 2;
+    char *x = malloc(1000);
 
     u_con("hello TC_2_1");
 
@@ -112,7 +116,7 @@ again:
 int TC_2_2 (test_case_t *tc)
 {
     char r[1];
+    char *x = malloc(100);
     u_con("hello TC_2_2");
-    abort();
     return TEST_SUCCESS;
 }

@@ -1,4 +1,6 @@
 #include <sys/types.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #include <sys/wait.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -57,6 +59,7 @@ struct test_case_s
     int (*func) (struct test_case_s *); /* The unit test function */
     test_obj_t o;                       /* Test case attributes */
     pid_t pid;                          /* Process Id when exec'd in subproc */
+    struct rusage stats;                /* Process resources returned by wait */
     struct test_suite_s *pts;           /* Parent test suite */
 };
 
@@ -71,9 +74,9 @@ struct test_suite_s
 /* Test report functions. */
 struct test_rep_s
 {
-    test_rep_f t_rep_cb;
-    test_suite_rep_f ts_rep_cb;
-    test_case_rep_f tc_rep_cb;
+    test_rep_f t_cb;
+    test_suite_rep_f ts_cb;
+    test_case_rep_f tc_cb;
 };
 
 /* A test. */
@@ -158,6 +161,8 @@ static int test_signals (void);
 static void test_interrupted (int signo);
 static void test_bail_out (TO *h);
 static int test_obj_ts_fmt (test_obj_t *to, char b[80], char e[80], char d[80]);
+static int test_case_rusage_fmt (test_case_t *tc, char uti[80], char sti[80]);
+static int __timeval_fmt (struct timeval *tv, char t[80]);
 
 /* Pre-cooked reporters. */
 struct test_rep_s xml_reps = {
@@ -309,7 +314,7 @@ int test_set_test_rep (test_t *t, test_rep_f func)
     dbg_return_if (t == NULL, ~0);
     dbg_return_if (func == NULL, ~0);
 
-    t->reporters.t_rep_cb = func;
+    t->reporters.t_cb = func;
 
     return 0;
 }
@@ -319,7 +324,7 @@ int test_set_test_case_rep (test_t *t, test_case_rep_f func)
     dbg_return_if (t == NULL, ~0);
     dbg_return_if (func == NULL, ~0);
 
-    t->reporters.tc_rep_cb = func;
+    t->reporters.tc_cb = func;
 
     return 0;
 }
@@ -329,7 +334,7 @@ int test_set_test_suite_rep (test_t *t, test_suite_rep_f func)
     dbg_return_if (t == NULL, ~0);
     dbg_return_if (func == NULL, ~0);
 
-    t->reporters.ts_rep_cb = func;
+    t->reporters.ts_cb = func;
 
     return 0;
 }
@@ -906,19 +911,20 @@ static int test_cases_reap (TO *h)
     int status;
     pid_t child;
     test_case_t *tc;
+    struct rusage rusage;
 
     dbg_return_if (h == NULL, ~0);
 
     while (h->nchildren > 0)
     {
-        if ((child = waitpid(-1, &status, 0)) == -1)
+        if ((child = wait3(&status, 0, &rusage)) == -1)
         {
             /* Interrupted (should be by user interaction) or no more child 
              * processes */
             if (errno == EINTR || errno == ECHILD)
                 break;
             else    /* THIS IS BAD */
-                con_err_sifm (1, "waitpid failed badly, test aborted");
+                con_err_sifm (1, "wait3 failed badly, test aborted");
         }
 
         if ((tc = test_cases_search_by_pid(h, child)) == NULL)
@@ -929,6 +935,7 @@ static int test_cases_reap (TO *h)
 
         /* Reset pid to the default. */
         tc->pid = TEST_CASE_PID_INITIALIZER;
+        tc->stats = rusage;
 
         /* Here we assume that a test case which received a SIGSTOP
          * is going to be resumed (i.e. CONT'inued) independently. */
@@ -1110,21 +1117,21 @@ static int test_reporter (test_t *t)
     else
         fp = stdout;
 
-    dbg_err_if (t->reporters.t_rep_cb(fp, t, TEST_REP_HEAD));
+    dbg_err_if (t->reporters.t_cb(fp, t, TEST_REP_HEAD));
 
     LIST_FOREACH (tso, &t->test_suites.objs, links)
     {
         ts = TS_HANDLE(tso);
 
-        dbg_err_if (t->reporters.ts_rep_cb(fp, ts, TEST_REP_HEAD));
+        dbg_err_if (t->reporters.ts_cb(fp, ts, TEST_REP_HEAD));
 
         LIST_FOREACH (tco, &ts->test_cases.objs, links)
-            dbg_err_if (t->reporters.tc_rep_cb(fp, TC_HANDLE(tco)));
+            dbg_err_if (t->reporters.tc_cb(fp, TC_HANDLE(tco)));
 
-        dbg_err_if (t->reporters.ts_rep_cb(fp, ts, TEST_REP_TAIL));
+        dbg_err_if (t->reporters.ts_cb(fp, ts, TEST_REP_TAIL));
     }
 
-    dbg_err_if (t->reporters.t_rep_cb(fp, t, TEST_REP_TAIL));
+    dbg_err_if (t->reporters.t_cb(fp, t, TEST_REP_TAIL));
 
     (void) fclose(fp);
 
@@ -1174,7 +1181,7 @@ static int test_suite_report_txt (FILE *fp, test_suite_t *ts,
 static int test_case_report_txt (FILE *fp, test_case_t *tc)
 {
     int status;
-    char d[80] = { '\0' };
+    char s[80] = { '\0' }, u[80] = { '\0' };
 
     dbg_return_if (fp == NULL, ~0);
     dbg_return_if (tc == NULL, ~0);
@@ -1185,8 +1192,9 @@ static int test_case_report_txt (FILE *fp, test_case_t *tc)
 
     if (status == TEST_SUCCESS)
     {
-        (void) test_obj_ts_fmt(&tc->o, NULL, NULL, d);
-        (void) fprintf(fp, "\t\t     elapsed: %s\n", d);
+        (void) test_case_rusage_fmt(tc, u, s);
+        (void) fprintf(fp, "\t\t    sys time: %s\n", s);
+        (void) fprintf(fp, "\t\t   user time: %s\n", u);
     }
 
     return 0;
@@ -1219,9 +1227,16 @@ static int test_suite_report_xml (FILE *fp, test_suite_t *ts,
 
     if (tag == TEST_REP_HEAD)
     {
+        status = ts->o.status;
+
         (void) fprintf(fp, "\t<test_suite id=\"%s\">\n", ts->o.id);
 
-        if ((status = ts->o.status) == TEST_SUCCESS)
+        /* Status first. */
+        (void) fprintf(fp, "\t\t<status>%s</status>\n", 
+                test_status_str(status));
+
+        /* Then timings information. */
+        if (status == TEST_SUCCESS)
         {
             char b[80], d[80], e[80];
 
@@ -1231,9 +1246,6 @@ static int test_suite_report_xml (FILE *fp, test_suite_t *ts,
             (void) fprintf(fp, "\t\t<end>%s</end>\n", d);
             (void) fprintf(fp, "\t\t<elapsed>%s</elapsed>\n", e);
         }
-
-        (void) fprintf(fp, "\t\t<status>%s</status>\n", 
-                test_status_str(status));
     }
 
     if (tag == TEST_REP_TAIL)
@@ -1249,18 +1261,21 @@ static int test_case_report_xml (FILE *fp, test_case_t *tc)
     dbg_return_if (fp == NULL, ~0);
     dbg_return_if (tc == NULL, ~0);
 
+    status = tc->o.status;
+
     (void) fprintf(fp, "\t\t<test_case id=\"%s\">\n", tc->o.id);
-
-    if ((status = tc->o.status) == TEST_SUCCESS)
-    {
-        char d[80];
-
-        (void) test_obj_ts_fmt(&tc->o, NULL, NULL, d);
-        (void) fprintf(fp, "\t\t\t<elapsed>%s</elapsed>\n", d);
-    }
 
     (void) fprintf(fp, "\t\t\t<status>%s</status>\n", 
             test_status_str(status));
+
+    if (status == TEST_SUCCESS)
+    {
+        char u[80], s[80];
+
+        (void) test_case_rusage_fmt(tc, u, s);
+        (void) fprintf(fp, "\t\t\t<sys_time>%s</sys_time>\n", s);
+        (void) fprintf(fp, "\t\t\t<user_time>%s</user_time>\n", u);
+    }
 
     (void) fprintf(fp, "\t\t</test_case>\n");
 
@@ -1384,6 +1399,39 @@ static void test_interrupted (int signo)
     g_interrupted = 1;
 }
 
+static int test_case_rusage_fmt (test_case_t *tc, char uti[80], char sti[80])
+{
+    dbg_return_if (tc == NULL, ~0);
+
+    if (uti)
+        (void) __timeval_fmt(&tc->stats.ru_utime, uti);
+
+    if (sti)
+        (void) __timeval_fmt(&tc->stats.ru_stime, sti);
+
+    /* TODO Other rusage fields depending on UNIX implementation. 
+     * By POSIX we're only guaranteed about the existence of ru_utime and 
+     * ru_stime fields. */
+
+    return 0;
+}
+
+static int __timeval_fmt (struct timeval *tv, char t[80])
+{
+    char _tv[80];
+    time_t secs;
+
+    dbg_return_if (t == NULL, ~0);
+    dbg_return_if (tv == NULL, ~0);
+
+    secs = tv->tv_sec;
+
+    dbg_if (strftime(_tv, sizeof _tv, "%M:%S", localtime(&secs)) == 0);
+    dbg_if (u_snprintf(t, 80, "%s.%06.6d", _tv, tv->tv_usec));
+
+    return 0;
+}
+
 static int test_obj_ts_fmt (test_obj_t *to, char b[80], char e[80], char d[80])
 {
     time_t elapsed;
@@ -1394,18 +1442,18 @@ static int test_obj_ts_fmt (test_obj_t *to, char b[80], char e[80], char d[80])
 
     if (b)
     {
-        dbg_if (strftime(b, sizeof b, "%a %Y-%m-%d %H:%M:%S %Z", 
+        dbg_if (strftime(b, 80, "%a %Y-%m-%d %H:%M:%S %Z", 
                     localtime(&to->start)) == 0);
     }
 
     if (e)
     {
-        dbg_if (strftime(e, sizeof e, "%a %Y-%m-%d %H:%M:%S %Z", 
+        dbg_if (strftime(e, 80, "%a %Y-%m-%d %H:%M:%S %Z", 
                     localtime(&to->stop)) == 0);
     }
 
     if (d)
-        dbg_if (strftime(d, sizeof d, "%M:%S", localtime(&elapsed)) == 0);
+        dbg_if (strftime(d, 80, "%M:%S", localtime(&elapsed)) == 0);
 
     return 0;
 }
@@ -1439,4 +1487,3 @@ static void test_bail_out (TO *h)
 
     exit(1);
 }
-
