@@ -5,14 +5,10 @@
 #include <u/libu.h>
 #include "test.h"
 
-static _Bool g_verbose = false;   /* If true, be chatty */
-#define CHAT(...)   do { if (g_verbose) printf(__VA_ARGS__); } while (0)
-
-typedef enum {
-    TEST_REPFMT_TXT,
-    TEST_REPFMT_XML,
-    TEST_REPFMT_HTML
-} test_out_fmt_t;
+static char g_debug = 0;
+static char g_verbose = 0;   /* If true, be chatty */
+#define CHAT(...)   \
+    do { if (g_verbose) { printf("[CHAT] "); printf(__VA_ARGS__); } } while (0)
 
 /* Generic test objects list header. */
 typedef struct 
@@ -41,7 +37,7 @@ struct test_obj_s
 {
     test_what_t what;               /* Kind of test object (suite or case) */
     TO *parent;                     /* Head of the list we're attached to */
-    _Bool sequenced;                /* True if sequenced */
+    char sequenced;                 /* True if sequenced */
     unsigned int rank;              /* Scheduling rank: low has higher prio */
     char id[TEST_ID_MAX];           /* Test object identifier: MUST be unique */
     int status;                     /* Test exit code: TEST_{SUCCESS,FAILURE} */
@@ -69,6 +65,14 @@ struct test_suite_s
     struct test_s *pt;  /* Parent test */
 };
 
+/* Test report functions. */
+struct test_rep_s
+{
+    test_rep_f t_rep_cb;
+    test_suite_rep_f ts_rep_cb;
+    test_case_rep_f tc_rep_cb;
+};
+
 /* A test. */
 struct test_s
 {
@@ -77,14 +81,11 @@ struct test_s
     TO test_suites;             /* Head of TSs list */
     char outfn[4096];           /* Output file name */
     time_t start, stop;         /* Test begin/end timestamps */
-    _Bool sandboxed;            /* True if TC's exec'd in subproc */
+    char sandboxed;             /* True if TC's exec'd in subproc */
     unsigned int max_parallel;  /* max # of test cases executed in parallel */
-    test_out_fmt_t out_fmt;     /* Report output format */
 
     /* Test report hook functions */
-    test_rep_f t_rep_cb;
-    test_suite_rep_f ts_rep_cb;
-    test_case_rep_f tc_rep_cb;
+    struct test_rep_s rep_foos;
 };
 
 /* Get test suite handle by its '.o(bject)' field. */
@@ -95,9 +96,7 @@ struct test_s
 #define TC_HANDLE(optr) \
     (test_case_t *) ((char *) optr - offsetof(test_case_t, o))
 
-
 /* Test objects routines. */
-static int test_obj_add (test_obj_t *to, TO *parent);
 static int test_obj_dep_add (test_dep_t *td, test_obj_t *to);
 static int test_obj_depends_on (const char *id, const char *depid, TO *parent);
 static int test_obj_evict_id (TO *h, const char *id);
@@ -112,8 +111,8 @@ static void test_obj_print (char nindent, test_obj_t *to);
 /* Test dependencies routines. */
 static int test_dep_new (const char *id, test_dep_t **ptd);
 static test_dep_t *test_dep_search (TD *h, const char *id);
-static _Bool test_dep_dry (TD *h);
-static _Bool test_dep_failed (TD *h);
+static char test_dep_dry (TD *h);
+static char test_dep_failed (TD *h);
 static void test_dep_free (test_dep_t *td);
 static void test_dep_print (char nindent, test_dep_t *td);
 
@@ -122,6 +121,7 @@ static void test_case_print (test_case_t *tc);
 static int test_case_dep_add (test_dep_t *td, test_case_t *tc);
 static int test_case_scheduler (test_obj_t *to);
 static int test_case_report_txt (FILE *fp, test_case_t *tc);
+static int test_case_report_xml (FILE *fp, test_case_t *tc);
 static int test_case_exec (test_case_t *tc);
 
 /* Test cases routines. */
@@ -134,6 +134,8 @@ static void test_suite_print (test_suite_t *ts);
 static int test_suite_dep_add (test_dep_t *td, test_suite_t *ts);
 static int test_suite_report_txt (FILE *fp, test_suite_t *ts, 
         test_rep_tag_t tag);
+static int test_suite_report_xml (FILE *fp, test_suite_t *ts, 
+        test_rep_tag_t tag);
 static int test_suite_update_all_status (test_suite_t *ts, int status);
 
 /* Test routines. */
@@ -144,17 +146,37 @@ static int test_getopt (int ac, char *av[], test_t *t);
 static void test_usage (const char *prog, const char *msg);
 static int test_set_outfmt (test_t *t, const char *fmt);
 static int test_reporter (test_t *t);
-static int test_rep_txt (FILE *fp, test_t *t, test_rep_tag_t tag);
+static int test_report_txt (FILE *fp, test_t *t, test_rep_tag_t tag);
+static int test_report_xml (FILE *fp, test_t *t, test_rep_tag_t tag);
 
 /* Misc routines. */
 static const char *test_status_str (int status);
+static int test_signals (void);
+static int test_obj_ts_fmt (test_obj_t *to, char b[80], char e[80], char d[80]);
+
+/* Pre-cooked reporters. */
+struct test_rep_s xml_rep = {
+    test_report_xml,
+    test_suite_report_xml,
+    test_case_report_xml
+};
+
+struct test_rep_s txt_rep = {
+    test_report_txt,
+    test_suite_report_txt,
+    test_case_report_txt
+};
 
 int test_run (int ac, char *av[], test_t *t)
 {
-    //test_print(t);
-
+    con_err_if (test_signals());
     con_err_if (test_getopt(ac, av, t));
     con_err_if (test_sequencer(t));
+
+    /* Take a look at dependencies after sequencing. */
+    if (g_debug)
+        test_print(t);  
+
     con_err_if (test_scheduler(t));
     con_err_if (test_reporter(t));
 
@@ -282,7 +304,7 @@ int test_set_test_rep (test_t *t, test_rep_f func)
     dbg_return_if (t == NULL, ~0);
     dbg_return_if (func == NULL, ~0);
 
-    t->t_rep_cb = func;
+    t->rep_foos.t_rep_cb = func;
 
     return 0;
 }
@@ -292,7 +314,7 @@ int test_set_test_case_rep (test_t *t, test_case_rep_f func)
     dbg_return_if (t == NULL, ~0);
     dbg_return_if (func == NULL, ~0);
 
-    t->tc_rep_cb = func;
+    t->rep_foos.tc_rep_cb = func;
 
     return 0;
 }
@@ -302,7 +324,7 @@ int test_set_test_suite_rep (test_t *t, test_suite_rep_f func)
     dbg_return_if (t == NULL, ~0);
     dbg_return_if (func == NULL, ~0);
 
-    t->ts_rep_cb = func;
+    t->rep_foos.ts_rep_cb = func;
 
     return 0;
 }
@@ -331,14 +353,12 @@ int test_new (const char *id, test_t **pt)
     t->currank = 0;
     t->start = t->stop = -1;
     (void) u_strlcpy(t->outfn, TEST_OUTFN_DFL, sizeof t->outfn);
-    t->sandboxed = true;    /* the default is to spawn sub-processes to 
-                               execute test cases */
+    t->sandboxed = 1;   /* the default is to spawn sub-processes to 
+                           execute test cases */
     t->max_parallel = TEST_MAX_PARALLEL;
 
     /* Set default report routines (may be overwritten). */
-    t->t_rep_cb = test_rep_txt;
-    t->ts_rep_cb = test_suite_report_txt;
-    t->tc_rep_cb = test_case_report_txt;
+    t->rep_foos = txt_rep;
 
     *pt = t;
 
@@ -532,17 +552,6 @@ static test_obj_t *test_obj_search (TO *h, const char *id)
     return NULL;
 }
 
-static int test_obj_add (test_obj_t *to, TO *parent)
-{
-    dbg_return_if (to == NULL, ~0);
-    dbg_return_if (parent == NULL, ~0);
-
-    LIST_INSERT_HEAD(&parent->objs, to, links);
-    to->parent = parent;
-
-    return 0;
-}
-
 static int test_suite_dep_add (test_dep_t *td, test_suite_t *ts)
 {
     return test_obj_dep_add(td, &ts->o);
@@ -557,37 +566,8 @@ static int test_case_dep_add (test_dep_t *td, test_case_t *tc)
  * has been added. */
 static int test_obj_dep_add (test_dep_t *td, test_obj_t *to)
 {
-#if IMPLICIT_OBJ
-    test_obj_t *nto = NULL;
-    test_case_t *tc = NULL;
-    test_suite_t *ts = NULL;
-#endif
-    
     dbg_return_if (to == NULL, ~0);
     dbg_return_if (td == NULL, ~0);
-
-#if IMPLICIT_OBJ
-    /* See if we have already added this test case/suite. 
-     * In case it were not found, create it implicitly and stick it to the 
-     * test cases/suites (depending on 'what') list. */
-    if (test_obj_search(to->parent, to->id) == NULL)
-    {
-        switch (to->what) 
-        {
-            case TEST_CASE_T:
-                dbg_err_sif (test_case_new(td->id, &tc));
-                nto = &tc->o;
-                break;
-            case TEST_SUITE_T:
-                dbg_err_sif (test_suite_new(td->id, &ts));
-                nto = &ts->o;
-                break;
-        }
-
-        dbg_err_if (test_obj_add(nto, to->parent));
-        ts = NULL, tc = NULL;   /* ownership lost */
-    }
-#endif
 
     /* See if the dependency isn't already recorded, in which case
      * insert it into the dependency list for this test case/suite. */
@@ -599,14 +579,6 @@ static int test_obj_dep_add (test_dep_t *td, test_obj_t *to)
         u_free(td);
 
     return 0;
-#if IMPLICIT_OBJ
-err:
-    if (ts)
-        test_suite_free(ts);
-    if (tc)
-        test_case_free(tc);
-    return ~0;
-#endif
 }
 
 static void test_obj_free (test_obj_t *to)
@@ -622,36 +594,36 @@ static void test_obj_free (test_obj_t *to)
     return;
 }
 
-static _Bool test_dep_dry (TD *h)
+static char test_dep_dry (TD *h)
 {
     test_dep_t *td;
 
-    dbg_return_if (h == NULL, true);
+    dbg_return_if (h == NULL, 1);
 
     LIST_FOREACH (td, h, links)
     {
         /* Search for any non-resolved dependency. */
         if (td->upref == NULL)
-            return false;
+            return 0;
     }
 
     /* We get here also when the dependency list is empty. */
-    return true;
+    return 1;
 }
 
-static _Bool test_dep_failed (TD *h)
+static char test_dep_failed (TD *h)
 {
     test_dep_t *td;
 
-    dbg_return_if (h == NULL, false);
+    dbg_return_if (h == NULL, 0);
 
     LIST_FOREACH (td, h, links)
     {
         if (td->upref && td->upref->status != TEST_SUCCESS)
-            return true;
+            return 1;
     }
 
-    return false;
+    return 0;
 }
 
 static test_obj_t *test_obj_pick_top (TO *h)
@@ -661,7 +633,7 @@ static test_obj_t *test_obj_pick_top (TO *h)
 
     LIST_FOREACH (to, &h->objs, links)
     {
-        if (to->sequenced == false && test_dep_dry(&to->deps) == true)
+        if (!to->sequenced && test_dep_dry(&to->deps))
         {
             /* Record the reached depth: it will be used by the
              * next evicted element. */
@@ -703,7 +675,7 @@ static int test_obj_sequencer (TO *h)
      * still have any non-sequenced test case/suite. */
     LIST_FOREACH (to, &h->objs, links)
     {
-        dbg_err_ifm (to->sequenced == false, 
+        dbg_err_ifm (!to->sequenced, 
                 "%s not sequenced: dependency loop !", to->id);
     }
 
@@ -749,7 +721,7 @@ static int test_obj_evict_id (TO *h, const char *id)
         /* Eviction consists in asserting the '.sequenced' attribute of
          * the chosen test object. */
         if (!strcmp(to->id, id))
-            to->sequenced = true;
+            to->sequenced = 1;
     }
 
     return 0;
@@ -770,7 +742,7 @@ static int test_obj_init (const char *id, test_what_t what, test_obj_t *to)
     LIST_INIT(&to->deps);
     to->what = what;
     to->parent = NULL;
-    to->sequenced = false;
+    to->sequenced = 0;
     to->rank = 0;
     to->status = TEST_SUCCESS;
     to->start = to->stop = -1;
@@ -807,7 +779,7 @@ err:
 
 static int test_obj_scheduler (TO *h, int (*sched)(test_obj_t *))
 {
-    _Bool simple_sched = false;
+    char simple_sched = 0;
     unsigned int r, parallel = 0;
     test_obj_t *to, *fto, *tptr;
     test_case_t *ftc;
@@ -827,27 +799,23 @@ static int test_obj_scheduler (TO *h, int (*sched)(test_obj_t *))
 
     /* See which kind of scheduler we need to use. */
     if (fto->what == TEST_SUITE_T)
-        simple_sched = true;
+        simple_sched = 1;
     else
-    {
-        simple_sched = 
-            (ftc = TC_HANDLE(fto), ftc->pts->pt->sandboxed == true) ? 
-                false : true;
-    }
+        simple_sched = (ftc = TC_HANDLE(fto), ftc->pts->pt->sandboxed) ? 0 : 1;
 
     /* Go through all the test objs and select those at the current scheduling 
      * rank: first lower rank TO's (i.e. highest priority). */
     for (r = 0; r <= h->currank; ++r)
     {
         /* TS's and non-sandboxed TC's are simply scheduled one-by-one. */
-        if (simple_sched == true)
+        if (simple_sched)
         {
             LIST_FOREACH (to, &h->objs, links)
             {
                 if (to->rank == r)
                 {
                     /* Check for any dependency failure. */
-                    if (test_dep_failed(&to->deps) == true)
+                    if (test_dep_failed(&to->deps))
                     {
                         CHAT("Skip %s due to dependency failure\n", to->id);
 
@@ -885,7 +853,7 @@ static int test_obj_scheduler (TO *h, int (*sched)(test_obj_t *))
                 if (to->rank == r)
                 {
                     /* Avoid scheduling a TO that has failed dependencies. */
-                    if (test_dep_failed(&to->deps) == true)
+                    if (test_dep_failed(&to->deps))
                     {
                         CHAT("Skip %s due to dependency failure\n", to->id);
                         to->status = TEST_SKIPPED; 
@@ -1076,7 +1044,7 @@ static int test_case_exec (test_case_t *tc)
     /* Record test case begin timestamp. */
     tc->o.start = time(NULL);
 
-    if (tc->pts->pt->sandboxed == false)
+    if (!tc->pts->pt->sandboxed)
     {
         dbg_if ((rc = tc->func(tc)) != TEST_SUCCESS && rc != TEST_FAILURE);
 
@@ -1114,35 +1082,32 @@ static int test_reporter (test_t *t)
     FILE *fp;
     test_obj_t *tso, *tco;
     test_suite_t *ts;
-    test_rep_f t_rep;
-    test_case_rep_f tc_rep;
-    test_suite_rep_f ts_rep;
 
     dbg_return_if (t == NULL, ~0);
 
-    /* The three following tests are rather paranoid because the
-     * setters explicitly check that the supplied function is != NULL. */
-    dbg_return_if ((t_rep = t->t_rep_cb) == NULL, ~0);
-    dbg_return_if ((ts_rep = t->ts_rep_cb) == NULL, ~0);
-    dbg_return_if ((tc_rep = t->tc_rep_cb) == NULL, ~0);
+    /* Assume that each report function is set correctly (we trust the
+     * setters having done a good job). */
 
-    dbg_err_sif ((fp = fopen(t->outfn, "w")) == NULL);
+    if (strcmp(t->outfn, "-"))
+        dbg_err_sif ((fp = fopen(t->outfn, "w")) == NULL);
+    else
+        fp = stdout;
 
-    dbg_err_if (t_rep(fp, t, TEST_REP_HEAD));
+    dbg_err_if (t->rep_foos.t_rep_cb(fp, t, TEST_REP_HEAD));
 
     LIST_FOREACH (tso, &t->test_suites.objs, links)
     {
         ts = TS_HANDLE(tso);
 
-        dbg_err_if (ts_rep(fp, ts, TEST_REP_HEAD));
+        dbg_err_if (t->rep_foos.ts_rep_cb(fp, ts, TEST_REP_HEAD));
 
         LIST_FOREACH (tco, &ts->test_cases.objs, links)
-            dbg_err_if (tc_rep(fp, TC_HANDLE(tco)));
+            dbg_err_if (t->rep_foos.tc_rep_cb(fp, TC_HANDLE(tco)));
 
-        dbg_err_if (ts_rep(fp, ts, TEST_REP_TAIL));
+        dbg_err_if (t->rep_foos.ts_rep_cb(fp, ts, TEST_REP_TAIL));
     }
 
-    dbg_err_if (t_rep(fp, t, TEST_REP_TAIL));
+    dbg_err_if (t->rep_foos.t_rep_cb(fp, t, TEST_REP_TAIL));
 
     (void) fclose(fp);
 
@@ -1151,7 +1116,7 @@ err:
     return ~0;
 }
 
-static int test_rep_txt (FILE *fp, test_t *t, test_rep_tag_t tag)
+static int test_report_txt (FILE *fp, test_t *t, test_rep_tag_t tag)
 {
     if (tag == TEST_REP_TAIL)
         return 0;
@@ -1164,27 +1129,123 @@ static int test_rep_txt (FILE *fp, test_t *t, test_rep_tag_t tag)
 static int test_suite_report_txt (FILE *fp, test_suite_t *ts, 
         test_rep_tag_t tag)
 {
-    time_t elapsed;
-    char b[80], e[80], d[80];
+    int status;
+    char b[80] = { '\0' }, e[80] = { '\0' }, d[80] = { '\0' };
+
+    dbg_return_if (fp == NULL, ~0);
+    dbg_return_if (ts == NULL, ~0);
 
     if (tag == TEST_REP_TAIL)
         return 0;
 
-    elapsed = ts->o.stop - ts->o.start;
+    status = ts->o.status;
 
-    (void) strftime(b, sizeof b, "%a %Y-%m-%d %H:%M:%S %Z", 
-            localtime(&ts->o.start));
+    (void) fprintf(fp, "\t* [%s] %s\n", test_status_str(status), ts->o.id);
 
-    (void) strftime(e, sizeof e, "%a %Y-%m-%d %H:%M:%S %Z", 
-            localtime(&ts->o.stop));
+    /* Timing info is relevant only in case test succeeded. */ 
+    if (status == TEST_SUCCESS)
+    {
+        (void) test_obj_ts_fmt(&ts->o, b, e, d);
+        (void) fprintf(fp, "\t       begin: %s\n", b);
+        (void) fprintf(fp, "\t         end: %s\n", e);
+        (void) fprintf(fp, "\t     elapsed: %s\n", d);
+    }
 
-    (void) strftime(d, sizeof d, "%M:%S", localtime(&elapsed));
+    return 0;
+}
 
-    (void) fprintf(fp, "\t* [%s] %s\n",
-            test_status_str(ts->o.status), ts->o.id);
-    (void) fprintf(fp, "\t       begin: %s\n", b);
-    (void) fprintf(fp, "\t         end: %s\n", e);
-    (void) fprintf(fp, "\t     elapsed: %s\n", d);
+static int test_case_report_txt (FILE *fp, test_case_t *tc)
+{
+    int status;
+    char d[80] = { '\0' };
+
+    dbg_return_if (fp == NULL, ~0);
+    dbg_return_if (tc == NULL, ~0);
+
+    status = tc->o.status;
+
+    (void) fprintf(fp, "\t\t* [%s] %s\n", test_status_str(status), tc->o.id);
+
+    if (status == TEST_SUCCESS)
+    {
+        (void) test_obj_ts_fmt(&tc->o, NULL, NULL, d);
+        (void) fprintf(fp, "\t\t     elapsed: %s\n", d);
+    }
+
+    return 0;
+}
+
+static int test_report_xml (FILE *fp, test_t *t, test_rep_tag_t tag)
+{
+    dbg_return_if (t == NULL, ~0);
+    dbg_return_if (fp == NULL, ~0);
+
+    if (tag == TEST_REP_HEAD)
+    {
+        (void) fprintf(fp, "<?xml version=\"1.0\"?>\n");
+        (void) fprintf(fp, "<test id=\"%s\">\n", t->id);
+    }
+
+    if (tag == TEST_REP_TAIL)
+        (void) fprintf(fp, "</test>\n");
+
+    return 0;
+}
+
+static int test_suite_report_xml (FILE *fp, test_suite_t *ts, 
+        test_rep_tag_t tag)
+{
+    int status;
+
+    dbg_return_if (fp == NULL, ~0);
+    dbg_return_if (ts == NULL, ~0);
+
+    if (tag == TEST_REP_HEAD)
+    {
+        (void) fprintf(fp, "\t<test_suite id=\"%s\">\n", ts->o.id);
+
+        if ((status = ts->o.status) == TEST_SUCCESS)
+        {
+            char b[80], d[80], e[80];
+
+            (void) test_obj_ts_fmt(&ts->o, b, e, d);
+
+            (void) fprintf(fp, "\t\t<begin>%s</begin>\n", b);
+            (void) fprintf(fp, "\t\t<end>%s</end>\n", d);
+            (void) fprintf(fp, "\t\t<elapsed>%s</elapsed>\n", e);
+        }
+
+        (void) fprintf(fp, "\t\t<status>%s</status>\n", 
+                test_status_str(status));
+    }
+
+    if (tag == TEST_REP_TAIL)
+        (void) fprintf(fp, "\t</test_suite>\n");
+
+    return 0;
+}
+
+static int test_case_report_xml (FILE *fp, test_case_t *tc)
+{
+    int status;
+
+    dbg_return_if (fp == NULL, ~0);
+    dbg_return_if (tc == NULL, ~0);
+
+    (void) fprintf(fp, "\t\t<test_case id=\"%s\">\n", tc->o.id);
+
+    if ((status = tc->o.status) == TEST_SUCCESS)
+    {
+        char d[80];
+
+        (void) test_obj_ts_fmt(&tc->o, NULL, NULL, d);
+        (void) fprintf(fp, "\t\t\t<elapsed>%s</elapsed>\n", d);
+    }
+
+    (void) fprintf(fp, "\t\t\t<status>%s</status>\n", 
+            test_status_str(status));
+
+    (void) fprintf(fp, "\t\t</test_case>\n");
 
     return 0;
 }
@@ -1202,28 +1263,13 @@ static const char *test_status_str (int status)
     return "?";
 }
 
-static int test_case_report_txt (FILE *fp, test_case_t *tc)
-{
-    char d[80];
-    time_t elapsed;
-
-    elapsed = tc->o.stop - tc->o.start;
-    (void) strftime(d, sizeof d, "%M:%S", localtime(&elapsed));
-
-    (void) fprintf(fp, "\t\t* [%s] %s\n",
-            test_status_str(tc->o.status), tc->o.id);
-    (void) fprintf(fp, "\t\t     elapsed: %s\n", d);
-
-    return 0;
-}
-
 static int test_getopt (int ac, char *av[], test_t *t)
 {
     int c, mp;
 
     dbg_return_if (t == NULL, ~0);
 
-    while ((c = getopt(ac, av, "o:f:p:vsh")) != -1)
+    while ((c = getopt(ac, av, "df:ho:p:sv")) != -1)
     {
         switch (c)
         {
@@ -1240,10 +1286,13 @@ static int test_getopt (int ac, char *av[], test_t *t)
                 t->max_parallel = (unsigned int) mp;
                 break;
             case 'v':   /* Increment verbosity. */
-                g_verbose = true;
+                g_verbose = 1;
+                break;
+            case 'd':   /* Print out some internal info. */
+                g_debug = 1;
                 break;
             case 's':   /* Serialized (i.e. !sandboxed) test cases. */
-                t->sandboxed = false;
+                t->sandboxed = 0;
                 break;
             case 'h': default:
                 test_usage(av[0], NULL);
@@ -1263,14 +1312,18 @@ static void test_usage (const char *prog, const char *msg)
         "   where \'options\' is a combination of the following:            \n"
         "                                                                   \n"
         "       -o <file>           Set the report output file              \n"
-        "       -f <txt|xml|html>   Choose report output format             \n"
+        "       -f <txt|xml>        Choose report output format             \n"
         "       -p <number>         Set the max number of parallel tests    \n"
         "       -v                  Be chatty                               \n"
         "       -s                  Serialize test cases (non sandboxed)    \n"
+        "       -d                  Debug mode                              \n"
         "       -h                  Print this help                         \n"
         "                                                                   \n"
         ;
     
+    if (msg)
+        (void) fprintf(stderr, "\nError: %s\n", msg);
+
     (void) fprintf(stderr, us, prog ? prog : "unitest");
 
     exit(1);
@@ -1282,13 +1335,43 @@ static int test_set_outfmt (test_t *t, const char *fmt)
     dbg_return_if (fmt == NULL, ~0);
 
     if (!strcasecmp(fmt, "txt"))
-        t->out_fmt = TEST_REPFMT_TXT;
+        t->rep_foos = txt_rep;
     else if (!strcasecmp(fmt, "xml"))
-        t->out_fmt = TEST_REPFMT_XML;
-    else if (!strcasecmp(fmt, "html"))
-        t->out_fmt = TEST_REPFMT_HTML;
+        t->rep_foos = xml_rep;
     else
         return ~0;
+
+    return 0;
+}
+
+static int test_signals (void)
+{
+    /* TODO */
+    return 0;
+}
+
+static int test_obj_ts_fmt (test_obj_t *to, char b[80], char e[80], char d[80])
+{
+    time_t elapsed;
+   
+    dbg_return_if (to == NULL, ~0);
+
+    elapsed = to->stop - to->start;
+
+    if (b)
+    {
+        dbg_if (strftime(b, sizeof b, "%a %Y-%m-%d %H:%M:%S %Z", 
+                    localtime(&to->start)) == 0);
+    }
+
+    if (e)
+    {
+        dbg_if (strftime(e, sizeof e, "%a %Y-%m-%d %H:%M:%S %Z", 
+                    localtime(&to->stop)) == 0);
+    }
+
+    if (d)
+        dbg_if (strftime(d, sizeof d, "%M:%S", localtime(&elapsed)) == 0);
 
     return 0;
 }
