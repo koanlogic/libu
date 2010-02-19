@@ -5,7 +5,7 @@
 #include <u/libu.h>
 #include "test.h"
 
-static _Bool g_verbose;   /* If true, be chatty */
+static _Bool g_verbose = false;   /* If true, be chatty */
 #define CHAT(...)   do { if (g_verbose) printf(__VA_ARGS__); } while (0)
 
 typedef enum {
@@ -29,6 +29,7 @@ struct test_dep_s
 {
     char id[TEST_ID_MAX];           /* Tag of the declared dependency */
     LIST_ENTRY(test_dep_s) links;   /* Sibling deps */
+    struct test_obj_s *upref;       /* Reference to the resolved dependency */
 };
 
 typedef struct test_dep_s test_dep_t;
@@ -38,10 +39,10 @@ typedef struct test_dep_s test_dep_t;
  * on '.what' attribute value) is accessed via the T[SC]_HANDLE() macro. */
 struct test_obj_s
 {
-    test_what_t what;               /* Test suite/case */
+    test_what_t what;               /* Kind of test object (suite or case) */
     TO *parent;                     /* Head of the list we're attached to */
     _Bool sequenced;                /* True if sequenced */
-    unsigned int rank;              /* Scheduling rank: low have higher prio */
+    unsigned int rank;              /* Scheduling rank: low has higher prio */
     char id[TEST_ID_MAX];           /* Test object identifier: MUST be unique */
     int status;                     /* Test exit code: TEST_{SUCCESS,FAILURE} */
     time_t start, stop;             /* Test case/suite begin/end timestamps */
@@ -111,6 +112,8 @@ static void test_obj_print (char nindent, test_obj_t *to);
 /* Test dependencies routines. */
 static int test_dep_new (const char *id, test_dep_t **ptd);
 static test_dep_t *test_dep_search (TD *h, const char *id);
+static _Bool test_dep_dry (TD *h);
+static _Bool test_dep_failed (TD *h);
 static void test_dep_free (test_dep_t *td);
 static void test_dep_print (char nindent, test_dep_t *td);
 
@@ -131,6 +134,7 @@ static void test_suite_print (test_suite_t *ts);
 static int test_suite_dep_add (test_dep_t *td, test_suite_t *ts);
 static int test_suite_report_txt (FILE *fp, test_suite_t *ts, 
         test_rep_tag_t tag);
+static int test_suite_update_all_status (test_suite_t *ts, int status);
 
 /* Test routines. */
 static int test_sequencer (test_t *t);
@@ -330,7 +334,6 @@ int test_new (const char *id, test_t **pt)
     t->sandboxed = true;    /* the default is to spawn sub-processes to 
                                execute test cases */
     t->max_parallel = TEST_MAX_PARALLEL;
-    g_verbose = false;
 
     /* Set default report routines (may be overwritten). */
     t->t_rep_cb = test_rep_txt;
@@ -479,6 +482,7 @@ static int test_dep_new (const char *id, test_dep_t **ptd)
 
     dbg_err_sif ((td = u_malloc(sizeof *td)) == NULL);
     dbg_err_if (u_strlcpy(td->id, id, sizeof td->id));
+    td->upref = NULL;   /* When non-NULL it is assumed as resolved. */
 
     *ptd = td;
 
@@ -585,7 +589,7 @@ static int test_obj_dep_add (test_dep_t *td, test_obj_t *to)
     }
 #endif
 
-    /* See if the dependency is not already been recorded, in which case
+    /* See if the dependency isn't already recorded, in which case
      * insert it into the dependency list for this test case/suite. */
     if (test_dep_search(&to->deps, to->id) == NULL)
     {
@@ -610,11 +614,44 @@ static void test_obj_free (test_obj_t *to)
     test_dep_t *td, *ntd;
 
     /* Just free the attached deps list: expect 'to' being a pointer to a
-     * test object in a bigger malloc'd chunk (suite or case). */
+     * test object in a bigger malloc'd chunk (suite or case) which will be
+     * later free'd by its legitimate owner. */
     LIST_FOREACH_SAFE (td, &to->deps, links, ntd)
-        test_dep_free(td); 
+        test_dep_free(td);
 
     return;
+}
+
+static _Bool test_dep_dry (TD *h)
+{
+    test_dep_t *td;
+
+    dbg_return_if (h == NULL, true);
+
+    LIST_FOREACH (td, h, links)
+    {
+        /* Search for any non-resolved dependency. */
+        if (td->upref == NULL)
+            return false;
+    }
+
+    /* We get here also when the dependency list is empty. */
+    return true;
+}
+
+static _Bool test_dep_failed (TD *h)
+{
+    test_dep_t *td;
+
+    dbg_return_if (h == NULL, false);
+
+    LIST_FOREACH (td, h, links)
+    {
+        if (td->upref && td->upref->status != TEST_SUCCESS)
+            return true;
+    }
+
+    return false;
 }
 
 static test_obj_t *test_obj_pick_top (TO *h)
@@ -624,7 +661,7 @@ static test_obj_t *test_obj_pick_top (TO *h)
 
     LIST_FOREACH (to, &h->objs, links)
     {
-        if (to->sequenced == false && LIST_EMPTY(&to->deps))
+        if (to->sequenced == false && test_dep_dry(&to->deps) == true)
         {
             /* Record the reached depth: it will be used by the
              * next evicted element. */
@@ -703,8 +740,8 @@ static int test_obj_evict_id (TO *h, const char *id)
                 /* Set the rank of the evicted object to the actual
                  * depth +1 in the sequencing array */
                 to->rank = to->parent->currank + 1;
-                LIST_REMOVE(td, links); 
-                test_dep_free(td);
+                /* Link the dependency to its resolved test object. */
+                td->upref = test_obj_search(to->parent, id);
                 break;
             }
         }
@@ -792,8 +829,11 @@ static int test_obj_scheduler (TO *h, int (*sched)(test_obj_t *))
     if (fto->what == TEST_SUITE_T)
         simple_sched = true;
     else
-        simple_sched = (ftc = TC_HANDLE(fto), ftc->pts->pt->sandboxed == true)
-            ? false : true;
+    {
+        simple_sched = 
+            (ftc = TC_HANDLE(fto), ftc->pts->pt->sandboxed == true) ? 
+                false : true;
+    }
 
     /* Go through all the test objs and select those at the current scheduling 
      * rank: first lower rank TO's (i.e. highest priority). */
@@ -805,7 +845,26 @@ static int test_obj_scheduler (TO *h, int (*sched)(test_obj_t *))
             LIST_FOREACH (to, &h->objs, links)
             {
                 if (to->rank == r)
+                {
+                    /* Check for any dependency failure. */
+                    if (test_dep_failed(&to->deps) == true)
+                    {
+                        CHAT("Skip %s due to dependency failure\n", to->id);
+
+                        to->status = TEST_SKIPPED; 
+
+                        /* Update test cases status. */
+                        if (to->what == TEST_SUITE_T)
+                        {
+                            (void) test_suite_update_all_status(TS_HANDLE(to), 
+                                    TEST_SKIPPED);
+                        }
+
+                        continue;
+                    }
+
                     (void) sched(to);
+                }
             }
         }
         else    
@@ -825,7 +884,16 @@ static int test_obj_scheduler (TO *h, int (*sched)(test_obj_t *))
             {
                 if (to->rank == r)
                 {
-                    /* Schedule a TC at the current rank. */
+                    /* Avoid scheduling a TO that has failed dependencies. */
+                    if (test_dep_failed(&to->deps) == true)
+                    {
+                        CHAT("Skip %s due to dependency failure\n", to->id);
+                        to->status = TEST_SKIPPED; 
+                        continue;
+                    }
+
+                    /* If no dependency failed, we can schedule the TC at the 
+                     * current rank. */
                     dbg_if (sched(to));
             
                     /* See if we reached this chunk's upper bound. */
@@ -962,7 +1030,8 @@ static int test_suite_scheduler (test_obj_t *to)
     /* Update stats for reporting. */
     LIST_FOREACH (tco, &ts->test_cases.objs, links)
     {
-        /* If any of our test cases failed, set the overall status to FAILURE */
+        /* If any of our test cases failed, set the overall status 
+         * to FAILURE */
         if (tco->status != TEST_SUCCESS)
         {
             ts->o.status = TEST_FAILURE;
@@ -971,6 +1040,18 @@ static int test_suite_scheduler (test_obj_t *to)
     }
 
     return rc;
+}
+
+static int test_suite_update_all_status (test_suite_t *ts, int status)
+{
+    test_obj_t *to;
+
+    dbg_return_if (ts == NULL, ~0);
+
+    LIST_FOREACH (to, &ts->test_cases.objs, links)
+        to->status = status;
+
+    return 0;
 }
 
 static int test_case_scheduler (test_obj_t *to)
@@ -999,7 +1080,7 @@ static int test_case_exec (test_case_t *tc)
     {
         dbg_if ((rc = tc->func(tc)) != TEST_SUCCESS && rc != TEST_FAILURE);
 
-        /* update test case stats */
+        /* Update test case stats. */
         tc->o.status = rc;
         tc->o.stop = time(NULL);
 
@@ -1112,15 +1193,13 @@ static const char *test_status_str (int status)
 {
     switch (status)
     {
-        case TEST_SUCCESS:
-            return "PASS";
-        case TEST_FAILURE:
-            return "FAIL";
-        case TEST_ABORTED:
-            return "ABRT";
-        default:
-            return "?";
+        case TEST_SUCCESS:  return "PASS";
+        case TEST_FAILURE:  return "FAIL";
+        case TEST_ABORTED:  return "ABRT";
+        case TEST_SKIPPED:  return "SKIP";
     }
+
+    return "?";
 }
 
 static int test_case_report_txt (FILE *fp, test_case_t *tc)

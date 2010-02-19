@@ -15,7 +15,12 @@ struct test_s;
 typedef struct test_s test_t;
 
 /* Exit status of unit tests. */
-enum { TEST_SUCCESS = 0, TEST_FAILURE = 1, TEST_ABORTED = 2 };
+enum { 
+    TEST_SUCCESS = 0,   /* All test assertions got right */
+    TEST_FAILURE = 1,   /* Any test assertion has failed */
+    TEST_ABORTED = 2,   /* Any non-regular execution condition (e.g. SIGSEGV) */
+    TEST_SKIPPED = 3    /* A previous dependency failure prevents execution */
+};
 
 typedef enum { TEST_CASE_T, TEST_SUITE_T } test_what_t;
 typedef enum { TEST_REP_HEAD, TEST_REP_TAIL } test_rep_tag_t;

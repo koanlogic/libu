@@ -62,7 +62,7 @@ int test_suite_TS2_register (test_t *t)
     con_err_if (test_suite_new("TS 2", &ts));
     con_err_if (test_case_register("TC 2.1", TC_2_1, ts));
     con_err_if (test_case_register("TC 2.2", TC_2_2, ts));
-    con_err_if (test_suite_dep_register("TS 1", ts));   
+    con_err_if (test_suite_dep_register("TS 1", ts));
 
     return test_suite_add(ts, t);
 err:
@@ -78,14 +78,14 @@ err:
 int TC_1_1 (test_case_t *tc)
 {
     u_con("hello TC_1_1");
-    return TEST_FAILURE;
+    return TEST_SUCCESS;
 }
 
 int TC_1_2 (test_case_t *tc)
 {
     u_con("hello TC_1_2 (sleeping)");
     sleep(5);
-    return TEST_SUCCESS;
+    return TEST_FAILURE;
 }
 
 int TC_2_1 (test_case_t *tc)
@@ -99,6 +99,6 @@ int TC_2_2 (test_case_t *tc)
 {
     char r[1];
     u_con("hello TC_2_2");
-    //abort();
+    abort();
     return TEST_SUCCESS;
 }
