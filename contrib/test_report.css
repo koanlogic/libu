@@ -1,0 +1,36 @@
+body
+{
+	font-family: "Lucida Grande", Sans-Serif;
+	font-size: 12px;
+}
+
+table
+{
+//	width: 500px ;
+//  margin-left: auto ;
+//  margin-right: auto ;
+  text-align: left;
+//  border-collapse: collapse;
+  border: 1px solid;
+}
+
+table.FAIL
+{
+	background-color: #CC9999 ;
+}
+
+table.PASS
+{
+	background-color: #99CC99 ;
+}
+
+table.ABRT
+{
+	background-color: #9999CC ;
+}
+
+table.SKIP
+{
+	background-color: #C9C9C9 ;
+}
+
