@@ -5,10 +5,13 @@
 #include <u/libu.h>
 #include "test.h"
 
+static char g_interrupted = 0;
 static char g_debug = 0;
 static char g_verbose = 0;   /* If true, be chatty */
 #define CHAT(...)   \
     do { if (g_verbose) { printf("[CHAT] "); printf(__VA_ARGS__); } } while (0)
+
+#define TEST_CASE_PID_INITIALIZER   -1
 
 /* Generic test objects list header. */
 typedef struct 
@@ -85,7 +88,7 @@ struct test_s
     unsigned int max_parallel;  /* max # of test cases executed in parallel */
 
     /* Test report hook functions */
-    struct test_rep_s rep_foos;
+    struct test_rep_s reporters;
 };
 
 /* Get test suite handle by its '.o(bject)' field. */
@@ -152,16 +155,18 @@ static int test_report_xml (FILE *fp, test_t *t, test_rep_tag_t tag);
 /* Misc routines. */
 static const char *test_status_str (int status);
 static int test_signals (void);
+static void test_interrupted (int signo);
+static void test_bail_out (TO *h);
 static int test_obj_ts_fmt (test_obj_t *to, char b[80], char e[80], char d[80]);
 
 /* Pre-cooked reporters. */
-struct test_rep_s xml_rep = {
+struct test_rep_s xml_reps = {
     test_report_xml,
     test_suite_report_xml,
     test_case_report_xml
 };
 
-struct test_rep_s txt_rep = {
+struct test_rep_s txt_reps = {
     test_report_txt,
     test_suite_report_txt,
     test_case_report_txt
@@ -304,7 +309,7 @@ int test_set_test_rep (test_t *t, test_rep_f func)
     dbg_return_if (t == NULL, ~0);
     dbg_return_if (func == NULL, ~0);
 
-    t->rep_foos.t_rep_cb = func;
+    t->reporters.t_rep_cb = func;
 
     return 0;
 }
@@ -314,7 +319,7 @@ int test_set_test_case_rep (test_t *t, test_case_rep_f func)
     dbg_return_if (t == NULL, ~0);
     dbg_return_if (func == NULL, ~0);
 
-    t->rep_foos.tc_rep_cb = func;
+    t->reporters.tc_rep_cb = func;
 
     return 0;
 }
@@ -324,7 +329,7 @@ int test_set_test_suite_rep (test_t *t, test_suite_rep_f func)
     dbg_return_if (t == NULL, ~0);
     dbg_return_if (func == NULL, ~0);
 
-    t->rep_foos.ts_rep_cb = func;
+    t->reporters.ts_rep_cb = func;
 
     return 0;
 }
@@ -358,7 +363,7 @@ int test_new (const char *id, test_t **pt)
     t->max_parallel = TEST_MAX_PARALLEL;
 
     /* Set default report routines (may be overwritten). */
-    t->rep_foos = txt_rep;
+    t->reporters = txt_reps;
 
     *pt = t;
 
@@ -393,7 +398,7 @@ int test_case_new (const char *id, test_f func, test_case_t **ptc)
     dbg_err_if (test_obj_init(id, TEST_CASE_T, &tc->o));
 
     tc->func = func;
-    tc->pid = -1;
+    tc->pid = TEST_CASE_PID_INITIALIZER;
 
     *ptc = tc;
 
@@ -805,7 +810,7 @@ static int test_obj_scheduler (TO *h, int (*sched)(test_obj_t *))
 
     /* Go through all the test objs and select those at the current scheduling 
      * rank: first lower rank TO's (i.e. highest priority). */
-    for (r = 0; r <= h->currank; ++r)
+    for (r = 0; r <= h->currank && !g_interrupted; ++r)
     {
         /* TS's and non-sandboxed TC's are simply scheduled one-by-one. */
         if (simple_sched)
@@ -880,7 +885,7 @@ static int test_obj_scheduler (TO *h, int (*sched)(test_obj_t *))
             }
 
         reap:
-            dbg_if (test_cases_reap(h));
+            dbg_err_if (test_cases_reap(h));
 
             /* If 'tptr' was set, it means that we need to restart. */
             if (tptr != NULL)
@@ -892,6 +897,8 @@ static int test_obj_scheduler (TO *h, int (*sched)(test_obj_t *))
     }
 
     return 0;
+err:
+    return ~0;
 }
 
 static int test_cases_reap (TO *h)
@@ -906,11 +913,11 @@ static int test_cases_reap (TO *h)
     {
         if ((child = waitpid(-1, &status, 0)) == -1)
         {
-            if (errno == EINTR)         /* Interrupted, try again */
-                continue;
-            else if (errno == ECHILD)   /* No more child processes */
+            /* Interrupted (should be by user interaction) or no more child 
+             * processes */
+            if (errno == EINTR || errno == ECHILD)
                 break;
-            else                        /* THIS IS BAD */
+            else    /* THIS IS BAD */
                 con_err_sifm (1, "waitpid failed badly, test aborted");
         }
 
@@ -919,6 +926,9 @@ static int test_cases_reap (TO *h)
             CHAT("not a waited test case: %d\n", child);
             continue;
         }
+
+        /* Reset pid to the default. */
+        tc->pid = TEST_CASE_PID_INITIALIZER;
 
         /* Here we assume that a test case which received a SIGSTOP
          * is going to be resumed (i.e. CONT'inued) independently. */
@@ -949,8 +959,11 @@ static int test_cases_reap (TO *h)
         tc->o.stop = time(NULL);
     }
 
-    con_err_ifm (h->nchildren != 0, 
-            "%u child(ren) still in wait !", h->nchildren);
+    if (h->nchildren != 0)
+    {
+        CHAT("%u child(ren) still in wait !\n", h->nchildren);
+        goto err;
+    }
 
     return 0;
 err:
@@ -991,6 +1004,11 @@ static int test_suite_scheduler (test_obj_t *to)
 
     /* Go through children test cases. */
     rc = test_obj_scheduler(&ts->test_cases, test_case_scheduler);
+
+    /* See if we've been interrupted, in which case we need to cleanup
+     * as much as possible before exit'ing. */
+    if (g_interrupted)
+        test_bail_out(&ts->test_cases);
 
     /* Record test suite end timestamp. */
     ts->o.stop = time(NULL);
@@ -1070,8 +1088,7 @@ static int test_case_exec (test_case_t *tc)
     tc->o.parent->nchildren += 1;   /* Tell the test_case's head we have one
                                        more child */
 
-    CHAT("<%d> started test case %s with pid %d\n",
-            getpid(), tc->o.id, tc->pid);
+    CHAT("started test case %s with pid %d\n", tc->o.id, tc->pid);
 
     /* always return ok here, the reaper will know the test exit status */
     return 0;
@@ -1093,21 +1110,21 @@ static int test_reporter (test_t *t)
     else
         fp = stdout;
 
-    dbg_err_if (t->rep_foos.t_rep_cb(fp, t, TEST_REP_HEAD));
+    dbg_err_if (t->reporters.t_rep_cb(fp, t, TEST_REP_HEAD));
 
     LIST_FOREACH (tso, &t->test_suites.objs, links)
     {
         ts = TS_HANDLE(tso);
 
-        dbg_err_if (t->rep_foos.ts_rep_cb(fp, ts, TEST_REP_HEAD));
+        dbg_err_if (t->reporters.ts_rep_cb(fp, ts, TEST_REP_HEAD));
 
         LIST_FOREACH (tco, &ts->test_cases.objs, links)
-            dbg_err_if (t->rep_foos.tc_rep_cb(fp, TC_HANDLE(tco)));
+            dbg_err_if (t->reporters.tc_rep_cb(fp, TC_HANDLE(tco)));
 
-        dbg_err_if (t->rep_foos.ts_rep_cb(fp, ts, TEST_REP_TAIL));
+        dbg_err_if (t->reporters.ts_rep_cb(fp, ts, TEST_REP_TAIL));
     }
 
-    dbg_err_if (t->rep_foos.t_rep_cb(fp, t, TEST_REP_TAIL));
+    dbg_err_if (t->reporters.t_rep_cb(fp, t, TEST_REP_TAIL));
 
     (void) fclose(fp);
 
@@ -1335,9 +1352,9 @@ static int test_set_outfmt (test_t *t, const char *fmt)
     dbg_return_if (fmt == NULL, ~0);
 
     if (!strcasecmp(fmt, "txt"))
-        t->rep_foos = txt_rep;
+        t->reporters = txt_reps;
     else if (!strcasecmp(fmt, "xml"))
-        t->rep_foos = xml_rep;
+        t->reporters = xml_reps;
     else
         return ~0;
 
@@ -1346,8 +1363,25 @@ static int test_set_outfmt (test_t *t, const char *fmt)
 
 static int test_signals (void)
 {
-    /* TODO */
+    struct sigaction sa;
+
+    sa.sa_handler = test_interrupted;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;    /* Don't restart. */
+        
+    dbg_err_sif (sigaction(SIGINT, &sa, NULL) == -1);
+    dbg_err_sif (sigaction(SIGTERM, &sa, NULL) == -1);
+    dbg_err_sif (sigaction(SIGQUIT, &sa, NULL) == -1);
+
     return 0;
+err:
+    return ~0;
+}
+
+static void test_interrupted (int signo)
+{
+    u_unused_args(signo);
+    g_interrupted = 1;
 }
 
 static int test_obj_ts_fmt (test_obj_t *to, char b[80], char e[80], char d[80])
@@ -1375,3 +1409,34 @@ static int test_obj_ts_fmt (test_obj_t *to, char b[80], char e[80], char d[80])
 
     return 0;
 }
+
+static void test_bail_out (TO *h)
+{
+    int status;
+    test_obj_t *to;
+    test_case_t *tc;
+
+    CHAT("Bailing out, as requested by the user\n");
+    
+    /* Assume 'h' is a test cases' list head. */
+
+    /* Brutally kill all (possibly) running test cases. 
+     * There may be a harmless race here, in case a child has already
+     * called exit(2), but we've been interrupted before reaping it. */
+    LIST_FOREACH (to, &h->objs, links)
+    {
+        tc = TC_HANDLE(to);
+
+        if (tc->pid != TEST_CASE_PID_INITIALIZER)
+        {
+            CHAT("Killing test case %s [%d]\n", to->id, tc->pid);
+            dbg_if (kill(tc->pid, SIGKILL) == -1);
+        }
+    }
+
+    while (waitpid(-1, &status, 0) != -1)
+        ;
+
+    exit(1);
+}
+

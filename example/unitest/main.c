@@ -83,15 +83,29 @@ int TC_1_1 (test_case_t *tc)
 
 int TC_1_2 (test_case_t *tc)
 {
+    unsigned int ts = 5;
+
     u_con("hello TC_1_2 (sleeping)");
-    sleep(5);
+
+again:
+    ts = sleep(ts);
+    if (ts > 0 && errno == EINTR)
+        goto again;
+
     return TEST_FAILURE;
 }
 
 int TC_2_1 (test_case_t *tc)
 {
+    unsigned int ts = 2;
+
     u_con("hello TC_2_1");
-    sleep(2);
+
+again:
+    ts = sleep(ts);
+    if (ts > 0 && errno == EINTR)
+        goto again;
+
     return TEST_SUCCESS;
 }
 
