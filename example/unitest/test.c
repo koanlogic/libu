@@ -404,6 +404,7 @@ int test_case_new (const char *id, test_f func, test_case_t **ptc)
 
     tc->func = func;
     tc->pid = TEST_CASE_PID_INITIALIZER;
+    memset(&tc->stats, 0, sizeof tc->stats);
 
     *ptc = tc;
 
@@ -1181,7 +1182,7 @@ static int test_suite_report_txt (FILE *fp, test_suite_t *ts,
 static int test_case_report_txt (FILE *fp, test_case_t *tc)
 {
     int status;
-    char s[80] = { '\0' }, u[80] = { '\0' };
+    char s[80] = { '\0' }, u[80] = { '\0' }, d[80] = { '\0' };
 
     dbg_return_if (fp == NULL, ~0);
     dbg_return_if (tc == NULL, ~0);
@@ -1192,9 +1193,17 @@ static int test_case_report_txt (FILE *fp, test_case_t *tc)
 
     if (status == TEST_SUCCESS)
     {
-        (void) test_case_rusage_fmt(tc, u, s);
-        (void) fprintf(fp, "\t\t    sys time: %s\n", s);
-        (void) fprintf(fp, "\t\t   user time: %s\n", u);
+        if (tc->pts->pt->sandboxed)
+        {
+            (void) test_case_rusage_fmt(tc, u, s);
+            (void) fprintf(fp, "\t\t    sys time: %s\n", s);
+            (void) fprintf(fp, "\t\t   user time: %s\n", u);
+        }
+        else
+        {
+            (void) test_obj_ts_fmt(&tc->o, NULL, NULL, d);
+            (void) fprintf(fp, "\t\t     elapsed:%s\n", d);
+        }
     }
 
     return 0;
@@ -1270,11 +1279,20 @@ static int test_case_report_xml (FILE *fp, test_case_t *tc)
 
     if (status == TEST_SUCCESS)
     {
-        char u[80], s[80];
+        char u[80], s[80], d[80];
 
-        (void) test_case_rusage_fmt(tc, u, s);
-        (void) fprintf(fp, "\t\t\t<sys_time>%s</sys_time>\n", s);
-        (void) fprintf(fp, "\t\t\t<user_time>%s</user_time>\n", u);
+        /* When sandboxed we have rusage info. */
+        if (tc->pts->pt->sandboxed)
+        {
+            (void) test_case_rusage_fmt(tc, u, s);
+            (void) fprintf(fp, "\t\t\t<sys_time>%s</sys_time>\n", s);
+            (void) fprintf(fp, "\t\t\t<user_time>%s</user_time>\n", u);
+        }
+        else
+        {
+            (void) test_obj_ts_fmt(&tc->o, NULL, NULL, d);
+            (void) fprintf(fp, "\t\t\t<elapsed>%s</elapsed>\n", d);
+        }
     }
 
     (void) fprintf(fp, "\t\t</test_case>\n");
