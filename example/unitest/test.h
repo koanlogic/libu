@@ -45,7 +45,7 @@ typedef int (*test_suite_rep_f)(FILE *, test_suite_t *, test_rep_tag_t);
 
 /* Default test report file name */
 #ifndef TEST_OUTFN_DFL
-#define TEST_OUTFN_DFL  "./report.txt"  
+#define TEST_OUTFN_DFL  "./unitest-report.out"
 #endif  /* !TEST_OUTFN_DFL */
 
 int test_case_new (const char *id, test_f func, test_case_t **ptc);

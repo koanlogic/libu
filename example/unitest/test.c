@@ -2,6 +2,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/wait.h>
+#include <signal.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <u/libu.h>
@@ -273,7 +274,7 @@ void test_suite_free (test_suite_t *ts)
     if (ts == NULL)
         return;
 
-    /* Free deps (should be empty in a sequenced suite). */
+    /* Free dependencies. */
     test_obj_free(&ts->o);
 
     /* Free test cases. */
@@ -383,7 +384,7 @@ void test_case_free (test_case_t *tc)
     if (tc == NULL)
         return;
 
-    /* Free the attached dependencies (empty in a sequenced suite). */
+    /* Free the attached dependencies. */
     test_obj_free(&tc->o);
 
     /* Free the container. */
@@ -660,7 +661,7 @@ static test_obj_t *test_obj_pick_top (TO *h)
  * of test suites/cases.  We are primarily concerned in equally ranking all
  * test objects which are at the same "dependency-depth" so that the scheduler
  * can exec tests in the same rank-pool in parallel.  We are also interested 
- * in creating a a partial order for cases where the scheduler is forced to 
+ * in creating a partial order for cases where the scheduler is forced to 
  * run sequentially (i.e. no system fork(2) or by explicit user request).
  * In this respect, the ranking algorithm creates a partition of the 
  * case/suite's sets into equivalency classes from where any element can be 
@@ -934,16 +935,13 @@ static int test_cases_reap (TO *h)
             continue;
         }
 
-        /* Reset pid to the default. */
-        tc->pid = TEST_CASE_PID_INITIALIZER;
-        tc->stats = rusage;
-
-        /* Here we assume that a test case which received a SIGSTOP
-         * is going to be resumed (i.e. CONT'inued) independently. */
+        /* We assume that a test case which received a SIGSTOP
+         * is going to be resumed (i.e. SIGCONT'inued) independently. */
         if (WIFSTOPPED(status))
             continue;
 
-        h->nchildren -= 1;
+        /* Reset pid to the default. */
+        tc->pid = TEST_CASE_PID_INITIALIZER;
  
         /* Update test case stats. */
         if (WIFEXITED(status))
@@ -964,7 +962,10 @@ static int test_cases_reap (TO *h)
                     WTERMSIG(status));
         }
 
+        tc->stats = rusage;
         tc->o.stop = time(NULL);
+
+        h->nchildren -= 1;
     }
 
     if (h->nchildren != 0)
@@ -1252,8 +1253,8 @@ static int test_suite_report_xml (FILE *fp, test_suite_t *ts,
             (void) test_obj_ts_fmt(&ts->o, b, e, d);
 
             (void) fprintf(fp, "\t\t<begin>%s</begin>\n", b);
-            (void) fprintf(fp, "\t\t<end>%s</end>\n", d);
-            (void) fprintf(fp, "\t\t<elapsed>%s</elapsed>\n", e);
+            (void) fprintf(fp, "\t\t<end>%s</end>\n", e);
+            (void) fprintf(fp, "\t\t<elapsed>%s</elapsed>\n", d);
         }
     }
 
