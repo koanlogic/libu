@@ -1,9 +1,9 @@
-/* 
- * Copyright (c) 2005-2010 by KoanLogic s.r.l. - All rights reserved.  
+/*
+ * Copyright (c) 2005-2010 by KoanLogic s.r.l. - All rights reserved.
  */
 
-#ifndef _LIBU_TEST_H_
-#define _LIBU_TEST_H_
+#ifndef _U_TEST_H_
+#define _U_TEST_H_
 
 #include <u/libu_conf.h>
 
@@ -16,71 +16,83 @@ extern "C" {
  *  \{
  */ 
 
-/** 
- *  \brief Define and/or declare a test suite
- *
- *  Define and/or declare a test suite named \c name. 
- *
- *  \param name  module name
- */
-#define U_TEST_SUITE( name )   \
-    int u_test_run_ ## name (void)
+struct u_test_case_s;
+struct u_test_suite_s;
+struct u_test_s;
 
-/** 
- *  \brief Add a test case function
- *
- *  Add the test case function \p f to the test pool
- *
- *  \param  f   a function with ::u_test_runner_t prototype
- */
-#define U_TEST_CASE_ADD( f ) \
-    if( f () ) { _test_cnt++; _test_fail++; u_con("[FAILED] %s", #f); }  \
-    else { _test_cnt++; _test_ok++; if(_verbose) u_con("[OK] %s", #f); }
+/** \brief  Test case handler. */
+typedef struct u_test_case_s u_test_case_t;
 
-/** 
- *  \brief Import a test suite in the test program
- *
- *  Import a test suite that will be run by the test program. 
- *
- *  \param  name    the name of the test suite
- */
-#define U_TEST_SUITE_ADD( name )                                    \
-    do {                                                            \
-        int u_test_run_ ## name (void);                             \
-        *_top = u_test_run_ ## name; ++_top; *_top = NULL;          \
-        *_top_nm = u_strdup( #name ); ++_top_nm; *_top_nm = NULL;   \
-    } while(0)
+/** \brief  Test suite handler. */
+typedef struct u_test_suite_s u_test_suite_t;
 
-/* carpal additions for tests */
-#define u_test_err_if(expr)             msg_err_if(u_test_, expr)
-#define u_test_err_ifm(expr, ...)       msg_err_ifm(u_test_, expr, __VA_ARGS__)
-#define u_test_( err, ...)              u_test_err_write( err, __VA_ARGS__)
-#define u_test_err_write(err, ...)  \
-    (printf("[%s:%d:%s] ", __FILE__, __LINE__, __FUNCTION__),   \
-     printf(__VA_ARGS__), printf("\n"))
+/** \brief  Test handler. */
+typedef struct u_test_s u_test_t;
 
-/* 1.x compat names */
-#define U_TEST_MODULE_USE   U_TEST_SUITE_ADD
-#define U_TEST_RUN          U_TEST_CASE_ADD
-#define U_TEST_MODULE       U_TEST_SUITE
+/** \brief  Exit status of unit tests. */
+enum { 
+    U_TEST_SUCCESS = 0,
+    /**< All test assertions got right. */
 
-int u_test_run(int argc, char **argv);
+    U_TEST_FAILURE = 1,
+    /**< Any test assertion has failed. */
 
-/** \brief  Return code for ::u_test_runner_t functions */
-typedef enum
-{
-    U_TEST_EXIT_SUCCESS = 0,    /**< test case succeeded */
-    U_TEST_EXIT_FAILURE = 1     /**< test case failed */
-} u_test_ret_t;
+    U_TEST_ABORTED = 2,
+    /**< Catch any non-regular execution condition (e.g. SIGSEGV). */
 
-/** \brief  The prototype for a test function.  The function must return
- *          ::U_TEST_EXIT_SUCCESS on success, ::U_TEST_EXIT_FAILURE on error */
-typedef int (*u_test_runner_t)(void);
+    U_TEST_SKIPPED = 3
+    /**< A previous dependency failure prevents test execution. */
+};
 
-extern u_test_runner_t _mods[], *_top;
-extern char *_mods_nm[], **_top_nm;
-extern int _test_cnt, _test_ok, _test_fail;
-extern int _verbose;
+/** \brief  Tags used to tell if the reporter routine has been called
+ *          on element opening or closure. */
+typedef enum { U_TEST_REP_HEAD, U_TEST_REP_TAIL } u_test_rep_tag_t;
+
+/** \brief  Unit test function prototype. */
+typedef int (*u_test_f)(u_test_case_t *);
+
+/** \brief  Report functions' prototypes. */
+typedef int (*u_test_rep_f)(FILE *, u_test_t *, u_test_rep_tag_t);
+typedef int (*u_test_case_rep_f)(FILE *, u_test_case_t *);
+typedef int (*u_test_suite_rep_f)(FILE *, u_test_suite_t *, u_test_rep_tag_t);
+
+/** \brief  Maximum number of running test cases. */
+#ifndef U_TEST_MAX_PARALLEL
+#define U_TEST_MAX_PARALLEL   32
+#endif  /* !U_TEST_MAX_PARALLEL */
+
+/** \brief  Maximum length of a test suite/case identifier. */
+#ifndef U_TEST_ID_MAX
+#define U_TEST_ID_MAX     128
+#endif  /* !U_TEST_ID_MAX */
+
+/** \brief  Default test report file name. */
+#ifndef U_TEST_OUTFN_DFL
+#define U_TEST_OUTFN_DFL  "./unitest-report.out"
+#endif  /* !U_TEST_OUTFN_DFL */
+
+int u_test_case_new (const char *id, u_test_f func, u_test_case_t **ptc);
+int u_test_case_add (u_test_case_t *tc, u_test_suite_t *ts);
+void u_test_case_free (u_test_case_t *tc);
+int u_test_case_register (const char *id, u_test_f func, u_test_suite_t *ts);
+int u_test_case_dep_register (const char *id, u_test_case_t *tc);
+int u_test_case_depends_on (const char *tcid, const char *depid, 
+        u_test_suite_t *ts);
+
+int u_test_suite_add (u_test_suite_t *to, u_test_t *t);
+void u_test_suite_free (u_test_suite_t *ts);
+int u_test_suite_new (const char *id, u_test_suite_t **pts);
+int u_test_suite_dep_register (const char *id, u_test_suite_t *ts);
+int u_test_suite_depends_on (const char *tsid, const char *depid, u_test_t *t);
+
+int u_test_new (const char *id, u_test_t **pt);
+int u_test_set_outfn (u_test_t *t, const char *outfn);
+int u_test_set_u_test_suite_rep (u_test_t *t, u_test_suite_rep_f func);
+int u_test_set_u_test_case_rep (u_test_t *t, u_test_case_rep_f func);
+int u_test_set_u_test_rep (u_test_t *t, u_test_rep_f func);
+
+void u_test_free (u_test_t *t);
+int u_test_run (int ac, char *av[], u_test_t *t);
 
 /**
  *  \}
@@ -90,4 +102,4 @@ extern int _verbose;
 }
 #endif  /* __cplusplus */
 
-#endif  /* !_LIBU_TEST_H_ */
+#endif  /* !_U_TEST_H_ */

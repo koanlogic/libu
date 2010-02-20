@@ -2,29 +2,56 @@
 
 int facility = LOG_LOCAL0;
 
+int test_suite_misc_register (u_test_t *t);
+int test_suite_string_register (u_test_t *t);
+int test_suite_hmap_register (u_test_t *t);
+int test_suite_list_register (u_test_t *t);
+int test_suite_array_register (u_test_t *t);
+int test_suite_uri_register (u_test_t *t);
+int test_suite_pqueue_register (u_test_t *t);
+int test_suite_rb_register (u_test_t *t);
+int test_suite_pwd_register (u_test_t *t);
+
 int main(int argc, char **argv)
 {
-    U_TEST_SUITE_ADD(misc);
-    U_TEST_SUITE_ADD(string);
-#ifndef NO_HMAP
-    U_TEST_SUITE_ADD(hmap);
-#endif
-#ifndef NO_LIST
-    U_TEST_SUITE_ADD(list);
-#endif
-#ifndef NO_ARRAY
-    U_TEST_SUITE_ADD(array);
-#endif
-#ifndef NO_NET
-    U_TEST_SUITE_ADD(uri);
-#endif
-#ifndef NO_PQUEUE
-    U_TEST_SUITE_ADD(pqueue);
-#endif
-#ifndef NO_RB
-    U_TEST_SUITE_ADD(rb);
-#endif
-    U_TEST_SUITE_ADD(pwd);
+    u_test_t *t = NULL;
 
-    return u_test_run(argc, argv);
+    con_err_if (u_test_new("LibU Unit Tests", &t));
+
+    con_err_if (test_suite_misc_register(t));
+    con_err_if (test_suite_string_register(t));
+
+#ifndef NO_ARRAY
+    con_err_if (test_suite_array_register(t));
+#endif  /* !NO_ARRAY */
+#ifndef NO_LIST
+    con_err_if (test_suite_list_register(t));
+#endif  /* !NO_LIST */
+#ifndef NO_NET
+    con_err_if (test_suite_uri_register(t));
+#endif  /* !NO_NET */
+#ifndef NO_RB
+    con_err_if (test_suite_rb_register(t));
+#endif  /* !NO_RB */
+#ifndef NO_PWD
+    con_err_if (test_suite_pwd_register(t));
+#endif  /* !NO_PWD */
+#ifndef NO_HMAP
+    con_err_if (test_suite_hmap_register(t));
+#endif  /* !NO_HMAP */
+
+#if 0
+#ifndef NO_PQUEUE
+    con_err_if (test_suite_pqueue_register(t));
+#endif  /* !NO_PQUEUE */
+#endif
+
+    con_err_if (u_test_run(argc, argv, t));
+
+    u_test_free(t);
+
+    return EXIT_SUCCESS;
+err:
+    u_test_free(t);
+    return EXIT_FAILURE;
 }

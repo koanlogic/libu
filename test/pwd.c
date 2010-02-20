@@ -1,8 +1,10 @@
 #include <u/libu.h>
 
-U_TEST_SUITE(pwd);
+int test_suite_pwd_register (u_test_t *t);
 
-static int test_u_pwd(void)
+static int test_u_pwd (u_test_case_t *tc);
+
+static int test_u_pwd (u_test_case_t *tc)
 {
     enum { 
         PWD_NUM = 1024,
@@ -23,17 +25,23 @@ static int test_u_pwd(void)
 
     u_pwd_term(pwd);
 
-    return U_TEST_EXIT_SUCCESS;
+    return U_TEST_SUCCESS;
 err:
-
     U_FREEF(pwd, u_pwd_term);
 
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
-U_TEST_SUITE( pwd )
+int test_suite_pwd_register (u_test_t *t)
 {
-    U_TEST_CASE_ADD( test_u_pwd );
+    u_test_suite_t *ts = NULL;
 
-    return 0;                                      
+    con_err_if (u_test_suite_new("Password", &ts));
+
+    con_err_if (u_test_case_register("Plain text auth", test_u_pwd, ts));
+
+    return u_test_suite_add(ts, t);
+err:
+    u_test_suite_free(ts);
+    return ~0;
 }

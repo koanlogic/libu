@@ -1,14 +1,28 @@
 #include <u/libu.h>
 #include <string.h>
 
-U_TEST_SUITE(hmap);
+int test_suite_hmap_register (u_test_t *t);
+
+static int example_static (u_test_case_t *tc);
+static int example_easy_static (u_test_case_t *tc);
+static int example_easy_dynamic (u_test_case_t *tc);
+static int example_easy_opaque (u_test_case_t *tc);
+static int example_dynamic_own_hmap (u_test_case_t *tc);
+static int example_dynamic_own_user (u_test_case_t *tc);
+static int example_no_overwrite (u_test_case_t *tc);
+static int example_types_custom (u_test_case_t *tc);
+
+static int test_resize (u_test_case_t *tc);
+static int test_linear (u_test_case_t *tc);
+static int test_scope (u_test_case_t *tc);
 
 static size_t __sample_hash (const void *key, size_t size);
 static int __sample_comp(const void *key1, const void *key2);
 static u_string_t *__sample_str(u_hmap_o_t *obj);
 static u_hmap_o_t *__sample_obj(u_hmap_t *hmap, int key, const char *val);
 
-static int example_easy_static (void)
+
+static int example_easy_static (u_test_case_t *tc)
 {
     u_hmap_opts_t opts;
     u_hmap_t *hmap = NULL;
@@ -49,11 +63,11 @@ static int example_easy_static (void)
     /* free hmap (options and elements are freed automatically) */
     u_hmap_easy_free(hmap);
 
-    return 0;
+    return U_TEST_SUCCESS;
 err:
     U_FREEF(hmap, u_hmap_free);
 
-    return ~0;
+    return U_TEST_FAILURE;
 }
 
 struct mystruct_s {
@@ -89,7 +103,7 @@ err:
     return NULL;
 }
 
-static int example_easy_dynamic (void)
+static int example_easy_dynamic (u_test_case_t *tc)
 {
     u_hmap_opts_t opts;
     u_hmap_t *hmap = NULL;
@@ -124,13 +138,12 @@ static int example_easy_dynamic (void)
     /* internal objects freed automatically using custom function */
     u_hmap_easy_free(hmap);
 
-    return 0;
+    return U_TEST_SUCCESS;
 err:
     U_FREEF(hmap, u_hmap_easy_free);
 
-    return ~0;
+    return U_TEST_FAILURE;
 }
-
 
 struct mystruct2_s {
     char c;
@@ -139,7 +152,7 @@ struct mystruct2_s {
 };
 typedef struct mystruct2_s mystruct2_t;
 
-static int example_easy_opaque (void)
+static int example_easy_opaque (u_test_case_t *tc)
 {
     enum { 
         VAL_SZ = sizeof(mystruct2_t),
@@ -182,14 +195,14 @@ static int example_easy_opaque (void)
     /* free hmap (options and elements are freed automatically) */
     u_hmap_easy_free(hmap);
 
-    return 0;
+    return U_TEST_SUCCESS;
 err:
     U_FREEF(hmap, u_hmap_free);
 
-    return ~0;
+    return U_TEST_FAILURE;
 }
 
-static int example_static (void)
+static int example_static (u_test_case_t *tc)
 {
     u_hmap_t *hmap = NULL;
     u_hmap_o_t *obj = NULL;
@@ -230,14 +243,14 @@ static int example_static (void)
     /* free hmap and options */
     u_hmap_free(hmap);
     
-    return U_TEST_EXIT_SUCCESS;
+    return U_TEST_SUCCESS;
 err:
     U_FREEF(hmap, u_hmap_free);
 
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
-static int example_dynamic_own_hmap (void)
+static int example_dynamic_own_hmap (u_test_case_t *tc)
 {
     u_hmap_opts_t opts;
     u_hmap_t *hmap = NULL;
@@ -277,15 +290,14 @@ static int example_dynamic_own_hmap (void)
     /* free hmap (options and elements are freed automatically) */
     u_hmap_free(hmap);
 
-    return U_TEST_EXIT_SUCCESS;
-
+    return U_TEST_SUCCESS;
 err:
     U_FREEF(hmap, u_hmap_free);
 
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
-static int example_dynamic_own_user (void)
+static int example_dynamic_own_user (u_test_case_t *tc)
 {
     u_hmap_t *hmap = NULL;
     u_hmap_o_t *obj = NULL;
@@ -345,15 +357,14 @@ static int example_dynamic_own_user (void)
     /* free hmap (options and elements are freed automatically) */
     u_hmap_free(hmap);
 
-    return U_TEST_EXIT_SUCCESS;
-
+    return U_TEST_SUCCESS;
 err:
     U_FREEF(hmap, u_hmap_free);
 
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
-static int example_no_overwrite (void)
+static int example_no_overwrite (u_test_case_t *tc)
 {
 #define MAP_INSERT(hmap, key, val, obj) \
     switch (u_hmap_put(hmap, u_hmap_o_new(hmap, key, val), &obj)) { \
@@ -392,11 +403,11 @@ static int example_no_overwrite (void)
     /* free hmap */
     u_hmap_free(hmap);
 
-    return U_TEST_EXIT_SUCCESS;
+    return U_TEST_SUCCESS;
 err:
     U_FREEF(hmap, u_hmap_free);
 
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 #undef MAP_INSERT
 }
 
@@ -426,7 +437,6 @@ static u_string_t *__sample_str(u_hmap_o_t *obj)
     con_err_if (u_string_create(buf, strlen(buf)+1, &s));
 
     return s;
-
 err:
     return NULL;
 }
@@ -450,7 +460,6 @@ static u_hmap_o_t *__sample_obj(u_hmap_t *hmap, int key, const char *val)
     con_err_if (new == NULL);
     
     return new;
-
 err:
     u_free(k);
     u_free(v);
@@ -458,12 +467,7 @@ err:
     return NULL;
 }
 
-static void __sample_free(u_hmap_o_t *obj)
-{
-
-}
-
-static int example_types_custom (void)
+static int example_types_custom (u_test_case_t *tc)
 {
     u_hmap_opts_t opts;
     u_hmap_t *hmap = NULL;
@@ -506,14 +510,14 @@ static int example_types_custom (void)
 
     u_hmap_free(hmap);
 
-    return U_TEST_EXIT_SUCCESS;
+    return U_TEST_SUCCESS;
 err:
     U_FREEF(hmap, u_hmap_free);
 
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
-static int test_resize (void)
+static int test_resize (u_test_case_t *tc)
 {
     enum { NUM_ELEMS = 100000, MAX_STR = 256 };
     u_hmap_opts_t opts;
@@ -549,15 +553,14 @@ static int test_resize (void)
     /* free hmap */
     u_hmap_free(hmap);
     
-    return U_TEST_EXIT_SUCCESS;
-
+    return U_TEST_SUCCESS;
 err:
     U_FREEF(hmap, u_hmap_free);
 
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
-static int test_linear (void)
+static int test_linear (u_test_case_t *tc)
 {
     enum { NUM_ELEMS = 100000, MAX_STR = 256 };
     u_hmap_opts_t opts;
@@ -595,19 +598,18 @@ static int test_linear (void)
     /* free hmap */
     u_hmap_free(hmap);
     
-    return U_TEST_EXIT_SUCCESS;
-
+    return U_TEST_SUCCESS;
 err:
     U_FREEF(hmap, u_hmap_free);
 
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
 /** 
  * keys have limited scope
  * values have wide scope 
  */
-static int test_scope (void)
+static int test_scope (u_test_case_t *tc)
 {
     enum { KEY_SZ = 256 };
     int i;
@@ -641,30 +643,41 @@ static int test_scope (void)
 
     u_hmap_easy_free(hmap);
 
-    return 0;
+    return U_TEST_SUCCESS;
 err:
     if (hmap)
         u_hmap_easy_free(hmap);
 
-    return ~0;
+    return U_TEST_FAILURE;
 }
 
-U_TEST_SUITE(hmap)
+int test_suite_hmap_register (u_test_t *t)
 {
-    /* examples */
-    U_TEST_CASE_ADD( example_static );
-    U_TEST_CASE_ADD( example_easy_static );
-    U_TEST_CASE_ADD( example_easy_dynamic );
-    U_TEST_CASE_ADD( example_easy_opaque );
-    U_TEST_CASE_ADD( example_dynamic_own_hmap );
-    U_TEST_CASE_ADD( example_dynamic_own_user );
-    U_TEST_CASE_ADD( example_no_overwrite );
-    U_TEST_CASE_ADD( example_types_custom );
+    u_test_suite_t *ts = NULL;
 
-    /* tests */
-    U_TEST_CASE_ADD( test_resize );
-    U_TEST_CASE_ADD( test_linear );
-    U_TEST_CASE_ADD( test_scope );
+    con_err_if (u_test_suite_new("Hash map", &ts));
 
-    return 0;
+    con_err_if (u_test_case_register("Static values", example_static, ts));
+    con_err_if (u_test_case_register("Static values (easy interface)", 
+                example_easy_static, ts));
+    con_err_if (u_test_case_register("Dynamic values (easy interface)", 
+                example_easy_dynamic, ts));
+    con_err_if (u_test_case_register("Opaque values (easy interface)", 
+                example_easy_opaque, ts));
+    con_err_if (u_test_case_register("Dynamic values: hmap ownership", 
+                example_dynamic_own_hmap, ts));
+    con_err_if (u_test_case_register("Dynamic values: user ownership", 
+                example_dynamic_own_user, ts));
+    con_err_if (u_test_case_register("Duplicate values: no overwrite",
+                example_no_overwrite, ts));
+    con_err_if (u_test_case_register("Custom types", example_types_custom, ts));
+    con_err_if (u_test_case_register("Force resize", test_resize, ts));
+    con_err_if (u_test_case_register("Linear probing", test_linear, ts));
+    con_err_if (u_test_case_register("Different key-values scoping", 
+                test_scope, ts));
+
+    return u_test_suite_add(ts, t);
+err:
+    u_test_suite_free(ts);
+    return ~0;
 }

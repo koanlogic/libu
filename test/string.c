@@ -9,9 +9,11 @@
 #include <signal.h>
 #include <u/libu.h>
 
-U_TEST_SUITE(string);
+int test_suite_string_register (u_test_t *t);
 
-static int test_u_str(void)
+static int test_u_str (u_test_case_t *tc);
+
+static int test_u_str (u_test_case_t *tc)
 {
     u_string_t *s = NULL;
 
@@ -36,14 +38,21 @@ static int test_u_str(void)
 
     u_string_free(s);
 
-    return U_TEST_EXIT_SUCCESS;
+    return U_TEST_SUCCESS;
 err:
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
-U_TEST_SUITE( string )
+int test_suite_string_register (u_test_t *t)
 {
-    U_TEST_CASE_ADD( test_u_str );
+    u_test_suite_t *ts = NULL;
 
-    return 0;                                      
+    con_err_if (u_test_suite_new("Strings", &ts));
+
+    con_err_if (u_test_case_register("Various functions", test_u_str, ts));
+
+    return u_test_suite_add(ts, t);
+err:
+    u_test_suite_free(ts);
+    return ~0;
 }

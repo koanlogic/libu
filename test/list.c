@@ -9,9 +9,12 @@
 #include <signal.h>
 #include <u/libu.h>
 
-U_TEST_SUITE(list);
+int test_suite_list_register (u_test_t *t);
 
-static int test_list_iterator(void)
+static int test_list_iterator (u_test_case_t *tc);
+static int test_list_ins (u_test_case_t *tc);
+
+static int test_list_iterator (u_test_case_t *tc)
 {
     enum { ITERS = 300 };
     u_list_t *l = NULL;
@@ -63,12 +66,12 @@ static int test_list_iterator(void)
 
     u_list_free(l);
 
-    return U_TEST_EXIT_SUCCESS;
+    return U_TEST_SUCCESS;
 err:
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
-static int test_list_ins (void)
+static int test_list_ins (u_test_case_t *tc)
 {
     enum { ITERS = 3 };
     u_list_t *l = NULL;
@@ -115,18 +118,25 @@ static int test_list_ins (void)
 
     u_list_free(l);
 
-    return U_TEST_EXIT_SUCCESS;
+    return U_TEST_SUCCESS;
 err:
     if (l)
         u_list_free(l);
 
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
-U_TEST_SUITE( list )
+int test_suite_list_register (u_test_t *t)
 {
-    U_TEST_CASE_ADD( test_list_ins );
-    U_TEST_CASE_ADD( test_list_iterator );
+    u_test_suite_t *ts = NULL;
 
-    return 0;                                                
+    con_err_if (u_test_suite_new("Lists", &ts));
+
+    con_err_if (u_test_case_register("Insertion", test_list_ins, ts));
+    con_err_if (u_test_case_register("Iteration", test_list_iterator, ts));
+
+    return u_test_suite_add(ts, t);
+err:
+    u_test_suite_free(ts);
+    return ~0;
 }

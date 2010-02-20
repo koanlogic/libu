@@ -9,10 +9,15 @@
 #include <signal.h>
 #include <u/libu.h>
 
+int test_suite_misc_register (u_test_t *t);
+
+static int test_u_rdwr (u_test_case_t *tc);
+static int test_u_path_snprintf (u_test_case_t *tc);
+static int test_u_strtok (u_test_case_t *tc);
+static int test_u_atoi (u_test_case_t *tc);
+
 struct itimerval itv;
 size_t file_size, buf_size;
-
-U_TEST_SUITE(misc);
 
 static void setitv(struct itimerval *pitv)
 {
@@ -150,7 +155,7 @@ err:
     return ~0;
 }
 
-static int test_u_rdwr(void)
+static int test_u_rdwr (u_test_case_t *tc)
 {
     char fn[U_FILENAME_MAX + 1] = { 0 };
     unsigned int hash_read, hash_write;
@@ -177,14 +182,14 @@ static int test_u_rdwr(void)
         unlink(fn);
     }
 
-    return U_TEST_EXIT_SUCCESS;
+    return U_TEST_SUCCESS;
 err:
     u_con("failed. file: %s file_size: %d, buf_size: %d", fn, 
             file_size, buf_size);
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
-static int test_u_strtok (void)
+static int test_u_strtok (u_test_case_t *tc)
 {
     char **tv = NULL;
     size_t nelems, i, j;
@@ -320,13 +325,13 @@ static int test_u_strtok (void)
         tv = NULL;
     }
 
-    return U_TEST_EXIT_SUCCESS;
+    return U_TEST_SUCCESS;
 err:
     u_strtok_cleanup(tv, nelems);
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
-static int test_u_path_snprintf(void)
+static int test_u_path_snprintf (u_test_case_t *tc)
 {
     struct vt_s
     {
@@ -365,12 +370,12 @@ static int test_u_path_snprintf(void)
                 vt[i].src, vt[i].exp, buf);
     }
 
-    return U_TEST_EXIT_SUCCESS;
+    return U_TEST_SUCCESS;
 err:
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
-static int test_u_atoi (void)
+static int test_u_atoi (u_test_case_t *tc)
 {
     int i, j, rc, dummy = 0;
 
@@ -434,17 +439,25 @@ static int test_u_atoi (void)
         }
     }
 
-    return U_TEST_EXIT_SUCCESS;
+    return U_TEST_SUCCESS;
 err:
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
-U_TEST_SUITE(misc)
+int test_suite_misc_register (u_test_t *t)
 {
-    U_TEST_CASE_ADD( test_u_rdwr );
-    U_TEST_CASE_ADD( test_u_path_snprintf );
-    U_TEST_CASE_ADD( test_u_strtok );
-    U_TEST_CASE_ADD( test_u_atoi );
+    u_test_suite_t *ts = NULL;
 
-    return 0;
+    con_err_if (u_test_suite_new("Miscellaneous Utilities", &ts));
+
+    con_err_if (u_test_case_register("Various I/O routines", test_u_rdwr, ts));
+    con_err_if (u_test_case_register("u_path_snprintf function", 
+                test_u_path_snprintf, ts));
+    con_err_if (u_test_case_register("u_strtok function", test_u_strtok, ts));
+    con_err_if (u_test_case_register("u_atoi function", test_u_atoi, ts));
+
+    return u_test_suite_add(ts, t);
+err:
+    u_test_suite_free(ts);
+    return ~0;
 }

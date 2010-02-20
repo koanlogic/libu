@@ -1,6 +1,8 @@
 #include <u/libu.h>
 
-U_TEST_SUITE(uri);
+int test_suite_uri_register (u_test_t *t);
+
+static int test_uri_parser (u_test_case_t *tc);
 
 /* shall match struct u_uri_s */
 typedef struct 
@@ -8,7 +10,7 @@ typedef struct
     const char *scheme, *user, *pwd, *host, *port, *path, *query;
 } u_uri_exp_t;
 
-static int test_uri_parser (void)
+static int test_uri_parser (u_test_case_t *tc)
 {
     struct vt_s
     {
@@ -89,15 +91,22 @@ static int test_uri_parser (void)
         u_uri_free(u), u = NULL;
     }
 
-    return U_TEST_EXIT_SUCCESS;
+    return U_TEST_SUCCESS;
 err:
     u_uri_free(u);
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
-U_TEST_SUITE (uri)
+int test_suite_uri_register (u_test_t *t)
 {
-    U_TEST_CASE_ADD( test_uri_parser );
+    u_test_suite_t *ts = NULL;
 
-    return 0;                                                
+    con_err_if (u_test_suite_new("URI", &ts));
+
+    con_err_if (u_test_case_register("u_uri_crumble", test_uri_parser, ts));
+
+    return u_test_suite_add(ts, t);
+err:
+    u_test_suite_free(ts);
+    return ~0;
 }

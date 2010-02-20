@@ -1,4 +1,4 @@
-# $Id: Makefile.dist,v 1.14 2010/01/15 17:47:56 tho Exp $
+# $Id: Makefile.dist,v 1.15 2010/02/20 20:22:33 tho Exp $
 
 include common.mk
 
@@ -40,6 +40,9 @@ DISTREMAP += pkg/Makefile.doc doc/Makefile
 DISTREMAP += pkg/Makefile.doxy.doc doc/html/Makefile
 DISTREMAP += $(foreach f, $(notdir $(wildcard doc/doxy/html/*.html)), \
                        doc/doxy/html/$f doc/html/$f)
+
+# contrib files
+DISTFILES += $(wildcard contrib/*)
 
 dist-hook-pre:
 	@echo "Processing HTML documentation..." && cd doc/doxy && $(MAKE)

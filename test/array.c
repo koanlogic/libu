@@ -10,16 +10,16 @@
 #include <signal.h>
 #include <u/libu.h>
 
-U_TEST_SUITE(array);
+int test_suite_array_register (u_test_t *t);
 
-static int test_resize (void);
-static int test_short (void);
-static int test_ptr (void);
-static int test_u_short (void);
-static int test_char (void);
-static int test_u_char (void);
+static int test_resize (u_test_case_t *tc);
+static int test_short (u_test_case_t *tc);
+static int test_ptr (u_test_case_t *tc);
+static int test_u_short (u_test_case_t *tc);
+static int test_char (u_test_case_t *tc);
+static int test_u_char (u_test_case_t *tc);
 
-static int test_resize (void)
+static int test_resize (u_test_case_t *tc)
 {
     u_array_t *da = NULL;
     size_t idx;
@@ -36,14 +36,14 @@ static int test_resize (void)
 
     u_array_free(da);
 
-    return U_TEST_EXIT_SUCCESS;
+    return U_TEST_SUCCESS;
 err:
     u_array_free(da);
 
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
-static int test_short (void)
+static int test_short (u_test_case_t *tc)
 {
     u_array_t *da = NULL;
     size_t idx;
@@ -60,14 +60,14 @@ static int test_short (void)
 
     u_array_free(da);
 
-    return U_TEST_EXIT_SUCCESS;
+    return U_TEST_SUCCESS;
 err:
     u_array_free(da);
 
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
-static int test_ptr (void)
+static int test_ptr (u_test_case_t *tc)
 {
     int rc = 0;
     u_array_t *da = NULL;
@@ -94,14 +94,14 @@ static int test_ptr (void)
 
     u_array_free(da);
 
-    return U_TEST_EXIT_SUCCESS;
+    return U_TEST_SUCCESS;
 err:
     u_array_free(da);
 
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
-static int test_u_short (void)
+static int test_u_short (u_test_case_t *tc)
 {
     u_array_t *da = NULL;
     size_t idx;
@@ -118,14 +118,14 @@ static int test_u_short (void)
 
     u_array_free(da);
 
-    return U_TEST_EXIT_SUCCESS;
+    return U_TEST_SUCCESS;
 err:
     u_array_free(da);
 
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
-static int test_char (void)
+static int test_char (u_test_case_t *tc)
 {
     u_array_t *da = NULL;
     size_t idx;
@@ -142,14 +142,14 @@ static int test_char (void)
 
     u_array_free(da);
 
-    return U_TEST_EXIT_SUCCESS;
+    return U_TEST_SUCCESS;
 err:
     u_array_free(da);
 
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
-static int test_u_char (void)
+static int test_u_char (u_test_case_t *tc)
 {
     size_t idx;
     u_array_t *da = NULL;
@@ -166,21 +166,30 @@ static int test_u_char (void)
 
     u_array_free(da);
 
-    return U_TEST_EXIT_SUCCESS;
+    return U_TEST_SUCCESS;
 err:
     u_array_free(da);
 
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
-U_TEST_SUITE( array )
+int test_suite_array_register (u_test_t *t)
 {
-    U_TEST_CASE_ADD( test_ptr );
-    U_TEST_CASE_ADD( test_short );
-    U_TEST_CASE_ADD( test_u_short );
-    U_TEST_CASE_ADD( test_char );
-    U_TEST_CASE_ADD( test_u_char );
-    U_TEST_CASE_ADD( test_resize );
+    u_test_suite_t *ts = NULL;
 
-    return 0;                                                
+    con_err_if (u_test_suite_new("Dynamic Arrays", &ts));
+
+    con_err_if (u_test_case_register("Pointer elements", test_ptr, ts));
+    con_err_if (u_test_case_register("Short elements", test_short, ts));
+    con_err_if (u_test_case_register("Unsigned short elements", 
+                test_u_short, ts));
+    con_err_if (u_test_case_register("Char elements", test_char, ts));
+    con_err_if (u_test_case_register("Unsigned char elements", 
+                test_u_char, ts));
+    con_err_if (u_test_case_register("Force array resize", test_resize, ts));
+
+    return u_test_suite_add(ts, t);
+err:
+    u_test_suite_free(ts);
+    return ~0;
 }

@@ -7,31 +7,30 @@ SRCS += main.c
 SRCS += misc.c 
 SRCS += string.c 
 
+ifndef NO_ARRAY
+    SRCS += array.c 
+endif
+ifndef NO_LIST
+    SRCS += list.c 
+endif
+ifndef NO_NET
+    SRCS += uri.c
+endif
+ifndef NO_RB
+    SRCS += rb.c
+endif
+ifndef NO_PWD
+SRCS += pwd.c
+endif
 ifndef NO_HMAP
     SRCS += hmap.c 
 endif
 
-ifndef NO_LIST
-    SRCS += list.c 
-endif
-
-ifndef NO_ARRAY
-    SRCS += array.c 
-endif
-
-ifndef NO_NET
-    SRCS += uri.c
-endif
-
+ifdef XXXXX
 ifndef NO_PQUEUE
     SRCS += pqueue.c
 endif
-
-ifndef NO_RB
-    SRCS += rb.c
-endif
-
-SRCS += pwd.c
+endif # XXXXX
 
 LDADD += ../srcs/libu.a
 
@@ -39,5 +38,5 @@ include prog.mk
 
 ifndef NO_RUN_TEST
 all-hook-post:
-	@./$(PROG) -v || echo "unit test execution failed"
+	@./$(PROG) -o - || echo "unit test execution failed"
 endif

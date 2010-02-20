@@ -1,13 +1,13 @@
 #include <ctype.h>
 #include <u/libu.h>
 
-U_TEST_SUITE(rb);
-
 #define RB_SZ   4096
 
+int test_suite_rb_register (u_test_t *t);
+
 static int rw (int fast);
-static int test_rw (void);
-static int test_rw_fast (void);
+static int test_rw (u_test_case_t *tc);
+static int test_rw_fast (u_test_case_t *tc);
 
 static int rw (int fast)
 {
@@ -64,20 +64,27 @@ static int rw (int fast)
 
     u_rb_free(rb);
 
-    return U_TEST_EXIT_SUCCESS;
+    return U_TEST_SUCCESS;
 err:
     if (rb)
         u_rb_free(rb);
-    return U_TEST_EXIT_FAILURE;
+    return U_TEST_FAILURE;
 }
 
-static int test_rw (void) { return rw(0); }
-static int test_rw_fast (void) { return rw(1); }
+static int test_rw (u_test_case_t *tc) { return rw(0); }
+static int test_rw_fast (u_test_case_t *tc) { return rw(1); }
 
-U_TEST_SUITE( rb )
+int test_suite_rb_register (u_test_t *t)
 {
-    U_TEST_CASE_ADD( test_rw );
-    U_TEST_CASE_ADD( test_rw_fast );
+    u_test_suite_t *ts = NULL;
 
-    return 0;
+    con_err_if (u_test_suite_new("Ring Buffer", &ts));
+
+    con_err_if (u_test_case_register("Read-write", test_rw, ts));
+    con_err_if (u_test_case_register("Read-write fast", test_rw_fast, ts));
+
+    return u_test_suite_add(ts, t);
+err:
+    u_test_suite_free(ts);
+    return ~0;
 }

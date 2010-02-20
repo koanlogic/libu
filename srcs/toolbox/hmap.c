@@ -114,10 +114,10 @@ err:
 
 void u_hmap_easy_free (u_hmap_t *hmap)
 {
-    dbg_err_if (hmap == NULL);
+    dbg_return_if (hmap == NULL, );
 
     u_hmap_free(hmap);
-err:
+
     return; 
 }
 
