@@ -30,7 +30,7 @@ int pq_create (size_t nitems, pq_t **ppq)
     dbg_return_if (nitems < 2, ~0); /* Expect at least 2 elements. */
 
     /* Make room for both the queue head and items' array. */
-    dbg_err_sif ((pq = u_zalloc(sizeof *ppq)) == NULL);
+    dbg_err_sif ((pq = u_zalloc(sizeof *pq)) == NULL);
     dbg_err_sif ((pq->q = u_zalloc((nitems + 1) * sizeof(pq_item_t))) == NULL);
 
     /* Init the index of last element in array: valid elements are stored 
