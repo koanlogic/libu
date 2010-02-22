@@ -1,26 +1,35 @@
 #include <u/libu.h>
 #include <string.h>
 
-int test_suite_hmap_register (u_test_t *t);
-
-static int example_static (u_test_case_t *tc);
-static int example_easy_static (u_test_case_t *tc);
-static int example_easy_dynamic (u_test_case_t *tc);
-static int example_easy_opaque (u_test_case_t *tc);
-static int example_dynamic_own_hmap (u_test_case_t *tc);
-static int example_dynamic_own_user (u_test_case_t *tc);
-static int example_no_overwrite (u_test_case_t *tc);
-static int example_types_custom (u_test_case_t *tc);
-
-static int test_resize (u_test_case_t *tc);
-static int test_linear (u_test_case_t *tc);
-static int test_scope (u_test_case_t *tc);
 
 static size_t __sample_hash (const void *key, size_t size);
 static int __sample_comp(const void *key1, const void *key2);
 static u_string_t *__sample_str(u_hmap_o_t *obj);
 static u_hmap_o_t *__sample_obj(u_hmap_t *hmap, int key, const char *val);
 
+static int example_easy_basic (u_test_case_t *tc)
+{
+      u_hmap_opts_t opts;
+      u_hmap_t *hmap = NULL;
+      
+      u_hmap_opts_init(&opts);
+          
+      dbg_err_if (u_hmap_easy_new(&opts, &hmap));
+      dbg_err_if (u_hmap_opts_set_val_type(&opts, U_HMAP_OPTS_DATATYPE_STRING));
+      
+      dbg_err_if (u_hmap_easy_put(hmap, "jack", ":S"));
+      dbg_err_if (u_hmap_easy_put(hmap, "jill", ":)))"));
+      
+      u_con("jack is %s and jill is %s", 
+          (const char *) u_hmap_easy_get(hmap, "jack"),
+          (const char *) u_hmap_easy_get(hmap, "jill"));
+      
+      u_hmap_easy_free(hmap);
+
+      return 0;
+err:
+      return ~0;
+}
 
 static int example_easy_static (u_test_case_t *tc)
 {
@@ -63,11 +72,11 @@ static int example_easy_static (u_test_case_t *tc)
     /* free hmap (options and elements are freed automatically) */
     u_hmap_easy_free(hmap);
 
-    return U_TEST_SUCCESS;
+    return 0;
 err:
     U_FREEF(hmap, u_hmap_free);
 
-    return U_TEST_FAILURE;
+    return ~0;
 }
 
 struct mystruct_s {
@@ -138,12 +147,13 @@ static int example_easy_dynamic (u_test_case_t *tc)
     /* internal objects freed automatically using custom function */
     u_hmap_easy_free(hmap);
 
-    return U_TEST_SUCCESS;
+    return 0;
 err:
     U_FREEF(hmap, u_hmap_easy_free);
 
-    return U_TEST_FAILURE;
+    return ~0;
 }
+
 
 struct mystruct2_s {
     char c;
@@ -170,8 +180,8 @@ static int example_easy_opaque (u_test_case_t *tc)
 
     u_hmap_opts_init(&opts);
 
-    con_err_if (u_hmap_opts_set_val_sz(&opts, VAL_SZ));
     con_err_if (u_hmap_opts_set_val_type(&opts, U_HMAP_OPTS_DATATYPE_OPAQUE));
+    con_err_if (u_hmap_opts_set_val_sz(&opts, VAL_SZ));
 
     con_err_if (u_hmap_easy_new(&opts, &hmap));
 
@@ -195,11 +205,11 @@ static int example_easy_opaque (u_test_case_t *tc)
     /* free hmap (options and elements are freed automatically) */
     u_hmap_easy_free(hmap);
 
-    return U_TEST_SUCCESS;
+    return 0;
 err:
     U_FREEF(hmap, u_hmap_free);
 
-    return U_TEST_FAILURE;
+    return ~0;
 }
 
 static int example_static (u_test_case_t *tc)
@@ -219,7 +229,7 @@ static int example_static (u_test_case_t *tc)
     con_err_if (u_hmap_put(hmap, u_hmap_o_new(hmap, "last", 
                 &fibonacci[(sizeof(fibonacci)/sizeof(int))-1]), NULL));
 
-    /* retrieve and print values to dbgsole */
+    /* retrieve and print values to dbg */
     con_err_if (u_hmap_get(hmap, "last", &obj)); 
     u_dbg("hmap['%s'] = %d", (char *) obj->key, *((int *) obj->val));
     con_err_if (u_hmap_get(hmap, "fifth", &obj)); 
@@ -291,6 +301,7 @@ static int example_dynamic_own_hmap (u_test_case_t *tc)
     u_hmap_free(hmap);
 
     return U_TEST_SUCCESS;
+
 err:
     U_FREEF(hmap, u_hmap_free);
 
@@ -358,6 +369,7 @@ static int example_dynamic_own_user (u_test_case_t *tc)
     u_hmap_free(hmap);
 
     return U_TEST_SUCCESS;
+
 err:
     U_FREEF(hmap, u_hmap_free);
 
@@ -437,6 +449,7 @@ static u_string_t *__sample_str(u_hmap_o_t *obj)
     con_err_if (u_string_create(buf, strlen(buf)+1, &s));
 
     return s;
+
 err:
     return NULL;
 }
@@ -460,11 +473,17 @@ static u_hmap_o_t *__sample_obj(u_hmap_t *hmap, int key, const char *val)
     con_err_if (new == NULL);
     
     return new;
+
 err:
     u_free(k);
     u_free(v);
     
     return NULL;
+}
+
+static void __sample_free(u_hmap_o_t *obj)
+{
+
 }
 
 static int example_types_custom (u_test_case_t *tc)
@@ -554,6 +573,7 @@ static int test_resize (u_test_case_t *tc)
     u_hmap_free(hmap);
     
     return U_TEST_SUCCESS;
+
 err:
     U_FREEF(hmap, u_hmap_free);
 
@@ -599,6 +619,7 @@ static int test_linear (u_test_case_t *tc)
     u_hmap_free(hmap);
     
     return U_TEST_SUCCESS;
+
 err:
     U_FREEF(hmap, u_hmap_free);
 
@@ -643,38 +664,44 @@ static int test_scope (u_test_case_t *tc)
 
     u_hmap_easy_free(hmap);
 
-    return U_TEST_SUCCESS;
+    return 0;
 err:
     if (hmap)
         u_hmap_easy_free(hmap);
 
-    return U_TEST_FAILURE;
+    return ~0;
 }
 
 int test_suite_hmap_register (u_test_t *t)
 {
     u_test_suite_t *ts = NULL;
 
-    con_err_if (u_test_suite_new("Hash map", &ts));
+    con_err_if (u_test_suite_new("Hash Map", &ts));
 
-    con_err_if (u_test_case_register("Static values", example_static, ts));
-    con_err_if (u_test_case_register("Static values (easy interface)", 
+    /* examples */
+    con_err_if (u_test_case_register("Static Example", 
+                example_static, ts));
+    con_err_if (u_test_case_register("Basic (easy interface)",
+                example_easy_basic, ts));
+    con_err_if (u_test_case_register("Static (easy interface)", 
                 example_easy_static, ts));
-    con_err_if (u_test_case_register("Dynamic values (easy interface)", 
+    con_err_if (u_test_case_register("Dynamic (easy interface)",
                 example_easy_dynamic, ts));
-    con_err_if (u_test_case_register("Opaque values (easy interface)", 
+    con_err_if (u_test_case_register("Opaque (easy interface)", 
                 example_easy_opaque, ts));
-    con_err_if (u_test_case_register("Dynamic values: hmap ownership", 
+    con_err_if (u_test_case_register("Dynamic, Hmap Owns",
                 example_dynamic_own_hmap, ts));
-    con_err_if (u_test_case_register("Dynamic values: user ownership", 
+    con_err_if (u_test_case_register("Dynamic, User Owns",
                 example_dynamic_own_user, ts));
-    con_err_if (u_test_case_register("Duplicate values: no overwrite",
+    con_err_if (u_test_case_register("No Overwrite",
                 example_no_overwrite, ts));
-    con_err_if (u_test_case_register("Custom types", example_types_custom, ts));
-    con_err_if (u_test_case_register("Force resize", test_resize, ts));
-    con_err_if (u_test_case_register("Linear probing", test_linear, ts));
-    con_err_if (u_test_case_register("Different key-values scoping", 
-                test_scope, ts));
+    con_err_if (u_test_case_register("Custom Handlers",
+                example_types_custom, ts));
+
+    /* tests */
+    con_err_if (u_test_case_register("Resize", test_resize, ts));
+    con_err_if (u_test_case_register("Linear Probing", test_linear, ts));
+    con_err_if (u_test_case_register("Scoping", test_scope, ts));
 
     return u_test_suite_add(ts, t);
 err:
