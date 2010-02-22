@@ -51,6 +51,11 @@ int pq_empty (pq_t *pq)
     return (pq->nelems == 0);
 }
 
+int pq_full (pq_t *pq)
+{
+    return (pq->nelems == pq->nitems);
+}
+
 void pq_free (pq_t *pq)
 {
     dbg_return_if (pq == NULL, );
@@ -72,7 +77,7 @@ int pq_push (pq_t *pq, double key, const void *val)
     dbg_return_if (pq == NULL, -1);
 
     /* Queue full, would overflow. */
-    if (pq->nelems == pq->nitems)
+    if (pq_full(pq))
         return -2;
 
     pq->nelems += 1;
@@ -90,13 +95,25 @@ int pq_push (pq_t *pq, double key, const void *val)
     return 0;
 }
 
+/* Is meaningful only when !pq_empty(pq) */
+void *pq_peekmax (pq_t *pq, double *pkey)
+{
+    pq_item_t *pmax = &pq->q[pq->nelems];
+
+    if (pkey)
+        *pkey = pmax->key;
+
+    return pmax->val;
+}
+
+/* Is meaningful only when !pq_empty(pq) */
 void *pq_delmax (pq_t *pq, double *pkey) 
 {
     pq_item_t *pmax;
 
     dbg_return_if (pq == NULL, NULL);
 
-    /* Empty queue. */
+    /* Empty queue. XXX NULL is legitimate ... */
     if (pq->nelems == 0)
         return NULL;
 
@@ -153,13 +170,14 @@ static void bubble_down (pq_item_t *pi, size_t k, size_t n)
 {
     size_t j;
 
-    /* Move from top to bottom exchanging the parent node with the higher
+    /* Move from top to bottom exchanging the parent node with the highest
      * of its children, until the "moving" node is higher then both of them -
      * or we've reached the bottom. */
     while (2 * k <= n)
     {
         j = 2 * k;
 
+        /* Choose to go left or right depending on who's bigger. */
         if (j < n && pq_item_comp(&pi[j], &pi[j + 1]))
             j++;
 

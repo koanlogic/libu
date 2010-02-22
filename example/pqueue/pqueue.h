@@ -23,7 +23,9 @@ typedef struct pq_s pq_t;
 int pq_create (size_t maxitems, pq_t **ppq);
 int pq_push (pq_t *pq, double key, const void *val);
 void *pq_delmax (pq_t *pq, double *pkey);
+void *pq_peekmax (pq_t *pq, double *pkey);
 int pq_empty (pq_t *pq);
+int pq_full (pq_t *pq);
 void pq_free (pq_t *pq);
 
 /**
