@@ -149,8 +149,8 @@ void u_hmap_opts_init (u_hmap_opts_t *opts);
 /* for both simplified and normal interface */
 int u_hmap_opts_set_size (u_hmap_opts_t *opts, int sz);
 int u_hmap_opts_set_max (u_hmap_opts_t *opts, int max);
-int u_hmap_opts_set_type (u_hmap_opts_t *opts, int type);
-int u_hmap_opts_set_policy (u_hmap_opts_t *opts, int policy);
+int u_hmap_opts_set_type (u_hmap_opts_t *opts, u_hmap_type_t type);
+int u_hmap_opts_set_policy (u_hmap_opts_t *opts, u_hmap_pcy_type_t policy);
 int u_hmap_opts_set_val_freefunc (u_hmap_opts_t *opts, 
         void (*f_free)(void *val));
 int u_hmap_opts_set_val_type (u_hmap_opts_t *opts, 

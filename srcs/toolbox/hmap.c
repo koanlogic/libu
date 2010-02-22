@@ -1,9 +1,6 @@
 /* 
  * Copyright (c) 2005-2010 by KoanLogic s.r.l. - All rights reserved.  
  */
-/* solo oggetto in freefunc */
-/* string interface */
-/* overwrite? */
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -13,11 +10,6 @@
 #include <toolbox/carpal.h>
 #include <toolbox/hmap.h>
 #include <toolbox/misc.h>
-
-/**
- *  \defgroup hmap Map 
- *  \{
- */
 
 /* default limits handled by policies */
 #define U_HMAP_MAX_SIZE      512
@@ -84,6 +76,64 @@ static int __queue_pop_back (u_hmap_t *hmap, u_hmap_o_t **obj);
 static int __resize(u_hmap_t *hmap);
 static int __next_prime(size_t *prime, size_t sz, size_t *idx);
 
+/**
+ *  \defgroup hmap HMap 
+ *  \{
+ *      The \ref hmap module provides a flexible hash-map implementation
+ *      featuring:
+ *          - hash bucket chaining or linear probing operating modes
+ *          - pointer, string or opaque data types for both keys and values
+ *          - optional cache-style usage by specifying discard policies (FIFO, LRU, LFU)
+ *          - choice between user or hmap memory ownership
+ *          - custom hash function, comparison function and object free
+ *          functions (for hashmap ownership).
+ *
+ *      Developers new to hmap or those wanting a plain and simple 
+ *      { string -> object } hashmap implementation are strongly recommended to
+ *      use the new hmap_easy interface. It is more user-friendly than the
+ *      standard version and still allows choice between operating modes,
+ *      policies and other options applied to hmap values.
+ *      
+ *      The following examples illustrates the basic usage of the hmap_easy
+ *      interface:
+ *
+ *      \code
+ *          u_hmap_opts_t opts;
+ *          u_hmap_t *hmap = NULL;
+ *          
+ *          u_hmap_opts_init(&opts);
+ *              
+ *          dbg_err_if (u_hmap_easy_new(&opts, &hmap));
+ *          dbg_err_if (u_hmap_opts_set_val_type(&opts, U_HMAP_OPTS_DATATYPE_STRING));
+ *          
+ *          dbg_err_if (u_hmap_easy_put(hmap, "jack", ":S"));
+ *          dbg_err_if (u_hmap_easy_put(hmap, "jill", ":)))"));
+ *          
+ *          u_con("jack is %s and jill is %s", 
+ *              (const char *) u_hmap_easy_get(hmap, "jack"),
+ *              (const char *) u_hmap_easy_get(hmap, "jill"));
+ *          
+ *          u_hmap_easy_free(hmap);
+ *      \endcode
+ *  
+ *      More examples of both easy and standard API usage can be found in
+ *      test/hmap.c.
+ */
+
+
+/**
+ * \brief   Create a new hmap (simplified interface)
+ * 
+ * Create a new hmap object and save its pointer to \p *hmap. 
+ * The call may fail on memory allocation problems or if the options are
+ * manipulated incorrectly.
+ * 
+ * \param   opts      options to be passed to the hmap
+ * \param   phmap     on success contains the hmap options object
+ * 
+ * \retval  U_HMAP_ERR_NONE     on success
+ * \retval  U_HMAP_ERR_FAIL     on failure
+ */
 int u_hmap_easy_new (u_hmap_opts_t *opts, u_hmap_t **phmap)
 {
     u_hmap_opts_t newopts;
@@ -112,6 +162,15 @@ err:
     return U_HMAP_ERR_FAIL;
 }
 
+/**
+ * \brief   Deallocate hmap (simplified interface)
+ * 
+ * Deallocate \p hmap along with all hmapd objects. Objects are freed by using
+ * the function pointer specified with u_hmap_opts_set_val_freefunc() if it is
+ * not NULL.
+ * 
+ * \param   hmap      hmap object
+ */
 void u_hmap_easy_free (u_hmap_t *hmap)
 {
     dbg_return_if (hmap == NULL, );
@@ -121,6 +180,31 @@ void u_hmap_easy_free (u_hmap_t *hmap)
     return; 
 }
 
+/**
+ * \brief   Insert an object into the hmap (simplified interface)
+ * 
+ * Insert a \p key, \p val pair into \p hmap. 
+ * 
+ * The size of \p val copied into the hmap is based on its type set using
+ * u_hmap_opts_set_val_type(): 
+ *      - U_HMAP_OPTS_DATATYPE_POINTER (default): the pointer value will be
+ *      simply copied
+ *      - U_HMAP_OPTS_DATATYPE_STRING: the null-terminated string value will
+ *      copied entirely
+ *      - U_HMAP_OPTS_DATATYPE_OPAQUE: the value will be duplicated to the size
+ *      set with u_hmap_opts_set_val_sz()
+ *
+ * Values are not overwritten if a value already exists in the hmap for a given
+ * \p key.
+ * 
+ * \param   hmap      hmap object
+ * \param   key       key to be inserted 
+ * \param   val       value to be inserted
+ * 
+ * \retval  U_HMAP_ERR_NONE     on success
+ * \retval  U_HMAP_ERR_EXISTS   if key already exists
+ * \retval  U_HMAP_ERR_FAIL     on other failures
+ */
 int u_hmap_easy_put (u_hmap_t *hmap, const char *key, const void *val)
 {
     int rc = U_HMAP_ERR_NONE;
@@ -135,6 +219,17 @@ err:
     return (rc ? rc : U_HMAP_ERR_FAIL);
 }
 
+/**
+ * \brief   Retrieve a value from the hmap (simplified interface)
+ * 
+ * Retrieve the value with given \p key from \p hmap. 
+ * 
+ * \param   hmap      hmap object
+ * \param   key       key to be retrieved 
+ * 
+ * \retval  void *    on success
+ * \retval  NULL      on failure or no match
+ */
 void *u_hmap_easy_get (u_hmap_t *hmap, const char *key)
 {
     u_hmap_o_t *obj = NULL;
@@ -146,6 +241,17 @@ err:
     return NULL;
 }
 
+/*
+ * \brief   Delete an object from the hmap (simplified interface)
+ * 
+ * Delete object with given \p key from \p hmap. 
+ * 
+ * \param   hmap      hmap object
+ * \param   key       key of object to be deleted 
+ * 
+ * \retval  U_HMAP_ERR_NONE     on success
+ * \retval  U_HMAP_ERR_FAIL     on failure
+ */
 int u_hmap_easy_del (u_hmap_t *hmap, const char *key)
 {
     return (u_hmap_del(hmap, key, NULL));
@@ -156,7 +262,7 @@ int u_hmap_easy_del (u_hmap_t *hmap, const char *key)
  *
  * Get a string representation of an error code
  *
- * \param rc   return code 
+ * \param   rc   return code 
  */
 const char *u_hmap_strerror (u_hmap_ret_t rc)
 {
@@ -284,14 +390,15 @@ static int __pcy_setup (u_hmap_t *hmap)
 /**
  * \brief   Create a new hmap 
  * 
- * Create a new hmap object and save its pointer to \a *hmap. 
+ * Create a new hmap object and save its pointer to \p *hmap. 
  * The call may fail on memory allocation problems or if the options are
  * manipulated incorrectly.
  * 
- * \param opts      options to be passed to the hmap
- * \param phmap     on success contains the hmap options object
+ * \param   opts      options to be passed to the hmap
+ * \param   phmap     on success contains the hmap options object
  * 
- * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
+ * \retval  U_HMAP_ERR_NONE     on success
+ * \retval  U_HMAP_ERR_FAIL     on failure
  */
 int u_hmap_new (u_hmap_opts_t *opts, u_hmap_t **phmap)
 {
@@ -347,13 +454,14 @@ err:
 /**
  * \brief Copy hmap
  *
- * Perform a copy of an hmap \a from to \a to by rehashing all elements and
+ * Perform a copy of an hmap \p from to \p to by rehashing all elements and
  * copying the object pointers to the new locations.
  *
- * \param to        destination hmap
- * \param from      source hmap
+ * \param   to        destination hmap
+ * \param   from      source hmap
  * 
- * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
+ * \retval  U_HMAP_ERR_NONE     on success
+ * \retval  U_HMAP_ERR_FAIL     on failure
  */
 int u_hmap_copy (u_hmap_t *to, u_hmap_t *from)
 {
@@ -383,7 +491,7 @@ err:
  *
  * Print out information on an hmap.
  *
- * \param hmap  hmap object
+ * \param   hmap  hmap object
  */
 void u_hmap_dbg (u_hmap_t *hmap)
 {
@@ -429,14 +537,15 @@ err:
 /*
  * \brief   Delete an object from the hmap
  * 
- * Delete object with given \a key from \a hmap and return it (if the object is
+ * Delete object with given \p key from \p hmap and return it (if the object is
  * owned by user).
  * 
- * \param hmap      hmap object
- * \param key       key of object to be deleted 
- * \param obj       deleted object
+ * \param   hmap      hmap object
+ * \param   key       key of object to be deleted 
+ * \param   obj       deleted object
  * 
- * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
+ * \retval  U_HMAP_ERR_NONE     on success
+ * \retval  U_HMAP_ERR_FAIL     on failure
  */
 int u_hmap_del (u_hmap_t *hmap, const void *key, u_hmap_o_t **obj) 
 {
@@ -678,16 +787,18 @@ err:
 /**
  * \brief   Insert an object into the hmap
  * 
- * Insert a (key, val) pair \a obj into \a hmap. Such object should be created
+ * Insert a (key, val) pair \p obj into \p hmap. Such object should be created
  * with u_hmap_o_new(). The user is responsible for allocation of keys and
- * values unless U_HMAP_OPTS_OWNSDATA is set. If a value is overwritten, the \a
+ * values unless U_HMAP_OPTS_OWNSDATA is set. If a value is overwritten, the \p
  * old value is returned (only if data is owned by user).
  * 
- * \param hmap      hmap object
- * \param obj       key to be inserted 
- * \param old       returned old value
+ * \param   hmap      hmap object
+ * \param   obj       key to be inserted 
+ * \param   old       returned old value
  * 
- * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
+ * \retval  U_HMAP_ERR_NONE     on success
+ * \retval  U_HMAP_ERR_EXISTS   if key already exists
+ * \retval  U_HMAP_ERR_FAIL     on other failures
  */
 int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
 {
@@ -857,15 +968,16 @@ end:
 /**
  * \brief   Retrieve an object from the hmap
  * 
- * Retrieve object with given \a key from \a hmap. On success the requested
- * object is returned in \a obj. The object is not removed from the hmap, so
+ * Retrieve object with given \p key from \p hmap. On success the requested
+ * object is returned in \p obj. The object is not removed from the hmap, so
  * ownership of the object is not returned to the user.
  * 
- * \param hmap      hmap object
- * \param key       key to be retrieved 
- * \param obj       returned object
+ * \param   hmap      hmap object
+ * \param   key       key to be retrieved 
+ * \param   obj       returned object
  * 
- * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
+ * \retval  U_HMAP_ERR_NONE     on success
+ * \retval  U_HMAP_ERR_FAIL     on failure
  */
 int u_hmap_get (u_hmap_t *hmap, const void *key, u_hmap_o_t **obj) 
 {
@@ -892,13 +1004,14 @@ err:
 /**
  * \brief   Perform an operation on all objects
  * 
- * Execute function \a f on all objects within \a hmap. These functions should 
+ * Execute function \p f on all objects within \p hmap. These functions should 
  * return U_HMAP_ERR_NONE on success, and take an object as a parameter.
  * 
- * \param hmap      hmap object
- * \param f         function    
+ * \param   hmap      hmap object
+ * \param   f         function    
  * 
- * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
+ * \retval  U_HMAP_ERR_NONE     on success
+ * \retval  U_HMAP_ERR_FAIL     on failure
  */
 int u_hmap_foreach (u_hmap_t *hmap, int f(const void *val))
 {
@@ -922,15 +1035,16 @@ err:
 /**
  * \brief   \c u_hmap_foreach with user supplied parameter
  * 
- * Execute function \a f on all objects within \a hmap supplying \a arg
+ * Execute function \p f on all objects within \p hmap supplying \p arg
  * as custom argument.  These functions should return \c U_HMAP_ERR_NONE on 
- * success, and take an hmap object and \a arg as parameters.
+ * success, and take an hmap object and \p arg as parameters.
  * 
- * \param hmap      hmap object
- * \param f         function 
- * \param arg       custom arg that will be supplied to \a f
+ * \param   hmap      hmap object
+ * \param   f         function 
+ * \param   arg       custom arg that will be supplied to \p f
  * 
- * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
+ * \retval  U_HMAP_ERR_NONE     on success
+ * \retval  U_HMAP_ERR_FAIL     on failure
  */
 int u_hmap_foreach_arg (u_hmap_t *hmap, int f(const void *val, const void *arg), 
         void *arg)
@@ -955,13 +1069,14 @@ err:
 /**
  * \brief   Perform an operation on all objects
  * 
- * Execute function \a f on all objects within \a hmap. These functions should 
+ * Execute function \p f on all objects within \p hmap. These functions should 
  * return U_HMAP_ERR_NONE on success, and take an object as a parameter.
  * 
- * \param hmap      hmap object
- * \param f         function, must accept key and val params   
+ * \param   hmap      hmap object
+ * \param   f         function, must accept key and val params   
  * 
- * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
+ * \retval  U_HMAP_ERR_NONE     on success
+ * \retval  U_HMAP_ERR_FAIL     on failure
  */
 int u_hmap_foreach_keyval(u_hmap_t *hmap, int f(const void *key, const void *val))
 {
@@ -986,11 +1101,11 @@ err:
 /**
  * \brief   Deallocate hmap
  * 
- * Deallocate \a hmap along with all hmapd objects (unless U_HMAP_OPTS_OWNSDATA
+ * Deallocate \p hmap along with all hmapd objects (unless U_HMAP_OPTS_OWNSDATA
  * is set). Objects are freed via free() by default or using the custom
  * deallocation function passed in the hmap options. 
  * 
- * \param hmap      hmap object
+ * \param   hmap      hmap object
  */
 void u_hmap_free (u_hmap_t *hmap)
 {
@@ -1028,13 +1143,14 @@ void u_hmap_free (u_hmap_t *hmap)
 /**
  * \brief   Create new hmap options
  * 
- * Create a new hmap options object and save its pointer to \a *opts. 
+ * Create a new hmap options object and save its pointer to \p *opts. 
  * The fields within the object can be manipulated publicly according to the
  * description in the header file.
  * 
- * \param opts      on success contains the hmap options object
+ * \param   opts      on success contains the hmap options object
  * 
- * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
+ * \retval  U_HMAP_ERR_NONE     on success
+ * \retval  U_HMAP_ERR_FAIL     on failure
  */
 int u_hmap_opts_new (u_hmap_opts_t **opts)
 {
@@ -1058,12 +1174,13 @@ err:
 /**
  * \brief Copy options
  *
- * Perform a deep copy of options object \a from to \a to.
+ * Perform a deep copy of options object \p from to \p to.
  *
- * \param to        destination options
- * \param from      source options
+ * \param   to        destination options
+ * \param   from      source options
  * 
- * \return U_HMAP_ERR_NONE on success, U_HMAP_ERR_FAIL on failure
+ * \retval  U_HMAP_ERR_NONE     on success
+ * \retval  U_HMAP_ERR_FAIL     on failure
  */
 int u_hmap_opts_copy (u_hmap_opts_t *to, u_hmap_opts_t *from)
 {
@@ -1083,7 +1200,7 @@ err:
  * 
  * Set allocated hmap options to default values
  * 
- * \param opts      hmap options object
+ * \param   opts      hmap options object
  */
 void u_hmap_opts_init (u_hmap_opts_t *opts)
 {
@@ -1112,9 +1229,9 @@ void u_hmap_opts_init (u_hmap_opts_t *opts)
 /**
  * \brief   Deallocate hmap options
  * 
- * Deallocate hmap options object \a opts.
+ * Deallocate hmap options object \p opts.
  * 
- * \param opts      hmap options 
+ * \param   opts      hmap options 
  */
 void u_hmap_opts_free (u_hmap_opts_t *opts)
 {
@@ -1128,7 +1245,7 @@ void u_hmap_opts_free (u_hmap_opts_t *opts)
  * 
  * Print out information on option settings.
  * 
- * \param opts  options object
+ * \param   opts  options object
  */
 void u_hmap_opts_dbg (u_hmap_opts_t *opts)
 {
@@ -1154,9 +1271,9 @@ void u_hmap_opts_dbg (u_hmap_opts_t *opts)
  * user is responsible for allocation and deallocation of these objects and
  * their content. If the option U_HMAP_OPTS_OWNSDATA is set 
  *
- * \param hmap      reference to parent hmap
- * \param key       pointer to the key
- * \param val       pointer to the oject
+ * \param   hmap      reference to parent hmap
+ * \param   key       pointer to the key
+ * \param   val       pointer to the oject
  *
  * \return pointer to a new u_hmap_o_t 
  */
@@ -1225,7 +1342,7 @@ err:
  * automatically by the hashmap by using the default free function or the
  * overridden f_free().
  *
- * \param obj       hmap object
+ * \param   obj       hmap object
  */
 void u_hmap_o_free (u_hmap_o_t *obj)
 {
@@ -1233,10 +1350,6 @@ void u_hmap_o_free (u_hmap_o_t *obj)
 
     u_free(obj);
 }
-
-/**
- *      \}
- */
 
 /* Free a data object including content (only if U_HMAP_OPTS_OWNSDATA) */
 static void __o_free (u_hmap_t *hmap, u_hmap_o_t *obj)
@@ -1399,6 +1512,7 @@ err:
     return ~0;
 }
 
+/** \brief Set initial size of hmap's dynamic array */
 int u_hmap_opts_set_size (u_hmap_opts_t *opts, int sz)
 {
     dbg_err_if (opts == NULL || sz <= 0);
@@ -1410,6 +1524,11 @@ err:
     return ~0;
 }
 
+/** \brief Set maximum number of elements 
+ *
+ * This limit is used only if a discard policy has been set via
+ * u_hmap_opts_set_policy(); otherwise the hmap is simply resized.
+ */
 int u_hmap_opts_set_max (u_hmap_opts_t *opts, int max)
 {
     dbg_err_if (opts == NULL || max <= 0);
@@ -1421,7 +1540,8 @@ err:
     return ~0;
 }
 
-int u_hmap_opts_set_type (u_hmap_opts_t *opts, int type)
+/** \brief Set type of hmap */
+int u_hmap_opts_set_type (u_hmap_opts_t *opts, u_hmap_type_t type)
 {
     dbg_err_if (opts == NULL);
 
@@ -1434,18 +1554,19 @@ err:
     return ~0;
 }
 
-int u_hmap_opts_set_policy (u_hmap_opts_t *opts, int policy)
+/** \brief Set discard policy */
+int u_hmap_opts_set_policy (u_hmap_opts_t *opts, u_hmap_pcy_type_t policy)
 {
     dbg_err_if (opts == NULL || policy < 0 || policy > U_HMAP_TYPE_LAST);
 
-    opts->policy = policy; 
+    opts->policy |= policy; 
 
     return 0;
 err:
     return ~0;
 }
 
-/* not valid for simplified interface */
+/** \brief Set options mask (not valid for simplified interface) */
 int u_hmap_opts_set_options (u_hmap_opts_t *opts, int options)
 {
     dbg_err_if (opts == NULL || opts->easy); 
@@ -1457,7 +1578,7 @@ err:
     return ~0;
 }
 
-/* not valid for simplified interface */
+/** \brief Set a custom hash function (not valid for simplified interface) */
 int u_hmap_opts_set_hashfunc (u_hmap_opts_t *opts, 
         size_t (*f_hash)(const void *key, size_t buckets))
 {
@@ -1470,7 +1591,7 @@ err:
     return ~0;
 }
 
-/* not valid for simplified interface */
+/** \brief Set a custom comparison function (not valid for simplified interface) */
 int u_hmap_opts_set_compfunc (u_hmap_opts_t *opts, 
         int (*f_comp)(const void *k1, const void *k2))
 {
@@ -1483,7 +1604,7 @@ err:
     return ~0;
 }
 
-/* not valid for simplified interface */
+/** \brief Set a custom object free function (not valid for simplified interface) */
 int u_hmap_opts_set_freefunc (u_hmap_opts_t *opts, 
         void (*f_free)(u_hmap_o_t *obj))
 {
@@ -1496,6 +1617,7 @@ err:
     return ~0;
 }
 
+/** \brief Set a custom string representation for objects */
 int u_hmap_opts_set_strfunc (u_hmap_opts_t *opts, 
         u_string_t *(*f_str)(u_hmap_o_t *obj))
 {
@@ -1508,6 +1630,7 @@ err:
     return ~0;
 }
 
+/** \brief Set type for keys (not valid for simplified interface) */
 int u_hmap_opts_set_key_type (u_hmap_opts_t *opts, 
         u_hmap_options_datatype_t type)
 {
@@ -1524,13 +1647,14 @@ err:
     return ~0;
 }
 
+/** \brief Set size of keys (not valid for simplified interface -
+  * only valid for opaque type) */
 int u_hmap_opts_set_key_sz (u_hmap_opts_t *opts, size_t sz)
 {
-    dbg_err_if (opts == NULL || 
-            sz == 0);
+    dbg_err_if (opts == NULL || sz == 0);
 
-    /* not valid for simplified interface */
     dbg_err_if (opts->easy);
+    dbg_err_if (opts->key_type != U_HMAP_OPTS_DATATYPE_OPAQUE);
 
     opts->key_sz = sz;
 
@@ -1539,12 +1663,12 @@ err:
     return ~0;
 }
 
+/** \brief Set free function for keys */
 int u_hmap_opts_set_key_freefunc (u_hmap_opts_t *opts, 
         void (*f_free)(const void *key))
 {
     dbg_err_if (opts == NULL);
 
-    /* not valid for simplified interface */
     dbg_err_if (opts->easy);
 
     opts->f_key_free = f_free;
@@ -1554,6 +1678,7 @@ err:
     return ~0;
 }
 
+/** \brief Set type of values */
 int u_hmap_opts_set_val_type (u_hmap_opts_t *opts, 
         u_hmap_options_datatype_t type)
 {
@@ -1567,10 +1692,12 @@ err:
     return ~0;
 }
 
+/** \brief Set size of values (only valid for opaque type) */
 int u_hmap_opts_set_val_sz (u_hmap_opts_t *opts, size_t sz)
 {
-    dbg_err_if (opts == NULL || 
-            sz == 0);
+    dbg_err_if (opts == NULL || sz == 0);
+     
+    dbg_err_if (opts->val_type != U_HMAP_OPTS_DATATYPE_OPAQUE);
 
     opts->val_sz = sz;
 
@@ -1579,6 +1706,7 @@ err:
     return ~0;
 }
 
+/** \brief Set free function for values */
 int u_hmap_opts_set_val_freefunc (u_hmap_opts_t *opts, void (*f_free)(void *val))
 {
     dbg_err_if (opts == NULL);
@@ -1589,4 +1717,8 @@ int u_hmap_opts_set_val_freefunc (u_hmap_opts_t *opts, void (*f_free)(void *val)
 err:
     return ~0;
 }
+
+/**
+ *   \}
+ */
 
