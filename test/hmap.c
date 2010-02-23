@@ -26,9 +26,9 @@ static int example_easy_basic (u_test_case_t *tc)
       
       u_hmap_easy_free(hmap);
 
-      return 0;
+      return U_TEST_SUCCESS;
 err:
-      return ~0;
+      return U_TEST_FAILURE;
 }
 
 static int example_easy_static (u_test_case_t *tc)
@@ -72,11 +72,11 @@ static int example_easy_static (u_test_case_t *tc)
     /* free hmap (options and elements are freed automatically) */
     u_hmap_easy_free(hmap);
 
-    return 0;
+    return U_TEST_SUCCESS;
 err:
     U_FREEF(hmap, u_hmap_free);
 
-    return ~0;
+    return U_TEST_FAILURE;
 }
 
 struct mystruct_s {
@@ -147,11 +147,11 @@ static int example_easy_dynamic (u_test_case_t *tc)
     /* internal objects freed automatically using custom function */
     u_hmap_easy_free(hmap);
 
-    return 0;
+    return U_TEST_SUCCESS;
 err:
     U_FREEF(hmap, u_hmap_easy_free);
 
-    return ~0;
+    return U_TEST_FAILURE;
 }
 
 
@@ -205,11 +205,11 @@ static int example_easy_opaque (u_test_case_t *tc)
     /* free hmap (options and elements are freed automatically) */
     u_hmap_easy_free(hmap);
 
-    return 0;
+    return U_TEST_SUCCESS;
 err:
     U_FREEF(hmap, u_hmap_free);
 
-    return ~0;
+    return U_TEST_FAILURE;
 }
 
 static int example_static (u_test_case_t *tc)
@@ -481,11 +481,6 @@ err:
     return NULL;
 }
 
-static void __sample_free(u_hmap_o_t *obj)
-{
-
-}
-
 static int example_types_custom (u_test_case_t *tc)
 {
     u_hmap_opts_t opts;
@@ -664,12 +659,12 @@ static int test_scope (u_test_case_t *tc)
 
     u_hmap_easy_free(hmap);
 
-    return 0;
+    return U_TEST_SUCCESS;
 err:
     if (hmap)
         u_hmap_easy_free(hmap);
 
-    return ~0;
+    return U_TEST_FAILURE;
 }
 
 int test_suite_hmap_register (u_test_t *t)
