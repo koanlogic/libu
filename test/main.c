@@ -39,12 +39,9 @@ int main(int argc, char **argv)
 #ifndef NO_HMAP
     con_err_if (test_suite_hmap_register(t));
 #endif  /* !NO_HMAP */
-
-#if 0
 #ifndef NO_PQUEUE
     con_err_if (test_suite_pqueue_register(t));
 #endif  /* !NO_PQUEUE */
-#endif
 
     con_err_if (u_test_run(argc, argv, t));
 

@@ -184,8 +184,8 @@ static int test_u_rdwr (u_test_case_t *tc)
 
     return U_TEST_SUCCESS;
 err:
-    u_con("failed. file: %s file_size: %d, buf_size: %d", fn, 
-            file_size, buf_size);
+    u_test_case_printf(tc, "failed. file: %s file_size: %d, buf_size: %d", 
+            fn, file_size, buf_size);
     return U_TEST_FAILURE;
 }
 

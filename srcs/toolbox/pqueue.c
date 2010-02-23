@@ -1,153 +1,136 @@
-/* 
- * Copyright (c) 2005-2010 by KoanLogic s.r.l. - All rights reserved.  
- */
+/*
+ * Copyright (c) 2005-2010 by KoanLogic s.r.l.
+ */ 
 
-#include <stdint.h>
-#include <u/libu.h>
+#include <toolbox/carpal.h>
+#include <toolbox/misc.h>
 #include <toolbox/pqueue.h>
 
-#define u_pq_test_score(q, prio, t1, t2) \
-    ((q->policy == U_PQ_KEEP_HIGHEST) ? \
-        prio > q->items[t1].priority : prio < q->items[t2].priority)
-
-struct u_pqitem_s
+typedef struct u_pq_item_s
 {
-    double priority;
-    const void *ptr;
-    int prev, next;
-};
+    double key;
+    void *val;
+} u_pq_item_t;
 
 struct u_pq_s
 {
-    u_pq_policy_t policy;
-    size_t nelems;  /* number of alloc'd u_pqitem_t slots */
-    size_t count;   /* number of elements appende into the queue */
-    u_pqitem_t *items;
-    int last, first;
+    size_t nelems, nitems;
+    u_pq_item_t *q;
 };
 
-static int u_pq_append (u_pq_t *q, int pos, double priority, const void *ptr);
+static int pq_item_comp (u_pq_item_t *pi, u_pq_item_t *pj);
+static void pq_item_swap (u_pq_item_t *pi, u_pq_item_t *pj);
+static void bubble_up (u_pq_item_t *pi, size_t k);
+static void bubble_down (u_pq_item_t *pi, size_t k, size_t n);
 
 /**
     \defgroup pq Priority Queues
     \{
-        The \ref pq module implements a fixed width array of generic elements
-        (pointers) each of which is tagged with a given priority (chosen at
-        the time of insertion of the element) by which the queue is explicitly 
-        ordered.
-  
-        Pushing an element will always succeed if the queue is not full.
-  
-        If the queue is full the pushed element will be inserted only if its
-        score is better then the score of one or more of the existing 
-        elements. It such case the element having the worst score will be 
-        discarded.
-  
-        Use ::U_PQ_KEEP_LOWEST as the second parameter to ::u_pq_create if 
-        you want to keep elements with lowest priorities, ::U_PQ_KEEP_HIGHEST 
-        otherwise.
-  
-        The set of available primitives is very simple: creation (via
-        ::u_pq_create), insertion (::u_pq_push), iteration (the ::u_pq_foreach
-        macro) and destruction (::u_pq_free): clearly there is no explicit 
-        deletion interface since dropping an element is an implicit outcome
-        of the insertion op when the queue is full.
- */
+        The \ref pq module implements a fixed length priority queue using a 
+        heap.  Elements (together with their associated numerical priority)
+        are pushed to the queue via (::u_pq_push) until free slots are 
+        available.
 
-/**
- *  \brief  Push an element with the given priority
- *
- *  Push the element \p ptr into the ::u_pq_t object \p q with the given
- *  priority \p prio
- *  
- *  \param  q       an ::u_pq_t object
- *  \param  prio    the priority tag for \p ptr
- *  \param  ptr     the element to be pushed into \p q
- *
- *  \retval  0  on success
- *  \retval ~0  on failure (append failed or element explicitly discarded)
- */ 
-int u_pq_push (u_pq_t *q, double prio, const void *ptr)
-{
-    int waslast;
+        The top element can be evicted (::u_pq_delmax) or just peeked at 
+        (::u_pq_peekmax).  Eviction and insertion are performed in O(lg(N)) 
+        where N is the queue cardinality.
 
-    dbg_return_if (q == NULL, ~0);
-    dbg_return_if (ptr == NULL, ~0);
+        The following example describe the use of a priority queue to 
+        efficiently extract the top 10 out of 10 million elements:
+ \code
+    size_t i;
+    double key, keymax = DBL_MAX;
+    u_pq_t *pq = NULL;
 
-    /* in case we have free slots, just append 'ptr' at 'q->count' position */
-    if (q->count < q->nelems)
-        return u_pq_append(q, q->count, prio, ptr);
+    srandom((unsigned long) getpid());
 
-    /* if the queue is full, test supplied element priority against
-     * last element priority and queue policy to choose if we need to 
-     * skip insertion or proceed by overwriting the last element */
-    if (u_pq_test_score(q, prio, q->last, q->last))
+    con_err_if (u_pq_create(10, &pq));
+
+    for (i = 0; i < 10000000; i++)
     {
-        waslast = q->last;
+        if (!u_pq_empty(pq))
+            (void) u_pq_peekmax(pq, &keymax);
 
-        q->count--;
-        q->last = q->items[q->last].prev;
-        q->items[q->last].next = -1;
+        // get a new element and see if it could get into by comparing
+        // it to the actual 10th element
+        if ((key = (double) random()) > keymax)
+            continue;
 
-        return u_pq_append(q, waslast, prio, ptr);
-    } 
+        // make room for the new entry removing the 10th
+        if (u_pq_full(pq))
+            (void) u_pq_delmax(pq, NULL);
 
-    /* element is discarded */
-    return ~0;
-}
+        // let it enter the top 10
+        con_err_if (u_pq_push(pq, key, NULL));
+    }
 
-/**
- *  \brief  Return the number of elements actually in list
- *
- *  Return the number of elements in the supplied ::u_pq_t object
- *
- *  \param  q   an ::u_pq_t object
- *
- *  \return the number of elements actually in list
- */ 
-size_t u_pq_count (u_pq_t *q)
-{
-    return q->count;
-}
+    // print out
+    for (i = 0; i < 10; i++)
+    {
+        (void) u_pq_delmax(pq, &key);
+        u_con("%zu: %lf", i, key);
+    }
+ \endcode
+ */
 
 /**
  *  \brief  Create a new priority queue
  *
- *  Create a new ::u_pq_t object with \p nelems elements and return its 
- *  reference as a result value at \p *pq
+ *  Create a new ::u_u_pq_t object with \p nitems elements and return its 
+ *  reference as a result value at \p *ppq
  *
- *  \param  nelems  maximum number of elements (at least 2) in queue
- *  \param  policy  say if you want to keep the highest (::U_PQ_KEEP_HIGHEST) 
- *                  or lowest (::U_PQ_KEEP_LOWEST) priority values when 
- *                  ::u_pq_push'ing to a full queue
- *  \param  pq      the newly created ::u_pq_t object as a result argument
+ *  \param  nitems  maximum number of elements (at least 2) in queue
+ *  \param  ppq     the newly created ::u_u_pq_t object as a result argument
  *
  *  \retval  0  on success
  *  \retval ~0  on failure
  */ 
-int u_pq_create (size_t nelems, u_pq_policy_t policy, u_pq_t **pq)
+int u_pq_create (size_t nitems, u_pq_t **ppq)
 {
-    u_pq_t *q = NULL;
+    u_pq_t *pq = NULL;
 
-    dbg_return_if (pq == NULL, ~0); 
-    dbg_return_if (nelems < 2, ~0);
+    dbg_return_if (ppq == NULL, ~0);
+    dbg_return_if (nitems < 2, ~0); /* Expect at least 2 elements. */
 
-    dbg_err_sif ((q = u_zalloc(sizeof *q)) == NULL);
+    /* Make room for both the queue head and items' array. */
+    dbg_err_sif ((pq = u_zalloc(sizeof *pq)) == NULL);
+    dbg_err_sif ((pq->q = u_calloc(nitems + 1, sizeof(u_pq_item_t))) == NULL);
 
-    q->nelems = nelems;
-    q->policy = policy; /* keep highest or lowest values in the queue */
-    q->last = q->first = -1;
+    /* Init the index of last element in array: valid elements are stored 
+     * at index'es [1..nitems]. */
+    pq->nelems = 0;
+    pq->nitems = nitems;
 
-    /* make room for the requested number of elements */
-    dbg_err_sif ((q->items = u_calloc(nelems, sizeof(u_pqitem_t))) == NULL);
-
-    *pq = q;
+    *ppq = pq;
 
     return 0;
 err:
-    if (q)
-        u_pq_free(q);
+    u_pq_free(pq);
     return ~0;
+}
+
+/**
+ *  \brief  Tell if a the supplied queue is empty
+ *
+ *  \param  pq  queue handler
+ *
+ *  \return \c 0 when there is some element in \p pq, non-zero otherwise.
+ */ 
+int u_pq_empty (u_pq_t *pq)
+{
+    return (pq->nelems == 0);
+}
+
+/**
+ *  \brief  Tell if a the supplied queue is full
+ *
+ *  \param  pq  queue handler
+ *
+ *  \return \c 0 when there is no room left in \p pq, non-zero otherwise.
+ */ 
+int u_pq_full (u_pq_t *pq)
+{
+    return (pq->nelems == pq->nitems);
 }
 
 /** 
@@ -155,96 +138,175 @@ err:
  *
  *  Dispose the supplied ::u_pq_t object \p q
  *
- *  \param  q   a previously allocated ::u_pq_t object
+ *  \param  pq  a previously allocated ::u_pq_t object
  *
  *  \return nothing
  */
-void u_pq_free (u_pq_t *q)
+void u_pq_free (u_pq_t *pq)
 {
-    dbg_return_if (q == NULL, );
+    dbg_return_if (pq == NULL, );
 
-    if (q->items)
-        u_free(q->items);
-
-    u_free(q);
+    if (pq->q)
+        u_free(pq->q);
+    u_free(pq);
 
     return;
 }
 
-/** \brief  Return first element position */
-int u_pq_first (u_pq_t *q) { return q->first; }
-
-/** \brief  Return last element position */
-int u_pq_last (u_pq_t *q) { return q->last; }
-
-/** \brief  Return the predecessor of the element at the given position */
-int u_pq_prev (u_pq_t *q, size_t t) { return q->items[t].prev; }
-
-/** \brief  Return the element next to the given position */
-int u_pq_next (u_pq_t *q, size_t t) { return q->items[t].next; }
-
-/** \brief  Return the priority of the element at the given position */
-double u_pq_prio (u_pq_t *q, size_t t) { return q->items[t].priority; }
-
-/** \brief  Return the reference to the items array */
-u_pqitem_t *u_pq_items (u_pq_t *q) { return q->items; }
-
 /**
- *  \}
- */ 
-
-static int u_pq_append (u_pq_t *q, int pos, double prio, const void *ptr)
+ *  \brief  Push an element with the given priority
+ *
+ *  Push the element \p val into the ::u_pq_t object \p pq with the given
+ *  priority \p key
+ *  
+ *  \param  pq      an ::u_pq_t object
+ *  \param  key     the priority tag for \p ptr
+ *  \param  val     the element to be pushed into \p q
+ *
+ *  \retval  0  on success
+ *  \retval -1  on failure
+ *  \retval -2  if the insertion can't proceed because the queue is full
+ */
+int u_pq_push (u_pq_t *pq, double key, const void *val)
 {
-    int t, b, prevt = -1;
+    u_pq_item_t *pi;
 
-    dbg_return_if (q == NULL, ~0);
-    dbg_return_if (ptr == NULL, ~0);
+    dbg_return_if (pq == NULL, -1);
 
-    /* attach element at the given position */
-    q->items[pos].ptr = ptr;
-    q->items[pos].priority = prio;
+    /* Queue full, would overflow. */
+    if (u_pq_full(pq))
+        return -2;
 
-    /* first element goes like this */
-    if (q->count == 0)
-    {
-        q->items[pos].prev = q->items[pos].next = -1;
-        q->first = q->last = pos;
-        goto end;
-    }
+    pq->nelems += 1;
 
-    if (!u_pq_test_score(q, prio, q->last, q->last))
-    {
-        q->items[pos].prev = q->last;
-        q->items[pos].next = -1;
-        q->items[q->last].next = pos;
-        q->last = pos;
-    } 
-    else 
-    {
-        for (t = q->last; t != -1; prevt = t, t = q->items[t].prev)
-        {
-            if (!u_pq_test_score(q, prio, t, t))
-                break;
-        }
+    /* Get next free slot (from heap bottom). */
+    pi = &pq->q[pq->nelems];
 
-        b = q->items[prevt].prev;
+    /* Assign element. */
+    pi->key = key;
+    memcpy(&pi->val, &val, sizeof(void **));
 
-        /* prev */
-        q->items[prevt].prev = pos;
-        q->items[pos].prev = b;
-
-        /* next */
-        if (b != -1)
-            q->items[b].next = pos;
-        q->items[pos].next = prevt;
-
-        if (t == -1)
-            q->first = pos;
-    }
-
-end:
-    q->count++;
+    /* Fix heap condition bottom-up. */
+    bubble_up(pq->q, pq->nelems);
 
     return 0;
 }
 
+/** 
+ *  \brief  Return the top element without evicting it
+ *
+ *  \param  pq      an ::u_pq_t object
+ *  \param  pkey    if non-NULL, it will store the priority of the top element
+ *
+ *  \return the element value
+ *
+ *  \note   If performed on an empty queue the result is unpredictable.
+ */
+void *u_pq_peekmax (u_pq_t *pq, double *pkey)
+{
+    u_pq_item_t *pmax = &pq->q[pq->nelems];
+
+    if (pkey)
+        *pkey = pmax->key;
+
+    return pmax->val;
+}
+
+/** 
+ *  \brief  Evict the top element from the supplied queue
+ *
+ *  \param  pq      an ::u_pq_t object
+ *  \param  pkey    if non-NULL, it will store the priority of the top element
+ *
+ *  \return the evicted element value
+ *
+ *  \note   If performed on an empty queue the result is unpredictable.
+ */
+void *u_pq_delmax (u_pq_t *pq, double *pkey) 
+{
+    u_pq_item_t *pmax;
+
+    dbg_return_if (pq == NULL, NULL);
+
+    /* Empty queue. XXX NULL is legitimate ... */
+    if (pq->nelems == 0)
+        return NULL;
+
+    /* Exchange top and bottom items. */
+    pq_item_swap(&pq->q[1], &pq->q[pq->nelems]);
+
+    /* Fix heap condition top-down excluding the evicted item. */
+    bubble_down(pq->q, 1, pq->nelems - 1);
+
+    pmax = &pq->q[pq->nelems];
+
+    pq->nelems -= 1;
+
+    /* Copy out the deleted key if requested. */
+    if (pkey)
+        *pkey = pmax->key;
+
+    return pmax->val;
+}
+
+/**
+ *  \}
+ */
+
+static void pq_item_swap (u_pq_item_t *pi, u_pq_item_t *pj)
+{
+    void *tmpval = pi->val;
+    double tmpkey = pi->key;
+
+    pi->key = pj->key;
+    pi->val = pj->val;
+
+    pj->key = tmpkey;
+    pj->val = tmpval;
+
+    return;
+}
+
+static int pq_item_comp (u_pq_item_t *pi, u_pq_item_t *pj)
+{
+    return (pi->key > pj->key);
+}
+
+static void bubble_up (u_pq_item_t *pi, size_t k)
+{
+    /* Move from bottom to top exchanging child with its parent node until
+     * child is higher than parent, or we've reached the top. */
+    while (k > 1 && pq_item_comp(&pi[k / 2], &pi[k]))
+    {
+        pq_item_swap(&pi[k], &pi[k / 2]);
+        k = k / 2;
+    }
+
+    return;
+}
+
+static void bubble_down (u_pq_item_t *pi, size_t k, size_t n)
+{
+    size_t j;
+
+    /* Move from top to bottom exchanging the parent node with the highest
+     * of its children, until the "moving" node is higher then both of them -
+     * or we've reached the bottom. */
+    while (2 * k <= n)
+    {
+        j = 2 * k;
+
+        /* Choose to go left or right depending on who's bigger. */
+        if (j < n && pq_item_comp(&pi[j], &pi[j + 1]))
+            j++;
+
+        if (!pq_item_comp(&pi[k], &pi[j]))
+            break;
+
+        pq_item_swap(&pi[k], &pi[j]);
+
+        k = j;
+    }
+
+    return;
+}

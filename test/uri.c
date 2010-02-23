@@ -72,7 +72,8 @@ static int test_uri_parser (u_test_case_t *tc)
             (u_uri_get_##field(u) != NULL) :                                   \
             strcmp(u_uri_get_##field(u), vt[i].exp.field)))                    \
     {                                                                          \
-        u_con("%s != %s at idx %d", u_uri_get_##field(u), vt[i].exp.field, i); \
+        u_test_case_printf(tc, "%s != %s at idx %d",                           \
+                u_uri_get_##field(u), vt[i].exp.field, i);                     \
         goto err;                                                              \
     }                                                                          \
 } while (0)

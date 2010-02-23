@@ -25,12 +25,9 @@ endif
 ifndef NO_HMAP
     SRCS += hmap.c 
 endif
-
-ifdef XXXXX
 ifndef NO_PQUEUE
     SRCS += pqueue.c
 endif
-endif # XXXXX
 
 LDADD += ../srcs/libu.a
 

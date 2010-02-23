@@ -9,6 +9,7 @@
 #include <signal.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <time.h>
 
 #include <toolbox/carpal.h>
@@ -194,18 +195,66 @@ struct u_test_rep_s txt_reps = {
 /**
     \defgroup test Unit testing
     \{
+        The \ref test module offers a set of interfaces by means of which a 
+        programmer can organise its own software validation suite.  
+        Basically you define a test suite, which in turn comprises a set of
+        test cases (aka unit tests), and recall it in the main test program.
+        Each test case is associated to a ::u_test_f routine which 
+        takes its own ::u_test_case_t reference as argument and is requested 
+        to return ::U_TEST_SUCCESS in case the unit test succeeds and 
+        ::U_TEST_FAILURE otherwise. 
+        A test case is attached to its "mother" test suite with the
+        ::u_test_case_register function.  On the other hand, a test suite is 
+        attached to the main test program with the ::u_test_suite_add function,
+        as shown in the following example:
+    \code
+
+    int test_case_MY_TC (u_test_case_t *tc)
+    {
+        // unit test assertions here
         ...
+        return U_TEST_SUCCESS;
+    err:
+        return U_TEST_FAILURE;
+    }
+
+    int test_suite_MY_TS_register (u_test_t *t)
+    {
+        u_test_suite_t *ts;
+
+        u_test_suite_new("MY_TS", &ts);
+        u_test_case_register("MY_TC", test_case_MY_TC, ts);
+
+        return u_test_suite_add(ts, t);
+    }
+    \endcode
+
+        To build the main test program (let's call it \c runtest) you define a 
+        \c main function like the one in the example below, import your test 
+        suite invoking the test suites' register functions, and then call the 
+        ::u_test_run function to execute the tests:
+    \code
+    int main (int argc, char *argv[])
+    {
+        u_test_t *t = NULL;
+
+        u_test_new("MY_TESTS", &t);
+        test_suite_MY_TS_register(t);
+
+        return u_test_run(argc, argv, t)
+    }
+    \endcode
  */
 
 /** 
  *  \brief  Run tests.
  *
  *  Run tests. It shall be called by the \c main() function and will return 
- *  when all tests have been executed.
+ *  when all tests have been executed or an error occurred.
  *
- *  \param  ac  \c main() \c argc argument
- *  \param  av  \c main() \c argv argument
- *  \param  t   the test handler
+ *  \param  ac  \c main's \c argc argument
+ *  \param  av  \c main's \c argv argument
+ *  \param  t   an ::u_test_t object handler
  *
  *  \retval  0  on success
  *  \retval ~0  on failure
@@ -229,12 +278,12 @@ err:
 }
 
 /** 
- *  \brief  ...
+ *  \brief  Register a dependency for the given test suite
  *
- *  ...
+ *  Add the test suite named \p id as a dependency for the test suite \p ts
  *
- *  \param  id  ...
- *  \param  ts  ...
+ *  \param  id  the id of an already ::u_test_suite_add'ed test suite
+ *  \param  ts  handler of the current test suite
  *
  *  \retval  0  on success
  *  \retval ~0  on failure
@@ -253,16 +302,19 @@ err:
 }
 
 /** 
- *  \brief  ...
+ *  \brief  An alternative way to describe dependencies between test cases
  *
- *  ...
+ *  Add the test case named \p depid as a dependency for the test case named
+ *  \p tcid in the context of the \p ts test suite.
  *
- *  \param  tcid    ...
- *  \param  depid   ...
- *  \param  ts      ...
+ *  \param  tcid    a test case identified by its name
+ *  \param  depid   name of the test case on which \p tcid depends on
+ *  \param  ts      The parent test suite handler
  *
  *  \retval  0  on success
  *  \retval ~0  on failure
+ *
+ *  \sa u_test_case_dep_register
  */
 int u_test_case_depends_on (const char *tcid, const char *depid, 
         u_test_suite_t *ts)
@@ -271,16 +323,19 @@ int u_test_case_depends_on (const char *tcid, const char *depid,
 }
 
 /** 
- *  \brief  ...
+ *  \brief  An alternative way to describe dependencies between test suites
  *
- *  ...
+ *  Add the test suite named \p depid as a dependency for the test suite named
+ *  \p tsid in the context of the \p t test.
  *
- *  \param  tsid    ...
- *  \param  depid   ...
- *  \param  t       ...
+ *  \param  tsid    a test suite identified by its name
+ *  \param  depid   name of the test suite on which \p tsid depends on
+ *  \param  t       The parent test handler
  *
  *  \retval  0  on success
  *  \retval ~0  on failure
+ *
+ *  \sa u_test_suite_dep_register
  */
 int u_test_suite_depends_on (const char *tsid, const char *depid, u_test_t *t)
 {
@@ -288,12 +343,12 @@ int u_test_suite_depends_on (const char *tsid, const char *depid, u_test_t *t)
 }
 
 /** 
- *  \brief  ...
+ *  \brief  Register a dependency for the given test case
  *
- *  ...
+ *  Add the test case named \p id as a dependency for the test case \p ts
  *
- *  \param  id  ...
- *  \param  tc  ...
+ *  \param  id  the id of an already ::u_test_case_add'ed test case
+ *  \param  tc  handler of the current test case
  *
  *  \retval  0  on success
  *  \retval ~0  on failure
@@ -312,16 +367,20 @@ err:
 }
 
 /** 
- *  \brief  ...
+ *  \brief  Create and register a new test case
  *
- *  ...
+ *  Register a new test case named \p id to its parent test suite \p ts.
+ *  The function \p func, which must match the ::u_test_f prototype, contains 
+ *  the test code to be executed.
  *
- *  \param  id      ...
- *  \param  func    ...
- *  \param  ts      ...
+ *  \param  id      the name of the new test case
+ *  \param  func    the unit test function
+ *  \param  ts      the parent test suite handler
  *
  *  \retval  0  on success
  *  \retval ~0  on failure
+ *
+ *  \sa ::u_test_case_new, ::u_test_case_add
  */
 int u_test_case_register (const char *id, u_test_f func, u_test_suite_t *ts)
 {
@@ -337,12 +396,44 @@ err:
 }
 
 /**
- *  \brief  ...
+ *  \brief  printf-like function to be called from inside the test case function
  *
- *  ...
+ *  A printf-like function to be called from inside the test case function
  *
- *  \param  id  ...
- *  \param  pts ...
+ *  \param  tc  the test case handler
+ *  \param  fmt printf-like format string
+ *  \param  ... variable number of arguments that feed \p fmt
+ *
+ *  \return the number of characters printed (not including the trailing NUL)
+ *          or a negative value if an output error occurs 
+ */
+int u_test_case_printf (u_test_case_t *tc, const char *fmt, ...)
+{
+    int rc;
+    va_list ap;
+
+    dbg_return_if (tc == NULL, -1);
+
+    (void) printf("{%s} ", tc->o.id);
+
+    va_start(ap, fmt);
+    rc = vprintf(fmt, ap);
+    va_end(ap);
+
+    if (rc > 0)
+        (void) printf("\n");
+
+    return rc;
+}
+
+/**
+ *  \brief  Create a new test suite
+ *
+ *  Create a new test suite named \p id and return its handler as a result 
+ *  argument
+ *
+ *  \param  id  the name of the new test suite
+ *  \param  pts test suite handler as a result argument
  *
  *  \retval  0  on success
  *  \retval ~0  on failure
@@ -369,11 +460,12 @@ err:
 }
 
 /**
- *  \brief  ...
+ *  \brief  Free resources allocated to a test suite
  *
- *  ...
+ *  Free resources allocated to the supplied test suite (including its test 
+ *  cases and related dependencies).
  *
- *  \param  ts  ...
+ *  \param  ts  handler of the test suite that shall be disposed
  *
  *  \return nothing
  */
@@ -401,11 +493,12 @@ void u_test_suite_free (u_test_suite_t *ts)
 }
 
 /**
- *  \brief  ...
+ *  \brief  Free resources allocated to a test
  *
- *  ...
+ *  Free resources allocated to the supplied test (including its test suites, 
+ *  test cases and attached dependencies).
  *
- *  \param  t   ...
+ *  \param  t   handler of the test that shall be disposed
  *
  *  \return nothing
  */
@@ -431,15 +524,16 @@ void u_test_free (u_test_t *t)
 }
 
 /**
- *  \brief  ...
+ *  \brief  Set a custom test reporter function
  *
- *  ...
+ *  Set \p func as the reporter function for the given test \p t.  The supplied
+ *  function must match the ::u_test_rep_f prototype.
  *
- *  \param  t       ...
- *  \param  func    ...
+ *  \param  t       handler for the test
+ *  \param  func    the custom reporter function
  *
  *  \retval  0  on success
- *  \retval ~0  on failure
+ *  \retval ~0  on failure (i.e. a \c NULL parameter was supplied)
  */
 int u_test_set_u_test_rep (u_test_t *t, u_test_rep_f func)
 {
@@ -452,15 +546,16 @@ int u_test_set_u_test_rep (u_test_t *t, u_test_rep_f func)
 }
 
 /**
- *  \brief  ...
+ *  \brief  Set a custom test case reporter function
  *
- *  ...
+ *  Set \p func as the test case reporter function for the given test \p t.  
+ *  The supplied function must match the ::u_test_case_rep_f prototype.
  *
- *  \param  t       ...
- *  \param  func    ...
+ *  \param  t       handler for the test
+ *  \param  func    the custom test case reporter function
  *
  *  \retval  0  on success
- *  \retval ~0  on failure
+ *  \retval ~0  on failure (i.e. a \c NULL parameter was supplied)
  */
 int u_test_set_u_test_case_rep (u_test_t *t, u_test_case_rep_f func)
 {
@@ -473,15 +568,16 @@ int u_test_set_u_test_case_rep (u_test_t *t, u_test_case_rep_f func)
 }
 
 /**
- *  \brief  ...
+ *  \brief  Set a custom test suite reporter function
  *
- *  ...
+ *  Set \p func as the test suite reporter function for the given test \p t.  
+ *  The supplied function must match the ::u_test_suite_rep_f prototype.
  *
- *  \param  t       ...
- *  \param  func    ...
+ *  \param  t       handler for the test
+ *  \param  func    the custom test suite reporter function
  *
  *  \retval  0  on success
- *  \retval ~0  on failure
+ *  \retval ~0  on failure (i.e. a \c NULL parameter was supplied)
  */
 int u_test_set_u_test_suite_rep (u_test_t *t, u_test_suite_rep_f func)
 {
@@ -494,12 +590,12 @@ int u_test_set_u_test_suite_rep (u_test_t *t, u_test_suite_rep_f func)
 }
 
 /**
- *  \brief  ...
+ *  \brief  Set the output file name for the test report
  *
- *  ...
+ *  Set the output file name for the test report to \p outfn
  *
- *  \param  t       ...
- *  \param  outfn   ...
+ *  \param  t       a test handler
+ *  \param  outfn   file path name
  *
  *  \retval  0  on success
  *  \retval ~0  on failure
@@ -515,12 +611,13 @@ int u_test_set_outfn (u_test_t *t, const char *outfn)
 }
 
 /**
- *  \brief  ...
+ *  \brief  Create a new test
  *
- *  ...
+ *  Create a new test named \p id and return its handler via the result 
+ *  argument \p pt
  *
- *  \param  id  ...
- *  \param  pt  ...
+ *  \param  id  the name of the test
+ *  \param  pt  handler for the newly created test as a result argument
  *
  *  \retval  0  on success
  *  \retval ~0  on failure
@@ -555,11 +652,12 @@ err:
 }
 
 /**
- *  \brief  ...
+ *  \brief  Free resources allocated to a test case
  *
- *  ...
+ *  Free resources allocated to the supplied test case (including its 
+ *  dependencies).
  *
- *  \param  tc  ...
+ *  \param  tc  handler of the test case that shall be disposed
  *
  *  \return nothing
  */
@@ -577,14 +675,16 @@ void u_test_case_free (u_test_case_t *tc)
     return;
 }
 
-/**
- *  \brief  ...
+/** 
+ *  \brief  Create a new test case
  *
- *  ...
+ *  Create a new test case named \p id with \p func as its unit test procedure,
+ *  and return its handler via the result argument \p ptc.  The function must 
+ *  match the ::u_test_f prototype.
  *
- *  \param  id      ...
- *  \param  func    ...
- *  \param  ptc     ...
+ *  \param  id      the name of the new test case
+ *  \param  func    the unit test function
+ *  \param  ptc     the parent test suite handler
  *
  *  \retval  0  on success
  *  \retval ~0  on failure
@@ -612,12 +712,12 @@ err:
 }
 
 /**
- *  \brief  ...
+ *  \brief  Add a test case to its parent test suite
  *
- *  ...
+ *  Add the test case referenced by \p tc to the test suite \p ts.
  *
- *  \param  tc  ...
- *  \param  ts  ...
+ *  \param  tc  a test case handler
+ *  \param  ts  its parent test suite
  *
  *  \retval  0  on success
  *  \retval ~0  on failure
@@ -635,12 +735,12 @@ int u_test_case_add (u_test_case_t *tc, u_test_suite_t *ts)
 }
 
 /**
- *  \brief  ...
+ *  \brief  Add a test suite to its parent test
  *
- *  ...
+ *  Add the test suite referenced by \p ts to the test \p t.
  *
- *  \param  ts  ...
- *  \param  t   ...
+ *  \param  ts  a test suite handler
+ *  \param  t   its parent test
  *
  *  \retval  0  on success
  *  \retval ~0  on failure
@@ -658,11 +758,13 @@ int u_test_suite_add (u_test_suite_t *ts, u_test_t *t)
 }
 
 /**
- *  \brief  ...
+ *  \brief  Print the test structure
  *
- *  ...
+ *  Try to pretty print the whole test structure.  Use it as a debug hint when
+ *  things behaves unexpectedly, or to look at how the information is organized
+ *  internally.
  *
- *  \param  t   ...
+ *  \param  t   the handler of the test to print
  *
  *  \return nothing
  */
@@ -905,12 +1007,9 @@ static int u_test_obj_sequencer (TO *h)
 
     dbg_return_if (h == NULL, ~0);
 
-    /* sequence test cases/suites */
-    for (;;)
+    /* Pick top test cases/suites one by one until they are all sequenced.*/
+    while ((to = u_test_obj_pick_top(h)) != NULL)
     {
-        if ((to = u_test_obj_pick_top(h)) == NULL)
-           break;
-
         dbg_err_if (u_test_obj_evict_id(h, to->id));
     }
 

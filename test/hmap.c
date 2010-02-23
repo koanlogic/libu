@@ -20,7 +20,7 @@ static int example_easy_basic (u_test_case_t *tc)
       dbg_err_if (u_hmap_easy_put(hmap, "jack", ":S"));
       dbg_err_if (u_hmap_easy_put(hmap, "jill", ":)))"));
       
-      u_con("jack is %s and jill is %s", 
+      u_test_case_printf(tc, "jack is %s and jill is %s",
           (const char *) u_hmap_easy_get(hmap, "jack"),
           (const char *) u_hmap_easy_get(hmap, "jill"));
       

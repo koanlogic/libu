@@ -78,6 +78,7 @@ int u_test_case_register (const char *id, u_test_f func, u_test_suite_t *ts);
 int u_test_case_dep_register (const char *id, u_test_case_t *tc);
 int u_test_case_depends_on (const char *tcid, const char *depid, 
         u_test_suite_t *ts);
+int u_test_case_printf (u_test_case_t *tc, const char *fmt, ...);
 
 int u_test_suite_add (u_test_suite_t *to, u_test_t *t);
 void u_test_suite_free (u_test_suite_t *ts);
