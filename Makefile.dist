@@ -1,4 +1,4 @@
-# $Id: Makefile.dist,v 1.15 2010/02/20 20:22:33 tho Exp $
+# $Id: Makefile.dist,v 1.16 2010/02/23 21:15:01 tho Exp $
 
 include common.mk
 
@@ -28,7 +28,7 @@ DISTFILES += $(wildcard srcs/missing/*.c)
 DISTFILES += $(wildcard srcs/toolbox/*.c)
 
 # test
-DISTFILES += test/Makefile
+DISTFILES += test/Makefile test/passwd
 DISTFILES += $(wildcard test/*.c)
 
 # man pages
