@@ -204,7 +204,7 @@ int u_pq_push (u_pq_t *pq, double key, const void *val)
  */
 void *u_pq_peekmax (u_pq_t *pq, double *pkey)
 {
-    u_pq_item_t *pmax = &pq->q[pq->nelems];
+    u_pq_item_t *pmax = &pq->q[1];
 
     if (pkey)
         *pkey = pmax->key;
@@ -269,7 +269,7 @@ static void pq_item_swap (u_pq_item_t *pi, u_pq_item_t *pj)
 
 static int pq_item_comp (u_pq_item_t *pi, u_pq_item_t *pj)
 {
-    return (pi->key > pj->key);
+    return (pi->key < pj->key);
 }
 
 static void bubble_up (u_pq_item_t *pi, size_t k)
