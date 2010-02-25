@@ -1639,6 +1639,8 @@ static int u_test_case_report_txt (FILE *fp, u_test_case_t *tc)
 
 static int u_test_report_xml (FILE *fp, u_test_t *t, u_test_rep_tag_t tag)
 {
+    u_test_syn_t *syn = &t->syn;
+
     dbg_return_if (t == NULL, ~0);
     dbg_return_if (fp == NULL, ~0);
 
@@ -1646,6 +1648,13 @@ static int u_test_report_xml (FILE *fp, u_test_t *t, u_test_rep_tag_t tag)
     {
         (void) fprintf(fp, "<?xml version=\"1.0\"?>\n");
         (void) fprintf(fp, "<test id=\"%s\">\n", t->id);
+
+        /* Add synoptical info. */
+        (void) fprintf(fp, "\t<total>%zu</total>\n", syn->total);
+        (void) fprintf(fp, "\t<passed>%zu</passed>\n", syn->pass);
+        (void) fprintf(fp, "\t<failed>%zu</failed>\n", syn->fail);
+        (void) fprintf(fp, "\t<aborted>%zu</aborted>\n", syn->abrt);
+        (void) fprintf(fp, "\t<skipped>%zu</skipped>\n", syn->skip);
     }
 
     if (tag == U_TEST_REP_TAIL)
@@ -1658,9 +1667,12 @@ static int u_test_suite_report_xml (FILE *fp, u_test_suite_t *ts,
         u_test_rep_tag_t tag)
 {
     int status;
+    u_test_syn_t *syn;
 
     dbg_return_if (fp == NULL, ~0);
     dbg_return_if (ts == NULL, ~0);
+
+    syn = &ts->syn;
 
     if (tag == U_TEST_REP_HEAD)
     {
@@ -1683,6 +1695,13 @@ static int u_test_suite_report_xml (FILE *fp, u_test_suite_t *ts,
             (void) fprintf(fp, "\t\t<end>%s</end>\n", e);
             (void) fprintf(fp, "\t\t<elapsed>%s</elapsed>\n", d);
         }
+
+        /* Add synoptical info. */
+        (void) fprintf(fp, "\t<total>%zu</total>\n", syn->total);
+        (void) fprintf(fp, "\t<passed>%zu</passed>\n", syn->pass);
+        (void) fprintf(fp, "\t<failed>%zu</failed>\n", syn->fail);
+        (void) fprintf(fp, "\t<aborted>%zu</aborted>\n", syn->abrt);
+        (void) fprintf(fp, "\t<skipped>%zu</skipped>\n", syn->skip);
     }
 
     if (tag == U_TEST_REP_TAIL)
