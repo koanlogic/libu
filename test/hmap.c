@@ -95,7 +95,7 @@ void mystruct_free (void *val)
     u_free(mystruct->a);
     u_free(mystruct->b);
     u_free(mystruct);
-};
+}
 
 mystruct_t *mystruct_create (void)
 {

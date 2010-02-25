@@ -244,6 +244,19 @@ struct u_test_rep_s txt_reps = {
         return u_test_run(argc, argv, t)
     }
     \endcode
+
+        The \c runtest program has a number of built-in command line options 
+        to tweak some test execution features, the most important of which are:
+        - \c -f to specify a format for the test report file: \c txt or \c xml
+        - \c -o to pass a specific name other than the default as report file
+        - \c -s to force serialization in unit tests' execution (instead of
+          the default which is to parallelize as much as possible).  This
+          option (which could be useful when trying to analize a test bug) also
+          turns off the sandboxing mechanism by which tests are executed in
+          safe, isolated bubbles.
+
+       An xsl file is provided in \c contrib/ as an example to automatically
+       build an HTML report page from the xml report file.
  */
 
 /** 

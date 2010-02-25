@@ -50,8 +50,7 @@ struct u_hmap_s
 };
 typedef struct u_hmap_e_s u_hmap_e_t;
 
-static int __get (u_hmap_t *hmap, const void *key, 
-        u_hmap_o_t **o);
+static int __get (u_hmap_t *hmap, const void *key, u_hmap_o_t **o);
 
 static int __opts_check (u_hmap_opts_t *opts);
 static int __pcy_setup (u_hmap_t *hmap);
@@ -66,9 +65,8 @@ static size_t __f_hash (const void *key, size_t size);
 static int __f_comp (const void *k1, const void *k2);
 static u_string_t *__f_str (u_hmap_o_t *obj);
 
-static int __queue_push (u_hmap_t *hmap, u_hmap_o_t *obj, 
-        u_hmap_q_t **data);
-static int __queue_push_count (u_hmap_t *hmap, u_hmap_o_t *obj,
+static int __queue_push (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_q_t **data);
+static int __queue_push_count (u_hmap_t *hmap, u_hmap_o_t *obj, 
         u_hmap_q_t **counts);
 static int __queue_pop_front (u_hmap_t *hmap, u_hmap_o_t **obj);
 static int __queue_pop_back (u_hmap_t *hmap, u_hmap_o_t **obj);
@@ -122,7 +120,7 @@ static int __next_prime(size_t *prime, size_t sz, size_t *idx);
  */
 
 /**
- *      \defgroup hmap_easy hmap_easy: Simplified Interface (recommmended)
+ *      \defgroup hmap_easy hmap_easy: Simplified Interface (recommended)
  *      \{
  */
 
@@ -508,7 +506,7 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
     u_hmap_o_t *o;
     u_hmap_e_t *x;
     int comp;
-	size_t hash;
+    size_t hash;
 
     dbg_err_if (hmap == NULL);
     dbg_err_if (obj == NULL);
@@ -545,7 +543,7 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
         hmap->pcy.pop(hmap, old);
     }
 
-	x = &hmap->hmap[hash];
+    x = &hmap->hmap[hash];
 
     switch (hmap->opts->type) 
     {
@@ -972,7 +970,6 @@ int u_hmap_opts_copy (u_hmap_opts_t *to, u_hmap_opts_t *from)
     memcpy(to, from, sizeof(u_hmap_opts_t));
 
     return U_HMAP_ERR_NONE;
-        
 err:
     return U_HMAP_ERR_FAIL;
 }
@@ -1285,24 +1282,24 @@ static int __get (u_hmap_t *hmap, const void *key, u_hmap_o_t **o)
     u_hmap_o_t *obj;
     u_hmap_e_t *x;
     int comp;
-	size_t hash;
+    size_t hash;
 
     dbg_err_if (hmap == NULL);
     dbg_err_if (key == NULL);
     dbg_err_if (o == NULL);
 
-	hash = hmap->opts->f_hash(key, hmap->size);
+    hash = hmap->opts->f_hash(key, hmap->size);
 
-	if (hmap->opts->f_hash != &__f_hash && 
-			!(hmap->opts->options & U_HMAP_OPTS_HASH_STRONG)) {
-		enum { MAX_INT = 20 };
-		char h[MAX_INT];
+    if (hmap->opts->f_hash != &__f_hash && 
+            !(hmap->opts->options & U_HMAP_OPTS_HASH_STRONG)) {
+        enum { MAX_INT = 20 };
+        char h[MAX_INT];
 
-		u_snprintf(h, MAX_INT, "%u", hash);
-		hash = __f_hash(h, hmap->size);
-	}
+        u_snprintf(h, MAX_INT, "%u", hash);
+        hash = __f_hash(h, hmap->size);
+    }
 
-	x = &hmap->hmap[hash];
+    x = &hmap->hmap[hash];
 
     switch (hmap->opts->type)
     {
@@ -1361,7 +1358,6 @@ static int __queue_pop_front (u_hmap_t *hmap, u_hmap_o_t **obj)
     __q_o_free(first);
 
     return U_HMAP_ERR_NONE;
-
 err:
     return U_HMAP_ERR_FAIL;
 }
@@ -1404,8 +1400,8 @@ static int __queue_push (u_hmap_t *hmap, u_hmap_o_t *obj,
         TAILQ_REMOVE(&hmap->pcy.queue, *data, next);
         TAILQ_INSERT_HEAD(&hmap->pcy.queue, *data, next);
     }
+
     return U_HMAP_ERR_NONE;
-    
 err:
     return U_HMAP_ERR_FAIL;
 }
@@ -1444,8 +1440,8 @@ static int __queue_push_count (u_hmap_t *hmap, u_hmap_o_t *obj,
                 TAILQ_INSERT_TAIL(&hmap->pcy.queue, *counts, next);
         }
     }
+
     return U_HMAP_ERR_NONE;
-    
 err:
     return U_HMAP_ERR_FAIL;
 }
@@ -1586,8 +1582,8 @@ void u_hmap_dbg (u_hmap_t *hmap)
         dbg_ifb (u_string_free(s)) return;
     }
     u_dbg("</hmap>");
-    return;
 
+    return;
 err:
     U_FREEF(st, u_string_free);
     U_FREEF(s, u_string_free);
@@ -1623,8 +1619,7 @@ void u_hmap_pcy_dbg (u_hmap_t *hmap)
     dbg_if (u_string_free(s));
 
     return;
-    
- err:
+err:
     U_FREEF(s, u_string_free);
     return;
 }
@@ -1643,7 +1638,6 @@ static u_hmap_q_t *__q_o_new (const void *key)
     data->o = NULL;
     
     return data;
-
 err:
     u_free(data);
     return NULL;
@@ -1751,7 +1745,6 @@ static int __resize(u_hmap_t *hmap)
     u_dbg("resized to: %u", hmap->size);
 
     return 0;
-
 err:
     return ~0;
 }
