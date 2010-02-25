@@ -46,6 +46,14 @@ struct u_test_dep_s
 
 typedef struct u_test_dep_s u_test_dep_t;
 
+/* Synoptical test results view. */
+struct u_test_syn_s
+{
+    size_t total, pass, fail, abrt, skip;
+};
+
+typedef struct u_test_syn_s u_test_syn_t;
+
 /* Generic test data container.  The attributes shared by both test suites and
  * cases are stored here.  The parent container (be it suite or case depends 
  * on '.what' attribute value) is accessed via the T[SC]_HANDLE() macro. */
@@ -77,9 +85,10 @@ struct u_test_case_s
 /* A test suite. */
 struct u_test_suite_s
 {
-    TO u_test_cases;      /* Head of TCs list */
-    u_test_obj_t o;       /* Test suite attributes */
-    struct u_test_s *pt;  /* Parent test */
+    TO u_test_cases;        /* Head of TCs list */
+    u_test_obj_t o;         /* Test suite attributes */
+    u_test_syn_t syn;       /* Test cases' synoptical */
+    struct u_test_s *pt;    /* Parent test */
 };
 
 /* Test report functions. */
@@ -99,7 +108,8 @@ struct u_test_s
     char outfn[4096];           /* Output file name */
     time_t start, stop;         /* Test begin/end timestamps */
     char sandboxed;             /* True if TC's exec'd in subproc */
-    unsigned int max_parallel;  /* max # of test cases executed in parallel */
+    unsigned int max_parallel;  /* Max # of test cases executed in parallel */
+    u_test_syn_t syn;           /* Test suites' synoptical */
 
     /* Test report hook functions */
     struct u_test_rep_s reporters;
@@ -167,6 +177,9 @@ static int u_test_set_outfmt (u_test_t *t, const char *fmt);
 static int u_test_reporter (u_test_t *t);
 static int u_test_report_txt (FILE *fp, u_test_t *t, u_test_rep_tag_t tag);
 static int u_test_report_xml (FILE *fp, u_test_t *t, u_test_rep_tag_t tag);
+
+/* Test synoptical info routines. */
+static int u_test_syn_update (u_test_syn_t *syn, TO *h);
 
 /* Misc routines. */
 static const char *u_test_status_str (int status);
@@ -285,7 +298,7 @@ int u_test_run (int ac, char *av[], u_test_t *t)
     con_err_if (u_test_scheduler(t));
     con_err_if (u_test_reporter(t));
 
-    return 0;
+    return (t->syn.total == t->syn.pass) ? 0 : ~0;
 err:
     return ~0;
 }
@@ -461,6 +474,7 @@ int u_test_suite_new (const char *id, u_test_suite_t **pts)
     dbg_err_sif ((ts = u_malloc(sizeof *ts)) == NULL);
     LIST_INIT(&ts->u_test_cases.objs);
     ts->u_test_cases.currank = 0;
+    memset(&ts->syn, 0, sizeof ts->syn);
 
     dbg_err_if (u_test_obj_init(id, U_TEST_SUITE_T, &ts->o));
 
@@ -655,6 +669,9 @@ int u_test_new (const char *id, u_test_t **pt)
 
     /* Set default report routines (may be overwritten). */
     t->reporters = txt_reps;
+
+    /* Zeroize synoptical test info. */
+    memset(&t->syn, 0, sizeof t->syn);  
 
     *pt = t;
 
@@ -1337,9 +1354,52 @@ static u_test_case_t *u_test_cases_search_by_pid (TO *h, pid_t pid)
     return NULL;
 }
 
+static int u_test_syn_update (u_test_syn_t *syn, TO *h)
+{
+    u_test_obj_t *to;
+
+    dbg_return_if (h == NULL, ~0);
+    dbg_return_if (syn == NULL, ~0);
+
+    LIST_FOREACH (to, &h->objs, links)
+    {
+        syn->total += 1;
+
+        switch (to->status)
+        {
+            case U_TEST_SUCCESS:
+                syn->pass += 1;
+                break;
+            case U_TEST_FAILURE:
+                syn->fail += 1;
+                break;
+            case U_TEST_ABORTED:
+                syn->abrt += 1;
+                break;
+            case U_TEST_SKIPPED:
+                syn->skip += 1;
+                break;
+            default:
+                u_warn("unknown status %d in test obj %s", to->status, to->id);
+        }
+    }
+
+    return 0;
+}
+
 static int u_test_scheduler (u_test_t *t)
 {
-    return u_test_obj_scheduler(&t->u_test_suites, u_test_suite_scheduler);
+    int rc;
+
+    dbg_return_if (t == NULL, ~0);
+
+    /* Run the test scheduler. */ 
+    rc = u_test_obj_scheduler(&t->u_test_suites, u_test_suite_scheduler);
+
+    /* Collect synoptical stats. */
+    (void) u_test_syn_update(&t->syn, &t->u_test_suites);
+
+    return rc;
 }
 
 static int u_test_suite_scheduler (u_test_obj_t *to)
@@ -1377,6 +1437,9 @@ static int u_test_suite_scheduler (u_test_obj_t *to)
             break;
         }
     }
+
+    /* Collect synoptical stats. */
+    (void) u_test_syn_update(&ts->syn, &ts->u_test_cases);
 
     return rc;
 }
@@ -1488,10 +1551,19 @@ err:
 
 static int u_test_report_txt (FILE *fp, u_test_t *t, u_test_rep_tag_t tag)
 {
-    if (tag == U_TEST_REP_TAIL)
-        return 0;
+    u_test_syn_t *syn = &t->syn;
 
-    (void) fprintf(fp, "%s\n", t->id);
+    if (tag == U_TEST_REP_HEAD)
+        (void) fprintf(fp, "%s\n", t->id);
+
+    if (tag == U_TEST_REP_TAIL)
+    {
+        (void) fprintf(fp, "Number of test suites: %zu\n", syn->total);
+        (void) fprintf(fp, "               Passed: %zu\n", syn->pass);
+        (void) fprintf(fp, "               Failed: %zu\n", syn->fail);
+        (void) fprintf(fp, "              Aborted: %zu\n", syn->abrt);
+        (void) fprintf(fp, "              Skipped: %zu\n", syn->skip);
+    }
 
     return 0;
 }
@@ -1501,24 +1573,35 @@ static int u_test_suite_report_txt (FILE *fp, u_test_suite_t *ts,
 {
     int status;
     char b[80] = { '\0' }, e[80] = { '\0' }, d[80] = { '\0' };
+    u_test_syn_t *syn = &ts->syn;
 
     dbg_return_if (fp == NULL, ~0);
     dbg_return_if (ts == NULL, ~0);
 
-    if (tag == U_TEST_REP_TAIL)
-        return 0;
-
-    status = ts->o.status;
-
-    (void) fprintf(fp, "\t* [%s] %s\n", u_test_status_str(status), ts->o.id);
-
-    /* Timing info is relevant only in case test succeeded. */ 
-    if (status == U_TEST_SUCCESS)
+    if (tag == U_TEST_REP_HEAD)
     {
-        (void) u_test_obj_ts_fmt(&ts->o, b, e, d);
-        (void) fprintf(fp, "\t       begin: %s\n", b);
-        (void) fprintf(fp, "\t         end: %s\n", e);
-        (void) fprintf(fp, "\t     elapsed: %s\n", d);
+        status = ts->o.status;
+
+        (void) fprintf(fp, "\t* [%s] %s\n", 
+                u_test_status_str(status), ts->o.id);
+
+        /* Timing info is relevant only in case test succeeded. */ 
+        if (status == U_TEST_SUCCESS)
+        {
+            (void) u_test_obj_ts_fmt(&ts->o, b, e, d);
+            (void) fprintf(fp, "\t       begin: %s\n", b);
+            (void) fprintf(fp, "\t         end: %s\n", e);
+            (void) fprintf(fp, "\t     elapsed: %s\n", d);
+        }
+    }
+
+    if (tag == U_TEST_REP_TAIL)
+    {
+        (void) fprintf(fp, "\tNumber of test cases: %zu\n", syn->total);
+        (void) fprintf(fp, "\t              Passed: %zu\n", syn->pass);
+        (void) fprintf(fp, "\t              Failed: %zu\n", syn->fail);
+        (void) fprintf(fp, "\t             Aborted: %zu\n", syn->abrt);
+        (void) fprintf(fp, "\t             Skipped: %zu\n", syn->skip);
     }
 
     return 0;
