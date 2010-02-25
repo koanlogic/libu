@@ -309,15 +309,16 @@ static int test_u_strtok (u_test_case_t *tc)
 
     for (i = 0; vt[i].in; i++)
     {
-        dbg_err_if (u_strtok(vt[i].in, vt[i].delim, &tv, &nelems));
+        u_test_err_ifm (u_strtok(vt[i].in, vt[i].delim, &tv, &nelems),
+                "u_strtok failed on input: %s", vt[i].in);
 
         for (j = 0; j < nelems; j++)
         {
-            con_err_ifm (strcmp(tv[j], vt[i].exp[j]), 
+            u_test_err_ifm (strcmp(tv[j], vt[i].exp[j]), 
                     "%s != %s (tv idx=%zu)", tv[j], vt[i].exp[j], i);
         }
 
-        con_err_ifm (vt[i].exp[j] != NULL, 
+        u_test_err_ifm (vt[i].exp[j] != NULL, 
                 "got %zu tokens from u_strtok, need some more (tv idx=%zu)", 
                 nelems, i);
 
@@ -366,7 +367,7 @@ static int test_u_path_snprintf (u_test_case_t *tc)
     for(i = 0; vt[i].src; ++i)
     {
         u_path_snprintf(buf, sizeof(buf), '/', "%s", vt[i].src);
-        con_err_ifm(strcmp(buf, vt[i].exp), "src: %s  exp: %s  got: %s",
+        u_test_err_ifm(strcmp(buf, vt[i].exp), "src: %s  exp: %s  got: %s",
                 vt[i].src, vt[i].exp, buf);
     }
 
@@ -427,13 +428,13 @@ static int test_u_atoi (u_test_case_t *tc)
     {
         rc = u_atoi(vt[i].in, &j);
 
-        con_err_ifm (rc != vt[i].rc, 
+        u_test_err_ifm (rc != vt[i].rc, 
                 "unexpected return code %d != %d (tested conversion was: %s)",
                 rc, vt[i].rc, vt[i].in);
 
         if (rc == 0)
         {
-            con_err_ifm (j != vt[i].exp, 
+            u_test_err_ifm (j != vt[i].exp, 
                     "unexpected conversion value %d != %d on  %s",
                     j, vt[i].exp, vt[i].in);
         }

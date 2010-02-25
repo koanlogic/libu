@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.89 2010/01/22 10:17:29 tho Exp $
+# $Id: configure,v 1.90 2010/02/25 21:53:48 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -108,6 +108,7 @@ makl_checkfunc          0   "timegm"        1   ""  "<time.h>"
 makl_checkfunc          0   "syslog"        2   ""  "<syslog.h>"
 makl_checkfunc          0   "strtoumax"     3   ""  "<inttypes.h>"
 makl_checkfunc          0   "getaddrinfo"   4   ""  "<netdb.h>"
+makl_checkfunc          0   "uname"         1   ""  "<sys/utsname.h>"
 makl_func_strerror_r    0
 makl_checkheader        0   "complex"   "<complex.h>"
 makl_checkheader        0   "unistd"    "<unistd.h>"

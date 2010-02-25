@@ -15,11 +15,11 @@ static int test_top10 (u_test_case_t *tc)
 
     srandom((unsigned long) getpid());
 
-    con_err_if (u_pq_create(EMAX, &pq));
+    u_test_err_if (u_pq_create(EMAX, &pq));
 
     /* fill the pqueue */
     for (i = 0; i < EMAX; i++)
-        con_err_if (u_pq_push(pq, (double) random(), NULL));
+        u_test_err_if (u_pq_push(pq, (double) random(), NULL));
 
     /* del-push cycle */
     for (i = EMAX; i < 10000000; i++)
@@ -29,7 +29,7 @@ static int test_top10 (u_test_case_t *tc)
         if (keymax > (key = (double) random()))
         {
             (void) u_pq_delmax(pq, NULL);
-            con_err_if (u_pq_push(pq, key, NULL));
+            u_test_err_if (u_pq_push(pq, key, NULL));
         }
     }
 
@@ -56,15 +56,15 @@ static int test_heapsort (u_test_case_t *tc)
 
     srandom((unsigned long) getpid());
 
-    con_err_if (u_pq_create(EMAX, &pq));
+    u_test_err_if (u_pq_create(EMAX, &pq));
 
     for (i = 0; i < EMAX - 1; i++)
-        con_err_if (u_pq_push(pq, (double) random(), NULL));
+        u_test_err_if (u_pq_push(pq, (double) random(), NULL));
 
     while (!u_pq_empty(pq))
     {
         (void) u_pq_delmax(pq, &key);
-        con_err_if (prev_key != -1 && key > prev_key);
+        u_test_err_if (prev_key != -1 && key > prev_key);
         prev_key = key;
     }
 

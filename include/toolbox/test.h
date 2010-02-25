@@ -20,6 +20,14 @@ struct u_test_case_s;
 struct u_test_suite_s;
 struct u_test_s;
 
+/** \brief  Carpal-like msg_err_if macro. */
+#define u_test_err_if(a)        \
+    do { if (a) { u_test_case_printf(tc, "%s", #a); goto err; } } while (0)
+
+/** \brief  Carpal-like msg_err_ifm macro. */
+#define u_test_err_ifm(a, ...)  \
+    do { if (a) { u_test_case_printf(tc, __VA_ARGS__); goto err; } } while (0)
+
 /** \brief  Test case handler. */
 typedef struct u_test_case_s u_test_case_t;
 

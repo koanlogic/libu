@@ -16,6 +16,10 @@
 #include <toolbox/misc.h>
 #include <toolbox/test.h>
 
+#ifdef HAVE_UNAME
+  #include <sys/utsname.h>
+#endif  /* HAVE_UNAME */
+
 static char g_interrupted = 0;
 static char g_debug = 0;
 static char g_verbose = 0;   /* If true, be chatty */
@@ -110,6 +114,7 @@ struct u_test_s
     char sandboxed;             /* True if TC's exec'd in subproc */
     unsigned int max_parallel;  /* Max # of test cases executed in parallel */
     u_test_syn_t syn;           /* Test suites' synoptical */
+    char host[1024];            /* Host info */
 
     /* Test report hook functions */
     struct u_test_rep_s reporters;
@@ -177,12 +182,14 @@ static int u_test_set_outfmt (u_test_t *t, const char *fmt);
 static int u_test_reporter (u_test_t *t);
 static int u_test_report_txt (FILE *fp, u_test_t *t, u_test_rep_tag_t tag);
 static int u_test_report_xml (FILE *fp, u_test_t *t, u_test_rep_tag_t tag);
+static int u_test_uname (u_test_t *t);
 
 /* Test synoptical info routines. */
 static int u_test_syn_update (u_test_syn_t *syn, TO *h);
 
 /* Misc routines. */
 static const char *u_test_status_str (int status);
+static int u_test_init (u_test_t *t);
 static int u_test_signals (void);
 static void u_test_interrupted (int signo);
 static void u_test_bail_out (TO *h);
@@ -287,7 +294,7 @@ struct u_test_rep_s txt_reps = {
  */
 int u_test_run (int ac, char *av[], u_test_t *t)
 {
-    con_err_if (u_test_signals());
+    con_err_if (u_test_init(t));
     con_err_if (u_test_getopt(ac, av, t));
     con_err_if (u_test_sequencer(t));
 
@@ -1554,7 +1561,12 @@ static int u_test_report_txt (FILE *fp, u_test_t *t, u_test_rep_tag_t tag)
     u_test_syn_t *syn = &t->syn;
 
     if (tag == U_TEST_REP_HEAD)
-        (void) fprintf(fp, "%s\n", t->id);
+    {
+        (void) fprintf(fp, "%s", t->id);
+
+        /* Host info. */
+        (void) fprintf(fp, " (%s)\n", t->host);
+    }
 
     if (tag == U_TEST_REP_TAIL)
     {
@@ -1655,6 +1667,9 @@ static int u_test_report_xml (FILE *fp, u_test_t *t, u_test_rep_tag_t tag)
         (void) fprintf(fp, "\t<failed>%zu</failed>\n", syn->fail);
         (void) fprintf(fp, "\t<aborted>%zu</aborted>\n", syn->abrt);
         (void) fprintf(fp, "\t<skipped>%zu</skipped>\n", syn->skip);
+
+        /* Host info. */
+        (void) fprintf(fp, "\t<host>%s</host>\n", t->host);
     }
 
     if (tag == U_TEST_REP_TAIL)
@@ -1678,7 +1693,7 @@ static int u_test_suite_report_xml (FILE *fp, u_test_suite_t *ts,
     {
         status = ts->o.status;
 
-        (void) fprintf(fp, "\t<u_test_suite id=\"%s\">\n", ts->o.id);
+        (void) fprintf(fp, "\t<test_suite id=\"%s\">\n", ts->o.id);
 
         /* Status first. */
         (void) fprintf(fp, "\t\t<status>%s</status>\n", 
@@ -1705,7 +1720,7 @@ static int u_test_suite_report_xml (FILE *fp, u_test_suite_t *ts,
     }
 
     if (tag == U_TEST_REP_TAIL)
-        (void) fprintf(fp, "\t</u_test_suite>\n");
+        (void) fprintf(fp, "\t</test_suite>\n");
 
     return 0;
 }
@@ -1719,7 +1734,7 @@ static int u_test_case_report_xml (FILE *fp, u_test_case_t *tc)
 
     status = tc->o.status;
 
-    (void) fprintf(fp, "\t\t<u_test_case id=\"%s\">\n", tc->o.id);
+    (void) fprintf(fp, "\t\t<test_case id=\"%s\">\n", tc->o.id);
 
     (void) fprintf(fp, "\t\t\t<status>%s</status>\n", 
             u_test_status_str(status));
@@ -1742,7 +1757,7 @@ static int u_test_case_report_xml (FILE *fp, u_test_case_t *tc)
         }
     }
 
-    (void) fprintf(fp, "\t\t</u_test_case>\n");
+    (void) fprintf(fp, "\t\t</test_case>\n");
 
     return 0;
 }
@@ -1839,6 +1854,39 @@ static int u_test_set_outfmt (u_test_t *t, const char *fmt)
         return ~0;
 
     return 0;
+}
+
+static int u_test_init (u_test_t *t)
+{
+    dbg_return_if (t == NULL, ~0);
+
+    dbg_err_if (u_test_signals());
+    dbg_err_if (u_test_uname(t));
+
+    return 0;
+err:
+    return ~0;
+}
+
+static int u_test_uname (u_test_t *t)
+{
+#ifdef HAVE_UNAME
+    struct utsname h;
+#endif  /* HAVE_UNAME */
+
+    dbg_return_if (t == NULL, ~0);
+
+#ifdef HAVE_UNAME
+    dbg_return_sif (uname(&h) == -1, ~0);
+
+    (void) u_snprintf(t->host, sizeof t->host, "%s - %s %s %s", 
+            h.nodename, h.sysname, h.release, h.machine);
+#else   
+    /* TODO refine this ! */
+    (void) u_strlcpy(t->host, "unknown host name", sizeof t->host);
+#endif  /* HAVE_UNAME */
+
+    return 0; 
 }
 
 static int u_test_signals (void)

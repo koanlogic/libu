@@ -80,7 +80,7 @@ static int test_uri_parser (u_test_case_t *tc)
 
     for (i = 0; vt[i].in; i++)
     {
-        con_err_if (u_uri_crumble(vt[i].in, U_URI_OPT_NONE, &u));
+        u_test_err_if (u_uri_crumble(vt[i].in, U_URI_OPT_NONE, &u));
 
         CHECK_EXP_MSG(scheme);
         CHECK_EXP_MSG(user);
