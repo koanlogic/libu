@@ -35,42 +35,43 @@ static void bubble_down (u_pq_item_t *pi, size_t k, size_t n);
         (::u_pq_peekmax).  Eviction and insertion are performed in O(lg(N)) 
         where N is the queue cardinality.
 
-        The following example describe the use of a priority queue to 
-        efficiently extract the top 10 out of 10 million elements:
- \code
-    size_t i;
-    double key, keymax = DBL_MAX;
-    u_pq_t *pq = NULL;
-
-    srandom((unsigned long) getpid());
-
-    con_err_if (u_pq_create(10, &pq));
-
-    for (i = 0; i < 10000000; i++)
+        The following example describes the use of a priority queue to 
+        efficiently extract the bottom 10 out of 10 million random values:
+    \code
     {
-        if (!u_pq_empty(pq))
+        enum { EMAX = 10 };
+        size_t i;
+        double key, keymax = DBL_MAX;
+        u_pq_t *pq = NULL;
+
+        srandom((unsigned long) getpid());
+
+        con_err_if (u_pq_create(EMAX, &pq));
+
+        // fill the pqueue 
+        for (i = 0; i < EMAX; i++)
+            con_err_if (u_pq_push(pq, (double) random(), NULL));
+
+        // del-push cycle
+        for (i = EMAX; i < 10000000; i++)
+        {
             (void) u_pq_peekmax(pq, &keymax);
 
-        // get a new element and see if it could get into by comparing
-        // it to the actual 10th element
-        if ((key = (double) random()) > keymax)
-            continue;
+            if (keymax > (key = (double) random()))
+            {
+                (void) u_pq_delmax(pq, NULL);
+                con_err_if (u_pq_push(pq, key, NULL));
+            }
+        }
 
-        // make room for the new entry removing the 10th
-        if (u_pq_full(pq))
-            (void) u_pq_delmax(pq, NULL);
-
-        // let it enter the top 10
-        con_err_if (u_pq_push(pq, key, NULL));
+        // print results
+        for (i = 0; !u_pq_empty(pq); i++)
+        {
+            (void) u_pq_delmax(pq, &key);
+            u_test_case_printf(tc, "%zu: %.0lf", EMAX - i, key);
+        }
     }
-
-    // print out
-    for (i = 0; i < 10; i++)
-    {
-        (void) u_pq_delmax(pq, &key);
-        u_con("%zu: %lf", i, key);
-    }
- \endcode
+    \endcode
  */
 
 /**

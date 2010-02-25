@@ -17,25 +17,23 @@ static int test_top10 (u_test_case_t *tc)
 
     con_err_if (u_pq_create(EMAX, &pq));
 
-    for (i = 0; i < 10000000; i++)
-    {
-        key = (double) random();
+    /* fill the pqueue */
+    for (i = 0; i < EMAX; i++)
+        con_err_if (u_pq_push(pq, (double) random(), NULL));
 
-        if (i < EMAX)
-        {
-            con_err_if (u_pq_push(pq, key, NULL));
-            continue;
-        }
-    
+    /* del-push cycle */
+    for (i = EMAX; i < 10000000; i++)
+    {
         (void) u_pq_peekmax(pq, &keymax);
 
-        if (keymax > key)
+        if (keymax > (key = (double) random()))
         {
             (void) u_pq_delmax(pq, NULL);
             con_err_if (u_pq_push(pq, key, NULL));
         }
     }
 
+    /* print results */
     for (i = 0; !u_pq_empty(pq); i++)
     {
         (void) u_pq_delmax(pq, &key);
