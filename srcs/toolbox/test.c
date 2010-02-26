@@ -1712,11 +1712,11 @@ static int u_test_suite_report_xml (FILE *fp, u_test_suite_t *ts,
         }
 
         /* Add synoptical info. */
-        (void) fprintf(fp, "\t<total>%zu</total>\n", syn->total);
-        (void) fprintf(fp, "\t<passed>%zu</passed>\n", syn->pass);
-        (void) fprintf(fp, "\t<failed>%zu</failed>\n", syn->fail);
-        (void) fprintf(fp, "\t<aborted>%zu</aborted>\n", syn->abrt);
-        (void) fprintf(fp, "\t<skipped>%zu</skipped>\n", syn->skip);
+        (void) fprintf(fp, "\t\t<total>%zu</total>\n", syn->total);
+        (void) fprintf(fp, "\t\t<passed>%zu</passed>\n", syn->pass);
+        (void) fprintf(fp, "\t\t<failed>%zu</failed>\n", syn->fail);
+        (void) fprintf(fp, "\t\t<aborted>%zu</aborted>\n", syn->abrt);
+        (void) fprintf(fp, "\t\t<skipped>%zu</skipped>\n", syn->skip);
     }
 
     if (tag == U_TEST_REP_TAIL)
