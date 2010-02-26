@@ -698,6 +698,9 @@ int test_suite_hmap_register (u_test_t *t)
     con_err_if (u_test_case_register("Linear Probing", test_linear, ts));
     con_err_if (u_test_case_register("Scoping", test_scope, ts));
 
+    /* hmap depends on the strings module */
+    con_err_if (u_test_suite_dep_register("Strings", ts));
+
     return u_test_suite_add(ts, t);
 err:
     u_test_suite_free(ts);
