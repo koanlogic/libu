@@ -8,7 +8,7 @@
   <xsl:output 
     method="xml"
     doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"
-    doctype-public="-//W3C/DTD XHTML 1.0 Strict//EN"
+    doctype-public="-//W3C//DTD XHTML 1.0 Strict//EN"
     indent="yes"
   />
     <xsl:template match="/test">
@@ -17,12 +17,15 @@
         href="test_{$test_id}.html"
         method="xml"
         doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"
-        doctype-public="-//W3C/DTD XHTML 1.0 Strict//EN"
+        doctype-public="-//W3C//DTD XHTML 1.0 Strict//EN"
         indent="yes"
       >
 
 <html>
   <head>
+    <title>
+      ::<xsl:value-of select="@id" /> @ <xsl:value-of select="host" />::
+    </title>
     <link rel="stylesheet" type="text/css" href="test_report.css" />
   </head>
 <body>
