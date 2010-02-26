@@ -1019,7 +1019,7 @@ static u_test_obj_t *u_test_obj_pick_top (TO *h)
         {
             /* Record the reached depth: it will be used by the
              * next evicted element. */
-            to->parent->currank = to->rank;
+            to->parent->currank = U_MAX(to->rank, to->parent->currank);
             return to;
         }
     }
