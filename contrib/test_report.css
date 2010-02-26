@@ -6,8 +6,70 @@ body
 
 table
 {
-    text-align: left;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+td
+{
+    vertical-align: top;
+}
+
+tr.heading
+{
+    font-size: 16px;
+    text-align: center;
+}
+
+table.syn
+{
+    font-size: 13px;
+    width: 30%;
+    height: 50%;
+    margin: auto;
+}
+
+div.syn
+{
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
+tr.framed
+{
+    border: 2px solid;
+}
+
+tr.PASS
+{
+    background-color: #99CC99;
     border: 1px solid;
+}
+
+tr.FAIL
+{
+    background-color: #CC9999;
+    border: 1px solid;
+}
+
+tr.ABRT
+{
+    background-color: #9999CC;
+    border: 1px solid;
+}
+
+tr.SKIP
+{
+    background-color: #C9C9C9;
+    border: 1px solid;
+}
+
+td.ident
+{
+    width: 200px;
+    vertical-align: middle;
+    font-weight: bold;
+    text-align: center;
 }
 
 table.FAIL
