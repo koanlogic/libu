@@ -77,22 +77,28 @@ static int __next_prime(size_t *prime, size_t sz, size_t *idx);
 /**
  *  \defgroup hmap HMap 
  *  \{
+ *      \par
  *      The \ref hmap module provides a flexible hash-map implementation
  *      featuring:
- *          - hash bucket chaining or linear probing operating modes;
- *          - pointer, string or opaque data types for both keys and values;
- *          - optional cache-style usage by specifying discard policies (FIFO,
- *          LRU, LFU);
- *          - choice between user or hmap memory ownership;
+ *          - hash bucket chaining or linear probing \link hmap::u_hmap_type_t
+ *          operating modes\endlink;
+ *          - pointer, string or opaque \link hmap::u_hmap_options_datatype_t
+ *          data types\endlink for both keys and values;
+ *          - optional cache-style usage by specifying \link
+ *          hmap::u_hmap_pcy_type_t discard policies\endlink;
+ *          - choice between user or hmap memory \link hmap::u_hmap_options_t
+ *          ownership\endlink;
  *          - custom hash function, comparison function and object free
- *          functions (for hashmap ownership).
+ *          functions.
  *
+ *      \par Simplified Interface
  *      Developers new to hmap or those wanting a plain and simple 
  *      { string -> object } hashmap implementation are strongly recommended to
- *      use the new hmap_easy interface. It is more user-friendly than the
- *      standard version and still allows choice between operating modes,
- *      policies and other options applied to hmap values.
+ *      use the new \ref hmap_easy "hmap easy" interface. It is more
+ *      user-friendly than the standard version and still allows choice between
+ *      operating modes, policies and other options applied to hmap values.
  *      
+ *      \par 
  *      The following examples illustrates the basic usage of the hmap_easy
  *      interface:
  *
@@ -105,8 +111,8 @@ static int __next_prime(size_t *prime, size_t sz, size_t *idx);
  *          dbg_err_if (u_hmap_easy_new(&opts, &hmap));
  *          dbg_err_if (u_hmap_opts_set_val_type(&opts, U_HMAP_OPTS_DATATYPE_STRING));
  *          
- *          dbg_err_if (u_hmap_easy_put(hmap, "jack", ":S"));
- *          dbg_err_if (u_hmap_easy_put(hmap, "jill", ":)))"));
+ *          dbg_err_if (u_hmap_easy_put(hmap, "jack", (const void *) ":S"));
+ *          dbg_err_if (u_hmap_easy_put(hmap, "jill", (const void *) ":)))"));
  *          
  *          u_con("jack is %s and jill is %s", 
  *              (const char *) u_hmap_easy_get(hmap, "jack"),
@@ -114,9 +120,47 @@ static int __next_prime(size_t *prime, size_t sz, size_t *idx);
  *          
  *          u_hmap_easy_free(hmap);
  *      \endcode
- *  
- *      More examples of both easy and standard API usage can be found in
- *      test/hmap.c.
+ *      
+ *      As illustrated by the example above, keys are always strings in the easy
+ *      interface, but there are three types of possibile value types, which can
+ *      be set by using \ref hmap::u_hmap_opts_set_val_type.
+ *      - U_HMAP_OPTS_DATATYPE_STRING (as in the example above): the hmap knows
+ *      how to handle allocation and deallocation of strings, so you do not need
+ *      to set any free functions. The user can simply insert string values
+ *      (even static) into the hashmap and the hmap will worry about
+ *      internalisation;
+ *      - U_HMAP_OPTS_DATATYPE_OPAQUE: in a similar manner to strings, hmap
+ *      automatically handles internalisation of opaque data. The only extra
+ *      information necessary is the fixed size of the opaque values within the
+ *      hmap, which can be set using u_hmap_opts_set_val_sz. If not set, the
+ *      default size will be the size of a pointer - i.e. <tt>sizeof(void
+ *      *)</tt>;
+ *      - U_HMAP_OPTS_DATATYPE_POINTER (default): allows the user to insert
+ *      pointers to any generic object into the hashmap. In this case the user
+ *      MUST set a free function for his/her own object type by using \ref
+ *      hmap::u_hmap_opts_set_val_freefunc (the value MAY be NULL, useful for
+ *      pointers to static data which does not require deallocation). If the
+ *      value set is not NULL, the hmap will call the free function on objects
+ *      removed from the hmap (via deletion, overwrite or hmap object
+ *      deallocation).
+ *      
+ *      \par Advanced Interface
+ *      The advanced interface is required <em>if and only if</em>:
+ *          - you want to able to customise the key type to be different than
+ *          the default C-style string;
+ *          - for some reason you cannot let hmap manage deallocations for you
+ *          (by calling your custom handler);
+ *          - you don't like the way overwrites are handled in the easy
+ *          interface (overwritten values are not returned automatically, they
+ *          must be retrieved by using \ref hmap::u_hmap_easy_get).
+ *
+ *      \par
+ *      The \ref hmap_easy "easy interface" should do just fine for most applications
+ *      and it is less error-prone than the \ref hmap_full "advanced interface".
+ *      So, if you must use the latter, please take special care.
+ *      
+ *      More examples of both easy and advanced API usage can be found in
+ *      <tt>test/hmap.c</tt>.
  */
 
 /**
@@ -131,7 +175,7 @@ static int __next_prime(size_t *prime, size_t sz, size_t *idx);
  * The call may fail on memory allocation problems or if the options are
  * manipulated incorrectly.
  * 
- * \param   opts      options to be passed to the hmap
+ * \param   opts      options to be passed to the hmap 
  * \param   phmap     on success contains the hmap options object
  * 
  * \retval  U_HMAP_ERR_NONE     on success
@@ -141,22 +185,15 @@ int u_hmap_easy_new (u_hmap_opts_t *opts, u_hmap_t **phmap)
 {
     u_hmap_opts_t newopts;
 
+    dbg_err_if (opts == NULL);
     dbg_err_if (phmap == NULL);
 
     u_hmap_opts_init(&newopts);
 
-    if (opts) {
-        dbg_err_if (u_hmap_opts_copy(&newopts, opts));
-        if (newopts.options == 0) {
-            newopts.options |= U_HMAP_OPTS_NO_OVERWRITE;
-            newopts.options |= U_HMAP_OPTS_OWNSDATA;
-        }
-    } else {
-        newopts.options |= U_HMAP_OPTS_NO_OVERWRITE;
-        newopts.options |= U_HMAP_OPTS_OWNSDATA;
-    }
+    dbg_err_if (u_hmap_opts_copy(&newopts, opts));
+
+    /* same defaults as advanced interface, but mark as easy */
     newopts.easy = 1;
-    newopts.f_free = NULL;
 
     dbg_err_if (u_hmap_new(&newopts, phmap));
 
@@ -333,6 +370,14 @@ static int __opts_check (u_hmap_opts_t *opts)
     dbg_err_if (opts->f_hash == NULL);
     dbg_err_if (opts->f_comp == NULL);
 
+    /* in the hmap_easy interface, in case of pointer values (default), 
+       we force setting the value free function to avoid developer mistakes;
+       for string or opaque values there is no need because we already know how
+       to handle them */
+    dbg_err_if (opts->easy && 
+            opts->val_type == U_HMAP_OPTS_DATATYPE_POINTER &&
+            !opts->val_free_set);
+
     return U_HMAP_ERR_NONE;
 err:
     return U_HMAP_ERR_FAIL;
@@ -385,7 +430,7 @@ static int __pcy_setup (u_hmap_t *hmap)
  * The call may fail on memory allocation problems or if the options are
  * manipulated incorrectly.
  * 
- * \param   opts      options to be passed to the hmap
+ * \param   opts      options to be passed to the hmap (may be NULL)
  * \param   phmap     on success contains the hmap options object
  * 
  * \retval  U_HMAP_ERR_NONE     on success
@@ -935,7 +980,7 @@ void u_hmap_opts_init (u_hmap_opts_t *opts)
     opts->type = U_HMAP_TYPE_CHAIN;
     opts->max = U_HMAP_MAX_ELEMS;
     opts->policy = U_HMAP_PCY_NONE;
-    opts->options = 0;
+    opts->options = U_HMAP_OPTS_NO_OVERWRITE | U_HMAP_OPTS_OWNSDATA;
     opts->f_hash = &__f_hash;
     opts->f_comp = &__f_comp;
     opts->f_free = NULL;
@@ -943,6 +988,7 @@ void u_hmap_opts_init (u_hmap_opts_t *opts)
     opts->val_type = U_HMAP_OPTS_DATATYPE_POINTER;
     opts->f_key_free = NULL;
     opts->f_val_free = NULL;
+    opts->val_free_set = 0;
     opts->f_str = NULL;
     opts->key_sz = sizeof(void *);
     opts->val_sz = sizeof(void *);
@@ -1045,32 +1091,58 @@ int u_hmap_opts_set_policy (u_hmap_opts_t *opts, u_hmap_pcy_type_t policy)
 {
     dbg_err_if (opts == NULL || policy < 0 || policy > U_HMAP_TYPE_LAST);
 
-    opts->policy |= policy; 
+    opts->policy = policy; 
 
     return U_HMAP_ERR_NONE;
 err:
     return U_HMAP_ERR_FAIL;
 }
 
-/** \brief Set options mask 
-  (<b>not valid for hmap_easy interface</b>) */
-int u_hmap_opts_set_options (u_hmap_opts_t *opts, int options)
+/** \brief Set option in options mask 
+  (<b>hmap_easy interface cannot operation on U_HMAP_OPTS_OWNSDATA</b>) */
+int u_hmap_opts_set_option (u_hmap_opts_t *opts, int option)
 {
-    dbg_err_if (opts == NULL || opts->easy); 
+    dbg_err_if (opts == NULL); 
 
-    opts->options |= options;
+    dbg_err_if ((option != U_HMAP_OPTS_OWNSDATA &&  
+            option != U_HMAP_OPTS_NO_OVERWRITE &&
+            option != U_HMAP_OPTS_HASH_STRONG));
+
+    dbg_err_if (opts->easy && 
+            option == U_HMAP_OPTS_OWNSDATA);
+
+    opts->options |= option;
 
     return U_HMAP_ERR_NONE;
 err:
     return U_HMAP_ERR_FAIL;
 }
 
-/** \brief Set a custom hash function 
-  (<b>not valid for hmap_easy interface</b>) */
+/** \brief Unset option in options mask 
+  (<b>hmap_easy interface cannot operation on U_HMAP_OPTS_OWNSDATA</b>) */
+int u_hmap_opts_unset_option (u_hmap_opts_t *opts, int option)
+{
+    dbg_err_if (opts == NULL);
+
+    dbg_err_if ((option != U_HMAP_OPTS_OWNSDATA &&  
+            option != U_HMAP_OPTS_NO_OVERWRITE &&
+            option != U_HMAP_OPTS_HASH_STRONG));
+
+    dbg_err_if (opts->easy && 
+            option == U_HMAP_OPTS_OWNSDATA);
+
+    opts->options &= ~option;
+
+    return U_HMAP_ERR_NONE;
+err:
+    return U_HMAP_ERR_FAIL;
+}
+
+/** \brief Set a custom hash function */
 int u_hmap_opts_set_hashfunc (u_hmap_opts_t *opts, 
         size_t (*f_hash)(const void *key, size_t buckets))
 {
-    dbg_err_if (opts == NULL || f_hash == NULL || opts->easy); 
+    dbg_err_if (opts == NULL || f_hash == NULL); 
 
     opts->f_hash = f_hash;
 
@@ -1079,12 +1151,11 @@ err:
     return U_HMAP_ERR_FAIL;
 }
 
-/** \brief Set a custom key comparison function 
-  (<b>not valid for hmap_easy interface</b>) */
+/** \brief Set a custom key comparison function */
 int u_hmap_opts_set_compfunc (u_hmap_opts_t *opts, 
         int (*f_comp)(const void *k1, const void *k2))
 {
-    dbg_err_if (opts == NULL || f_comp == NULL || opts->easy); 
+    dbg_err_if (opts == NULL || f_comp == NULL); 
 
     opts->f_comp = f_comp;
 
@@ -1094,7 +1165,7 @@ err:
 }
 
 /** \brief Set a custom object free function 
-  (<b>not valid for hmap_easy interface</b>) */
+  (<b>not available for hmap_easy interface</b>) */
 int u_hmap_opts_set_freefunc (u_hmap_opts_t *opts, 
         void (*f_free)(u_hmap_o_t *obj))
 {
@@ -1121,14 +1192,14 @@ err:
 }
 
 /** \brief Set type for keys 
-  (<b>not valid for hmap_easy interface</b>) */
+  (<b>not available for hmap_easy interface</b>) */
 int u_hmap_opts_set_key_type (u_hmap_opts_t *opts, 
         u_hmap_options_datatype_t type)
 {
     dbg_err_if (opts == NULL ||
             (type < 0 || type > U_HMAP_OPTS_DATATYPE_LAST));
 
-    /* not valid for hmap_easy interface */
+    /* not available for hmap_easy interface */
     dbg_err_if (opts->easy);
 
     opts->key_type = type;
@@ -1138,7 +1209,7 @@ err:
     return U_HMAP_ERR_FAIL;
 }
 
-/** \brief Set size of keys (<b>not valid for hmap_easy interface</b>, 
+/** \brief Set size of keys (<b>not available for hmap_easy interface</b>, 
   * <b>only valid for U_HMAP_OPTS_DATATYPE_OPAQUE key type</b>) */
 int u_hmap_opts_set_key_sz (u_hmap_opts_t *opts, size_t sz)
 {
@@ -1155,7 +1226,7 @@ err:
 }
 
 /** \brief Set free function for keys
-(<b>not valid for hmap_easy interface</b>) */
+(<b>not available for hmap_easy interface</b>) */
 int u_hmap_opts_set_key_freefunc (u_hmap_opts_t *opts, 
         void (*f_free)(const void *key))
 {
@@ -1205,7 +1276,8 @@ int u_hmap_opts_set_val_freefunc (u_hmap_opts_t *opts, void (*f_free)(void *val)
     dbg_err_if (opts == NULL);
 
     opts->f_val_free = f_free;
-
+    opts->val_free_set = 1;     /* keep track of this because setting it is
+                                   FORCED when using easy interface */
     return U_HMAP_ERR_NONE;
 err:
     return U_HMAP_ERR_FAIL;

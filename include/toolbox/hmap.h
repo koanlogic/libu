@@ -12,6 +12,11 @@
 extern "C" {
 #endif
 
+/** 
+ *  \addtogroup hmap
+ *  \{
+ */
+
 /** \brief hmap error codes */
 typedef enum {
     U_HMAP_ERR_NONE = 0,
@@ -36,9 +41,9 @@ typedef enum {
 /** \brief hmap data type for keys and values 
  * (only for U_HMAP_OPTS_OWNSDATA) */
 typedef enum {
-    U_HMAP_OPTS_DATATYPE_POINTER,
-    U_HMAP_OPTS_DATATYPE_STRING,
-    U_HMAP_OPTS_DATATYPE_OPAQUE,
+    U_HMAP_OPTS_DATATYPE_POINTER,   /**< pointer to custom data */
+    U_HMAP_OPTS_DATATYPE_STRING,    /**< null-terminated string */
+    U_HMAP_OPTS_DATATYPE_OPAQUE,    /**< user data of given size */
     U_HMAP_OPTS_DATATYPE_LAST = U_HMAP_OPTS_DATATYPE_OPAQUE
 } u_hmap_options_datatype_t;
 
@@ -69,7 +74,7 @@ typedef struct u_hmap_q_s u_hmap_q_t;
 struct u_hmap_o_s 
 {
     void *key;
-    void *val;
+   void *val;
 
     LIST_ENTRY(u_hmap_o_s) next;
 
@@ -111,8 +116,11 @@ struct u_hmap_opts_s {
     /** function to get a string representation of a (key, val) object */
     u_string_t *(*f_str)(u_hmap_o_t *obj);   
 
-    int easy;               /**< whether simplified interface is active 
-                                (internal) */ 
+    unsigned char easy;         /**< whether simplified interface is active
+                                  (internal) */ 
+    unsigned char val_free_set; /**< whether value free function has been set -
+                                  used in easy interface to force the call
+                                  (internal) */ 
 };
 typedef struct u_hmap_opts_s u_hmap_opts_t;
 
@@ -159,7 +167,8 @@ int u_hmap_opts_set_val_sz (u_hmap_opts_t *opts, size_t sz);
 int u_hmap_opts_copy (u_hmap_opts_t *to, u_hmap_opts_t *from);
 void u_hmap_opts_free (u_hmap_opts_t *opts);
 /* advanced options (invalid for simplified interface) */
-int u_hmap_opts_set_options (u_hmap_opts_t *opts, int options);
+int u_hmap_opts_set_option (u_hmap_opts_t *opts, int option);
+int u_hmap_opts_unset_option (u_hmap_opts_t *opts, int option);
 int u_hmap_opts_set_hashfunc (u_hmap_opts_t *opts, 
         size_t (*f_hash)(const void *key, size_t buckets));
 int u_hmap_opts_set_compfunc (u_hmap_opts_t *opts, 
@@ -177,6 +186,11 @@ int u_hmap_opts_set_key_freefunc (u_hmap_opts_t *opts,
 /* testing */
 void u_hmap_dbg (u_hmap_t *hmap);
 void u_hmap_opts_dbg (u_hmap_opts_t *opts);
+
+/**
+ *  \}
+ */
+
 void u_hmap_pcy_dbg (u_hmap_t *hmap);
 
 #ifdef __cplusplus
