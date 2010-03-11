@@ -4,8 +4,6 @@
 
 #include "bst.h"
 
-#define SIGN(i) ((i) < 0) ? -1 : (((i) > 0) ? 1 : 0)
-
 struct u_bst_node_s
 {
     void *key, *val;
@@ -41,6 +39,10 @@ static u_bst_node_t *u_bst_node_push_top (u_bst_t *bst, u_bst_node_t *node,
         const void *key, const void *val);
 static int u_bst_node_push_bottom (u_bst_t *bst, const void *key, 
         const void *val);
+static u_bst_node_t *u_bst_node_push_rand (u_bst_t *bst, u_bst_node_t *node,
+        const void *key, const void *val);
+static u_bst_node_t *u_bst_node_push (u_bst_t *bst, u_bst_node_t *node, 
+        const void *key, const void *val);
 static u_bst_node_t *u_bst_node_find_nth (u_bst_node_t *node, size_t n);
 static u_bst_node_t *u_bst_node_promote_nth (u_bst_node_t *node, size_t n);
 static u_bst_node_t *u_bst_node_join_lr (u_bst_node_t *l, u_bst_node_t *r);
@@ -70,6 +72,10 @@ int u_bst_new (int opts, u_bst_t **pbst)
     bst->root = NULL;
     bst->opts = opts;
 
+    /* Seed the PRNG in case we need to handle randomized insertion. */
+    if (bst->opts & U_BST_OPT_PUSH_RAND)
+        srand((unsigned int) getpid()); 
+
     *pbst = bst;
 
     return 0;
@@ -91,13 +97,19 @@ int u_bst_push (u_bst_t *bst, const void *key, const void *val)
     dbg_return_if (bst == NULL, ~0);
     dbg_return_if (key == NULL, ~0);
 
-    /* Default is to push on the bottom. */
+    if (bst->opts & U_BST_OPT_PUSH_RAND)
+    {
+        bst->root = u_bst_node_push_rand(bst, bst->root, key, val);
+        return bst->root ? 0 : ~0;
+    }
+
     if (bst->opts & U_BST_OPT_PUSH_TOP)
     {
         bst->root = u_bst_node_push_top(bst, bst->root, key, val);
-        return 0;
+        return bst->root ? 0 : ~0;
     }
 
+    /* The default is bottom insertion. */
     return u_bst_node_push_bottom(bst, key, val);
 }
 
@@ -108,7 +120,7 @@ int u_bst_delete (u_bst_t *bst, const void *key)
     dbg_return_if (bst == NULL, ~0);
     dbg_return_if (key == NULL, ~0);
 
-    (void) u_bst_node_delete(bst, bst->root, key, &found);
+    bst->root = u_bst_node_delete(bst, bst->root, key, &found);
 
     return found ? 0 : ~0;
 }
@@ -402,6 +414,58 @@ static void u_bst_node_foreach (u_bst_node_t *node,
     return;
 }
 
+static u_bst_node_t *u_bst_node_push_rand (u_bst_t *bst, u_bst_node_t *node, 
+        const void *key, const void *val)
+{
+    dbg_return_if (bst == NULL, NULL);
+    dbg_return_if (key == NULL, NULL);
+
+    if (node == NULL)
+    {
+        warn_err_if (u_bst_node_new(bst, key, val, &node));
+        return node;
+    }
+
+    /* The new node is inserted on the top with 1/nelem+1 probability. */
+    if ((size_t) rand() < RAND_MAX / (node->nelem + 1))
+        return u_bst_node_push_top(bst, node, key, val);
+
+    if (bst->cmp(key, node->key) < 0)
+        node->left = u_bst_node_push(bst, node->left, key, val);
+    else
+        node->right = u_bst_node_push(bst, node->right, key, val);
+
+    node->nelem += 1;
+
+    return node;
+err:
+    return NULL;
+}
+
+static u_bst_node_t *u_bst_node_push (u_bst_t *bst, u_bst_node_t *node, 
+        const void *key, const void *val)
+{
+    dbg_return_if (bst == NULL, NULL);
+    dbg_return_if (key == NULL, NULL);
+
+    if (node == NULL)
+    {
+        warn_err_if (u_bst_node_new(bst, key, val, &node));
+        return node;
+    }
+
+    if (bst->cmp(key, node->key) < 0)
+        node->left = u_bst_node_push(bst, node->left, key, val);
+    else
+        node->right = u_bst_node_push(bst, node->right, key, val);
+
+    node->nelem += 1;
+
+    return node;
+err:
+    return NULL;
+}
+ 
 static int u_bst_node_push_bottom (u_bst_t *bst, const void *key, 
         const void *val)
 {
