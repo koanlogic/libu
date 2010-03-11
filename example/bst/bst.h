@@ -30,9 +30,13 @@ void u_bst_free (u_bst_t *bst);
 ssize_t u_bst_count (u_bst_t *bst);
 u_bst_node_t *u_bst_search (u_bst_t *bst, const void *key);
 int u_bst_push (u_bst_t *bst, const void *key, const void *val);
-int u_bst_sort (u_bst_t *bst, void (*visit)(u_bst_node_t *));
+int u_bst_foreach (u_bst_t *bst, void (*cb)(u_bst_node_t *, void *), 
+        void *cb_args);
 u_bst_node_t *u_bst_rotate (u_bst_node_t *node, u_bst_rot_t dir);
 int u_bst_empty (u_bst_t *bst);
+u_bst_node_t *u_bst_find_nth (u_bst_t *bst, size_t n);
+void u_bst_delete (u_bst_t *bst, const void *key);
+
 
 /* BST configuration. */
 int u_bst_set_cmp (u_bst_t *bst, int (*f)(const void *, const void *));

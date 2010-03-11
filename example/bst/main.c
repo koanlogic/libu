@@ -8,7 +8,7 @@
 
 int facility = LOG_LOCAL0;
 
-static void printer (u_bst_node_t *node);
+static void printer (u_bst_node_t *node, void *dummy);
 static int sort_random (int howmany);
 static int search (void);
 
@@ -83,7 +83,7 @@ static int sort_random (int howmany)
 
     u_con("number of nodes in BST: %zu", u_bst_count(bst));
 
-    (void) u_bst_sort(bst, printer);
+    (void) u_bst_foreach(bst, printer, NULL);
 
     u_bst_free(bst);
 
@@ -93,8 +93,10 @@ err:
     return ~0;
 }
 
-static void printer (u_bst_node_t *node)
+static void printer (u_bst_node_t *node, void *dummy)
 {
+    u_unused_args(dummy);
+
     if (node)
         u_con("[SORT] key: %s", (const char *) u_bst_node_key(node));
     return;

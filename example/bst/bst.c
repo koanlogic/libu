@@ -35,11 +35,18 @@ static int u_bst_assign (void **pdst, const void *src, u_bst_type_t t,
         size_t sz);
 static u_bst_node_t *u_bst_node_search (u_bst_node_t *node, const void *key, 
         int (*cmp)(const void *, const void *));
-static void u_bst_node_sort (u_bst_node_t *node, void (*visit)(u_bst_node_t *));
+static void u_bst_node_foreach (u_bst_node_t *node, 
+        void (*cb)(u_bst_node_t *, void *), void *cb_args);
 static u_bst_node_t *u_bst_node_push_top (u_bst_t *bst, u_bst_node_t *node, 
         const void *key, const void *val);
 static int u_bst_node_push_bottom (u_bst_t *bst, const void *key, 
         const void *val);
+static u_bst_node_t *u_bst_node_find_nth (u_bst_node_t *node, size_t n);
+static u_bst_node_t *u_bst_node_promote_nth (u_bst_node_t *node, size_t n);
+static u_bst_node_t *u_bst_node_join_lr (u_bst_node_t *l, u_bst_node_t *r);
+static u_bst_node_t *u_bst_node_delete (u_bst_t *bst, u_bst_node_t *node, 
+        const void *key);
+static u_bst_node_t *u_bst_node_join (u_bst_node_t *b1, u_bst_node_t *b2);
 
 
 int u_bst_new (int opts, u_bst_t **pbst)
@@ -54,8 +61,11 @@ int u_bst_new (int opts, u_bst_t **pbst)
     bst->keyfree = u_bst_keyfree;
     bst->valtype = U_BST_TYPE_PTR;
     bst->valfree = NULL;
-//    bst->cmp = u_bst_keycmp_dbg;
+#ifdef BST_DEBUG
+    bst->cmp = u_bst_keycmp_dbg;
+#else
     bst->cmp = u_bst_keycmp;
+#endif  /* BST_DEBUG */
     bst->root = NULL;
     bst->opts = opts;
 
@@ -90,9 +100,29 @@ int u_bst_push (u_bst_t *bst, const void *key, const void *val)
     return u_bst_node_push_bottom(bst, key, val);
 }
 
+void u_bst_delete (u_bst_t *bst, const void *key)
+{
+    dbg_return_if (bst == NULL, );
+    dbg_return_if (key == NULL, );
+
+    u_bst_node_delete(bst, bst->root, key);
+
+    return;
+}
+
 u_bst_node_t *u_bst_search (u_bst_t *bst, const void *key)
 {
+    dbg_return_if (bst == NULL, NULL);
+    dbg_return_if (key == NULL, NULL);
+
     return u_bst_node_search(bst->root, key, bst->cmp);
+}
+
+u_bst_node_t *u_bst_find_nth (u_bst_t *bst, size_t n)
+{
+    dbg_return_if (bst == NULL, NULL);
+
+    return u_bst_node_find_nth(bst->root, n);
 }
 
 ssize_t u_bst_count (u_bst_t *bst)
@@ -105,12 +135,13 @@ ssize_t u_bst_count (u_bst_t *bst)
     return bst->root->nelem;
 }
 
-int u_bst_sort (u_bst_t *bst, void (*visit)(u_bst_node_t *))
+int u_bst_foreach (u_bst_t *bst, void (*cb)(u_bst_node_t *, void *), 
+        void *cb_args)
 {
     dbg_return_if (bst == NULL, ~0);
-    dbg_return_if (visit == NULL, ~0);
+    dbg_return_if (cb == NULL, ~0);
 
-    u_bst_node_sort(bst->root, visit);
+    u_bst_node_foreach(bst->root, cb, cb_args);
 
     return 0;
 }
@@ -119,7 +150,7 @@ int u_bst_sort (u_bst_t *bst, void (*visit)(u_bst_node_t *))
  * on 'dir'. */
 u_bst_node_t *u_bst_rotate (u_bst_node_t *pivot, u_bst_rot_t dir)
 {
-    u_bst_node_t *newtop;    /* It will become the new parent node. */
+    u_bst_node_t *newroot;    /* It will become the new parent node. */
 
     dbg_return_if (pivot == NULL, NULL);
 
@@ -127,24 +158,24 @@ u_bst_node_t *u_bst_rotate (u_bst_node_t *pivot, u_bst_rot_t dir)
     {
         /* Promote the right child. */
         case U_BST_ROT_LEFT:
-            newtop = pivot->right;
-            pivot->right = newtop->left;
-            newtop->left = pivot;
-            newtop->nelem = pivot->nelem;
-            pivot->nelem -= (newtop->left ? newtop->left->nelem + 1 : 1);
+            newroot = pivot->right;
+            pivot->right = newroot->left;
+            newroot->left = pivot;
+            newroot->nelem = pivot->nelem;
+            pivot->nelem -= (newroot->left ? newroot->left->nelem + 1 : 1);
             break;
 
         /* Promote the left child. */
         case U_BST_ROT_RIGHT:
-            newtop = pivot->left;
-            pivot->left = newtop->right;
-            newtop->right = pivot;
-            newtop->nelem = pivot->nelem;
-            pivot->nelem -= (newtop->right ? newtop->right->nelem + 1 : 1);
+            newroot = pivot->left;
+            pivot->left = newroot->right;
+            newroot->right = pivot;
+            newroot->nelem = pivot->nelem;
+            pivot->nelem -= (newroot->right ? newroot->right->nelem + 1 : 1);
             break;
     }
 
-    return newtop;
+    return newroot;
 }
 
 int u_bst_set_keyattr (u_bst_t *bst, u_bst_type_t kt, size_t ks)
@@ -322,15 +353,18 @@ err:
     return ~0;
 }
 
-static void u_bst_node_sort (u_bst_node_t *node, void (*visit)(u_bst_node_t *))
+/* Do in-order tree traversal.  Note that this provides a "natural" sort 
+ * of BST elements. 
+ * TODO: give a way to break the walk ? */
+static void u_bst_node_foreach (u_bst_node_t *node, 
+        void (*cb)(u_bst_node_t *, void *), void *cb_args)
 {
     if (node == NULL)
         return;
 
-    /* In-order tree traversal provides a "natural" sort of BST elements. */
-    u_bst_node_sort(node->left, visit);
-    visit(node);
-    u_bst_node_sort(node->right, visit);
+    u_bst_node_foreach(node->left, cb, cb_args);
+    cb(node, cb_args);
+    u_bst_node_foreach(node->right, cb, cb_args);
 
     return;
 }
@@ -409,6 +443,103 @@ static u_bst_node_t *u_bst_node_push_top (u_bst_t *bst, u_bst_node_t *node,
     
     return node;
 err:
+    return NULL;
+}
+
+static u_bst_node_t *u_bst_node_promote_nth (u_bst_node_t *node, size_t n)
+{
+    size_t t = (node->left == NULL) ? 0 : node->left->nelem;
+
+    if (t > n)
+    {
+        node->left = u_bst_node_promote_nth(node->left, n);
+        node = u_bst_rotate(node, U_BST_ROT_RIGHT);
+    }
+
+    if (t < n)
+    {
+        node->right = u_bst_node_promote_nth(node->right, n - (t + 1));
+        node = u_bst_rotate(node, U_BST_ROT_LEFT);
+    }
+
+    return node;
+}
+
+static u_bst_node_t *u_bst_node_join_lr (u_bst_node_t *l, u_bst_node_t *r)
+{
+    if (r == NULL)
+        return l;
+
+    /* Make the smallest node in the right subtree the new BST root. */
+    r = u_bst_node_promote_nth(r, 0);
+
+    /* Let the left subtree become the left child of the new root. */
+    r->left = l;
+
+    /* TODO update 'r's children counter */
+
+    return r;
+}
+
+static u_bst_node_t *u_bst_node_delete (u_bst_t *bst, u_bst_node_t *node, 
+        const void *key)
+{
+    int rc;
+    u_bst_node_t *delnode;
+
+    if (node == NULL)
+        return NULL;
+
+    if ((rc = bst->cmp(key, node->key)) < 0)
+        node->left = u_bst_node_delete(bst, node->left, key);
+
+    if (rc > 0)
+        node->right = u_bst_node_delete(bst, node->right, key);
+
+    if (rc == 0)
+    {
+        delnode = node;
+        node = u_bst_node_join_lr(node->left, node->right);
+        u_bst_node_do_free(bst, delnode);
+    }
+    
+    /* TODO update 'node's children counter */
+
+    return node;
+}
+
+static u_bst_node_t *u_bst_node_find_nth (u_bst_node_t *node, size_t n)
+{
+    size_t t;
+
+    if (node == NULL)
+        return NULL;
+
+    /* Store the number of elements in the left subtree. */
+    t = (node->left == NULL) ? 0 : node->left->nelem;
+
+    /* If 't' is smaller than the searched index, the n-th node hides
+     * in the left subtree. */
+    if (t > n)
+        return u_bst_node_find_nth(node->left, n);   
+
+    /* If 't' is larger than the searched index, the n-th node hides
+     * in the right subtree at index n-(t+1). */
+    if (t < n)
+        return u_bst_node_find_nth(node->right, n - (t + 1));
+
+    return node;    /* Found ! */
+}
+
+static u_bst_node_t *u_bst_node_join (u_bst_node_t *b1, u_bst_node_t *b2)
+{
+    if (b2 == NULL)
+        return b1;
+
+    if (b1 == NULL)
+        return b2;
+
+    /* TODO */
     return NULL;
 }
 
