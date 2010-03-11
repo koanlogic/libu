@@ -37,7 +37,7 @@ static void u_bst_node_foreach (u_bst_node_t *node,
         void (*cb)(u_bst_node_t *, void *), void *cb_args);
 static u_bst_node_t *u_bst_node_push_top (u_bst_t *bst, u_bst_node_t *node, 
         const void *key, const void *val);
-static int u_bst_node_push_bottom (u_bst_t *bst, const void *key, 
+static u_bst_node_t *u_bst_node_push_bottom (u_bst_t *bst, const void *key, 
         const void *val);
 static u_bst_node_t *u_bst_node_push_rand (u_bst_t *bst, u_bst_node_t *node,
         const void *key, const void *val);
@@ -98,19 +98,13 @@ int u_bst_push (u_bst_t *bst, const void *key, const void *val)
     dbg_return_if (key == NULL, ~0);
 
     if (bst->opts & U_BST_OPT_PUSH_RAND)
-    {
         bst->root = u_bst_node_push_rand(bst, bst->root, key, val);
-        return bst->root ? 0 : ~0;
-    }
-
-    if (bst->opts & U_BST_OPT_PUSH_TOP)
-    {
+    else if (bst->opts & U_BST_OPT_PUSH_TOP)
         bst->root = u_bst_node_push_top(bst, bst->root, key, val);
-        return bst->root ? 0 : ~0;
-    }
+    else /* The default is bottom insertion. */
+        bst->root = u_bst_node_push_bottom(bst, key, val);
 
-    /* The default is bottom insertion. */
-    return u_bst_node_push_bottom(bst, key, val);
+    return bst->root ? 0 : ~0;
 }
 
 int u_bst_delete (u_bst_t *bst, const void *key)
@@ -466,19 +460,19 @@ err:
     return NULL;
 }
  
-static int u_bst_node_push_bottom (u_bst_t *bst, const void *key, 
+static u_bst_node_t *u_bst_node_push_bottom (u_bst_t *bst, const void *key, 
         const void *val)
 {
     u_bst_node_t *parent, *node;
 
-    dbg_return_if (bst == NULL, ~0);
-    dbg_return_if (key == NULL, ~0);
+    dbg_return_if (bst == NULL, NULL);
+    dbg_return_if (key == NULL, NULL);
 
     /* Empty BST, handle special case. */
     if (u_bst_empty(bst))
     {
         warn_err_if (u_bst_node_new(bst, key, val, &bst->root));
-        return 0;
+        return bst->root;
     }
 
     /* Find a way through the non-empty BST until we reach an external node. */
@@ -503,9 +497,9 @@ static int u_bst_node_push_bottom (u_bst_t *bst, const void *key,
     else
         parent->right = node;
 
-    return 0;
+    return bst->root;
 err:
-    return ~0;
+    return NULL;
 }
 
 static u_bst_node_t *u_bst_node_push_top (u_bst_t *bst, u_bst_node_t *node, 
