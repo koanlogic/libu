@@ -3,7 +3,7 @@
 #include <u/libu.h>
 #include "bst.h"
 
-#define NELEMS  10
+#define NELEMS  11
 
 
 int facility = LOG_LOCAL0;
@@ -13,15 +13,15 @@ static void print_string (u_bst_node_t *node, void *dummy);
 static void print_int (u_bst_node_t *node, void *dummy);
 static int sort_random (int howmany);
 static int search (void);
-static int intkeys (void);
+static int intkeys_balance (void);
 
 int main (void)
 {
     srandom((unsigned long) getpid()); 
 
-    con_err_if (intkeys());
-//    con_err_if (sort_random(NELEMS));
-//    con_err_if (search());
+    con_err_if (intkeys_balance());
+    con_err_if (sort_random(NELEMS));
+    con_err_if (search());
 
     return 0;
 err:
@@ -75,7 +75,7 @@ static int sort_random (int howmany)
     u_bst_t *bst = NULL;
 
 
-    /* push new nodes to the top */
+    /* always push new nodes to the top */
     con_err_if (u_bst_new(U_BST_OPT_PUSH_TOP, &bst));
 
     for (i = 0; i < howmany; i++)
@@ -102,8 +102,9 @@ static void print_string (u_bst_node_t *node, void *dummy)
 {
     u_unused_args(dummy);
 
-    if (node)
-        u_con("[SORT] key: %s", (const char *) u_bst_node_key(node));
+    u_con("[SORT] key: %d (weight: %zu)", 
+            (const char *) u_bst_node_key(node), u_bst_node_count(node));
+
     return;
 }
 
@@ -111,8 +112,9 @@ static void print_int (u_bst_node_t *node, void *dummy)
 {
     u_unused_args(dummy);
 
-    if (node)
-        u_con("[SORT] key: %d", *((const int *) u_bst_node_key(node)));
+    u_con("[SORT] key: %d (weight: %zu)",
+            *((const int *) u_bst_node_key(node)), u_bst_node_count(node));
+
     return;
 }
 
@@ -121,7 +123,7 @@ static int intcmp (const void *i, const void *j)
     return *((const int *) i) - *((const int *) j);
 }
 
-static int intkeys (void)
+static int intkeys_balance (void)
 {
     int key;
     size_t i;
@@ -140,7 +142,7 @@ static int intkeys (void)
 
     (void) u_bst_foreach(bst, print_int, NULL);
     
-    /* search 4th and 5th key */
+    /* search 4th and 5th smallest key */
     for (i = 3; i < 5; i++)
     {
         con_err_if ((node = u_bst_find_nth(bst, i)) == NULL);
@@ -149,7 +151,15 @@ static int intkeys (void)
 
     /* delete last inserted key */
     u_con("deleting %d", key);
-    u_bst_delete(bst, (const void *) &key);
+    con_err_if (u_bst_delete(bst, (const void *) &key));
+
+    /* try again (should fail) */
+    con_err_if (!u_bst_delete(bst, (const void *) &key));
+
+    (void) u_bst_foreach(bst, print_int, NULL);
+
+    u_con("balance!");
+    con_err_if (u_bst_balance(bst));
 
     (void) u_bst_foreach(bst, print_int, NULL);
 

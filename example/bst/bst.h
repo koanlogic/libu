@@ -35,8 +35,8 @@ int u_bst_foreach (u_bst_t *bst, void (*cb)(u_bst_node_t *, void *),
 u_bst_node_t *u_bst_rotate (u_bst_node_t *node, u_bst_rot_t dir);
 int u_bst_empty (u_bst_t *bst);
 u_bst_node_t *u_bst_find_nth (u_bst_t *bst, size_t n);
-void u_bst_delete (u_bst_t *bst, const void *key);
-
+int u_bst_delete (u_bst_t *bst, const void *key);
+int u_bst_balance (u_bst_t *bst);
 
 /* BST configuration. */
 int u_bst_set_cmp (u_bst_t *bst, int (*f)(const void *, const void *));
@@ -48,5 +48,6 @@ int u_bst_set_valfree (u_bst_t *bst, void (*f)(void *));
 /* Getters/Setters. */
 const void *u_bst_node_key (u_bst_node_t *node);
 const void *u_bst_node_val (u_bst_node_t *node);
+ssize_t u_bst_node_count (u_bst_node_t *node);
 
 #endif  /* !_U_BST_H_ */
