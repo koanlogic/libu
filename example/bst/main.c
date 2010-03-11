@@ -8,14 +8,20 @@
 
 int facility = LOG_LOCAL0;
 
-static void printer (u_bst_node_t *node, void *dummy);
+static int intcmp (const void *i, const void *j);
+static void print_string (u_bst_node_t *node, void *dummy);
+static void print_int (u_bst_node_t *node, void *dummy);
 static int sort_random (int howmany);
 static int search (void);
+static int intkeys (void);
 
 int main (void)
 {
-    con_err_if (sort_random(NELEMS));
-    con_err_if (search());
+    srandom((unsigned long) getpid()); 
+
+    con_err_if (intkeys());
+//    con_err_if (sort_random(NELEMS));
+//    con_err_if (search());
 
     return 0;
 err:
@@ -68,7 +74,6 @@ static int sort_random (int howmany)
     int i;
     u_bst_t *bst = NULL;
 
-    srandom((unsigned long) getpid()); 
 
     /* push new nodes to the top */
     con_err_if (u_bst_new(U_BST_OPT_PUSH_TOP, &bst));
@@ -83,7 +88,7 @@ static int sort_random (int howmany)
 
     u_con("number of nodes in BST: %zu", u_bst_count(bst));
 
-    (void) u_bst_foreach(bst, printer, NULL);
+    (void) u_bst_foreach(bst, print_string, NULL);
 
     u_bst_free(bst);
 
@@ -93,11 +98,65 @@ err:
     return ~0;
 }
 
-static void printer (u_bst_node_t *node, void *dummy)
+static void print_string (u_bst_node_t *node, void *dummy)
 {
     u_unused_args(dummy);
 
     if (node)
         u_con("[SORT] key: %s", (const char *) u_bst_node_key(node));
     return;
+}
+
+static void print_int (u_bst_node_t *node, void *dummy)
+{
+    u_unused_args(dummy);
+
+    if (node)
+        u_con("[SORT] key: %d", *((const int *) u_bst_node_key(node)));
+    return;
+}
+
+static int intcmp (const void *i, const void *j)
+{
+    return *((const int *) i) - *((const int *) j);
+}
+
+static int intkeys (void)
+{
+    int key;
+    size_t i;
+    u_bst_t *bst = NULL;
+    u_bst_node_t *node;
+
+    con_err_if (u_bst_new(U_BST_OPT_NONE, &bst));
+    con_err_if (u_bst_set_cmp(bst, intcmp));
+    con_err_if (u_bst_set_keyattr(bst, U_BST_TYPE_OPAQUE, sizeof(int)));
+
+    for (i = 0; i < NELEMS; i++)
+    {
+        key = (int) random();
+        con_err_if (u_bst_push(bst, (const void *) &key, NULL));
+    }
+
+    (void) u_bst_foreach(bst, print_int, NULL);
+    
+    /* search 4th and 5th key */
+    for (i = 3; i < 5; i++)
+    {
+        con_err_if ((node = u_bst_find_nth(bst, i)) == NULL);
+        u_con("%zu-th key is %d", i + 1, *((const int *) u_bst_node_key(node)));
+    }
+
+    /* delete last inserted key */
+    u_con("deleting %d", key);
+    u_bst_delete(bst, (const void *) &key);
+
+    (void) u_bst_foreach(bst, print_int, NULL);
+
+    u_bst_free(bst);
+
+    return 0;
+err:
+    u_bst_free(bst);
+    return ~0;
 }

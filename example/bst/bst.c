@@ -26,7 +26,7 @@ struct u_bst_s
 
 static int u_bst_keycmp (const void *a, const void *b);
 static int u_bst_keycmp_dbg (const void *a, const void *b);
-static void u_bst_keyfree (void *p);
+static void u_bst_genfree (void *p);
 static int u_bst_node_new (u_bst_t *bst, const void *key, const void *val, 
         u_bst_node_t **pnode);
 static void u_bst_node_free (u_bst_t *bst, u_bst_node_t *node);
@@ -58,7 +58,7 @@ int u_bst_new (int opts, u_bst_t **pbst)
     warn_return_sif ((bst = u_malloc(sizeof *bst)) == NULL, ~0);
 
     bst->keytype = U_BST_TYPE_STRING;
-    bst->keyfree = u_bst_keyfree;
+    bst->keyfree = u_bst_genfree;
     bst->valtype = U_BST_TYPE_PTR;
     bst->valfree = NULL;
 #ifdef BST_DEBUG
@@ -186,6 +186,9 @@ int u_bst_set_keyattr (u_bst_t *bst, u_bst_type_t kt, size_t ks)
     bst->keytype = kt;
     bst->keysize = ks;
 
+    if (kt == U_BST_TYPE_OPAQUE)
+        bst->keyfree = u_bst_genfree;
+
     return 0;
 }
 
@@ -196,6 +199,9 @@ int u_bst_set_valattr (u_bst_t *bst, u_bst_type_t vt, size_t vs)
 
     bst->valtype = vt;
     bst->valsize = vs;
+
+    if (vt == U_BST_TYPE_OPAQUE)
+        bst->valfree = u_bst_genfree;
 
     return 0;
 }
@@ -341,7 +347,11 @@ static int u_bst_assign (void **pdst, const void *src, u_bst_type_t t,
             break;
         case U_BST_TYPE_OPAQUE:
             if (src)
+            {
+                warn_err_ifm (sz == 0, "0-len opaque type !");
+                warn_err_sif ((*pdst = u_malloc(sz)) == NULL);
                 memcpy(*pdst, src, sz);
+            }
             break;
         case U_BST_TYPE_PTR:
             memcpy(pdst, &src, sizeof(void **));
@@ -500,7 +510,7 @@ static u_bst_node_t *u_bst_node_delete (u_bst_t *bst, u_bst_node_t *node,
     {
         delnode = node;
         node = u_bst_node_join_lr(node->left, node->right);
-        u_bst_node_do_free(bst, delnode);
+        u_bst_node_do_free(bst, delnode), delnode = NULL;
     }
     
     /* TODO update 'node's children counter */
@@ -560,7 +570,7 @@ static int u_bst_keycmp_dbg (const void *a, const void *b)
     return rc;
 }
 
-static void u_bst_keyfree (void *p) 
+static void u_bst_genfree (void *p) 
 { 
     u_free(p); 
     return;
