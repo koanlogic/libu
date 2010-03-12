@@ -73,7 +73,7 @@ int u_bst_new (int opts, u_bst_t **pbst)
     bst->opts = opts;
 
     /* Seed the PRNG in case we need to handle randomized insertion. */
-    if (bst->opts & U_BST_OPT_PUSH_RAND)
+    if (bst->opts & U_BST_OPT_RANDOMIZED)
         srand((unsigned int) getpid()); 
 
     *pbst = bst;
@@ -97,7 +97,7 @@ int u_bst_push (u_bst_t *bst, const void *key, const void *val)
     dbg_return_if (bst == NULL, ~0);
     dbg_return_if (key == NULL, ~0);
 
-    if (bst->opts & U_BST_OPT_PUSH_RAND)
+    if (bst->opts & U_BST_OPT_RANDOMIZED)
         bst->root = u_bst_node_push_rand(bst, bst->root, key, val);
     else if (bst->opts & U_BST_OPT_PUSH_TOP)
         bst->root = u_bst_node_push_top(bst, bst->root, key, val);

@@ -22,7 +22,7 @@ typedef enum {
     U_BST_OPT_NONE          = 0,
     U_BST_OPT_PUSH_TOP      = (1 << 0),   /* New nodes are put on BST top. */
     U_BST_OPT_PUSH_BOTTOM   = (1 << 1),   /* New nodes are put at BST bottom. */
-    U_BST_OPT_PUSH_RAND     = (1 << 2)    /* Randomized insertion. */
+    U_BST_OPT_RANDOMIZED    = (1 << 2)    /* Randomized operations. */
 } u_bst_opt_t;
 
 /* Base interface. */

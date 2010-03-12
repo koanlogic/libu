@@ -75,7 +75,7 @@ static int randomized_push (int howmany)
     int i;
     u_bst_t *bst = NULL;
 
-    con_err_if (u_bst_new(U_BST_OPT_PUSH_RAND, &bst));
+    con_err_if (u_bst_new(U_BST_OPT_RANDOMIZED, &bst));
 
     /* see if a sequential insert sequence maps into a fairly balanced bst */
     for (i = 0; i < howmany; i++)
