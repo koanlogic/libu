@@ -791,7 +791,7 @@ err:
 }
 
 /**
- * \brief   Create a data object
+ * \brief   Create a data object (<b>unused for hmap_easy interface</b>)
  *
  * Creates a new (key, value) tuple to be inserted into a hmap. By default, the
  * user is responsible for allocation and deallocation of these objects and
@@ -860,7 +860,7 @@ err:
 }
 
 /** 
- * \brief  Free a data object 
+ * \brief  Free a data object (<b>unused for hmap_easy interface</b>)
  *
  * Frees a data object (without freeing its content). This function should only
  * be used if U_HMAP_OPTS_OWNSDATA is not set to free objects allocated with
@@ -1099,7 +1099,7 @@ err:
 }
 
 /** \brief Set option in options mask 
-  (<b>hmap_easy interface cannot operation on U_HMAP_OPTS_OWNSDATA</b>) */
+  (<b>hmap_easy interface cannot operate on U_HMAP_OPTS_OWNSDATA</b>) */
 int u_hmap_opts_set_option (u_hmap_opts_t *opts, int option)
 {
     dbg_err_if (opts == NULL); 
@@ -1119,7 +1119,7 @@ err:
 }
 
 /** \brief Unset option in options mask 
-  (<b>hmap_easy interface cannot operation on U_HMAP_OPTS_OWNSDATA</b>) */
+  (<b>hmap_easy interface cannot operate on U_HMAP_OPTS_OWNSDATA</b>) */
 int u_hmap_opts_unset_option (u_hmap_opts_t *opts, int option)
 {
     dbg_err_if (opts == NULL);

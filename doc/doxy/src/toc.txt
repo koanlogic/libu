@@ -20,18 +20,18 @@ of C/C++ programs in a very compact way, plus many other \ref misc tasks.
 Also, it has built-in support for tree-structured \ref config files, or flat 
 configuration files which are supplied through the running process \ref env.
 
-Hash \ref hmap's using separate (sorted) chaining or linear probing, linked 
-\ref list, an efficient \ref rb implementation, \ref array and \ref pq 
-are provided as building blocks for your custom data structures.
+\ref hmap s using separate (sorted) chaining or linear probing, linked \ref
+list, an efficient \ref rb implementation, \ref array and \ref pq are all
+provided as building blocks for your custom data structures.
 
-A complete machinery for handling authentication via \ref pwd like files, data 
+A complete framework for handling authentication via \ref pwd like files, data 
 \ref buf manipulation, a module for \ref test of C/C++ programs, and some
-commodity interfaces for playing safe with the \ref fs, complete the list of
-functionalities.
+commodity interfaces for playing safe with the \ref fs, completes the list of
+functionality.
 
-A portability layer is also included which gives replacement for functions 
-that could be missing on some platforms, e.g. strlcat(3), strlcpy(3), 
-gettimeofday(2), etc., and provide an uniform naming to absorb minor interface 
+Also, a portability layer is also included which gives replacement for functions
+that could be missing on some platforms, e.g. strlcat(3), strlcpy(3),
+gettimeofday(2), etc.; it provides uniform naming to absorb minor interface
 deltas between different platforms.
 
 Check the \ref install instructions and happy hacking !

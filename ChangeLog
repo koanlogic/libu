@@ -1,4 +1,4 @@
-$Id: ChangeLog,v 1.97 2010/02/23 21:15:01 tho Exp $
+$Id: ChangeLog,v 1.98 2010/03/17 10:53:29 stewy Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
@@ -17,7 +17,7 @@ LibU 2.0.0
 	  file (would break semantical equivalence) 
 	- [hmap] added u_hmap_foreach_arg which accepts a user defined parameter
 	  that is supplied to the callback function ; add "easy" interface to
-	  simplify some common use case
+	  simplify some common use cases ; updated docs
 	- [array] u_array_set_ptr and u_array_get_ptr interfaces changed;
 	  added interfaces for intmax_t and uintmax_t types; use C99 types 
 	  explicitly (_Complex and _Bool), to avoid clash with bool and complex 
