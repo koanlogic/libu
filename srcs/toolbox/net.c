@@ -949,22 +949,25 @@ static int resolv_sun (const char *dummy1, const char *dummy2,
         const char *path, u_addrinfo_t *ai)
 {
     char *cname = NULL;
-    struct sockaddr_un *sun = NULL;
+    /* This variable used to be called 'sun'.  Unfortunately, we can't call
+     * it like this on OpenSolaris, because their C preprocessor sets the 
+     * symbol 'sun' to the numeric constant '1' :) */
+    struct sockaddr_un *sunix = NULL;
 
     u_unused_args(dummy1, dummy2);
 
     dbg_return_if (path == NULL, ~0);
     dbg_return_if (ai == NULL, ~0);
 
-    dbg_err_sif ((sun = u_zalloc(sizeof *sun)) == NULL);
+    dbg_err_sif ((sunix = u_zalloc(sizeof *sunix)) == NULL);
 
-    sun->sun_family = AF_UNIX;
-    dbg_err_ifm (u_strlcpy(sun->sun_path, path, sizeof sun->sun_path), 
+    sunix->sun_family = AF_UNIX;
+    dbg_err_ifm (u_strlcpy(sunix->sun_path, path, sizeof sunix->sun_path), 
             "%s too long", path);
 
     ai->ai_protocol = 0;    /* override previous setting if any */
-    ai->ai_addr = (struct sockaddr *) sun;
-    ai->ai_addrlen = sizeof *sun;
+    ai->ai_addr = (struct sockaddr *) sunix;
+    ai->ai_addrlen = sizeof *sunix;
     ai->ai_next = NULL;
 
     /* set cname to what was provided as 'path' by the caller */
@@ -973,7 +976,7 @@ static int resolv_sun (const char *dummy1, const char *dummy2,
 
     return 0;
 err:
-    U_FREE(sun);
+    U_FREE(sunix);
     U_FREE(cname);
     return ~0;
 }
