@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.90 2010/02/25 21:53:48 tho Exp $
+# $Id: configure,v 1.91 2010/03/19 17:42:09 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -48,6 +48,8 @@ case ${target} in
         ;;
     *cygwin*)
         makl_set_var_mk "SHLIB_NO_UNDEFINED_SYMS"
+        makl_set_var "NO_RB"
+        makl_warn "ring buffer module disabled on cygwin"
         ;;
     sunos*)
         makl_add_var_mk "LDFLAGS" "-lsocket -lnsl"
