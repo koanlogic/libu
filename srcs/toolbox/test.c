@@ -275,8 +275,20 @@ struct u_test_rep_s txt_reps = {
           turns off the sandboxing mechanism by which tests are executed in
           safe, isolated bubbles.
 
-       An xsl file is provided in \c contrib/ as an example to automatically
-       build an HTML report page from the xml report file.
+       An \link test_report.xsl xsl file \endlink file - together with its twin
+       \link test_report.css css \endlink - is provided in \c contrib/ as an 
+       example to automatically build an HTML report page from the xml report 
+       file.  Let \c runtest produce an xml ouput and supply it to \c xsltproc
+       together with the xsl template:
+    \code
+    $ ./runtest -f xml -o my_test_report.xml
+    $ xstlproc test_report.xsl my_test_report.xml 
+    \endcode
+    A single html file is produced which gets its style definitions from
+    the \c test_report.css file (which must be in the same directory).
+
+    If in doubt, or in search for inspiration, take a look at LibU \c test/ 
+    directory.
  */
 
 /** 

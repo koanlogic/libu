@@ -29,7 +29,7 @@ A complete framework for handling authentication via \ref pwd like files, data
 commodity interfaces for playing safe with the \ref fs, completes the list of
 functionality.
 
-Also, a portability layer is also included which gives replacement for functions
+Also, a portability layer is included which gives replacement for functions
 that could be missing on some platforms, e.g. strlcat(3), strlcpy(3),
 gettimeofday(2), etc.; it provides uniform naming to absorb minor interface
 deltas between different platforms.

@@ -106,6 +106,7 @@ Password: ****
 You now are ready to play with your first LibU program:
 
 \code
+$ cat main.c
 #include <u/libu.h>
 
 int facility = LOG_LOCAL0;
@@ -116,5 +117,27 @@ int main (void)
     return 0;
 }
 \endcode
+
+Write a Makefile like the following:
+
+\code
+$ cat Makefile
+include common.mk
+
+PROG = hellolibu
+SRCS = main.c
+
+LDADD += /path/to/install/prefix/lib/libu.a
+CFLAGS += -I/path/to/install/prefix/include
+
+include prog.mk
+\endcode
+
+Then type:
+\code
+$ makl && ./hellolibu
+\endcode
+
+and enjoy !
 
 */ 
