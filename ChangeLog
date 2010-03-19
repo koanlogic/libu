@@ -1,4 +1,4 @@
-$Id: ChangeLog,v 1.98 2010/03/17 10:53:29 stewy Exp $
+$Id: ChangeLog,v 1.99 2010/03/19 10:34:59 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
@@ -6,7 +6,7 @@ LibU 2.0.0
 	- [pqueue] added new priority queue module
 	- [rb] added new ring buffer module
 	- [test] completely revamped, new interfaces
-	- [net] module implementation revamped (see the INTERFACE_CHANGES document)
+	- [net] module implementation and interfaces revamped
 	- [uri] complete support for RFC 3986; added u_uri_knead interface to 
 	  create conformant URI strings; added tester
 	- [carpal] dbg(), warn(), info(), err() and friends have been prefixed 
