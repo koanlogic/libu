@@ -36,6 +36,8 @@
   /* #include <winsock.h> not compatible with ws2tcpip.h */
   #include <winsock2.h>
   #include <ws2tcpip.h>
+
+  #define EAFNOSUPPORT  WSAEAFNOSUPPORT
 #endif  /* OS_WIN */
 
 #ifndef HAVE_IN_ADDR_T
