@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.18 2010/01/22 21:17:52 tho Exp $
+# $Id: Makefile,v 1.19 2010/03/22 18:19:02 tho Exp $
 
 include common.mk
 include ../Makefile.conf
@@ -11,8 +11,10 @@ SRCS += toolbox/misc.c
 SRCS += toolbox/str.c
 SRCS += toolbox/buf.c
 SRCS += toolbox/log.c
-SRCS += toolbox/test.c
 
+ifndef NO_TEST
+    SRCS += toolbox/test.c
+endif
 ifndef NO_HMAP
     SRCS += toolbox/hmap.c
 endif

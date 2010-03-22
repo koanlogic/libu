@@ -1,4 +1,4 @@
-# $Id: mk_modules,v 1.7 2010/01/22 21:17:52 tho Exp $
+# $Id: mk_modules,v 1.8 2010/03/22 18:19:02 tho Exp $
 
 #
 # --no_hmap
@@ -130,6 +130,18 @@ __makl_no_pqueue ()
     makl_set_var "NO_PQUEUE" ;
 }
 
+#
+# --no_test
+#
+makl_args_def   \
+    "no_test" \
+    "" ""       \
+    "disable unit test module"
+
+__makl_no_test () 
+{ 
+    makl_set_var "NO_TEST" ;
+}
 
 #
 # --no_docs
