@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.92 2010/03/22 18:19:02 tho Exp $
+# $Id: configure,v 1.93 2010/03/23 13:48:10 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -47,7 +47,8 @@ case ${target} in
         makl_add_var_mk "LDFLAGS" "-lwsock32"
         makl_set_var "NO_TEST"
         makl_set_var "NO_RB"
-        makl_warn "ring buffer and unit test modules disabled on mingw"
+        makl_set_var "NO_NET"
+        makl_warn "net, ring buffer and unit test modules disabled on mingw"
         ;;
     *cygwin*)
         makl_set_var_mk "SHLIB_NO_UNDEFINED_SYMS"
