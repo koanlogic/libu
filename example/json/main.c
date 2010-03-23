@@ -16,6 +16,7 @@ int main (int ac, char *av[])
 
     /* Print out what has been parsed. */
     json_obj_print(jo);
+    json_obj_free(jo);
 
     return EXIT_SUCCESS;
 err:

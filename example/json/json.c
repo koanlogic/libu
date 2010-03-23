@@ -112,7 +112,7 @@ int json_obj_new (json_obj_t **pjo)
 
     dbg_return_if (pjo == NULL, ~0);
 
-    warn_err_if ((jo = u_zalloc(sizeof *jo)) == NULL);
+    warn_err_sif ((jo = u_zalloc(sizeof *jo)) == NULL);
     TAILQ_INIT(&jo->children);
     jo->type = JSON_TYPE_UNKNOWN;
     jo->key[0] = jo->val[0] = '\0';
