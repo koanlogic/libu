@@ -101,6 +101,7 @@ static const char *json_type_str (int type);
 static int json_lex_eot (json_lex_t *jl);
 static void json_lex_incr (json_lex_t *jl);
 static int json_lex_next_ex (json_lex_t *jl, int eat_ws, char *pb);
+static int json_lex_eat_ws (json_lex_t *jl);
 
 /* Objects misc stuff. */
 static void json_obj_do_print (json_obj_t *jo, size_t l);
@@ -227,8 +228,12 @@ int json_lex (json_lex_t *jl, json_obj_t **pjo)
     /* Create top level json object. */
     warn_err_if (json_obj_new(&jo));
 
-    /* Start the lexer expecting the input JSON text as a serialized object 
-     * or array. */
+    /* Consume any trailing white space before starting actual parsing. */
+    if (json_lex_eat_ws(jl) == -1)
+        JSON_LEX_ERR(jl, "Empty JSON text !");
+
+    /* Launch the lexer expecting the input JSON text as a serialized object 
+     * or array. */ 
     if (json_match_object_first(jl))
         warn_err_if (json_match_object(jl, jo));
     else if (json_match_array_first(jl))
@@ -422,18 +427,26 @@ static int json_lex_next_ex (json_lex_t *jl, int eat_ws, char *pb)
     /* Consume at least one char. */
     json_lex_incr(jl);
 
-    /* If requested, also skip white spaces. */
+    /* If requested, skip white spaces. */
     if (eat_ws)
-    {
-        while (isspace(jl->s[jl->pos]))
-        {
-            dbg_return_if (json_lex_eot(jl), -1);
-            json_lex_incr(jl);
-        }
-    }
+        dbg_return_if (json_lex_eat_ws(jl) == -1, -1);
 
+    /* If requested, copy out the accepted char. */
     if (pb)
         *pb = json_lex_peek(jl);
+
+    return 0;
+}
+
+static int json_lex_eat_ws (json_lex_t *jl)
+{
+    dbg_return_if (json_lex_eot(jl), -1);
+
+    while (isspace(jl->s[jl->pos]))
+    {
+        dbg_return_if (json_lex_eot(jl), -1);
+        json_lex_incr(jl);
+    }
 
     return 0;
 }
