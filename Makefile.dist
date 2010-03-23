@@ -1,4 +1,4 @@
-# $Id: Makefile.dist,v 1.17 2010/03/19 10:34:59 tho Exp $
+# $Id: Makefile.dist,v 1.18 2010/03/23 18:22:32 tho Exp $
 
 include common.mk
 
@@ -35,10 +35,13 @@ DISTFILES += $(wildcard test/*.c)
 DISTFILES += $(wildcard doc/man/*.3) doc/man/Makefile
 
 # doxy bits
-DISTREMAP += doc/doxy/src/kl.css doc/html/kl.css
 DISTREMAP += pkg/Makefile.doc doc/Makefile
 DISTREMAP += pkg/Makefile.doxy.doc doc/html/Makefile
 DISTREMAP += $(foreach f, $(notdir $(wildcard doc/doxy/html/*.html)), \
+                       doc/doxy/html/$f doc/html/$f)
+DISTREMAP += $(foreach f, $(notdir $(wildcard doc/doxy/html/*.css)), \
+                       doc/doxy/html/$f doc/html/$f)
+DISTREMAP += $(foreach f, $(notdir $(wildcard doc/doxy/html/*.gif)), \
                        doc/doxy/html/$f doc/html/$f)
 
 # contrib files
