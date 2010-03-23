@@ -226,10 +226,15 @@ int json_lex (json_lex_t *jl, json_obj_t **pjo)
 
     /* Create top level json object. */
     warn_err_if (json_obj_new(&jo));
-    warn_err_if (json_obj_set_type(jo, JSON_TYPE_OBJECT));
 
-    /* Start the lexer. */
-    warn_err_if (json_match_object(jl, jo));
+    /* Start the lexer expecting the input JSON text as a serialized object 
+     * or array. */
+    if (json_match_object_first(jl))
+        warn_err_if (json_match_object(jl, jo));
+    else if (json_match_array_first(jl))
+        warn_err_if (json_match_array(jl, jo));
+    else
+        JSON_LEX_ERR(jl, "Expecting \'{\' or \'[\', found \'%c\'.", *jl->s);
 
     /* Copy out the broken down tree. */
     *pjo = jo;
