@@ -35,10 +35,10 @@
 
 #ifdef OS_WIN
 #include <windows.h>
-#define _mkdir(dir, perm) CreateDirectory(dir, NULL)
+#define __mkdir(dir, perm) CreateDirectory(dir, NULL)
 #define lstat(path, buf) stat(path, buf)
 #else
-#define _mkdir(dir, perm) mkdir(dir, perm)
+#define __mkdir(dir, perm) mkdir(dir, perm)
 #endif
 
 #ifndef HAVE_MKSTEMPS
@@ -122,13 +122,12 @@ static int _gettemp(char *path, int *doopen, int domkdir, int slen)
 
     for (;;) {
         if (doopen) {
-            if ((*doopen =
-                open(path, O_CREAT|O_EXCL|O_RDWR, 0600)) >= 0)
+            if ((*doopen = open(path, O_CREAT|O_EXCL|O_RDWR, 0600)) >= 0)
                 return (1);
             if (errno != EEXIST)
                 return (0);
         } else if (domkdir) {
-            if (_mkdir(path, 0700) == 0)
+            if (__mkdir(path, 0700) == 0)
                 return (1);
             if (errno != EEXIST)
                 return (0);
