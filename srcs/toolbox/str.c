@@ -402,18 +402,6 @@ int u_string_sprintf (u_string_t *s, const char *fmt, ...)
 }
 
 /**
- * \brief  Append a printf-style formatted string to the given string
- *
- * Append a printf-style formatted string to the given string.
- *
- * \param s     string object
- * \param fmt   printf-style format
- * \param ...   variable list of arguments
- *
- * \return \c 0 on success, not zero on failure
- */
-
-/**
  *  \brief  Set the string from sprintf-style arguments
  *
  *  Append the format string \p fmt to the supplied ::u_string_t object \p s 

@@ -1,6 +1,10 @@
-$Id: ChangeLog,v 1.99 2010/03/19 10:34:59 tho Exp $
+$Id: ChangeLog,v 1.100 2010/03/24 16:18:48 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
+
+LibU 2.x.y
+	- [rb] malloc based implementation, both using contiguous (i.e. double
+	       sized) and wrapped buffer.
 
 LibU 2.0.0
 	- [pqueue] added new priority queue module

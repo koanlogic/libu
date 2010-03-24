@@ -34,4 +34,6 @@ void json_obj_print (json_obj_t *jo);
 void json_obj_walk (json_obj_t *jo, int strategy, size_t l, 
         void (*cb)(json_obj_t *, size_t));
 
+int json_encode (json_obj_t *jo, const char **ps);
+
 #endif  /* !_JSON_LEX_H_ */

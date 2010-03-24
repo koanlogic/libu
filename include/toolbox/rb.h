@@ -27,9 +27,13 @@ typedef enum {
     U_RB_OPT_NONE               = 0x00,
     /**< use default (depending on platform) creation method */
 
-    U_RB_OPT_USE_CONTIGUOUS_MEM = 0x01
+    U_RB_OPT_USE_CONTIGUOUS_MEM = 0x01,
     /**< force implementation to use a contiguous memory buffer to store
      *   ringbuffer data. This option enables the ::u_rb_fast_read interface. */
+
+    U_RB_OPT_IMPL_MALLOC        = 0x02,
+    /**< Force use of malloc(3) based implementation.  The default is to
+     *   use the mmap(2) implementation on platforms supporting it. */
 } u_rb_opts_t;
 
 int u_rb_create (size_t hint_sz, int opts, u_rb_t **prb);

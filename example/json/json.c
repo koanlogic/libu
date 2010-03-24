@@ -107,6 +107,9 @@ static int json_lex_eat_ws (json_lex_t *jl);
 static void json_obj_do_print (json_obj_t *jo, size_t l);
 static void json_obj_do_free (json_obj_t *jo, size_t l);
 
+/* Encoder. */
+static int json_do_encode (json_obj_t *jo, u_string_t *s);
+
 int json_obj_new (json_obj_t **pjo)
 {
     json_obj_t *jo = NULL;
@@ -263,13 +266,81 @@ void json_obj_free (json_obj_t *jo)
     return;
 }
 
+int json_encode (json_obj_t *jo, const char **ps)
+{
+    u_string_t *s = NULL;
+
+    dbg_return_if (jo == NULL, ~0);
+    dbg_return_if (ps == NULL, ~0);
+
+    dbg_err_if (u_string_create(NULL, 0, &s));
+    dbg_err_if (json_do_encode(jo, s));
+    *ps = u_string_c(s);
+
+    return 0;
+err:
+    if (s)
+        u_string_free(s);
+    return ~0;
+}
+
+static int json_do_encode (json_obj_t *jo, u_string_t *s)
+{
+    if (jo == NULL)
+        return 0;
+
+    /* [key:] val, */
+    if (strlen(jo->key))
+        dbg_err_if (u_string_aprintf(s, "%s: ", jo->key));
+
+    switch (jo->type)
+    {
+        case JSON_TYPE_STRING:
+        case JSON_TYPE_NUMBER:
+            dbg_err_if (u_string_aprintf(s, "%s", jo->val));
+            break;
+        case JSON_TYPE_OBJECT:
+            dbg_err_if (u_string_aprintf(s, "{"));
+            break;
+        case JSON_TYPE_ARRAY:
+            dbg_err_if (u_string_aprintf(s, "["));
+            break;
+        case JSON_TYPE_TRUE:
+            dbg_err_if (u_string_aprintf(s, "true"));
+            break;
+        case JSON_TYPE_FALSE:
+            dbg_err_if (u_string_aprintf(s, "false"));
+            break;
+        case JSON_TYPE_NULL:
+            dbg_err_if (u_string_aprintf(s, "null"));
+            break;
+        default:
+            dbg_err("!");
+    }
+
+    /* TODO if siblings, then add ',' */
+
+    dbg_err_if (json_do_encode(TAILQ_FIRST(&jo->children), s));
+    dbg_err_if (json_do_encode(TAILQ_NEXT(jo, siblings), s));
+
+    /* TODO Add tail for array and objects. */ 
+
+    return 0;
+err:
+    return ~0;
+}
+
+
 /* {Pre,post}-order tree walker, depending on 'strategy'. */
 void json_obj_walk (json_obj_t *jo, int strategy, size_t l, 
         void (*cb)(json_obj_t *, size_t))
 {
-    dbg_return_if (jo == NULL, );
-    dbg_return_if ((strategy != JSON_WALK_PREORDER && 
-                strategy != JSON_WALK_POSTORDER), );
+    dbg_return_if (
+            strategy != JSON_WALK_PREORDER && 
+            strategy != JSON_WALK_POSTORDER, );
+
+    if (jo == NULL)
+        return;
 
     if (strategy == JSON_WALK_PREORDER && cb)
         cb(jo, l);

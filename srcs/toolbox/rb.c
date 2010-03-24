@@ -11,6 +11,7 @@
 #include <u/toolbox/misc.h>
 #include <u/toolbox/carpal.h>
 
+#ifdef HAVE_MMAP
 #if defined(HAVE_SYSCONF) && defined(_SC_PAGE_SIZE)
   #define u_vm_page_sz  sysconf(_SC_PAGE_SIZE)
 #elif defined (HAVE_SYSCONF) && defined(_SC_PAGESIZE)
@@ -20,21 +21,45 @@
 #else
   #error "don't know how to get page size.  reconfigure with --no_ringbuffer."
 #endif
+#endif  /* HAVE_MMAP */
 
 struct u_rb_s
 {
-    char *base;     /* base address of the mmap'd region */
+    char *base;     /* base address of the memory buffer. */
     size_t sz;      /* ring buffer size */
     size_t wr_off;  /* write offset */
     size_t rd_off;  /* read offset */
     int opts;       /* options */
+
+    /* Implementation specific methods. */
+    void (*cb_free) (struct u_rb_s *rb);
+    ssize_t (*cb_read) (struct u_rb_s *rb, void *b, size_t b_sz);
+    void *(*cb_fast_read) (struct u_rb_s *rb, size_t *pb_sz);
+    ssize_t (*cb_write) (struct u_rb_s *rb, const void *b, size_t b_sz);
+    size_t (*cb_ready) (struct u_rb_s *rb);
 };
 
 static char *write_addr (u_rb_t *rb);
-static void write_incr (u_rb_t *rb, size_t cnt);
+static void write_incr_contiguous (u_rb_t *rb, size_t cnt);
 static char *read_addr (u_rb_t *rb);
-static void read_incr (u_rb_t *rb, size_t cnt);
-static size_t round_sz (size_t sz);
+static void read_incr_contiguous (u_rb_t *rb, size_t cnt);
+static size_t ready_contiguous (u_rb_t *rb);
+static size_t ready_wrapped (u_rb_t *rb);
+static ssize_t write_contiguous (u_rb_t *rb, const void *b, size_t b_sz);
+static ssize_t write_wrapped (u_rb_t *rb, const void *b, size_t b_sz);
+static ssize_t read_contiguous (u_rb_t *rb, void *b, size_t b_sz);
+static ssize_t read_wrapped (u_rb_t *rb, void *b, size_t b_sz);
+static void *fast_read (u_rb_t *rb, size_t *pb_sz);
+static int is_wrapped (u_rb_t *rb);
+
+#ifdef HAVE_MMAP    /* specific to mmap(2) based implementation. */
+  static int create_mmap (size_t hint_sz, int opts, u_rb_t **prb);
+  static void free_mmap (u_rb_t *rb);
+  static size_t round_sz (size_t sz);
+#endif  /* HAVE_MMAP */
+
+static int create_malloc (size_t sz, int opts, u_rb_t **prb);
+static void free_malloc (u_rb_t *rb);
 
 /**
     \defgroup rb Ring Buffer
@@ -108,8 +133,362 @@ static size_t round_sz (size_t sz);
  *
  *  \retval  0  on success
  *  \retval -1  on error
+ *
+ *  \note   We try to use the mmap-based implementation whenever possible.
  */
 int u_rb_create (size_t hint_sz, int opts, u_rb_t **prb)
+{
+    if (opts & U_RB_OPT_IMPL_MALLOC)
+        return create_malloc(hint_sz, opts, prb);
+
+#ifdef HAVE_MMAP
+    /* Default is to use mmap implementation. */
+    return create_mmap(hint_sz, opts, prb);
+#else   /* !HAVE_MMAP */
+    /* Fallback to malloc in case mmap is not available. */
+    return create_malloc(hint_sz, opts, prb);
+#endif  /* HAVE_MMAP */
+}
+
+/**
+ *  \brief  Dispose a ring buffer object
+ *
+ *  Dispose the previously allocated ::u_rb_t object \p rb
+ *
+ *  \param  rb  reference to the ::u_rb_t object that must be disposed
+ *
+ *  \return nothing
+ */
+void u_rb_free (u_rb_t *rb)
+{
+    if (rb && rb->cb_free)
+        rb->cb_free(rb);
+    return;
+}
+
+/**
+ *  \brief  Return the size of the ring buffer
+ *
+ *  Return the real size (as possibly rounded by the ::u_rb_create routine) of 
+ *  the supplied ::u_rb_t object \p rb
+ *
+ *  \param  rb  reference to an already allocated ::u_rb_t object
+ *
+ *  \return the size in bytes of the ring buffer
+ */
+size_t u_rb_size (u_rb_t *rb)
+{
+    return rb->sz;
+}
+
+/**
+ *  \brief  Write to the ring buffer
+ *
+ *  Try to write \p b_sz bytes of data from the memory block \p b to the 
+ *  ::u_rb_t object \p rb
+ *
+ *  \param  rb      reference to an already allocated ::u_rb_t object where
+ *                  data will be written to
+ *  \param  b       reference to the memory block which will be copied-in
+ *  \param  b_sz    number of bytes starting from \p b that the caller wants
+ *                  to be copied into \p rb
+ *
+ *  \return the number of bytes actually written to the ring buffer (may be 
+ *              less than the requested size)
+ */
+ssize_t u_rb_write (u_rb_t *rb, const void *b, size_t b_sz)
+{
+    dbg_return_if (rb == NULL, -1);
+    dbg_return_if (rb->cb_write == NULL, -1); 
+
+    return rb->cb_write(rb, b, b_sz);
+}
+
+/**
+ *  \brief  Read from the ring buffer
+ *
+ *  Try to read \p b_sz bytes of data from the ring buffer \p rb and copy it 
+ *  to \p b
+ *
+ *  \param  rb      reference to an already allocated ::u_rb_t object where 
+ *                  data will be read from
+ *  \param  b       reference to the memory block where data will be copied
+ *                  (must be pre-allocated by the caller and of \p b_sz bytes
+ *                  at least)
+ *  \param  b_sz    number of bytes that the caller wants to be copied into 
+ *                  \p b
+ *
+ *  \return the number of bytes actually read from the ring buffer (may be 
+ *              less than the requested size)
+ */
+ssize_t u_rb_read (u_rb_t *rb, void *b, size_t b_sz)
+{
+    dbg_return_if (rb == NULL, -1);
+    dbg_return_if (rb->cb_write == NULL, -1); 
+
+    return rb->cb_read(rb, b, b_sz);
+}
+
+/**
+ *  \brief  Read from the ring buffer with minimum overhead
+ *
+ *  Try to read \p *pb_sz bytes of data from the ring buffer \p rb and return
+ *  the pointer to the start of data.  The ::U_RB_OPT_USE_CONTIGUOUS_MEM 
+ *  option must have been set when creating \p rb.
+ *
+ *  \param  rb      reference to an already allocated ::u_rb_t object where 
+ *                  data will be read from
+ *  \param  pb_sz   number of bytes that the caller wants to be read.  On 
+ *                  successful return (i.e. non \c NULL) the value will be 
+ *                  filled with the number of bytes actually read.
+ *
+ *  \return the address to the start of read data, or \c NULL on error (which
+ *          includes the "no data ready" condition).
+ *
+ *  \note   In case there is no data ready to be read a \c NULL is returned,
+ *          with <code>*pb_sz == 0</code>.  Any other error condition won't 
+ *          touch the supplied \p *pb_sz value.
+ */
+void *u_rb_fast_read (u_rb_t *rb, size_t *pb_sz)
+{
+    dbg_return_if (rb == NULL, NULL);
+    dbg_return_if (rb->cb_write == NULL, NULL);
+
+    return rb->cb_fast_read(rb, pb_sz);
+}
+
+/**
+ *  \brief  Reset the ring buffer
+ *
+ *  Reset read and write offset counters of the supplied ::u_rb_t object \p rb
+ *
+ *  \param  rb      reference to an already allocated ::u_rb_t object
+ *
+ *  \retval  0  on success
+ *  \retval -1  on failure
+ */
+int u_rb_clear (u_rb_t *rb)
+{
+    dbg_return_if (rb == NULL, -1);
+    rb->wr_off = rb->rd_off = 0;
+    return 0;
+}
+ 
+/**
+ *  \brief  Return the number of bytes ready to be consumed
+ *
+ *  Return the number of bytes ready to be consumed for the supplied ::u_rb_t
+ *  object \p rb
+ *
+ *  \param  rb      reference to an already allocated ::u_rb_t object 
+ *
+ *  \return  the number of bytes ready to be consumed (could be \c 0)
+ */
+size_t u_rb_ready (u_rb_t *rb)
+{
+    /* Let it crash on NULL 'rb's */
+    return rb->cb_ready(rb);
+}
+ 
+/**
+ *  \brief  Return the unused buffer space
+ *
+ *  Return number of unused bytes in the supplied ::u_rb_t object, i.e. 
+ *  the dual of ::u_rb_ready.
+ *
+ *  \param  rb      reference to an already allocated ::u_rb_t object 
+ *
+ *  \return the number of bytes that can be ::u_rb_write'd before old data 
+ *          starts being overwritten
+ */
+size_t u_rb_avail (u_rb_t *rb)
+{
+    return rb->sz - u_rb_ready(rb);
+}
+
+/**
+ *  \}
+ */ 
+
+
+/* address for write op */
+static char *write_addr (u_rb_t *rb)
+{
+    return rb->base + rb->wr_off;
+}
+ 
+/* shift the write pointer */
+static void write_incr_contiguous (u_rb_t *rb, size_t cnt)
+{
+    rb->wr_off += cnt;
+}
+
+/* address for next read op */
+static char *read_addr (u_rb_t *rb)
+{
+    return rb->base + rb->rd_off;
+}
+ 
+/* shift the read pointer of 'cnt' positions */
+static void read_incr_contiguous (u_rb_t *rb, size_t cnt)
+{
+    /* 
+     * assume 'rb' and 'cnt' sanitized 
+     */
+    rb->rd_off += cnt;
+
+    /* When the read offset is advanced into the second virtual-memory region, 
+     * both offsets - read and write - are decremented by the length of the 
+     * underlying buffer */
+    if (rb->rd_off >= rb->sz)
+    {
+        rb->rd_off -= rb->sz;
+        rb->wr_off -= rb->sz;
+    }
+
+    return;
+}
+
+static void *fast_read (u_rb_t *rb, size_t *pb_sz)
+{
+    void *data = NULL;
+
+    dbg_return_if (rb == NULL, NULL);
+    dbg_return_if (!(rb->opts & U_RB_OPT_USE_CONTIGUOUS_MEM), NULL);
+    dbg_return_if (pb_sz == NULL, NULL);
+    dbg_return_if (*pb_sz > u_rb_size(rb), NULL);
+
+    /* if there is nothing ready to be read go out immediately */
+    nop_goto_if (!(*pb_sz = U_MIN(u_rb_ready(rb), *pb_sz)), end);
+
+    data = read_addr(rb);
+    read_incr_contiguous(rb, *pb_sz);
+
+    /* fall through */
+end:
+    return data;
+}
+
+/* Take care of wrap-around. */
+static size_t ready_wrapped (u_rb_t *rb)
+{
+    size_t r = rb->rd_off, w = rb->wr_off;
+
+    return (r <= w) ? (w - r) : (rb->sz + w - r);
+}
+
+static int is_wrapped (u_rb_t *rb)
+{
+    return (rb->rd_off > rb->wr_off);
+}
+
+static size_t ready_contiguous (u_rb_t *rb)
+{
+    return (rb->wr_off - rb->rd_off);
+}
+
+static ssize_t write_contiguous (u_rb_t *rb, const void *b, size_t b_sz)
+{
+    size_t to_be_written;
+
+    dbg_return_if (rb == NULL, -1);
+    dbg_return_if (b == NULL, -1);
+    dbg_return_if (b_sz > u_rb_size(rb), -1);
+
+    nop_goto_if (!(to_be_written = U_MIN(u_rb_avail(rb), b_sz)), end);
+
+    memcpy(write_addr(rb), b, to_be_written);
+    write_incr_contiguous(rb, to_be_written);
+
+    /* fall through */
+end:
+    return to_be_written;
+}
+
+static ssize_t write_wrapped (u_rb_t *rb, const void *b, size_t b_sz)
+{
+    size_t to_be_written, rspace, rem;
+
+    dbg_return_if (rb == NULL, -1);
+    dbg_return_if (b == NULL, -1);
+    dbg_return_if (b_sz > u_rb_size(rb), -1);
+
+    nop_goto_if (!(to_be_written = U_MIN(u_rb_avail(rb), b_sz)), end);
+
+    /* If rb has wrapped-around, or the requested amount of data
+     * don't need to be fragmented between tail and head, append 
+     * it at the write offset. */
+    if (is_wrapped(rb) || (rspace = (rb->sz - rb->wr_off)) > to_be_written)
+    {
+        memcpy(write_addr(rb), b, to_be_written);
+        write_incr_contiguous(rb, to_be_written);
+    }
+    else
+    {
+        rem = to_be_written - rspace;
+        /* Handle head-tail fragmentation: the available buffer space on the
+         * right side is not enough to hold the supplied data. */
+        memcpy(write_addr(rb), b, rspace);
+        memcpy(rb->base, (const char *) b + rspace, rem);
+        rb->wr_off = rem;
+    }
+
+    /* fall through */
+end:
+    return to_be_written;
+}
+
+static ssize_t read_wrapped (u_rb_t *rb, void *b, size_t b_sz)
+{
+    size_t to_be_read, rspace, rem;
+
+    dbg_return_if (b == NULL, -1);
+    dbg_return_if (rb == NULL, -1);
+    dbg_return_if (b_sz > u_rb_size(rb), -1);
+
+    /* if there is nothing ready to be read go out immediately */
+    nop_goto_if (!(to_be_read = U_MIN(u_rb_ready(rb), b_sz)), end);
+
+    if (!is_wrapped(rb) || (rspace = (rb->sz - rb->wr_off)) < to_be_read)
+    {
+        memcpy(b, read_addr(rb), to_be_read);
+        read_incr_contiguous(rb, to_be_read);
+    }
+    else
+    {
+        rem = to_be_read - rspace;
+        memcpy(b, read_addr(rb), rspace); 
+        memcpy((char *) b + rspace, rb->base, rem);
+        rb->rd_off = rem;
+    }
+
+    /* fall through */
+end:
+    return to_be_read;
+}
+
+static ssize_t read_contiguous (u_rb_t *rb, void *b, size_t b_sz)
+{
+    size_t to_be_read;
+
+    dbg_return_if (b == NULL, -1);
+    dbg_return_if (rb == NULL, -1);
+    dbg_return_if (b_sz > u_rb_size(rb), -1);
+
+    /* if there is nothing ready to be read go out immediately */
+    nop_goto_if (!(to_be_read = U_MIN(u_rb_ready(rb), b_sz)), end);
+
+    memcpy(b, read_addr(rb), to_be_read);
+    read_incr_contiguous(rb, to_be_read);
+
+    /* fall through */
+end:
+    return to_be_read;
+}
+
+#ifdef HAVE_MMAP
+
+static int create_mmap (size_t hint_sz, int opts, u_rb_t **prb)
 {
     int fd = -1;
     u_rb_t *rb = NULL;
@@ -122,10 +501,17 @@ int u_rb_create (size_t hint_sz, int opts, u_rb_t **prb)
     /* round the supplied size to a page multiple (mmap is quite picky
      * about page boundary alignement) */
     rb->sz = round_sz(hint_sz);
-    rb->wr_off = 0;
-    rb->rd_off = 0;
+    rb->wr_off = rb->rd_off = 0;
     rb->opts = opts;
- 
+
+    /* Set mmap methods.  Always use the contiguous methods, silently 
+     * ignoring any contraddictory user request. */
+    rb->cb_free = free_mmap;
+    rb->cb_read = read_contiguous;
+    rb->cb_fast_read = fast_read;
+    rb->cb_write = write_contiguous;
+    rb->cb_ready = ready_contiguous;
+
     dbg_err_sif (ftruncate(fd, rb->sz) == -1);
 
     /* mmap 2*rb->sz bytes. this is just a commodity map that will be 
@@ -165,17 +551,8 @@ err:
     U_CLOSE(fd);
     return -1;
 }
- 
-/**
- *  \brief  Dispose a ring buffer object
- *
- *  Dispose the previously allocated ::u_rb_t object \p rb
- *
- *  \param  rb  reference to the ::u_rb_t object that must be disposed
- *
- *  \return nothing
- */
-void u_rb_free (u_rb_t *rb)
+
+static void free_mmap (u_rb_t *rb)
 {
     nop_return_if (rb == NULL, );
 
@@ -188,182 +565,6 @@ void u_rb_free (u_rb_t *rb)
     return;
 }
 
-/**
- *  \brief  Return the size of the ring buffer
- *
- *  Return the real size (as rounded by the ::u_rb_create routine) of the 
- *  supplied ::u_rb_t object \p rb
- *
- *  \param  rb  reference to an already allocated ::u_rb_t object
- *
- *  \return the size in bytes of the ring buffer
- */
-size_t u_rb_size (u_rb_t *rb)
-{
-    return rb->sz;
-}
-
-/**
- *  \brief  Write to the ring buffer
- *
- *  Try to write \p b_sz bytes of data from the memory block \p b to the 
- *  ::u_rb_t object \p rb
- *
- *  \param  rb      reference to an already allocated ::u_rb_t object where
- *                  data will be written to
- *  \param  b       reference to the memory block which will be copied-in
- *  \param  b_sz    number of bytes starting from \p b that the caller wants
- *                  to be copied into \p rb
- *
- *  \return the number of bytes actually written to the ring buffer (may be 
- *              less than the requested size)
- */
-ssize_t u_rb_write (u_rb_t *rb, const void *b, size_t b_sz)
-{
-    size_t to_be_written;
-
-    dbg_return_if (rb == NULL, -1);
-    dbg_return_if (b == NULL, -1);
-    dbg_return_if (b_sz > u_rb_size(rb), -1);
-
-    nop_goto_if (!(to_be_written = U_MIN(u_rb_avail(rb), b_sz)), end);
-
-    memcpy(write_addr(rb), b, to_be_written);
-    write_incr(rb, to_be_written);
-
-    /* fall through */
-end:
-    return to_be_written;
-}
-
-/**
- *  \brief  Read from the ring buffer
- *
- *  Try to read \p b_sz bytes of data from the ring buffer \p rb and copy it 
- *  to \p b
- *
- *  \param  rb      reference to an already allocated ::u_rb_t object where 
- *                  data will be read from
- *  \param  b       reference to the memory block where data will be copied
- *                  (must be pre-allocated by the caller and of \p b_sz bytes
- *                  at least)
- *  \param  b_sz    number of bytes that the caller wants to be copied into 
- *                  \p b
- *
- *  \return the number of bytes actually read from the ring buffer (may be 
- *              less than the requested size)
- */
-ssize_t u_rb_read (u_rb_t *rb, void *b, size_t b_sz)
-{
-    size_t to_be_read;
-
-    dbg_return_if (b == NULL, -1);
-    dbg_return_if (rb == NULL, -1);
-    dbg_return_if (b_sz > u_rb_size(rb), -1);
-
-    /* if there is nothing ready to be read go out immediately */
-    nop_goto_if (!(to_be_read = U_MIN(u_rb_ready(rb), b_sz)), end);
-
-    memcpy(b, read_addr(rb), to_be_read);
-    read_incr(rb, to_be_read);
-
-    /* fall through */
-end:
-    return to_be_read;
-}
-
-/**
- *  \brief  Read from the ring buffer with minimum overhead
- *
- *  Try to read \p *pb_sz bytes of data from the ring buffer \p rb and return
- *  the pointer to the start of data.  The ::U_RB_OPT_USE_CONTIGUOUS_MEM 
- *  option must have been set when creating \p rb.
- *
- *  \param  rb      reference to an already allocated ::u_rb_t object where 
- *                  data will be read from
- *  \param  pb_sz   number of bytes that the caller wants to be read.  On 
- *                  successful return (i.e. non \c NULL) the value will be 
- *                  filled with the number of bytes actually read.
- *
- *  \return the address to the start of read data, or \c NULL on error (which
- *          includes the "no data ready" condition).
- *
- *  \note   In case there is no data ready to be read a \c NULL is returned,
- *          with <code>*pb_sz == 0</code>.  Any other error condition won't 
- *          touch the supplied \p *pb_sz value.
- */
-void *u_rb_fast_read (u_rb_t *rb, size_t *pb_sz)
-{
-    void *data = NULL;
-
-    dbg_return_if (rb == NULL, NULL);
-    dbg_return_if (!(rb->opts & U_RB_OPT_USE_CONTIGUOUS_MEM), NULL);
-    dbg_return_if (pb_sz == NULL, NULL);
-    dbg_return_if (*pb_sz > u_rb_size(rb), NULL);
-
-    /* if there is nothing ready to be read go out immediately */
-    nop_goto_if (!(*pb_sz = U_MIN(u_rb_ready(rb), *pb_sz)), end);
-
-    data = read_addr(rb);
-    read_incr(rb, *pb_sz);
-
-    /* fall through */
-end:
-    return data;
-}
-
-/**
- *  \brief  Reset the ring buffer
- *
- *  Reset read and write offset counters of the supplied ::u_rb_t object \p rb
- *
- *  \param  rb      reference to an already allocated ::u_rb_t object
- *
- *  \retval  0  on success
- *  \retval -1  on failure
- */
-int u_rb_clear (u_rb_t *rb)
-{
-    dbg_return_if (rb == NULL, -1);
-    rb->wr_off = rb->rd_off = 0;
-    return 0;
-}
- 
-/**
- *  \brief  Return the number of bytes ready to be consumed
- *
- *  Return the number of bytes ready to be consumed for the supplied ::u_rb_t
- *  object \p rb
- *
- *  \param  rb      reference to an already allocated ::u_rb_t object 
- *
- *  \return  the number of bytes ready to be consumed (could be \c 0)
- */
-size_t u_rb_ready (u_rb_t *rb)
-{
-    return rb->wr_off - rb->rd_off;
-}
- 
-/**
- *  \brief  Return the unused buffer space
- *
- *  Return number of unused bytes in the supplied ::u_rb_t object, i.e. 
- *  the dual of ::u_rb_ready.
- *
- *  \param  rb      reference to an already allocated ::u_rb_t object 
- *
- *  \return the number of bytes that can be ::u_rb_write'd before old data 
- *          starts being overwritten
- */
-size_t u_rb_avail (u_rb_t *rb)
-{
-    return rb->sz - u_rb_ready(rb);
-}
-
-/**
- *  \}
- */ 
- 
 /* round requested size to a multiple of PAGESIZE */
 static size_t round_sz (size_t sz)
 {
@@ -372,40 +573,62 @@ static size_t round_sz (size_t sz)
     return !sz ? pg_sz : (((sz - 1) / pg_sz) + 1) * pg_sz;
 }
 
-/* address for write op */
-static char *write_addr (u_rb_t *rb)
-{
-    return rb->base + rb->wr_off;
-}
- 
-/* shift the write pointer */
-static void write_incr (u_rb_t *rb, size_t cnt)
-{
-    rb->wr_off += cnt;
-}
- 
-/* address for next read op */
-static char *read_addr (u_rb_t *rb)
-{
-    return rb->base + rb->rd_off;
-}
- 
-/* shift the read pointer of 'cnt' positions */
-static void read_incr (u_rb_t *rb, size_t cnt)
-{
-    /* 
-     * assume 'rb' and 'cnt' sanitized 
-     */
-    rb->rd_off += cnt;
+#endif  /* HAVE_MMAP */
 
-    /* When the read offset is advanced into the second virtual-memory region, 
-     * both offsets - read and write - are decremented by the length of the 
-     * underlying buffer */
-    if (rb->rd_off >= rb->sz)
+static int create_malloc (size_t sz, int opts, u_rb_t **prb)
+{
+    u_rb_t *rb = NULL;
+
+    dbg_return_if (sz == 0, -1);
+    dbg_return_if (prb == NULL, -1);
+
+    dbg_err_sif ((rb = u_zalloc(sizeof *rb)) == NULL);
+
+    /* Initialize offsets. */
+    rb->wr_off = rb->rd_off = 0;
+    rb->opts = opts;
+
+    rb->sz = sz;
+    /* Double buffer size in case the user requested contiguous memory. */
+    if (opts & U_RB_OPT_USE_CONTIGUOUS_MEM)
+        rb->sz <<= 1;
+
+    /* Make room for the buffer. */
+    dbg_err_sif ((rb->base = u_zalloc(rb->sz)) == NULL);
+
+    /* Set implementation specific callbacks. */
+    rb->cb_free = free_malloc;
+
+    if (opts & U_RB_OPT_USE_CONTIGUOUS_MEM) 
     {
-        rb->rd_off -= rb->sz;
-        rb->wr_off -= rb->sz;
+        rb->cb_fast_read = fast_read;
+        rb->cb_ready = ready_contiguous;
+        rb->cb_write = write_contiguous;
+        rb->cb_read = read_contiguous;
     }
+    else
+    {
+        rb->cb_fast_read = NULL;
+        rb->cb_ready = ready_wrapped;
+        rb->cb_write = write_wrapped;
+        rb->cb_read = read_wrapped;
+    }
+
+    *prb = rb;
+
+    return 0;
+err:
+    free_malloc(rb);
+    return -1;
+}
+
+static void free_malloc (u_rb_t *rb)
+{
+    nop_return_if (rb == NULL, );
+
+    if (rb->base)
+        u_free(rb->base);
+    u_free(rb);
 
     return;
 }
