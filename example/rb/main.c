@@ -22,9 +22,9 @@ int main (void)
 {
     int opts = U_RB_OPT_IMPL_MALLOC | U_RB_OPT_USE_CONTIGUOUS_MEM;
 
-//    con_err_if (test_full(opts));
-//    con_err_if (test_empty(opts));
-//    con_err_if (test_advance(opts));
+    con_err_if (test_full(opts));
+    con_err_if (test_empty(opts));
+    con_err_if (test_advance(opts));
     con_err_if (test_full_advance(opts));
 
     return 0;
@@ -34,7 +34,7 @@ err:
 
 static int test_full (int opts)
 {
-    enum { SZ = 3 };
+    enum { SZ = 2 };
     u_rb_t *rb = NULL;
 
     con_err_if (u_rb_create(SZ, opts, &rb));
