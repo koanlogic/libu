@@ -5,11 +5,11 @@
 
 int test_suite_rb_register (u_test_t *t);
 
-static int rw (u_test_case_t *tc, int fast);
+static int rw (u_test_case_t *tc, int malloc_based, int fast);
 static int test_rw (u_test_case_t *tc);
 static int test_rw_fast (u_test_case_t *tc);
 
-static int rw (u_test_case_t *tc, int fast)
+static int rw (u_test_case_t *tc, int malloc_based, int fast)
 {
     enum { BUF_SZ = 1024 };
     int opts;
@@ -18,6 +18,7 @@ static int rw (u_test_case_t *tc, int fast)
     char ibuf[BUF_SZ], obuf[BUF_SZ], *obuf_ptr, c;
 
     opts = fast ? U_RB_OPT_USE_CONTIGUOUS_MEM : U_RB_OPT_NONE;
+    opts |= malloc_based ? U_RB_OPT_IMPL_MALLOC : U_RB_OPT_NONE;
 
     u_test_err_if (u_rb_create(RB_SZ, opts, &rb));
 
@@ -71,8 +72,10 @@ err:
     return U_TEST_FAILURE;
 }
 
-static int test_rw (u_test_case_t *tc) { return rw(tc, 0); }
-static int test_rw_fast (u_test_case_t *tc) { return rw(tc, 1); }
+static int test_rw (u_test_case_t *tc) { return rw(tc, 0, 0); }
+static int test_rw_fast (u_test_case_t *tc) { return rw(tc, 0, 1); }
+static int test_rw_malloc (u_test_case_t *tc) { return rw(tc, 1, 0); }
+static int test_rw_fast_malloc (u_test_case_t *tc) { return rw(tc, 1, 1); }
 
 int test_suite_rb_register (u_test_t *t)
 {
@@ -80,8 +83,13 @@ int test_suite_rb_register (u_test_t *t)
 
     con_err_if (u_test_suite_new("Ring Buffer", &ts));
 
-    con_err_if (u_test_case_register("Read-write", test_rw, ts));
-    con_err_if (u_test_case_register("Read-write fast", test_rw_fast, ts));
+    con_err_if (u_test_case_register("Read-write (mmap)", test_rw, ts));
+    con_err_if (u_test_case_register("Read-write fast (mmap)", 
+                test_rw_fast, ts));
+    con_err_if (u_test_case_register("Read-write (malloc)", 
+                test_rw_malloc, ts));
+    con_err_if (u_test_case_register("Read-write fast (malloc)", 
+                test_rw_fast_malloc, ts));
 
     return u_test_suite_add(ts, t);
 err:

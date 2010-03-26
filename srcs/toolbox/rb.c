@@ -29,6 +29,7 @@ struct u_rb_s
     size_t sz;      /* ring buffer size */
     size_t wr_off;  /* write offset */
     size_t rd_off;  /* read offset */
+    size_t ready;   /* bytes ready to be read */
     int opts;       /* options */
 
     /* Implementation specific methods. */
@@ -36,21 +37,22 @@ struct u_rb_s
     ssize_t (*cb_read) (struct u_rb_s *rb, void *b, size_t b_sz);
     void *(*cb_fast_read) (struct u_rb_s *rb, size_t *pb_sz);
     ssize_t (*cb_write) (struct u_rb_s *rb, const void *b, size_t b_sz);
-    size_t (*cb_ready) (struct u_rb_s *rb);
 };
 
-static char *write_addr (u_rb_t *rb);
+#define read_addr(rb)   (rb->base + rb->rd_off)
+#define write_addr(rb)  (rb->base + rb->wr_off)
+
 static void write_incr_contiguous (u_rb_t *rb, size_t cnt);
-static char *read_addr (u_rb_t *rb);
+static void write_incr_wrapped (u_rb_t *rb, size_t cnt);
+static void read_incr_wrapped (u_rb_t *rb, size_t cnt);
 static void read_incr_contiguous (u_rb_t *rb, size_t cnt);
-static size_t ready_contiguous (u_rb_t *rb);
-static size_t ready_wrapped (u_rb_t *rb);
 static ssize_t write_contiguous (u_rb_t *rb, const void *b, size_t b_sz);
 static ssize_t write_wrapped (u_rb_t *rb, const void *b, size_t b_sz);
 static ssize_t read_contiguous (u_rb_t *rb, void *b, size_t b_sz);
 static ssize_t read_wrapped (u_rb_t *rb, void *b, size_t b_sz);
 static void *fast_read (u_rb_t *rb, size_t *pb_sz);
 static int is_wrapped (u_rb_t *rb);
+static int mirror (u_rb_t *rb, const void *b, size_t to_be_written);
 
 #ifdef HAVE_MMAP    /* specific to mmap(2) based implementation. */
   static int create_mmap (size_t hint_sz, int opts, u_rb_t **prb);
@@ -146,7 +148,7 @@ int u_rb_create (size_t hint_sz, int opts, u_rb_t **prb)
     return create_mmap(hint_sz, opts, prb);
 #else   /* !HAVE_MMAP */
     /* Fallback to malloc in case mmap is not available. */
-    return create_malloc(hint_sz, opts, prb);
+    return create_malloc(hint_sz, opts | U_RB_OPT_IMPL_MALLOC, prb);
 #endif  /* HAVE_MMAP */
 }
 
@@ -198,10 +200,16 @@ size_t u_rb_size (u_rb_t *rb)
  */
 ssize_t u_rb_write (u_rb_t *rb, const void *b, size_t b_sz)
 {
+    ssize_t rc;
+
     dbg_return_if (rb == NULL, -1);
     dbg_return_if (rb->cb_write == NULL, -1); 
 
-    return rb->cb_write(rb, b, b_sz);
+    /* Also increment the number of ready bytes. */
+    if ((rc = rb->cb_write(rb, b, b_sz)) >= 0)
+        rb->ready += (size_t) rc;
+
+    return rc;
 }
 
 /**
@@ -223,10 +231,16 @@ ssize_t u_rb_write (u_rb_t *rb, const void *b, size_t b_sz)
  */
 ssize_t u_rb_read (u_rb_t *rb, void *b, size_t b_sz)
 {
-    dbg_return_if (rb == NULL, -1);
-    dbg_return_if (rb->cb_write == NULL, -1); 
+    ssize_t rc;
 
-    return rb->cb_read(rb, b, b_sz);
+    dbg_return_if (rb == NULL, -1);
+    dbg_return_if (rb->cb_read == NULL, -1); 
+
+    /* Decrement the number of ready bytes. */
+    if ((rc = rb->cb_read(rb, b, b_sz)) >= 0)
+        rb->ready -= (size_t) rc;
+
+    return rc;
 }
 
 /**
@@ -270,7 +284,7 @@ void *u_rb_fast_read (u_rb_t *rb, size_t *pb_sz)
 int u_rb_clear (u_rb_t *rb)
 {
     dbg_return_if (rb == NULL, -1);
-    rb->wr_off = rb->rd_off = 0;
+    rb->wr_off = rb->rd_off = rb->ready = 0;
     return 0;
 }
  
@@ -287,7 +301,7 @@ int u_rb_clear (u_rb_t *rb)
 size_t u_rb_ready (u_rb_t *rb)
 {
     /* Let it crash on NULL 'rb's */
-    return rb->cb_ready(rb);
+    return rb->ready;
 }
  
 /**
@@ -303,7 +317,7 @@ size_t u_rb_ready (u_rb_t *rb)
  */
 size_t u_rb_avail (u_rb_t *rb)
 {
-    return rb->sz - u_rb_ready(rb);
+    return (rb->sz - rb->ready);
 }
 
 /**
@@ -311,24 +325,24 @@ size_t u_rb_avail (u_rb_t *rb)
  */ 
 
 
-/* address for write op */
-static char *write_addr (u_rb_t *rb)
-{
-    return rb->base + rb->wr_off;
-}
- 
-/* shift the write pointer */
+/* just shift the write pointer */
 static void write_incr_contiguous (u_rb_t *rb, size_t cnt)
 {
     rb->wr_off += cnt;
 }
 
-/* address for next read op */
-static char *read_addr (u_rb_t *rb)
+/* shift the write pointer */
+static void write_incr_wrapped (u_rb_t *rb, size_t cnt)
 {
-    return rb->base + rb->rd_off;
+    rb->wr_off = (rb->wr_off + cnt) % rb->sz;
 }
- 
+
+/* shift the read pointer */
+static void read_incr_wrapped (u_rb_t *rb, size_t cnt)
+{
+    rb->rd_off = (rb->rd_off + cnt) % rb->sz;
+}
+
 /* shift the read pointer of 'cnt' positions */
 static void read_incr_contiguous (u_rb_t *rb, size_t cnt)
 {
@@ -363,28 +377,16 @@ static void *fast_read (u_rb_t *rb, size_t *pb_sz)
 
     data = read_addr(rb);
     read_incr_contiguous(rb, *pb_sz);
+    rb->ready -= *pb_sz;
 
     /* fall through */
 end:
     return data;
 }
 
-/* Take care of wrap-around. */
-static size_t ready_wrapped (u_rb_t *rb)
-{
-    size_t r = rb->rd_off, w = rb->wr_off;
-
-    return (r <= w) ? (w - r) : (rb->sz + w - r);
-}
-
 static int is_wrapped (u_rb_t *rb)
 {
     return (rb->rd_off > rb->wr_off);
-}
-
-static size_t ready_contiguous (u_rb_t *rb)
-{
-    return (rb->wr_off - rb->rd_off);
 }
 
 static ssize_t write_contiguous (u_rb_t *rb, const void *b, size_t b_sz)
@@ -398,11 +400,44 @@ static ssize_t write_contiguous (u_rb_t *rb, const void *b, size_t b_sz)
     nop_goto_if (!(to_be_written = U_MIN(u_rb_avail(rb), b_sz)), end);
 
     memcpy(write_addr(rb), b, to_be_written);
+
+    /* When using the malloc'd buffer, we need to take care of data mirroring
+     * manually. */
+    if (rb->opts & U_RB_OPT_IMPL_MALLOC)
+        (void) mirror(rb, b, to_be_written);
+    
     write_incr_contiguous(rb, to_be_written);
 
     /* fall through */
 end:
     return to_be_written;
+}
+
+static int mirror (u_rb_t *rb, const void *b, size_t to_be_written)
+{
+    size_t right_sz, left_sz;
+
+    if (rb->wr_off + to_be_written <= rb->sz)   /* Left. */
+    {
+        memcpy(write_addr(rb) + rb->sz, b, to_be_written);
+    } 
+    else if (rb->wr_off >= rb->sz)              /* Right. */
+    {
+        memcpy(write_addr(rb) - rb->sz, b, to_be_written); 
+    } 
+    else    /* !Right && !Left (i.e. Cross). */
+    {
+        left_sz = rb->sz - rb->wr_off;
+        right_sz = to_be_written - left_sz;
+
+        /* When the write has crossed the middle, we need to scatter the
+         * left and right side of the buffer at the end of the second
+         * half and at the beginning of the first half respectively. */
+        memcpy(write_addr(rb) + rb->sz, b, left_sz);
+        memcpy(rb->base, (const char *) b + left_sz, right_sz);
+    }
+
+    return 0;
 }
 
 static ssize_t write_wrapped (u_rb_t *rb, const void *b, size_t b_sz)
@@ -418,10 +453,9 @@ static ssize_t write_wrapped (u_rb_t *rb, const void *b, size_t b_sz)
     /* If rb has wrapped-around, or the requested amount of data
      * don't need to be fragmented between tail and head, append 
      * it at the write offset. */
-    if (is_wrapped(rb) || (rspace = (rb->sz - rb->wr_off)) > to_be_written)
+    if (is_wrapped(rb) || (rspace = (rb->sz - rb->wr_off)) >= to_be_written)
     {
         memcpy(write_addr(rb), b, to_be_written);
-        write_incr_contiguous(rb, to_be_written);
     }
     else
     {
@@ -430,8 +464,9 @@ static ssize_t write_wrapped (u_rb_t *rb, const void *b, size_t b_sz)
          * right side is not enough to hold the supplied data. */
         memcpy(write_addr(rb), b, rspace);
         memcpy(rb->base, (const char *) b + rspace, rem);
-        rb->wr_off = rem;
     }
+
+    write_incr_wrapped(rb, to_be_written);
 
     /* fall through */
 end:
@@ -449,10 +484,10 @@ static ssize_t read_wrapped (u_rb_t *rb, void *b, size_t b_sz)
     /* if there is nothing ready to be read go out immediately */
     nop_goto_if (!(to_be_read = U_MIN(u_rb_ready(rb), b_sz)), end);
 
-    if (!is_wrapped(rb) || (rspace = (rb->sz - rb->wr_off)) < to_be_read)
+    if (!is_wrapped(rb) || (rspace = (rb->sz - rb->rd_off)) <= to_be_read)
     {
         memcpy(b, read_addr(rb), to_be_read);
-        read_incr_contiguous(rb, to_be_read);
+        read_incr_wrapped(rb, to_be_read);
     }
     else
     {
@@ -501,7 +536,7 @@ static int create_mmap (size_t hint_sz, int opts, u_rb_t **prb)
     /* round the supplied size to a page multiple (mmap is quite picky
      * about page boundary alignement) */
     rb->sz = round_sz(hint_sz);
-    rb->wr_off = rb->rd_off = 0;
+    rb->wr_off = rb->rd_off = rb->ready = 0;
     rb->opts = opts;
 
     /* Set mmap methods.  Always use the contiguous methods, silently 
@@ -510,7 +545,6 @@ static int create_mmap (size_t hint_sz, int opts, u_rb_t **prb)
     rb->cb_read = read_contiguous;
     rb->cb_fast_read = fast_read;
     rb->cb_write = write_contiguous;
-    rb->cb_ready = ready_contiguous;
 
     dbg_err_sif (ftruncate(fd, rb->sz) == -1);
 
@@ -577,6 +611,7 @@ static size_t round_sz (size_t sz)
 
 static int create_malloc (size_t sz, int opts, u_rb_t **prb)
 {
+    size_t real_sz;
     u_rb_t *rb = NULL;
 
     dbg_return_if (sz == 0, -1);
@@ -584,17 +619,18 @@ static int create_malloc (size_t sz, int opts, u_rb_t **prb)
 
     dbg_err_sif ((rb = u_zalloc(sizeof *rb)) == NULL);
 
-    /* Initialize offsets. */
-    rb->wr_off = rb->rd_off = 0;
     rb->opts = opts;
 
-    rb->sz = sz;
+    /* Initialize counters. */
+    rb->wr_off = rb->rd_off = rb->ready = 0;
+    rb->sz = real_sz = sz;
+
     /* Double buffer size in case the user requested contiguous memory. */
     if (opts & U_RB_OPT_USE_CONTIGUOUS_MEM)
-        rb->sz <<= 1;
+        real_sz <<= 1;
 
     /* Make room for the buffer. */
-    dbg_err_sif ((rb->base = u_zalloc(rb->sz)) == NULL);
+    dbg_err_sif ((rb->base = u_zalloc(real_sz)) == NULL);
 
     /* Set implementation specific callbacks. */
     rb->cb_free = free_malloc;
@@ -602,14 +638,12 @@ static int create_malloc (size_t sz, int opts, u_rb_t **prb)
     if (opts & U_RB_OPT_USE_CONTIGUOUS_MEM) 
     {
         rb->cb_fast_read = fast_read;
-        rb->cb_ready = ready_contiguous;
         rb->cb_write = write_contiguous;
         rb->cb_read = read_contiguous;
     }
     else
     {
         rb->cb_fast_read = NULL;
-        rb->cb_ready = ready_wrapped;
         rb->cb_write = write_wrapped;
         rb->cb_read = read_wrapped;
     }

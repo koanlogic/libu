@@ -1,44 +1,150 @@
+#include <ctype.h>
 #include <u/libu.h>
 
 int facility = LOG_LOCAL0;
 
-#define RB_SZ   1024
+static void dumpbuf (const char *b, size_t blen);
 
-int main (int ac, char *av[])
+static int test_full (int opts);
+static int test_empty (int opts);
+static int test_advance (int opts);
+static int test_full_advance (int opts);
+
+static int readc (u_rb_t *rb, char *pexpected);
+
+static int writec (u_rb_t *rb, char c);
+static int write1 (u_rb_t *rb) { return writec(rb, '1'); }
+static int write2 (u_rb_t *rb) { return writec(rb, '2'); }
+static int write3 (u_rb_t *rb) { return writec(rb, '3'); }
+static const char *bp (const char *s) { return s; }
+
+int main (void)
 {
-    u_rb_t *rb = NULL;
-    size_t rb_sz, i;
-    ssize_t io_rc;
-    char ibuf[1024], obuf[512], c;
+    int opts = U_RB_OPT_IMPL_MALLOC | U_RB_OPT_USE_CONTIGUOUS_MEM;
 
-    /* create the ring buffer */
-    con_err_if (u_rb_create(RB_SZ, U_RB_OPT_NONE, &rb));
-
-    u_con("rb created at %p with size %zu", rb, (rb_sz = u_rb_size(rb)));
-    u_con("bytes available: %zu", u_rb_avail(rb));
-    u_con("bytes ready to be consumed: %zu", u_rb_ready(rb));
-
-    c = 'A';
-    memset(ibuf, c, sizeof ibuf);
-
-    while (u_rb_avail(rb))
-    {
-        io_rc = u_rb_write(rb, ibuf, sizeof ibuf);
-        u_con("write %zu '%c' to %p.  ret val: %d", sizeof ibuf, c, rb, io_rc);
-    }
-
-    while (u_rb_ready(rb))
-    {
-        io_rc = u_rb_read(rb, obuf, sizeof obuf); 
-        u_con("read %zu bytes from %p.", io_rc, rb, io_rc);
-        con_err_if (memcmp(obuf, ibuf, sizeof obuf));
-    }
-
-    u_rb_free(rb);
+//    con_err_if (test_full(opts));
+//    con_err_if (test_empty(opts));
+//    con_err_if (test_advance(opts));
+    con_err_if (test_full_advance(opts));
 
     return 0;
 err:
-    if (rb)
-        u_rb_free(rb);
     return 1;
+}
+
+static int test_full (int opts)
+{
+    enum { SZ = 3 };
+    u_rb_t *rb = NULL;
+
+    con_err_if (u_rb_create(SZ, opts, &rb));
+    con_err_if (write1(rb));
+    con_err_if (write2(rb));
+    con_err_if (write3(rb) == 0);   /* overflow, write3 must fail */
+
+    return 0;
+err:
+    return 1;
+}
+
+static int test_empty (int opts)
+{
+    enum { SZ = 3 };
+    u_rb_t *rb = NULL;
+
+    con_err_if (u_rb_create(SZ, opts, &rb));
+    con_err_if (readc(rb, NULL) == 0);   /* underflow, readc() must fail */
+
+    return 0;
+err:
+    return 1;
+}
+
+static int test_advance (int opts)
+{
+    char c;
+    enum { SZ = 3 };
+    u_rb_t *rb = NULL;
+
+    con_err_if (u_rb_create(SZ, opts, &rb));
+
+    for (c = 0; c < 127; c++)
+    {
+        if (!isprint(c))
+            continue;
+        con_err_if (writec(rb, c));
+        con_err_if (readc(rb, &c));
+    }
+
+    return 0;
+err:
+    return 1;
+}
+
+static int test_full_advance (int opts)
+{
+    int i;
+    char c, prev, star = '*';
+    enum { SZ = 3 };
+    u_rb_t *rb = NULL;
+
+    con_err_if (u_rb_create(SZ, opts, &rb));
+
+    /* fill the rb */
+    for (i = 0; i < SZ; i++)
+        con_err_if (writec(rb, star));
+
+    for (c = 32; c < 126; c++)
+    {
+        if (c < (SZ + 32))
+            con_err_if (readc(rb, &star));
+        else
+        {
+            prev = c - SZ; 
+            con_err_if (readc(rb, &prev));
+        }
+
+        con_err_if (writec(rb, c));
+    }
+
+    return 0;
+err:
+    return 1;
+}
+
+static int writec (u_rb_t *rb, char c)
+{
+    ssize_t rc;
+    u_con("writing \'%c\'", c);
+    rc = u_rb_write(rb, &c, 1);
+    return (rc != 1);
+}
+
+static int readc (u_rb_t *rb, char *pexpected)
+{
+    char c;
+    ssize_t rc = u_rb_read(rb, &c, 1);
+
+    if (rc != 1)
+        return ~0;
+    else if (pexpected && *pexpected != c)
+    {
+        u_con("expect \'%c\', got \'%c\'", *pexpected, c);
+        return ~0;
+    }
+
+    u_con("read \'%c\'", pexpected ? *pexpected : '?');
+    return 0;
+}
+
+static void dumpbuf (const char *b, size_t blen)
+{
+    size_t i;
+
+    printf("(%p)[%zu]: ", b, blen);
+    for (i = 0; i < blen; i++)
+        printf("\'%c\' ", b[i]);
+    printf("\n");
+
+    return;
 }
