@@ -106,6 +106,18 @@ static void free_malloc (u_rb_t *rb);
     }
     \endcode
 
+    There exist two distinct implementation of the underlying machinery, one
+    is malloc(3) based, the other is mmap(2) based.  The latter is the default
+    on platforms supporting the mmap syscall.  Anyway, the user can choose to
+    use the malloc implementation by supplying ::U_RB_OPT_IMPL_MALLOC as an
+    option parameter at creation time.
+    The malloc implementation comes in two different flavours: one using a 
+    double-size buffer which enables the ::u_rb_fast_read (no-copy) interface, 
+    the other using a buffer exactly the size requested by the user, but 
+    disallowing the "no-copy-read" interface (this is the default).
+    The user can always enable the contiguous mode by supplying the 
+    ::U_RB_OPT_USE_CONTIGUOUS_MEM as a ::u_rb_create option.
+
     \note
 
     - The \ref rb module is not thread safe: should you need to use it in a MT 
@@ -114,7 +126,7 @@ static void free_malloc (u_rb_t *rb);
 
     - A read interface which minimises overhead (::u_rb_fast_read) is enabled 
       on ::u_rb_t objects created with the ::U_RB_OPT_USE_CONTIGUOUS_MEM flag 
-      set.
+      set (the mmap implementation always uses the contiguous memory strategy).
  */
  
 /**

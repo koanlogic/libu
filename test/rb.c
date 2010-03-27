@@ -83,9 +83,11 @@ int test_suite_rb_register (u_test_t *t)
 
     con_err_if (u_test_suite_new("Ring Buffer", &ts));
 
+#ifdef HAVE_MMAP
     con_err_if (u_test_case_register("Read-write (mmap)", test_rw, ts));
     con_err_if (u_test_case_register("Read-write fast (mmap)", 
                 test_rw_fast, ts));
+#endif  /* HAVE_MMAP */
     con_err_if (u_test_case_register("Read-write (malloc)", 
                 test_rw_malloc, ts));
     con_err_if (u_test_case_register("Read-write fast (malloc)", 
