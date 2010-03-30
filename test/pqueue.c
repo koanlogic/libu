@@ -13,20 +13,20 @@ static int test_top10 (u_test_case_t *tc)
     double key, keymax = DBL_MAX;
     u_pq_t *pq = NULL;
 
-    srandom((unsigned long) getpid());
+    srand((unsigned int) getpid());
 
     u_test_err_if (u_pq_create(EMAX, &pq));
 
     /* fill the pqueue */
     for (i = 0; i < EMAX; i++)
-        u_test_err_if (u_pq_push(pq, (double) random(), NULL));
+        u_test_err_if (u_pq_push(pq, (double) rand(), NULL));
 
     /* del-push cycle */
     for (i = EMAX; i < 10000000; i++)
     {
         (void) u_pq_peekmax(pq, &keymax);
 
-        if (keymax > (key = (double) random()))
+        if (keymax > (key = (double) rand()))
         {
             (void) u_pq_delmax(pq, NULL);
             u_test_err_if (u_pq_push(pq, key, NULL));
@@ -54,12 +54,12 @@ static int test_heapsort (u_test_case_t *tc)
     double key, prev_key = -1;
     u_pq_t *pq = NULL;
 
-    srandom((unsigned long) getpid());
+    srand((unsigned int) getpid());
 
     u_test_err_if (u_pq_create(EMAX, &pq));
 
     for (i = 0; i < EMAX - 1; i++)
-        u_test_err_if (u_pq_push(pq, (double) random(), NULL));
+        u_test_err_if (u_pq_push(pq, (double) rand(), NULL));
 
     while (!u_pq_empty(pq))
     {
