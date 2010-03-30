@@ -687,7 +687,7 @@ int u_test_new (const char *id, u_test_t **pt)
     t->currank = 0;
     t->start = t->stop = -1;
     (void) u_strlcpy(t->outfn, U_TEST_OUTFN_DFL, sizeof t->outfn);
-#ifndef U_TEST_SANDBOX_ENABLED
+#ifdef U_TEST_SANDBOX_ENABLED
     /* The default is to spawn sub-processes to execute test cases - 
      * on systems where the fork(2) syscall is available. */
     t->sandboxed = 1;   
