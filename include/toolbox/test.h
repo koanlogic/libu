@@ -16,6 +16,10 @@ extern "C" {
  *  \{
  */ 
 
+#if defined(HAVE_FORK) && defined(HAVE_WAIT3) && defined(HAVE_STRUCT_RUSAGE)
+  #define U_TEST_SANDBOX_ENABLED    1
+#endif
+
 struct u_test_case_s;
 struct u_test_suite_s;
 struct u_test_s;

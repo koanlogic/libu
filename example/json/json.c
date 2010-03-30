@@ -893,7 +893,7 @@ static int json_match_escaped_unicode (json_lex_t *jl)
 
     for (i = 0; i < 4; i++)
     {
-        JSON_LEX_SKIP(jl, &c);
+        JSON_LEX_NEXT(jl, &c);
 
         if (!isxdigit(c))
             JSON_LEX_ERR(jl, "non hex digit %c in escaped unicode", c); 

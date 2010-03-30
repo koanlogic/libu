@@ -4,8 +4,10 @@
 
 #include <sys/types.h>
 #include <sys/time.h>
+#ifdef U_TEST_SANDBOX_ENABLED
 #include <sys/resource.h>
 #include <sys/wait.h>
+#endif  /* U_TEST_SANDBOX_ENABLED */
 #include <signal.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -82,7 +84,9 @@ struct u_test_case_s
     int (*func) (struct u_test_case_s *);   /* The unit test function */
     u_test_obj_t o;                         /* Test case attributes */
     pid_t pid;                              /* Proc Id when exec'd in subproc */
+#ifdef U_TEST_SANDBOX_ENABLED
     struct rusage stats;                    /* Resources returned by wait3 */
+#endif  /* U_TEST_SANDBOX_ENABLED */
     struct u_test_suite_s *pts;             /* Parent test suite */
 };
 
@@ -682,8 +686,13 @@ int u_test_new (const char *id, u_test_t **pt)
     t->currank = 0;
     t->start = t->stop = -1;
     (void) u_strlcpy(t->outfn, U_TEST_OUTFN_DFL, sizeof t->outfn);
-    t->sandboxed = 1;   /* the default is to spawn sub-processes to 
-                           execute test cases */
+#ifndef U_TEST_SANDBOX_ENABLED
+    /* The default is to spawn sub-processes to execute test cases - 
+     * on systems where the fork(2) syscall is available. */
+    t->sandboxed = 1;   
+#else   /* !U_TEST_SANDBOX_ENABLED */
+    t->sandboxed = 0;
+#endif  /* U_TEST_SANDBOX_ENABLED */
     t->max_parallel = U_TEST_MAX_PARALLEL;
 
     /* Set default report routines (may be overwritten). */
@@ -750,7 +759,9 @@ int u_test_case_new (const char *id, u_test_f func, u_test_case_t **ptc)
 
     tc->func = func;
     tc->pid = U_TEST_CASE_PID_INITIALIZER;
+#ifdef U_TEST_SANDBOX_ENABLED
     memset(&tc->stats, 0, sizeof tc->stats);
+#endif  /* U_TEST_SANDBOX_ENABLED */
 
     *ptc = tc;
 
@@ -1189,7 +1200,10 @@ static int u_test_obj_scheduler (TO *h, int (*sched)(u_test_obj_t *))
      * in sandboxed mode. */
     h->nchildren = 0;
 
-    /* See which kind of scheduler we need to use. */
+    /* See which kind of scheduler we need to use. 
+     * Systems without fork(2) have the .sandboxed attribute hardcoded to 
+     * 'false', hence any U_TEST_CASE_T will be assigned to the "simple"
+     * scheduler. */
     if (fto->what == U_TEST_SUITE_T)
         simple_sched = 1;
     else
@@ -1290,6 +1304,7 @@ err:
 
 static int u_test_cases_reap (TO *h)
 {
+#ifdef U_TEST_SANDBOX_ENABLED
     int status;
     pid_t child;
     u_test_case_t *tc;
@@ -1357,6 +1372,10 @@ static int u_test_cases_reap (TO *h)
     return 0;
 err:
     return ~0;
+#else   /* !U_TEST_SANDBOX_ENABLED */
+    u_con("What are you doing here ?");
+    return ~0;
+#endif  /* U_TEST_SANDBOX_ENABLED */
 }
 
 static u_test_case_t *u_test_cases_search_by_pid (TO *h, pid_t pid)
@@ -1497,6 +1516,8 @@ static int u_test_case_exec (u_test_case_t *tc)
     /* Record test case begin timestamp. */
     tc->o.start = time(NULL);
 
+    /* The following condition is always asserted on systems with no fork(2)
+     * syscall.  See u_test_new(). */
     if (!tc->pts->pt->sandboxed)
     {
         dbg_if ((rc = tc->func(tc)) != U_TEST_SUCCESS && rc != U_TEST_FAILURE);
@@ -1508,6 +1529,7 @@ static int u_test_case_exec (u_test_case_t *tc)
         return 0;
     }
 
+#ifdef U_TEST_SANDBOX_ENABLED
     switch (pid = fork())
     {
         case -1:
@@ -1524,6 +1546,7 @@ static int u_test_case_exec (u_test_case_t *tc)
                                        more child */
 
     CHAT("started test case %s with pid %d\n", tc->o.id, tc->pid);
+#endif  /* U_TEST_SANDBOX_ENABLED */
 
     /* always return ok here, the reaper will know the test exit status */
     return 0;
@@ -1804,20 +1827,22 @@ static int u_test_getopt (int ac, char *av[], u_test_t *t)
                 if (u_test_set_outfmt(t, optarg))
                     u_test_usage(av[0], "bad report format");
                 break;
-            case 'p':   /* Max number of test cases running in parallel. */
-                if (u_atoi(optarg, &mp) || mp < 0)
-                    u_test_usage(av[0], "bad max parallel");
-                t->max_parallel = (unsigned int) mp;
-                break;
             case 'v':   /* Increment verbosity. */
                 g_verbose = 1;
                 break;
             case 'd':   /* Print out some internal info. */
                 g_debug = 1;
                 break;
+#ifdef U_TEST_SANDBOX_ENABLED
+            case 'p':   /* Max number of test cases running in parallel. */
+                if (u_atoi(optarg, &mp) || mp < 0)
+                    u_test_usage(av[0], "bad max parallel");
+                t->max_parallel = (unsigned int) mp;
+                break;
             case 's':   /* Serialized (i.e. !sandboxed) test cases. */
                 t->sandboxed = 0;
                 break;
+#endif  /* U_TEST_SANDBOX_ENABLED */
             case 'h': default:
                 u_test_usage(av[0], NULL);
                 break;
@@ -1837,10 +1862,12 @@ static void u_test_usage (const char *prog, const char *msg)
         "                                                                   \n"
         "       -o <file>           Set the report output file              \n"
         "       -f <txt|xml>        Choose report output format             \n"
+#ifdef U_TEST_SANDBOX_ENABLED
         "       -p <number>         Set the max number of parallel tests    \n"
-        "       -v                  Be chatty                               \n"
         "       -s                  Serialize test cases (non sandboxed)    \n"
+#endif  /* U_TEST_SANDBOX_ENABLED */
         "       -d                  Debug mode                              \n"
+        "       -v                  Be chatty                               \n"
         "       -h                  Print this help                         \n"
         "                                                                   \n"
         ;
@@ -1929,6 +1956,7 @@ static int u_test_case_rusage_fmt (u_test_case_t *tc, char uti[80],
 {
     dbg_return_if (tc == NULL, ~0);
 
+#ifdef U_TEST_SANDBOX_ENABLED
     if (uti)
         (void) __timeval_fmt(&tc->stats.ru_utime, uti);
 
@@ -1938,6 +1966,7 @@ static int u_test_case_rusage_fmt (u_test_case_t *tc, char uti[80],
     /* TODO Other rusage fields depending on UNIX implementation. 
      * By POSIX we're only guaranteed about the existence of ru_utime and 
      * ru_stime fields. */
+#endif  /* U_TEST_SANDBOX_ENABLED */
 
     return 0;
 }
@@ -1993,6 +2022,7 @@ static void u_test_bail_out (TO *h)
 
     CHAT("Bailing out, as requested by the user\n");
     
+#ifdef U_TEST_SANDBOX_ENABLED
     /* Assume 'h' is a test cases' list head. */
 
     /* Brutally kill all (possibly) running test cases. 
@@ -2009,8 +2039,9 @@ static void u_test_bail_out (TO *h)
         }
     }
 
-    while (waitpid(-1, &status, 0) != -1)
-        ;
+    while (waitpid(-1, &status, 0) != -1) ;
+
+#endif  /* U_TEST_SANDBOX_ENABLED */
 
     exit(1);
 }

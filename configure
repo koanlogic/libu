@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.93 2010/03/23 13:48:10 tho Exp $
+# $Id: configure,v 1.94 2010/03/30 12:04:58 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -45,15 +45,11 @@ case ${target} in
         makl_set_var_h "U_PATH_SEPARATOR" "0x5c"
         makl_set_var_mk "SHLIB_NO_UNDEFINED_SYMS"
         makl_add_var_mk "LDFLAGS" "-lwsock32"
-        makl_set_var "NO_TEST"
-        makl_set_var "NO_RB"
         makl_set_var "NO_NET"
-        makl_warn "net, ring buffer and unit test modules disabled on mingw"
+        makl_warn "net, module (still) disabled on mingw"
         ;;
     *cygwin*)
         makl_set_var_mk "SHLIB_NO_UNDEFINED_SYMS"
-        makl_set_var "NO_RB"
-        makl_warn "ring buffer module disabled on cygwin"
         ;;
     sunos*)
         makl_add_var_mk "LDFLAGS" "-lsocket -lnsl"
@@ -91,6 +87,7 @@ makl_checktype          0   "in_addr_t"         \
                             "<sys/socket.h>"    \
                             "<netinet/in.h>"    \
                             "<arpa/inet.h>"
+makl_checktype          0   "struct rusage"         "<sys/resource.h>"
 makl_checksymbol        0   "TCP_NODELAY"   "<sys/types.h>" "<netinet/tcp.h>"
 makl_checkfunc          0   "daemon"        2   ""  "<stdlib.h>"
 makl_checkfunc          0   "setsockopt"    5   ""  "<sys/socket.h>" 
@@ -115,6 +112,8 @@ makl_checkfunc          0   "syslog"        2   ""  "<syslog.h>"
 makl_checkfunc          0   "strtoumax"     3   ""  "<inttypes.h>"
 makl_checkfunc          0   "getaddrinfo"   4   ""  "<netdb.h>"
 makl_checkfunc          0   "uname"         1   ""  "<sys/utsname.h>"
+makl_checkfunc          0   "fork"          0   ""  "<unistd.h>"
+makl_checkfunc          0   "wait3"         3   ""  "<sys/wait.h>"
 makl_func_strerror_r    0
 makl_checkheader        0   "complex"   "<complex.h>"
 makl_checkheader        0   "unistd"    "<unistd.h>"
