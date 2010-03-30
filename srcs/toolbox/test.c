@@ -4,10 +4,6 @@
 
 #include <sys/types.h>
 #include <sys/time.h>
-#ifdef U_TEST_SANDBOX_ENABLED
-#include <sys/resource.h>
-#include <sys/wait.h>
-#endif  /* U_TEST_SANDBOX_ENABLED */
 #include <signal.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -17,6 +13,11 @@
 #include <toolbox/carpal.h>
 #include <toolbox/misc.h>
 #include <toolbox/test.h>
+
+#ifdef U_TEST_SANDBOX_ENABLED
+  #include <sys/resource.h>
+  #include <sys/wait.h>
+#endif  /* U_TEST_SANDBOX_ENABLED */
 
 #ifdef HAVE_UNAME
   #include <sys/utsname.h>
