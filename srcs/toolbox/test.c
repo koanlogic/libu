@@ -1931,6 +1931,7 @@ static int u_test_uname (u_test_t *t)
 
 static int u_test_signals (void)
 {
+#ifdef HAVE_SIGACTION
     struct sigaction sa;
 
     sa.sa_handler = u_test_interrupted;
@@ -1940,6 +1941,10 @@ static int u_test_signals (void)
     dbg_err_sif (sigaction(SIGINT, &sa, NULL) == -1);
     dbg_err_sif (sigaction(SIGTERM, &sa, NULL) == -1);
     dbg_err_sif (sigaction(SIGQUIT, &sa, NULL) == -1);
+#else   /* !HAVE_SIGACTION */
+    dbg_err_sif (signal(SIGINT, u_test_interrupted) == SIG_ERR);
+    dbg_err_sif (signal(SIGTERM, u_test_interrupted) == SIG_ERR);
+#endif  /* HAVE_SIGACTION */
 
     return 0;
 err:
