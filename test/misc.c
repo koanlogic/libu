@@ -1,5 +1,4 @@
 #include <string.h>
-#include <syslog.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -11,10 +10,12 @@
 
 int test_suite_misc_register (u_test_t *t);
 
-static int test_u_rdwr (u_test_case_t *tc);
 static int test_u_path_snprintf (u_test_case_t *tc);
 static int test_u_strtok (u_test_case_t *tc);
 static int test_u_atoi (u_test_case_t *tc);
+
+#ifdef HAVE_SETITIMER
+static int test_u_rdwr (u_test_case_t *tc);
 
 struct itimerval itv;
 size_t file_size, buf_size;
@@ -188,6 +189,7 @@ err:
             fn, file_size, buf_size);
     return U_TEST_FAILURE;
 }
+#endif  /* HAVE_SETITIMER */
 
 static int test_u_strtok (u_test_case_t *tc)
 {
@@ -451,7 +453,10 @@ int test_suite_misc_register (u_test_t *t)
 
     con_err_if (u_test_suite_new("Miscellaneous Utilities", &ts));
 
+#ifdef HAVE_SETITIMER
     con_err_if (u_test_case_register("Various I/O routines", test_u_rdwr, ts));
+#endif  /* HAVE_SETITIMER */
+
     con_err_if (u_test_case_register("u_path_snprintf function", 
                 test_u_path_snprintf, ts));
     con_err_if (u_test_case_register("u_strtok function", test_u_strtok, ts));

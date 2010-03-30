@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.95 2010/03/30 14:16:57 tho Exp $
+# $Id: configure,v 1.96 2010/03/30 15:23:50 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -115,6 +115,7 @@ makl_checkfunc          0   "uname"         1   ""  "<sys/utsname.h>"
 makl_checkfunc          0   "fork"          0   ""  "<unistd.h>"
 makl_checkfunc          0   "wait3"         3   ""  "<sys/wait.h>"
 makl_checkfunc          0   "sigaction"     3   ""  "<signal.h>"
+makl_checkfunc          0   "setitimer"     3   ""  "<sys/time.h>"
 makl_func_strerror_r    0
 makl_checkheader        0   "complex"   "<complex.h>"
 makl_checkheader        0   "unistd"    "<unistd.h>"
