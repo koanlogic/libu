@@ -56,7 +56,7 @@ typedef struct u_test_dep_s u_test_dep_t;
 /* Synoptical test results view. */
 struct u_test_syn_s
 {
-    size_t total, pass, fail, abrt, skip;
+    unsigned int total, pass, fail, abrt, skip;
 };
 
 typedef struct u_test_syn_s u_test_syn_t;
@@ -1606,11 +1606,11 @@ static int u_test_report_txt (FILE *fp, u_test_t *t, u_test_rep_tag_t tag)
 
     if (tag == U_TEST_REP_TAIL)
     {
-        (void) fprintf(fp, "Number of test suites: %zu\n", syn->total);
-        (void) fprintf(fp, "               Passed: %zu\n", syn->pass);
-        (void) fprintf(fp, "               Failed: %zu\n", syn->fail);
-        (void) fprintf(fp, "              Aborted: %zu\n", syn->abrt);
-        (void) fprintf(fp, "              Skipped: %zu\n", syn->skip);
+        (void) fprintf(fp, "Number of test suites: %u\n", syn->total);
+        (void) fprintf(fp, "               Passed: %u\n", syn->pass);
+        (void) fprintf(fp, "               Failed: %u\n", syn->fail);
+        (void) fprintf(fp, "              Aborted: %u\n", syn->abrt);
+        (void) fprintf(fp, "              Skipped: %u\n", syn->skip);
     }
 
     return 0;
@@ -1645,11 +1645,11 @@ static int u_test_suite_report_txt (FILE *fp, u_test_suite_t *ts,
 
     if (tag == U_TEST_REP_TAIL)
     {
-        (void) fprintf(fp, "\tNumber of test cases: %zu\n", syn->total);
-        (void) fprintf(fp, "\t              Passed: %zu\n", syn->pass);
-        (void) fprintf(fp, "\t              Failed: %zu\n", syn->fail);
-        (void) fprintf(fp, "\t             Aborted: %zu\n", syn->abrt);
-        (void) fprintf(fp, "\t             Skipped: %zu\n", syn->skip);
+        (void) fprintf(fp, "\tNumber of test cases: %u\n", syn->total);
+        (void) fprintf(fp, "\t              Passed: %u\n", syn->pass);
+        (void) fprintf(fp, "\t              Failed: %u\n", syn->fail);
+        (void) fprintf(fp, "\t             Aborted: %u\n", syn->abrt);
+        (void) fprintf(fp, "\t             Skipped: %u\n", syn->skip);
     }
 
     return 0;
@@ -1698,11 +1698,11 @@ static int u_test_report_xml (FILE *fp, u_test_t *t, u_test_rep_tag_t tag)
         (void) fprintf(fp, "<test id=\"%s\">\n", t->id);
 
         /* Add synoptical info. */
-        (void) fprintf(fp, "\t<total>%zu</total>\n", syn->total);
-        (void) fprintf(fp, "\t<passed>%zu</passed>\n", syn->pass);
-        (void) fprintf(fp, "\t<failed>%zu</failed>\n", syn->fail);
-        (void) fprintf(fp, "\t<aborted>%zu</aborted>\n", syn->abrt);
-        (void) fprintf(fp, "\t<skipped>%zu</skipped>\n", syn->skip);
+        (void) fprintf(fp, "\t<total>%u</total>\n", syn->total);
+        (void) fprintf(fp, "\t<passed>%u</passed>\n", syn->pass);
+        (void) fprintf(fp, "\t<failed>%u</failed>\n", syn->fail);
+        (void) fprintf(fp, "\t<aborted>%u</aborted>\n", syn->abrt);
+        (void) fprintf(fp, "\t<skipped>%u</skipped>\n", syn->skip);
 
         /* Host info. */
         (void) fprintf(fp, "\t<host>%s</host>\n", t->host);
@@ -1748,11 +1748,11 @@ static int u_test_suite_report_xml (FILE *fp, u_test_suite_t *ts,
         }
 
         /* Add synoptical info. */
-        (void) fprintf(fp, "\t\t<total>%zu</total>\n", syn->total);
-        (void) fprintf(fp, "\t\t<passed>%zu</passed>\n", syn->pass);
-        (void) fprintf(fp, "\t\t<failed>%zu</failed>\n", syn->fail);
-        (void) fprintf(fp, "\t\t<aborted>%zu</aborted>\n", syn->abrt);
-        (void) fprintf(fp, "\t\t<skipped>%zu</skipped>\n", syn->skip);
+        (void) fprintf(fp, "\t\t<total>%u</total>\n", syn->total);
+        (void) fprintf(fp, "\t\t<passed>%u</passed>\n", syn->pass);
+        (void) fprintf(fp, "\t\t<failed>%u</failed>\n", syn->fail);
+        (void) fprintf(fp, "\t\t<aborted>%u</aborted>\n", syn->abrt);
+        (void) fprintf(fp, "\t\t<skipped>%u</skipped>\n", syn->skip);
     }
 
     if (tag == U_TEST_REP_TAIL)
