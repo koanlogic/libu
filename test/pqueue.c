@@ -13,7 +13,7 @@ static int test_top10 (u_test_case_t *tc)
     double key, keymax = DBL_MAX;
     u_pq_t *pq = NULL;
 
-    srand((unsigned int) getpid());
+    srand(time(NULL));
 
     u_test_err_if (u_pq_create(EMAX, &pq));
 
@@ -54,7 +54,7 @@ static int test_heapsort (u_test_case_t *tc)
     double key, prev_key = -1;
     u_pq_t *pq = NULL;
 
-    srand((unsigned int) getpid());
+    srand(time(NULL));
 
     u_test_err_if (u_pq_create(EMAX, &pq));
 
