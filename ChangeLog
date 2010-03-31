@@ -1,8 +1,8 @@
-$Id: ChangeLog,v 1.71.2.3 2010/01/20 12:25:07 tho Exp $
+$Id: ChangeLog,v 1.71.2.4 2010/03/31 10:39:44 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
-LibU X.Y.Z
+LibU 1.4.2
 	- [config] u_config_print_to_fp with brace delimiters for
 	           children records + doxy fixes (by Mickael Auger)
 	- [config] don't dump the 'include' directive when serializing and/or
