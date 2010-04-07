@@ -1,4 +1,4 @@
-$Id: ChangeLog,v 1.101 2010/03/30 12:04:58 tho Exp $
+$Id: ChangeLog,v 1.102 2010/04/07 19:38:56 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
@@ -6,6 +6,7 @@ LibU 2.x.y
 	- [rb] malloc based implementation, both using contiguous (i.e. double
 	       sized) and wrapped buffer.
 	- [test] make it work on non-UNIXes
+	- [lexer] basic lexical tokenizer
 
 LibU 2.0.0
 	- [pqueue] added new priority queue module
