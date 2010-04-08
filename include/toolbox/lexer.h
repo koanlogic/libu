@@ -10,26 +10,33 @@
 #endif  /* !U_TOKEN_SZ */
 
 struct u_lexer_s;
+
+/**
+ *  \addtogroup LEXER
+ */ 
+
+/** \brief  Lexer base type. */
 typedef struct u_lexer_s u_lexer_t;
 
 /*
  * All the following U_LEXER_ macros need the "err" label in scope.
  */
 
-#define U_LEXER_ERR(jl, ...)                                        \
+/** \brief  ::u_lexer_pos wrapper. */
+#define U_LEXER_ERR(l, ...)                                         \
     do {                                                            \
         (void) u_lexer_seterr(l, __VA_ARGS__);                      \
         goto err;                                                   \
     } while (0)
 
-/* u_lexer_skip() wrapper. */
-#define U_LEXER_SKIP(jl, pc)                                        \
+/** \brief  ::u_lexer_skip wrapper. */
+#define U_LEXER_SKIP(l, pc)                                         \
     do {                                                            \
         if (u_lexer_skip(l, pc))                                    \
             U_LEXER_ERR(l, "EOT at offset %zu", u_lexer_pos(l));    \
     } while (0)
 
-/* u_lexer_next() wrapper. */
+/** \brief  ::u_lexer_next wrapper. */
 #define U_LEXER_NEXT(l, pc)                                         \
     do {                                                            \
         if (u_lexer_next(l, pc))                                    \
@@ -52,5 +59,9 @@ int u_lexer_eat_ws (u_lexer_t *l);
 int u_lexer_expect_char (u_lexer_t *l, char expected);
 size_t u_lexer_pos (u_lexer_t *l);
 const char *u_lexer_lookahead (u_lexer_t *l);
+
+/**
+ *  \}
+ */ 
 
 #endif  /* !_U_LEXER_H_ */

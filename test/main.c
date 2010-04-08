@@ -21,6 +21,7 @@ int main(int argc, char **argv)
 
     con_err_if (test_suite_misc_register(t));
     con_err_if (test_suite_string_register(t));
+    con_err_if (test_suite_lexer_register(t));
 
 #ifndef NO_ARRAY
     con_err_if (test_suite_array_register(t));

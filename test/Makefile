@@ -6,6 +6,7 @@ PROG = runtest
 SRCS += main.c
 SRCS += misc.c 
 SRCS += string.c 
+SRCS += lexer.c 
 
 ifndef NO_ARRAY
     SRCS += array.c 
