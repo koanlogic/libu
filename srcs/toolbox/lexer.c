@@ -177,7 +177,7 @@ int u_lexer_skip (u_lexer_t *l, char *pb)
  */
 int u_lexer_eot (u_lexer_t *l)
 {
-    return (l->pos > l->slen);
+    return (l->pos == l->slen - 1);
 }
 
 /** 
@@ -336,5 +336,5 @@ static int u_lexer_next_ex (u_lexer_t *l, int eat_ws, char *pb)
 
 static size_t u_lexer_strlen_match (u_lexer_t *l)
 {
-    return (l->rmatch - l->lmatch);
+    return (l->rmatch - l->lmatch + 1);
 }

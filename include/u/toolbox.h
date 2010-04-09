@@ -16,6 +16,7 @@
 #include <u/toolbox/uri.h>
 #include <u/toolbox/log.h>
 #include <u/toolbox/test.h>
+#include <u/toolbox/lexer.h>
 
 #ifndef NO_NET
   #include <u/toolbox/net.h>
