@@ -12,7 +12,8 @@
 struct u_lexer_s;
 
 /**
- *  \addtogroup LEXER
+ *  \addtogroup lexer
+ *  \{
  */ 
 
 /** \brief  Lexer base type. */

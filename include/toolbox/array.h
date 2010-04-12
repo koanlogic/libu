@@ -18,7 +18,7 @@ extern "C" {
 #endif  /* __cplusplus */
 
 /**
- * \addtogroup array
+ *  \addtogroup array
  *  \{
  */
 
