@@ -56,6 +56,7 @@ static int u_uri_match_pchar_minus_at_sign (u_lexer_t *l);
 static int u_uri_match_ups (u_lexer_t *l);
 static int u_uri_adjust_greedy_match (u_lexer_t *l, char match[U_TOKEN_SZ]);
 static int u_uri_knead_authority (u_uri_t *u, char s[U_URI_STRMAX]);
+static int u_uri_crumble_user_password (u_uri_t *u);
 
 /**
     \defgroup uri URI
@@ -198,6 +199,8 @@ void u_uri_print (u_uri_t *u, int extended)
 
     u_con("scheme: %s", u->scheme);
     u_con("userinfo: %s", u->userinfo);
+    u_con("user: %s", u->user);
+    u_con("pwd: %s", u->pwd);
     u_con("host: %s", u->host);
     u_con("port: %s", u->port);
     u_con("path: %s", u->path);
@@ -546,11 +549,57 @@ static int u_uri_parse_userinfo (u_lexer_t *l, u_uri_t *u)
     u_lexer_record_rmatch(l);
     (void) u_uri_adjust_greedy_match(l, u->userinfo);
 
+    /* 3.2.1.  User Information: Use of the format "user:password" in the 
+     * userinfo field is deprecated.  Anyway... */
+    if (!(u->opts & U_URI_OPT_DONT_PARSE_USERINFO))
+        dbg_if (u_uri_crumble_user_password(u)); 
+
     /* Consume '@' and go out. */
     U_LEXER_NEXT(l, NULL);
 
     return 0;
 err:
+    return ~0;
+}
+
+static int u_uri_crumble_user_password (u_uri_t *u)
+{
+    char c;
+    u_lexer_t *l = NULL;
+
+    dbg_return_if (!strchr(u->userinfo, ':'), ~0);
+
+    /* Create a disposable lexer. */
+    dbg_err_if (u_lexer_new(u->userinfo, &l));
+
+    /* User name. */
+    u_lexer_record_lmatch(l);
+
+    do {
+        U_LEXER_NEXT(l, &c);
+    } while (c != ':');
+
+    u_lexer_record_rmatch(l);
+    (void) u_uri_adjust_greedy_match(l, u->user);
+
+    /* Skip ':'. */
+    U_LEXER_NEXT(l, NULL);
+
+    /* Password. */
+    u_lexer_record_lmatch(l);
+
+    do {
+        U_LEXER_NEXT(l, &c);
+    } while (!u_lexer_eot(l));
+
+    u_lexer_record_rmatch(l);
+    (void) u_uri_adjust_greedy_match(l, u->pwd);
+
+    u_lexer_free(l);
+
+    return 0;
+err:
+    u_lexer_free(l);
     return ~0;
 }
 

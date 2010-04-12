@@ -31,11 +31,6 @@ typedef enum
 
     U_URI_OPT_DONT_PARSE_USERINFO = 0x01,
     /**< do not try to split user":"password in userinfo */
-
-    U_URI_OPT_DONT_PARSE_AUTHORITY = 0x02
-    /**< do not split [user":"password"@"]host[":"port] 
-     *   (implies ::U_URI_OPT_DONT_PARSE_USERINFO) */
-
 } u_uri_opts_t;
 
 /** \brief  Base type for all URI operations */
