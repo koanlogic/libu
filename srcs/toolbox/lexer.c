@@ -177,7 +177,7 @@ int u_lexer_skip (u_lexer_t *l, char *pb)
  */
 int u_lexer_eot (u_lexer_t *l)
 {
-    return (l->pos == l->slen - 1);
+    return (l->pos >= l->slen);
 }
 
 /** 

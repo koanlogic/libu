@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: configure,v 1.96 2010/03/30 15:23:50 tho Exp $
+# $Id: configure,v 1.97 2010/04/12 17:59:20 tho Exp $
 
 export makl_conf_h="include/u/libu_conf.h"
 
@@ -45,8 +45,6 @@ case ${target} in
         makl_set_var_h "U_PATH_SEPARATOR" "0x5c"
         makl_set_var_mk "SHLIB_NO_UNDEFINED_SYMS"
         makl_add_var_mk "LDFLAGS" "-lwsock32"
-        makl_set_var "NO_NET"
-        makl_warn "net, module (still) disabled on mingw"
         ;;
     *cygwin*)
         makl_set_var_mk "SHLIB_NO_UNDEFINED_SYMS"
@@ -138,17 +136,6 @@ fi
 
 # Handle command-line arguments
 makl_args_handle "$@"
-
-# the ring buffer is mmap(2) based
-# this check will be removed when we have a portable mmap replacement 
-if [ -z "`makl_get_var_h "NO_RB"`" ]
-then
-    if [ -z "`makl_get_var_h "HAVE_MMAP"`" ]
-    then
-        makl_warn "ring buffer module disabled since mmap(2) is missing"
-        makl_set_var "NO_RB"
-    fi
-fi
 
 # check for IPv4, IPv6 and Unix socket support 
 # these checks are disabled when --no_net is requested
