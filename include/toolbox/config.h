@@ -82,6 +82,12 @@ struct u_config_driver_s
 /** \brief  Configuration loading driver type */
 typedef struct u_config_driver_s u_config_driver_t;
 
+/** \brief  Configuration tree walking strategies (See ::u_config_walk). */
+typedef enum {
+    U_CONFIG_WALK_PREORDER, /**< Visit the node, then its children. */ 
+    U_CONFIG_WALK_POSTORDER /**< Visit node's children, then the node. */ 
+} u_config_walk_t;
+
 /**
  *  \}
  */ 
@@ -130,6 +136,7 @@ void u_config_print_to_fp(u_config_t *c, FILE *fp, int lev);
 void u_config_print(u_config_t *c, int lev);
 
 int u_config_sort_children(u_config_t *c, int(*)(u_config_t**, u_config_t**));
+void u_config_walk (u_config_t *c, u_config_walk_t s, void (*cb)(u_config_t *));
 
 #ifdef __cplusplus
 }

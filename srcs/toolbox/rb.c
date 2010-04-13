@@ -3,7 +3,6 @@
  */
 
 #include <sys/types.h>
-#include <sys/mman.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -12,6 +11,7 @@
 #include <u/toolbox/carpal.h>
 
 #ifdef HAVE_MMAP
+  #include <sys/mman.h>
 #if defined(HAVE_SYSCONF) && defined(_SC_PAGE_SIZE)
   #define u_vm_page_sz  sysconf(_SC_PAGE_SIZE)
 #elif defined (HAVE_SYSCONF) && defined(_SC_PAGESIZE)

@@ -992,6 +992,38 @@ err:
 }
 
 /**
+ *  \brief  Traverse the configuration tree.
+ *          
+ *  Traverse the configuration tree rooted at \p c and invoke the supplied
+ *  callback function \p cb on each visited node.  The walk strategy \p s can 
+ *  be one of ::U_CONFIG_WALK_PREORDER or ::U_CONFIG_WALK_POSTORDER for pre- 
+ *  or post-order respectively.
+ *
+ *  \param  c   A configuration tree.
+ *  \param  s   Walk strategy, one of ::u_config_walk_t values.
+ *  \param  cb  Callback function to be invoked on each visited node.
+ *
+ *  \return nothing.
+ */
+void u_config_walk (u_config_t *c, u_config_walk_t s, void (*cb)(u_config_t *))
+{
+   int i;
+   u_config_t *cc;
+
+   for (i = 0; (cc = u_config_get_child_n(c, NULL, i)) != NULL; i++)
+   {
+       if (s == U_CONFIG_WALK_PREORDER)
+           cb(cc);
+
+       if (u_config_has_children(cc))
+           u_config_walk(cc, s, cb);
+
+       if (s == U_CONFIG_WALK_POSTORDER)
+           cb(cc);
+   }
+}
+
+/**
  *      \}
  */
 
@@ -1278,7 +1310,6 @@ static char *u_config_buf_gets (void *arg, char *buf, size_t size)
 {
     struct u_config_buf_s *g = (struct u_config_buf_s*)arg;
     char c, *s = buf;
-/*  int c; */
 
     dbg_err_if(arg == NULL);
     dbg_err_if(buf == NULL);
