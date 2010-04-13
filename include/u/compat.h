@@ -12,6 +12,7 @@
 /* enable compatibility layer with the 1.X branch */ 
 
 /* carpal module */
+#define con(...)    u_con(__VA_ARGS__)
 #define dbg(...)    u_dbg(__VA_ARGS__)
 #define info(...)   u_info(__VA_ARGS__)
 #define notice(...) u_notice(__VA_ARGS__)
