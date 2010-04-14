@@ -562,12 +562,13 @@ err:
     return ~0;
 }
 
+/* TODO: refine ! */
 static int u_uri_crumble_user_password (u_uri_t *u)
 {
     char c;
     u_lexer_t *l = NULL;
 
-    dbg_return_if (!strchr(u->userinfo, ':'), ~0);
+    dbg_return_if (!strlen(u->userinfo), ~0);
 
     /* Create a disposable lexer. */
     dbg_err_if (u_lexer_new(u->userinfo, &l));
@@ -575,12 +576,14 @@ static int u_uri_crumble_user_password (u_uri_t *u)
     /* User name. */
     u_lexer_record_lmatch(l);
 
-    do {
-        U_LEXER_NEXT(l, &c);
-    } while (c != ':');
+    /* Assume there is at least one char available. */
+    do u_lexer_next(l, &c); while (c != ':' && !u_lexer_eot(l));
 
     u_lexer_record_rmatch(l);
     (void) u_uri_adjust_greedy_match(l, u->user);
+
+    /* Check if we've exhausted the userinfo string. */
+    nop_goto_if (u_lexer_eot(l), end);
 
     /* Skip ':'. */
     U_LEXER_NEXT(l, NULL);
@@ -588,15 +591,13 @@ static int u_uri_crumble_user_password (u_uri_t *u)
     /* Password. */
     u_lexer_record_lmatch(l);
 
-    do {
-        U_LEXER_NEXT(l, &c);
-    } while (!u_lexer_eot(l));
+    do u_lexer_next(l, &c); while (!u_lexer_eot(l));
 
     u_lexer_record_rmatch(l);
     (void) u_uri_adjust_greedy_match(l, u->pwd);
 
+end:
     u_lexer_free(l);
-
     return 0;
 err:
     u_lexer_free(l);
