@@ -197,15 +197,40 @@ void u_uri_print (u_uri_t *u, int extended)
 {
     u_unused_args(extended);
 
-    u_con("scheme: %s", u->scheme);
-    u_con("userinfo: %s", u->userinfo);
-    u_con("user: %s", u->user);
-    u_con("pwd: %s", u->pwd);
-    u_con("host: %s", u->host);
-    u_con("port: %s", u->port);
-    u_con("path: %s", u->path);
-    u_con("query: %s", u->query);
-    u_con("fragment: %s", u->fragment);
+    if (strlen(u->scheme))
+        u_con("scheme: \"%s\"", u->scheme);
+
+    if (strlen(u->userinfo))
+    {
+        u_con("userinfo: \"%s\"", u->userinfo);
+
+        if (extended)
+        {
+            u_con("{");
+            if (strlen(u->user))
+                u_con("  user: \"%s\"", u->user);
+
+            if (strlen(u->pwd))
+                u_con("  pwd: \"%s\"", u->pwd);
+            u_con("}");
+        }
+    }
+
+    if (strlen(u->host))
+        u_con("host: \"%s\"", u->host);
+
+    if (strlen(u->port))
+        u_con("port: \"%s\"", u->port);
+
+    if (strlen(u->path))
+        u_con("path: \"%s\"", u->path);
+
+    if (strlen(u->query))
+        u_con("query: \"%s\"", u->query);
+
+    if (strlen(u->fragment))
+        u_con("fragment: \"%s\"", u->fragment);
+
     return;
 }
 
