@@ -106,6 +106,9 @@ int test_suite_uri_register (u_test_t *t)
 
     con_err_if (u_test_case_register("u_uri_crumble", test_uri_parser, ts));
 
+    /* uri depends on the lexer module */
+    con_err_if (u_test_suite_dep_register("Lexer", ts));
+
     return u_test_suite_add(ts, t);
 err:
     u_test_suite_free(ts);
