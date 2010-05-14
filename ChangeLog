@@ -1,4 +1,4 @@
-$Id: ChangeLog,v 1.105 2010/04/13 15:20:15 stewy Exp $
+$Id: ChangeLog,v 1.106 2010/05/14 14:40:20 stewy Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
@@ -11,6 +11,7 @@ LibU 2.x.y
 	        side-effect of making the net module work on MinGw.
 	- [config] add u_config_walk function to traverse a config tree.
 	- [carpal] fixed 1.0 compatibility (missing u_con)
+	- [net] U_NET_OPT_DGRAM_BROADCAST to set DGRAM client socket broadcast option
 
 LibU 2.0.0
 	- [pqueue] added new priority queue module

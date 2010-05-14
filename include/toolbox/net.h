@@ -122,8 +122,13 @@ typedef enum {
     U_NET_OPT_SCTP_ADAPTATION_LAYER_EVENT = (1 << 10),
     /**< SCTP only: get events coming from the adaptation layer */
 
-    U_NET_OPT_SCTP_AUTHENTICATION_EVENT = (1 << 11)
+    U_NET_OPT_SCTP_AUTHENTICATION_EVENT = (1 << 11),
     /**< SCTP only: get authentication events, e.g. activation of new keys */
+
+    U_NET_OPT_DGRAM_BROADCAST = (1 << 20)
+    /**< DGRAM only: automatically sets broadcast option in client socket using
+     * setsockopt() */
+
 } u_net_opts_t;
 
 /** \brief ::u_io specialisation for output ops */

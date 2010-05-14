@@ -696,12 +696,17 @@ static int do_csock (struct sockaddr *sad, u_socklen_t sad_len, int domain,
         int type, int protocol, int opts, int dummy)
 {
     int s = -1;
+    int bc = 1;
 
     u_unused_args(dummy);
 
     dbg_return_if (sad == NULL, -1);
 
     dbg_err_sif ((s = u_socket(domain, type, protocol)) == -1);
+
+    if ((type == SOCK_DGRAM) && (opts & U_NET_OPT_DGRAM_BROADCAST))
+        dbg_err_sif (u_setsockopt(s, SOL_SOCKET, SO_BROADCAST, &bc, sizeof bc) 
+                == -1);
 
 #ifndef NO_SCTP
     if (opts & U_NET_OPT_SCTP_ONE_TO_MANY)
