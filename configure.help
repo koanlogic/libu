@@ -61,7 +61,7 @@ OPTION can be defined as follows:
 --no_docs           don't build/install documentation
 --do_test           build and run unit tests
 
---compat_1x         enable compatibility with libu 1.X
+--compat_1X         enable compatibility with libu 1.X
 --enable_icc_warns  enable Intel CC warnings
 
 Legend:
