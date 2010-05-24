@@ -62,14 +62,16 @@ static u_bst_node_t *u_bst_node_balance (u_bst_node_t *node);
  */
 
 /**
- *  \brief  TODO brief
+ *  \brief  Create a new ::u_bst_t object
  *
- *  TODO detail
+ *  Create a new ::u_bst_t object with given \p opts options
  *
- *  \param  name    desc
+ *  \param  opts    bitwise inclusive OR of ::U_BST_OPTS_* values
+ *  \param  pbst    handler of the newly created ::u_bst_t object as a result 
+ *                  argument
  *
  *  \retval  0  on success
- *  \retval -1  on error
+ *  \retval ~0  on error
  */
 int u_bst_new (int opts, u_bst_t **pbst)
 {
@@ -101,14 +103,13 @@ int u_bst_new (int opts, u_bst_t **pbst)
 }
 
 /**
- *  \brief  TODO brief
+ *  \brief  Destroy an ::u_bst_t object
  *
- *  TODO detail
+ *  Destroy the (previously allocated) ::u_bst_t object \p bst
  *
- *  \param  name    desc
+ *  \param  bst handler of the object that needs to be destroyed
  *
- *  \retval  0  on success
- *  \retval -1  on error
+ *  \return nothing
  */
 void u_bst_free (u_bst_t *bst)
 {
@@ -122,14 +123,19 @@ void u_bst_free (u_bst_t *bst)
 }
 
 /**
- *  \brief  TODO brief
+ *  \brief  Insert a new node into the BST
  *
- *  TODO detail
+ *  Insert a new node with key \p key and value \p val into the BST headed
+ *  by \p bst.  The new node will be (initially) pushed to the bottom of the 
+ *  tree, unless ::U_BST_OPT_PUSH_TOP (in which case the node is injected 
+ *  on the top) or ::U_BST_OPT_RANDOMIZED (the injection point is chosen at 
+ *  random) have been supplied at \p bst creation.
  *
- *  \param  name    desc
+ *  \param  bst an ::u_bst_t object handler
+ *  \param  key the key of the 
  *
  *  \retval  0  on success
- *  \retval -1  on error
+ *  \retval ~0  on error
  */
 int u_bst_push (u_bst_t *bst, const void *key, const void *val)
 {
@@ -147,14 +153,15 @@ int u_bst_push (u_bst_t *bst, const void *key, const void *val)
 }
 
 /**
- *  \brief  TODO brief
+ *  \brief  Evict a node from the BST given its key
  *
- *  TODO detail
+ *  Evict the first node matching the supplied key \p key from \p bst
  *
- *  \param  name    desc
+ *  \param  bst an ::u_bst_t object handler
+ *  \param  key the key to match for eviction
  *
  *  \retval  0  on success
- *  \retval -1  on error
+ *  \retval ~0  if \p key was not found
  */
 int u_bst_delete (u_bst_t *bst, const void *key)
 {
@@ -169,14 +176,16 @@ int u_bst_delete (u_bst_t *bst, const void *key)
 }
 
 /**
- *  \brief  TODO brief
+ *  \brief  Search for a node matching a given key
  *
- *  TODO detail
+ *  Search the ::u_bst_t object \p bst for the first node matching the
+ *  supplied key \p key
  *
- *  \param  name    desc
+ *  \param  bst an ::u_bst_t object handler
+ *  \param  key the key to match
  *
- *  \retval  0  on success
- *  \retval -1  on error
+ *  \return the handler for the found node on success, \c NULL in case no 
+ *          matching node was found
  */
 u_bst_node_t *u_bst_search (u_bst_t *bst, const void *key)
 {
@@ -187,14 +196,16 @@ u_bst_node_t *u_bst_search (u_bst_t *bst, const void *key)
 }
 
 /**
- *  \brief  TODO brief
+ *  \brief  Find the n-th element in the BST
  *
- *  TODO detail
+ *  Find the n-th (according to the comparison function -- \sa ::u_bst_set_cmp)
+ *  element in the BST.
  *
- *  \param  name    desc
+ *  \param  bst an ::u_bst_t object handler
+ *  \param  n   the ordinal position of the element that must be retrieved
  *
- *  \retval  0  on success
- *  \retval -1  on error
+ *  \return the handler for the found node on success, \c NULL in case \p n
+ *          is out of current BST bounds
  */
 u_bst_node_t *u_bst_find_nth (u_bst_t *bst, size_t n)
 {
@@ -204,14 +215,14 @@ u_bst_node_t *u_bst_find_nth (u_bst_t *bst, size_t n)
 }
 
 /**
- *  \brief  TODO brief
+ *  \brief  Count elements stored in the BST
  *
- *  TODO detail
+ *  Count the number of nodes actually stored in the supplied \p bst
  *
- *  \param  name    desc
+ *  \param  bst an ::u_bst_t object handler
  *
- *  \retval  0  on success
- *  \retval -1  on error
+ *  \return the number of elements in BST, or \c -1 in case an invalid handler
+ *          was supplied
  */
 ssize_t u_bst_count (u_bst_t *bst)
 {
@@ -224,14 +235,18 @@ ssize_t u_bst_count (u_bst_t *bst)
 }
 
 /**
- *  \brief  TODO brief
+ *  \brief  In-order walk the BST invoking a function on each traversed node
  *
- *  TODO detail
+ *  In-order walk the BST handled by \p bst, invoking the supplied function
+ *  \p cb with optional arguments \p cb_args at each traversed node.
  *
- *  \param  name    desc
+ *  \param  bst     an ::u_bst_t object handler
+ *  \param  cb      the callback function to invoke on each node
+ *  \param  cb_args auxiliary arguments (aside from the BST node handler, which
+ *                   is automatically feeded) to be given to \p cb
  *
  *  \retval  0  on success
- *  \retval -1  on error
+ *  \retval ~0  if \p bst or \p cb parameters are invalid
  */
 int u_bst_foreach (u_bst_t *bst, void (*cb)(u_bst_node_t *, void *), 
         void *cb_args)
@@ -245,11 +260,12 @@ int u_bst_foreach (u_bst_t *bst, void (*cb)(u_bst_node_t *, void *),
 }
 
 /**
- *  \brief  TODO brief
+ *  \brief  Re-balance a BST internal structure
  *
- *  TODO detail
+ *  Try to rebalance the supplied \p bst internal structure by doing the 
+ *  needed promote/rotate dance
  *
- *  \param  name    desc
+ *  \param  bst     an ::u_bst_t object handler
  *
  *  \retval  0  on success
  *  \retval -1  on error
@@ -264,14 +280,16 @@ int u_bst_balance (u_bst_t *bst)
 }
 
 /**
- *  \brief  TODO brief
+ *  \brief  Do left/right rotation of the BST around a given pivot node
  *
- *  TODO detail
+ *  Rotate -- left or right depending on \p dir -- the \p bst around the 
+ *  \p pivot node. 
  *
- *  \param  name    desc
+ *  \param  pivot   the node in the BST around which the BST is rotated
+ *  \param  dir     one of ::U_BST_ROT_LEFT or ::U_BST_ROT_RIGHT
  *
- *  \return the new parent node (left or right child of the \p pivot, depending
- *          on \p dir.
+ *  \return the new parent node, i.e the left or right child of the \p pivot, 
+ *          depending on \p dir.
  */
 u_bst_node_t *u_bst_rotate (u_bst_node_t *pivot, u_bst_rot_t dir)
 {
@@ -306,14 +324,17 @@ u_bst_node_t *u_bst_rotate (u_bst_node_t *pivot, u_bst_rot_t dir)
 }
 
 /**
- *  \brief  TODO brief
+ *  \brief  Set custom key attributes on the supplied BST
  *
- *  TODO detail
+ *  Set (global) custom key attributes on the given ::u_bst_t object.
  *
- *  \param  name    desc
+ *  \param  bst an ::u_bst_t object handler
+ *  \param  kt  type of the key, one of ::U_BST_TYPE_STRING, ::U_BST_TYPE_PTR
+ *              or ::U_BST_TYPE_OPAQUE
+ *  \param  ks  size of the key (needed for ::U_BST_TYPE_OPAQUE types)
  *
  *  \retval  0  on success
- *  \retval -1  on error
+ *  \retval ~0  on error (i.e. invalid parameter)
  */
 int u_bst_set_keyattr (u_bst_t *bst, u_bst_type_t kt, size_t ks)
 {
@@ -330,14 +351,17 @@ int u_bst_set_keyattr (u_bst_t *bst, u_bst_type_t kt, size_t ks)
 }
 
 /**
- *  \brief  TODO brief
+ *  \brief  Set custom value attributes on the supplied BST
  *
- *  TODO detail
+ *  Set (global) custom value attributes on the given ::u_bst_t object.
  *
- *  \param  name    desc
+ *  \param  bst an ::u_bst_t object handler
+ *  \param  vt  type of the value, one of ::U_BST_TYPE_STRING, ::U_BST_TYPE_PTR
+ *              or ::U_BST_TYPE_OPAQUE
+ *  \param  vs  size of the value (needed for ::U_BST_TYPE_OPAQUE types)
  *
  *  \retval  0  on success
- *  \retval -1  on error
+ *  \retval ~0  on error (i.e. invalid parameter)
  */
 int u_bst_set_valattr (u_bst_t *bst, u_bst_type_t vt, size_t vs)
 {
@@ -354,14 +378,15 @@ int u_bst_set_valattr (u_bst_t *bst, u_bst_type_t vt, size_t vs)
 }
 
 /**
- *  \brief  TODO brief
+ *  \brief  Set custom key comparison function
  *
- *  TODO detail
+ *  Set a custom key comparison function \p f for the ::u_bst_t object \p bst
  *
- *  \param  name    desc
+ *  \param  bst an ::u_bst_t object handler
+ *  \param  f   custom compare function
  *
  *  \retval  0  on success
- *  \retval -1  on error
+ *  \retval ~0  on error (i.e. invalid parameter)
  */
 int u_bst_set_cmp (u_bst_t *bst, int (*f)(const void *, const void *))
 {
@@ -374,14 +399,15 @@ int u_bst_set_cmp (u_bst_t *bst, int (*f)(const void *, const void *))
 }
 
 /**
- *  \brief  TODO brief
+ *  \brief  Set custom key free function
  *
- *  TODO detail
+ *  Set a custom key free function \p f for the ::u_bst_t object \p bst
  *
- *  \param  name    desc
+ *  \param  bst an ::u_bst_t object handler
+ *  \param  f   custom key free function
  *
  *  \retval  0  on success
- *  \retval -1  on error
+ *  \retval ~0  on error (i.e. invalid parameter)
  */
 int u_bst_set_keyfree (u_bst_t *bst, void (*f)(void *))
 {
@@ -394,14 +420,15 @@ int u_bst_set_keyfree (u_bst_t *bst, void (*f)(void *))
 }
 
 /**
- *  \brief  TODO brief
+ *  \brief  Set custom value free function
  *
- *  TODO detail
+ *  Set a custom value free function \p f for the ::u_bst_t object \p bst
  *
- *  \param  name    desc
+ *  \param  bst an ::u_bst_t object handler
+ *  \param  f   custom value free function
  *
  *  \retval  0  on success
- *  \retval -1  on error
+ *  \retval ~0  on error (i.e. invalid parameter)
  */
 int u_bst_set_valfree (u_bst_t *bst, void (*f)(void *))
 {
@@ -414,14 +441,13 @@ int u_bst_set_valfree (u_bst_t *bst, void (*f)(void *))
 }
 
 /**
- *  \brief  TODO brief
+ *  \brief  Node's key getter
  *
- *  TODO detail
+ *  Return the key stored in the given \p node    
  *
- *  \param  name    desc
+ *  \param  node    the node whose key needs to be retrieved
  *
- *  \retval  0  on success
- *  \retval -1  on error
+ *  \return the node's key or \c NULL in case \p node was \c NULL
  */
 const void *u_bst_node_key (u_bst_node_t *node)
 {
@@ -431,14 +457,13 @@ const void *u_bst_node_key (u_bst_node_t *node)
 }
 
 /**
- *  \brief  TODO brief
+ *  \brief  Node's value getter
  *
- *  TODO detail
+ *  Return the value stored in the given \p node
  *
- *  \param  name    desc
+ *  \param  node    the node whose value needs to be retrieved
  *
- *  \retval  0  on success
- *  \retval -1  on error
+ *  \return the node's value or \c NULL in case \p node was \c NULL
  */
 const void *u_bst_node_val (u_bst_node_t *node)
 {
@@ -448,14 +473,13 @@ const void *u_bst_node_val (u_bst_node_t *node)
 }
 
 /**
- *  \brief  TODO brief
+ *  \brief  Return the number of elements in the subtree rooted at \p node
  *
- *  TODO detail
+ *  Return the number of elements in the subtree rooted at \p node
  *
- *  \param  name    desc
+ *  \param  node    node's handler
  *
- *  \retval  0  on success
- *  \retval -1  on error
+ *  \return the number of elements "under" \p node or -1 on error
  */
 ssize_t u_bst_node_count (u_bst_node_t *node)
 {
@@ -465,14 +489,13 @@ ssize_t u_bst_node_count (u_bst_node_t *node)
 }
 
 /**
- *  \brief  TODO brief
+ *  \brief  Tell if the supplied BST is empty
  *
- *  TODO detail
+ *  Tell if the supplied ::u_bst_t object \p bst is empty
  *
- *  \param  name    desc
+ *  \param  bst an ::u_bst_t object handler
  *
- *  \retval  0  on success
- *  \retval -1  on error
+ *  \return 1 if empty, 0 otherwise
  */
 int u_bst_empty (u_bst_t *bst)
 {

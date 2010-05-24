@@ -290,7 +290,7 @@ int u_net_sd_by_addr (u_net_addr_t *a)
  *
  *  \param  uri     an URI string
  *  \param  mode    one of ::U_NET_CSOCK (connected) or ::U_NET_SSOCK (passive)
- *  \param  opts    optional set of OR'd <code>U_NET_OPT_*</code> bits
+ *  \param  opts    set of OR'd <code>U_NET_OPT_*</code> bits
  *
  *  \return the newly created socket descriptor, or \c -1 on error.
  */ 
