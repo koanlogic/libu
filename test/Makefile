@@ -29,6 +29,9 @@ endif
 ifndef NO_PQUEUE
     SRCS += pqueue.c
 endif
+ifndef NO_BST
+    SRCS += bst.c
+endif
 
 LDADD += ../srcs/libu.a
 

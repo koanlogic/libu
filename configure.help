@@ -53,6 +53,7 @@ OPTION can be defined as follows:
 --no_array          disable array module
 --no_ringbuffer     disable ring buffer module
 --no_pqueue         disable priority queue module
+--no_bst            disable binary search tree module
 --no_test           disable unit test module
 --no_ipv6           disable IPv6 support
 --no_unixsock       disable Unix socket support

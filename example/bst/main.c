@@ -19,6 +19,7 @@ int main (void)
 {
     srandom((unsigned long) getpid()); 
 
+    getchar();
     con_err_if (intkeys_balance());
     con_err_if (sort_random(NELEMS));
     con_err_if (search());
@@ -88,7 +89,7 @@ static int randomized_push (int howmany)
 
     (void) u_bst_foreach(bst, print_string, NULL);
 
-    u_bst_free(bst);
+    //u_bst_free(bst);
 
     return 0;
 err:

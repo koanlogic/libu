@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.20 2010/04/07 19:38:56 tho Exp $
+# $Id: Makefile,v 1.21 2010/05/24 08:57:34 tho Exp $
 
 include common.mk
 include ../Makefile.conf
@@ -51,6 +51,9 @@ ifndef NO_RB
 endif
 ifndef NO_PQUEUE
     SRCS += toolbox/pqueue.c
+endif
+ifndef NO_BST
+    SRCS += toolbox/bst.c
 endif
 ifdef SHLIB_NO_UNDEFINED_SYMS
     SRCS += toolbox/facility.c
