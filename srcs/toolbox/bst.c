@@ -132,7 +132,8 @@ void u_bst_free (u_bst_t *bst)
  *  random) have been supplied at \p bst creation.
  *
  *  \param  bst an ::u_bst_t object handler
- *  \param  key the key of the 
+ *  \param  key the key of the node that will be inserted
+ *  \param  val value stick to the inserted node
  *
  *  \retval  0  on success
  *  \retval ~0  on error
