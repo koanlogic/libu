@@ -61,4 +61,8 @@
   #include <u/toolbox/pqueue.h>
 #endif  /* !NO_PQUEUE */
 
+#ifndef NO_BST
+  #include <u/toolbox/bst.h>
+#endif  /* !NO_BST */
+
 #endif  /* !_LIBU_TOOLBOX_H_ */
