@@ -9,28 +9,21 @@ int load (const char *fn, char **ps);
 int main (int ac, char *av[])
 {
     char *s = NULL;
-    json_lex_t *jl = NULL;
-    json_obj_t *jo = NULL;
+    u_json_obj_t *jo = NULL;
 
     con_err_ifm (ac != 2, "%s <file>", av[0]);
 
     con_err_if (load(av[1], &s));
 
-    con_err_if (json_lex_new(s, &jl));
-    con_err_if (json_lex(jl, &jo));
-    json_lex_free(jl), jl = NULL;
+    con_err_if (u_json_parse(s, &jo));
 
     /* Print out what has been parsed. */
-    json_obj_print(jo);
-    json_obj_free(jo);
+    u_json_obj_print(jo);
+    u_json_obj_free(jo);
 
     return EXIT_SUCCESS;
 err:
-    if (jl) 
-        u_con("%s", json_lex_geterr(jl));
-
-    json_lex_free(jl);
-    json_obj_free(jo);
+    u_json_obj_free(jo);
 
     return EXIT_FAILURE;
 }
