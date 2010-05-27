@@ -34,7 +34,7 @@ typedef enum {
     U_JSON_TYPE_UNKNOWN = 0,
     U_JSON_TYPE_STRING,         /**< string type */
     U_JSON_TYPE_NUMBER,         /**< number (i.e. int, frac or exp) type */
-    U_JSON_TYPE_OBJECT,         /**< object container */`
+    U_JSON_TYPE_OBJECT,         /**< object container */
     U_JSON_TYPE_ARRAY,          /**< array container */
     U_JSON_TYPE_TRUE,           /**< a boolean true value */
     U_JSON_TYPE_FALSE,          /**< a boolean false value */

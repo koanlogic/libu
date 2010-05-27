@@ -19,6 +19,9 @@ int test_suite_json_register (u_test_t *t)
 
     con_err_if (u_test_case_register("TODO", test_json, ts));
 
+    /* json depends on the lexer module */
+    con_err_if (u_test_suite_dep_register("Lexer", ts));
+
     return u_test_suite_add(ts, t);
 err:
     u_test_suite_free(ts);
