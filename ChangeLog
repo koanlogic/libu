@@ -1,4 +1,4 @@
-$Id: ChangeLog,v 1.107 2010/05/24 08:57:34 tho Exp $
+$Id: ChangeLog,v 1.108 2010/05/27 09:10:46 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
@@ -14,6 +14,7 @@ LibU 2.x.y
 	- [net] U_NET_OPT_DGRAM_BROADCAST to set DGRAM client socket broadcast 
 	        option
 	- [bst] new binary search tree module
+	- [bst] new module to encode/decode JSON objects (RFC 4627)
 
 LibU 2.0.0
 	- [pqueue] added new priority queue module
