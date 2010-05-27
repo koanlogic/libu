@@ -8,7 +8,7 @@ int load (const char *fn, char **ps);
 
 int main (int ac, char *av[])
 {
-    char *s = NULL;
+    char *s = NULL, *s2 = NULL;
     u_json_obj_t *jo = NULL;
 
     con_err_ifm (ac != 2, "%s <file>", av[0]);
@@ -18,11 +18,19 @@ int main (int ac, char *av[])
     con_err_if (u_json_parse(s, &jo));
 
     /* Print out what has been parsed. */
-    u_json_obj_print(jo);
+    //u_json_obj_print(jo);
+
+    /* Re-encode the broken down JSON object. */
+    con_err_if (u_json_encode(jo, &s2));
+    u_con("%s", s2);
+    u_free(s2), s2 = NULL;
+
     u_json_obj_free(jo);
 
     return EXIT_SUCCESS;
 err:
+    if (s2)
+        u_free(s2);
     u_json_obj_free(jo);
 
     return EXIT_FAILURE;

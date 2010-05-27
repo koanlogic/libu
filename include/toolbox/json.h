@@ -54,7 +54,7 @@ void u_json_obj_print (u_json_obj_t *jo);
 void u_json_obj_walk (u_json_obj_t *jo, int strategy, size_t l, 
         void (*cb)(u_json_obj_t *, size_t));
 
-int u_json_encode (u_json_obj_t *jo, const char **ps);
+int u_json_encode (u_json_obj_t *jo, char **ps);
 
 /**
  *  \}

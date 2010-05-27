@@ -298,7 +298,7 @@ void u_json_obj_free (u_json_obj_t *jo)
  *  \retval ~0  on failure
  *  \retval  0  on success
  */
-int u_json_encode (u_json_obj_t *jo, const char **ps)
+int u_json_encode (u_json_obj_t *jo, char **ps)
 {
     u_string_t *s = NULL;
 
@@ -381,21 +381,24 @@ static int u_json_do_encode (u_json_obj_t *jo, u_string_t *s)
     if (jo == NULL)
         return 0;
 
-    /* [key:] val, */
+    /* Optional key. */
     if (strlen(jo->key))
-        dbg_err_if (u_string_aprintf(s, "%s: ", jo->key));
+        dbg_err_if (u_string_aprintf(s, "\"%s\": ", jo->key));
 
+    /* Value. */
     switch (jo->type)
     {
         case U_JSON_TYPE_STRING:
+            dbg_err_if (u_string_aprintf(s, "\"%s\"", jo->val));
+            break;
         case U_JSON_TYPE_NUMBER:
             dbg_err_if (u_string_aprintf(s, "%s", jo->val));
             break;
         case U_JSON_TYPE_OBJECT:
-            dbg_err_if (u_string_aprintf(s, "{"));
+            dbg_err_if (u_string_aprintf(s, "{ "));
             break;
         case U_JSON_TYPE_ARRAY:
-            dbg_err_if (u_string_aprintf(s, "["));
+            dbg_err_if (u_string_aprintf(s, "[ "));
             break;
         case U_JSON_TYPE_TRUE:
             dbg_err_if (u_string_aprintf(s, "true"));
@@ -410,12 +413,28 @@ static int u_json_do_encode (u_json_obj_t *jo, u_string_t *s)
             dbg_err("!");
     }
 
-    /* TODO if siblings, then add ',' */
-
+    /* Explore depth. */
     dbg_err_if (u_json_do_encode(TAILQ_FIRST(&jo->children), s));
-    dbg_err_if (u_json_do_encode(TAILQ_NEXT(jo, siblings), s));
 
-    /* TODO Add tail for array and objects. */ 
+    /* Close matching paren. */
+    switch (jo->type)
+    {
+        case U_JSON_TYPE_ARRAY:
+            dbg_err_if (u_string_aprintf(s, " ]"));
+            break;
+        case U_JSON_TYPE_OBJECT:
+            dbg_err_if (u_string_aprintf(s, " }"));
+            break;
+        default:
+            break;
+    }
+
+    /* When needed, add comma to separate siblings. */
+    if (TAILQ_NEXT(jo, siblings))
+        dbg_err_if (u_string_aprintf(s, ", "));
+
+    /* Explore horizontally. */
+    dbg_err_if (u_json_do_encode(TAILQ_NEXT(jo, siblings), s));
 
     return 0;
 err:
@@ -782,6 +801,7 @@ err:
 
 static int u_json_match_pair (u_lexer_t *jl, u_json_obj_t *jo)
 {
+    size_t mlen;
     char c, match[U_TOKEN_SZ];
     u_json_obj_t *pair = NULL;
 
@@ -798,7 +818,14 @@ static int u_json_match_pair (u_lexer_t *jl, u_json_obj_t *jo)
 
     /* Initialize new json object to store the key/value pair. */
     warn_err_if (u_json_obj_new(&pair));
-    warn_err_if (u_json_obj_set_key(pair, u_lexer_get_match(jl, match)));
+
+    (void) u_lexer_get_match(jl, match);
+
+    /* Trim trailing '"'. */
+    if ((mlen = strlen(match)) >= 1)
+        match[mlen - 1] = '\0';
+
+    warn_err_if (u_json_obj_set_key(pair, match));
 
     /* Consume ':' */
     if ((c = u_lexer_peek(jl)) != ':')
@@ -824,6 +851,7 @@ err:
 
 static int u_json_match_string (u_lexer_t *jl, u_json_obj_t *jo)
 {
+    size_t mlen;
     char c, match[U_TOKEN_SZ];
 
     /* In case string is matched as an lval (i.e. the key side of a 'pair'),
@@ -838,6 +866,9 @@ static int u_json_match_string (u_lexer_t *jl, u_json_obj_t *jo)
         U_LEXER_ERR(jl, "expect \", got %c at %s", c, u_lexer_lookahead(jl));
 
     U_LEXER_NEXT(jl, &c);
+
+    /* Re-record the left side match pointer (trim leading '"'). */
+    u_lexer_record_lmatch(jl);
 
     while (c != '"')
     {
@@ -863,7 +894,9 @@ static int u_json_match_string (u_lexer_t *jl, u_json_obj_t *jo)
             U_LEXER_NEXT(jl, &c);
     }
 
-    /* Record right match pointer. */
+    /* Record right match pointer.
+     * This is a greedy match, which includes the trailing '"', and must
+     * be taken into account when pulling out the string. */
     u_lexer_record_rmatch(jl);
 
     /* Consume last '"'. */
@@ -878,7 +911,15 @@ static int u_json_match_string (u_lexer_t *jl, u_json_obj_t *jo)
     if (jo)
     {
         warn_err_if (u_json_obj_set_type(jo, U_JSON_TYPE_STRING));
-        warn_err_if (u_json_obj_set_val(jo, u_lexer_get_match(jl, match)));
+
+        /* Remove trailing '"' from match. */
+        (void) u_lexer_get_match(jl, match);
+
+        /* Trim trailing '"'. */
+        if ((mlen = strlen(match)) >= 1)
+            match[mlen - 1] = '\0';
+
+        warn_err_if (u_json_obj_set_val(jo, match));
     }
 
     return 0;
