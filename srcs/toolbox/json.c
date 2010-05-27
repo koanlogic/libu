@@ -166,7 +166,7 @@ int u_json_obj_set_val (u_json_obj_t *jo, const char *val)
  *  \p key.
  *
  *  \param  jo  Pointer to a ::u_json_obj_t object
- *  \param  val Pointer to the (non-NULL) key string
+ *  \param  key Pointer to the (non-NULL) key string
  *
  *  \retval ~0  on failure
  *  \retval  0  on success

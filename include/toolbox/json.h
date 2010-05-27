@@ -24,18 +24,21 @@ struct u_json_obj_s;
 typedef struct u_json_obj_s u_json_obj_t;
 
 /** \brief  Walk strategy when traversing JSON objects */
-enum { U_JSON_WALK_PREORDER, U_JSON_WALK_POSTORDER };
+enum { 
+    U_JSON_WALK_PREORDER,   /**< pre-order tree walk */
+    U_JSON_WALK_POSTORDER   /**< post-order tree walk */
+};
 
 /** \brief  JSON base types */
 typedef enum {
     U_JSON_TYPE_UNKNOWN = 0,
-    U_JSON_TYPE_STRING,
-    U_JSON_TYPE_NUMBER,
-    U_JSON_TYPE_OBJECT,
-    U_JSON_TYPE_ARRAY,
-    U_JSON_TYPE_TRUE,
-    U_JSON_TYPE_FALSE,
-    U_JSON_TYPE_NULL
+    U_JSON_TYPE_STRING,         /**< string type */
+    U_JSON_TYPE_NUMBER,         /**< number (i.e. int, frac or exp) type */
+    U_JSON_TYPE_OBJECT,         /**< object container */`
+    U_JSON_TYPE_ARRAY,          /**< array container */
+    U_JSON_TYPE_TRUE,           /**< a boolean true value */
+    U_JSON_TYPE_FALSE,          /**< a boolean false value */
+    U_JSON_TYPE_NULL            /**< an explicit null value */
 } u_json_type_t;
 
 int u_json_parse (const char *json, u_json_obj_t **pjo);
