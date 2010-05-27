@@ -317,6 +317,62 @@ err:
 }
 
 /**
+ *  \brief  Pre/post-order tree walker
+ *
+ *  Traverse the supplied JSON object \p jo in pre/post-order, depending on
+ *  \p strategy, invoking the callback function \p cb on each node.
+ *
+ *  \param  jo          Pointer to ::u_json_obj_t object to traverse
+ *  \param  strategy    one of ::U_JSON_WALK_PREORDER or ::U_JSON_WALK_POSTORDER
+ *  \param  l           depth level in the JSON tree (the root is at depth 0)
+ *  \param  cb          function to invoke on each traversed node
+ *
+ *  \return nothing
+ */ 
+void u_json_obj_walk (u_json_obj_t *jo, int strategy, size_t l, 
+        void (*cb)(u_json_obj_t *, size_t))
+{
+    dbg_return_if (strategy != U_JSON_WALK_PREORDER && 
+            strategy != U_JSON_WALK_POSTORDER, );
+
+    if (jo == NULL)
+        return;
+
+    if (strategy == U_JSON_WALK_PREORDER && cb)
+        cb(jo, l);
+
+    /* When recurring into the children branch, increment depth by one. */
+    u_json_obj_walk(TAILQ_FIRST(&jo->children), strategy, l + 1, cb);
+
+    /* Siblings are at the same depth as the current node. */
+    u_json_obj_walk(TAILQ_NEXT(jo, siblings), strategy, l, cb);
+
+    if (strategy == U_JSON_WALK_POSTORDER && cb)
+        cb(jo, l);
+
+    return;
+}
+
+/**
+ *  \brief  Print to stderr the internal representation of a JSON object
+ *
+ *  Print to stderr the supplied JSON object \p jo
+ *
+ *  \param  jo  Pointer to the ::u_json_obj_t object that must be printed
+ *
+ *  \return nothing
+ */
+void u_json_obj_print (u_json_obj_t *jo)
+{
+    dbg_return_if (jo == NULL, );
+
+    /* Tree root is at '0' depth. */
+    u_json_obj_walk(jo, U_JSON_WALK_PREORDER, 0, u_json_obj_do_print);
+
+    return;
+}
+
+/**
  *  \}
  */ 
 
@@ -364,43 +420,6 @@ static int u_json_do_encode (u_json_obj_t *jo, u_string_t *s)
     return 0;
 err:
     return ~0;
-}
-
-
-/* {Pre,post}-order tree walker, depending on 'strategy'. */
-void u_json_obj_walk (u_json_obj_t *jo, int strategy, size_t l, 
-        void (*cb)(u_json_obj_t *, size_t))
-{
-    dbg_return_if (
-            strategy != U_JSON_WALK_PREORDER && 
-            strategy != U_JSON_WALK_POSTORDER, );
-
-    if (jo == NULL)
-        return;
-
-    if (strategy == U_JSON_WALK_PREORDER && cb)
-        cb(jo, l);
-
-    /* When recurring into the children branch, increment depth by one. */
-    u_json_obj_walk(TAILQ_FIRST(&jo->children), strategy, l + 1, cb);
-
-    /* Siblings are at the same depth as the current node. */
-    u_json_obj_walk(TAILQ_NEXT(jo, siblings), strategy, l, cb);
-
-    if (strategy == U_JSON_WALK_POSTORDER && cb)
-        cb(jo, l);
-
-    return;
-}
-
-void u_json_obj_print (u_json_obj_t *jo)
-{
-    dbg_return_if (jo == NULL, );
-
-    /* Tree root is at '0' depth. */
-    u_json_obj_walk(jo, U_JSON_WALK_PREORDER, 0, u_json_obj_do_print);
-
-    return;
 }
 
 static int u_json_match_value (u_lexer_t *jl, u_json_obj_t *jo)

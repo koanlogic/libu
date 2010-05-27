@@ -43,7 +43,7 @@ int u_json_parse (const char *json, u_json_obj_t **pjo);
 int u_json_obj_new (u_json_obj_t **pjo);
 int u_json_obj_set_key (u_json_obj_t *jo, const char *key);
 int u_json_obj_set_val (u_json_obj_t *jo, const char *val);
-int u_json_obj_set_type (u_json_obj_t *jo, int type); 
+int u_json_obj_set_type (u_json_obj_t *jo, u_json_type_t type); 
 void u_json_obj_free (u_json_obj_t *jo);
 int u_json_obj_add (u_json_obj_t *head, u_json_obj_t *jo);
 
