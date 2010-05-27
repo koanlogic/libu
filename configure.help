@@ -54,6 +54,7 @@ OPTION can be defined as follows:
 --no_ringbuffer     disable ring buffer module
 --no_pqueue         disable priority queue module
 --no_bst            disable binary search tree module
+--no_json           disable JSON module
 --no_test           disable unit test module
 --no_ipv6           disable IPv6 support
 --no_unixsock       disable Unix socket support

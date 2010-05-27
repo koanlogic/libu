@@ -1,20 +1,21 @@
+/* 
+ * Copyright (c) 2005-2010 by KoanLogic s.r.l. - All rights reserved.  
+ */
+
+#include <stdlib.h>
+#include <string.h>
 #include <ctype.h>
-#include <u/libu.h>
-#include "json.h"
+
+#include <toolbox/json.h>
+#include <toolbox/carpal.h>
+#include <toolbox/misc.h>
+#include <toolbox/memory.h>
+#include <toolbox/lexer.h>
 
 /* Internal representation of any JSON value. */
 struct u_json_obj_s
 {
-    enum { 
-        U_JSON_TYPE_UNKNOWN = 0,
-        U_JSON_TYPE_STRING, 
-        U_JSON_TYPE_NUMBER, 
-        U_JSON_TYPE_OBJECT, 
-        U_JSON_TYPE_ARRAY, 
-        U_JSON_TYPE_TRUE, 
-        U_JSON_TYPE_FALSE, 
-        U_JSON_TYPE_NULL
-    } type; 
+    u_json_type_t type;
 
     char key[U_TOKEN_SZ];
     char val[U_TOKEN_SZ];  /* if applicable, i.e. (!object && !array) */
@@ -60,6 +61,23 @@ static void u_json_obj_do_free (u_json_obj_t *jo, size_t l);
 /* Encoder. */
 static int u_json_do_encode (u_json_obj_t *jo, u_string_t *s);
 
+/**
+    \defgroup json JSON
+    \{
+        The \ref json module ...
+ */
+
+/**
+ *  \brief  Create a new and empty JSON object container
+ *
+ *  Create a new and empty JSON object container and return its handler as
+ *  the result argument \p *pjo
+ *
+ *  \param  pjo Pointer to the ::u_json_obj_t that will be returned
+ *
+ *  \retval ~0  on failure
+ *  \retval  0  on success
+ */
 int u_json_obj_new (u_json_obj_t **pjo)
 {
     u_json_obj_t *jo = NULL;
@@ -80,7 +98,18 @@ err:
     return ~0;
 }
 
-int u_json_obj_set_type (u_json_obj_t *jo, int type)
+/**
+ *  \brief  Set the type of a JSON object
+ *
+ *  Set the type of the supplied JSON object \p jo to \p type.
+ *
+ *  \param  jo      Pointer to a ::u_json_obj_t object
+ *  \param  type    One of the available ::u_json_type_t types
+ *
+ *  \retval ~0  on failure
+ *  \retval  0  on success
+ */
+int u_json_obj_set_type (u_json_obj_t *jo, u_json_type_t type)
 {
     dbg_return_if (jo == NULL, ~0);
 
@@ -104,16 +133,44 @@ int u_json_obj_set_type (u_json_obj_t *jo, int type)
     return 0;
 }
 
+/**
+ *  \brief  Set the value of a JSON object
+ *
+ *  Set the value of the JSON object \p jo to the string value pointed by
+ *  \p val.  This operation is meaningful only in case the underlying object
+ *  is a number or a string.
+ *
+ *  \param  jo  Pointer to a ::u_json_obj_t object
+ *  \param  val Pointer to the (non-NULL) value string
+ *
+ *  \retval ~0  on failure
+ *  \retval  0  on success
+ */
 int u_json_obj_set_val (u_json_obj_t *jo, const char *val)
 {
     dbg_return_if (jo == NULL, ~0);
     dbg_return_if (val == NULL, ~0);
+
+    /* Non-critical error, just emit some debug info. */
+    dbg_if (jo->type != U_JSON_TYPE_STRING && jo->type != U_JSON_TYPE_NUMBER);
 
     dbg_return_if (u_strlcpy(jo->val, val, sizeof jo->val), ~0);
 
     return 0;
 }
 
+/**
+ *  \brief  Set the key of a JSON object
+ *
+ *  Set the key of the JSON object \p jo to the string value pointed by
+ *  \p key.
+ *
+ *  \param  jo  Pointer to a ::u_json_obj_t object
+ *  \param  val Pointer to the (non-NULL) key string
+ *
+ *  \retval ~0  on failure
+ *  \retval  0  on success
+ */
 int u_json_obj_set_key (u_json_obj_t *jo, const char *key)
 {
     dbg_return_if (jo == NULL, ~0);
@@ -124,14 +181,25 @@ int u_json_obj_set_key (u_json_obj_t *jo, const char *key)
     return 0;
 }
 
+/**
+ *  \brief  Add a child JSON object to its parent container
+ *
+ *  Add the child JSON object \p jo to its parent container \p head.
+ *
+ *  \param  head    Pointer to the parent container
+ *  \param  jo      Pointer to the child JSON object that shall be attached
+ *
+ *  \retval ~0  on failure
+ *  \retval  0  on success
+ */
 int u_json_obj_add (u_json_obj_t *head, u_json_obj_t *jo)
 {
     dbg_return_if (head == NULL, ~0);
     dbg_return_if (jo == NULL, ~0);
 
 #ifdef U_JSON_OBJ_DEBUG
-    u_con("child (%p): %s {%s} added", jo, u_json_type_str(jo->type), jo->key);
-    u_con("parent(%p): %s {%s}\n", head, u_json_type_str(head->type), head->key);
+    u_con("chld (%p): %s {%s} added", jo, u_json_type_str(jo->type), jo->key);
+    u_con("prnt (%p): %s {%s}\n", head, u_json_type_str(head->type), head->key);
 #endif  /* U_JSON_OBJ_DEBUG */
 
     TAILQ_INSERT_TAIL(&head->children, jo, siblings);
@@ -139,6 +207,19 @@ int u_json_obj_add (u_json_obj_t *head, u_json_obj_t *jo)
     return 0;
 }
 
+/**
+ *  \brief  Break down a JSON string into pieces
+ *
+ *  Parse and validate the supplied JSON string \p json and, in case of success,
+ *  return its internal representation into the result argument \p *pjo.
+ *
+ *  \param  json    A NUL-terminated string containing some serialized JSON
+ *  \param  pjo     Result argument which will point to the internal 
+ *                  representation of the parsed \p json string
+ *
+ *  \retval ~0  on failure
+ *  \retval  0  on success
+ */
 int u_json_parse (const char *json, u_json_obj_t **pjo)
 {
     u_json_obj_t *jo = NULL;
@@ -165,8 +246,10 @@ int u_json_parse (const char *json, u_json_obj_t **pjo)
     else if (u_json_match_array_first(jl))
         warn_err_if (u_json_match_array(jl, jo));
     else
+    {
         U_LEXER_ERR(jl, 
                 "Expecting \'{\' or \'[\', found \'%c\'.", u_lexer_peek(jl));
+    }
 
     /* Dispose the lexer context. */
     u_lexer_free(jl);
@@ -181,6 +264,15 @@ err:
     return ~0;
 }
 
+/**
+ *  \brief  Dispose any resource allocated to a JSON object
+ *
+ *  Dispose any resource allocated to the supplied JSON object \p jo
+ *
+ *  \param  jo  Pointer to the ::u_json_obj_t object that must be free'd
+ *
+ *  \return nothing
+ */
 void u_json_obj_free (u_json_obj_t *jo)
 {
     size_t dummy = 0;
@@ -194,6 +286,18 @@ void u_json_obj_free (u_json_obj_t *jo)
     return;
 }
 
+/**
+ *  \brief  Encode a JSON object
+ *
+ *  Encode the supplied JSON object \p jo to the result string pointed by 
+ *  \p *ps
+ *
+ *  \param  jo  Pointer to the ::u_json_obj_t object that must be encoded
+ *  \param  ps  serialized JSON text corresponding to \p jo
+ *
+ *  \retval ~0  on failure
+ *  \retval  0  on success
+ */
 int u_json_encode (u_json_obj_t *jo, const char **ps)
 {
     u_string_t *s = NULL;
@@ -211,6 +315,10 @@ err:
         u_string_free(s);
     return ~0;
 }
+
+/**
+ *  \}
+ */ 
 
 static int u_json_do_encode (u_json_obj_t *jo, u_string_t *s)
 {

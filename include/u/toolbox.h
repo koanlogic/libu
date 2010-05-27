@@ -65,4 +65,8 @@
   #include <u/toolbox/bst.h>
 #endif  /* !NO_BST */
 
+#ifndef NO_JSON
+  #include <u/toolbox/json.h>
+#endif  /* !NO_JSON */
+
 #endif  /* !_LIBU_TOOLBOX_H_ */

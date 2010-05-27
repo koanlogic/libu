@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.21 2010/05/24 08:57:34 tho Exp $
+# $Id: Makefile,v 1.22 2010/05/27 08:35:12 tho Exp $
 
 include common.mk
 include ../Makefile.conf
@@ -54,6 +54,9 @@ ifndef NO_PQUEUE
 endif
 ifndef NO_BST
     SRCS += toolbox/bst.c
+endif
+ifndef NO_JSON
+    SRCS += toolbox/json.c
 endif
 ifdef SHLIB_NO_UNDEFINED_SYMS
     SRCS += toolbox/facility.c

@@ -32,6 +32,9 @@ endif
 ifndef NO_BST
     SRCS += bst.c
 endif
+ifndef NO_JSON
+    SRCS += json.c
+endif
 
 LDADD += ../srcs/libu.a
 

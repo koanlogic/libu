@@ -3,14 +3,6 @@
 
 #include <sys/types.h>
 
-#ifndef U_JSON_KEY_SZ
-    #define U_JSON_KEY_SZ 128
-#endif  /* !U_JSON_KEY_SZ */
-
-#ifndef U_JSON_VAL_SZ
-    #define U_JSON_VAL_SZ 128
-#endif  /* !U_JSON_VAL_SZ */
-
 enum { U_JSON_WALK_PREORDER, U_JSON_WALK_POSTORDER };
 
 typedef struct u_json_s u_json_t;

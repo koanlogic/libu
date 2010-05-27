@@ -104,6 +104,7 @@ static void cmp_last_string (u_bst_node_t *node, void *p)
 
     return ;
 }
+
 int test_suite_bst_register (u_test_t *t)
 {
     u_test_suite_t *ts = NULL;

@@ -3,7 +3,7 @@ include ../../Makefile.conf
 
 PROG = bst
 SRCS = main.c
-SRCS += bst.c
+#SRCS += bst.c
 
 LDADD += $(SRCDIR)/srcs/libu.a
 CFLAGS += -ggdb
