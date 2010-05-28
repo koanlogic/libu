@@ -15,7 +15,7 @@ int main (int ac, char *av[])
 
     con_err_if (load(av[1], &s));
 
-    con_err_if (u_json_parse(s, &jo));
+    con_err_if (u_json_decode(s, &jo));
 
     /* Print out what has been parsed. */
     //u_json_obj_print(jo);
