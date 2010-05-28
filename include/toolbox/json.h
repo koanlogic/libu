@@ -41,7 +41,7 @@ typedef enum {
     U_JSON_TYPE_NULL            /**< an explicit null value */
 } u_json_type_t;
 
-int u_json_parse (const char *json, u_json_obj_t **pjo);
+int u_json_decode (const char *json, u_json_obj_t **pjo);
 
 int u_json_obj_new (u_json_obj_t **pjo);
 int u_json_obj_set_key (u_json_obj_t *jo, const char *key);

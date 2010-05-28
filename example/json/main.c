@@ -1,6 +1,5 @@
 #include <sys/stat.h>
 #include <u/libu.h>
-#include "json.h"
 
 int facility = LOG_LOCAL0;
 

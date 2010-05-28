@@ -64,7 +64,9 @@ static int u_json_do_encode (u_json_obj_t *jo, u_string_t *s);
 /**
     \defgroup json JSON
     \{
-        The \ref json module ...
+        The \ref json module implements encoding and decoding of JSON objects as
+        defined in <a href="http://www.ietf.org/rfc/rfc4627.txt">RFC 4627</a>.
+        TODO
  */
 
 /**
@@ -220,7 +222,7 @@ int u_json_obj_add (u_json_obj_t *head, u_json_obj_t *jo)
  *  \retval ~0  on failure
  *  \retval  0  on success
  */
-int u_json_parse (const char *json, u_json_obj_t **pjo)
+int u_json_decode (const char *json, u_json_obj_t **pjo)
 {
     u_json_obj_t *jo = NULL;
     u_lexer_t *jl = NULL;
@@ -746,7 +748,8 @@ static int u_json_match_array (u_lexer_t *jl, u_json_obj_t *jo)
                 c, u_lexer_lookahead(jl));
     }
 
-    U_LEXER_SKIP(jl, &c);
+    /* Ignore EOT, shall be catched later. */
+    (void) u_lexer_skip(jl, NULL);
 
     return 0;
 err:
@@ -792,7 +795,8 @@ static int u_json_match_object (u_lexer_t *jl, u_json_obj_t *jo)
                 c, u_lexer_lookahead(jl));
     }
 
-    U_LEXER_SKIP(jl, &c);
+    /* Ignore EOT, shall be catched later. */
+    (void) u_lexer_skip(jl, NULL);
 
     return 0;
 err:
