@@ -152,7 +152,6 @@ err:
 int u_uri_knead (u_uri_t *u, char s[U_URI_STRMAX])
 {
     dbg_return_if (u == NULL, ~0);
-    dbg_return_if (strlen(u->path) == 0, ~0);    /* path is mandatory */
     dbg_return_if (s == NULL, ~0);
 
     /* see RFC 3986, Section 5.3. Component Recomposition */
@@ -252,7 +251,10 @@ int u_uri_new (u_uri_opts_t opts, u_uri_t **pu)
 {
     u_uri_t *u = u_zalloc(sizeof *u);
     warn_err_sif (u == NULL);
+
     u->opts = opts;
+    dbg_err_if (u_uri_set_path(u, "/"));    /* path is mandatory, so we set
+                                               default value here */
     *pu = u;
     return 0;
 err:
