@@ -143,6 +143,7 @@ int u_hmap_foreach_keyval (u_hmap_t *hmap, int f(const void *key,
             const void *val));
 int u_hmap_foreach_arg (u_hmap_t *hmap, int f(const void *val, 
             const void *arg), void *arg);
+ssize_t u_hmap_count (u_hmap_t *hmap);
 const char *u_hmap_strerror (u_hmap_ret_t);
 
 /* [u_hmap_o_*] */

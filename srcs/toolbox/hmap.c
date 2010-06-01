@@ -109,7 +109,8 @@ static int __next_prime(size_t *prime, size_t sz, size_t *idx);
  *          u_hmap_opts_init(&opts);
  *              
  *          dbg_err_if (u_hmap_easy_new(&opts, &hmap));
- *          dbg_err_if (u_hmap_opts_set_val_type(&opts, U_HMAP_OPTS_DATATYPE_STRING));
+ *          dbg_err_if (u_hmap_opts_set_val_type(&opts, 
+ *                          U_HMAP_OPTS_DATATYPE_STRING));
  *          
  *          dbg_err_if (u_hmap_easy_put(hmap, "jack", (const void *) ":S"));
  *          dbg_err_if (u_hmap_easy_put(hmap, "jill", (const void *) ":)))"));
@@ -155,8 +156,9 @@ static int __next_prime(size_t *prime, size_t sz, size_t *idx);
  *          must be retrieved by using \ref hmap::u_hmap_easy_get).
  *
  *      \par
- *      The \ref hmap_easy "easy interface" should do just fine for most applications
- *      and it is less error-prone than the \ref hmap_full "advanced interface".
+ *      The \ref hmap_easy "easy interface" should do just fine for most 
+ *      applications and it is less error-prone than the \ref hmap_full 
+ *      "advanced interface".
  *      So, if you must use the latter, please take special care.
  *      
  *      More examples of both easy and advanced API usage can be found in
@@ -666,7 +668,8 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old)
                         if (hmap->opts->f_comp(o->key, obj->key) == 0)
                         {
                             /* overwrite */
-                            if (!(hmap->opts->options & U_HMAP_OPTS_NO_OVERWRITE)) 
+                            if (!(hmap->opts->options & 
+                                        U_HMAP_OPTS_NO_OVERWRITE)) 
                             {
                                 LIST_INSERT_AFTER(o, obj, next);
                                 LIST_REMOVE(o, next);
@@ -909,6 +912,22 @@ static void __o_free (u_hmap_t *hmap, u_hmap_o_t *obj)
     }
 
     u_hmap_o_free(obj); 
+}
+
+/**
+ *  \brief  Count the number of elements currently stored in hmap
+ *
+ *  Count the number of elements currently stored in the supplied \p hmap
+ *  object
+ *
+ *  \param  hmap    hmap object
+ *
+ *  \return The number of elements currently stored in hmap, or -1 on error
+ */
+ssize_t u_hmap_count (u_hmap_t *hmap)
+{
+    dbg_return_if (hmap == NULL, -1);
+    return hmap->sz;
 }
 
 /**
@@ -1271,7 +1290,8 @@ err:
 }
 
 /** \brief Set free function for values */
-int u_hmap_opts_set_val_freefunc (u_hmap_opts_t *opts, void (*f_free)(void *val))
+int u_hmap_opts_set_val_freefunc (u_hmap_opts_t *opts, 
+        void (*f_free)(void *val))
 {
     dbg_err_if (opts == NULL);
 
@@ -1563,8 +1583,8 @@ err:
  * \retval  U_HMAP_ERR_NONE     on success
  * \retval  U_HMAP_ERR_FAIL     on failure
  */
-int u_hmap_foreach_arg (u_hmap_t *hmap, int f(const void *val, const void *arg), 
-        void *arg)
+int u_hmap_foreach_arg (u_hmap_t *hmap, 
+        int f(const void *val, const void *arg), void *arg)
 {
     size_t i;
     u_hmap_o_t *obj;
@@ -1595,7 +1615,8 @@ err:
  * \retval  U_HMAP_ERR_NONE     on success
  * \retval  U_HMAP_ERR_FAIL     on failure
  */
-int u_hmap_foreach_keyval(u_hmap_t *hmap, int f(const void *key, const void *val))
+int u_hmap_foreach_keyval(u_hmap_t *hmap, 
+        int f(const void *key, const void *val))
 {
     struct u_hmap_o_s *obj;
     size_t i;
