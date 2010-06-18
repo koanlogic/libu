@@ -75,6 +75,8 @@ inclusion of specific bits selectively using the following switches:
     - \c --no_array: to disable the \ref array module
     - \c --no_ringbuffer: to disable the \ref rb module
     - \c --no_pqueue: to disable the \ref pq module
+    - \c --no_json: to disable the \ref json module
+    - \c --no_bst: to disable the \ref bst module
 
 Also, some specific features regarding the networking code can be disabled
 at configuration:
