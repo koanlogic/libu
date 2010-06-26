@@ -9,6 +9,7 @@ int main (int ac, char *av[])
 {
     char *s = NULL, *s2 = NULL;
     const char *val;
+    unsigned int n, i;
     u_json_obj_t *jo = NULL, *res;
 
     con_err_ifm (ac != 3, "%s <file> <key>", av[0]);
@@ -25,7 +26,6 @@ int main (int ac, char *av[])
     con_err_if (u_json_encode(jo, &s2));
     u_con("%s", s2);
     u_free(s2), s2 = NULL;
-#endif
 
     /* Test freeze interface. */
     con_err_if (u_json_freeze(jo));
@@ -38,6 +38,18 @@ int main (int ac, char *av[])
     res = u_json_get(jo, "..features[2].geometry");
     val = u_json_get_val(res, av[2]);
     u_con("%s = %s", "key", val ? val : "not found");
+#endif
+
+    /* Test array. */
+    n = u_json_array_count(jo);
+    for (i = 0; i < n; i++)
+    {
+        res = u_json_array_get_nth(jo, i);
+        if ((val = u_json_obj_get_val(res)))
+        {
+            u_con("[%u] %s", i, val ? val : "not found");
+        }
+    }
 
     u_json_obj_free(jo);
 

@@ -25,8 +25,8 @@ struct u_json_obj_s
 {
     u_json_type_t type;
 
-    unsigned int icur;          /* Aux stuff used when indexing on arrays. */
-    u_hmap_t *map;
+    unsigned int icur, count;   /* Aux stuff used when indexing on arrays. */
+    u_hmap_t *map;              /* Alias reference to the global cache. */
 
     char fqn[U_JSON_FQN_SZ];    /* Fully qualified name of this (sub)object. */
 
@@ -35,7 +35,7 @@ struct u_json_obj_s
 
     struct u_json_obj_s *parent;
     TAILQ_ENTRY(u_json_obj_s) siblings;
-    TAILQ_HEAD(, u_json_obj_s) children;
+    TAILQ_HEAD(u_json_obj_chld_s, u_json_obj_s) children;
 };
 
 /* Lexer methods */
@@ -114,6 +114,7 @@ int u_json_obj_new (u_json_obj_t **pjo)
     jo->key[0] = jo->val[0] = jo->fqn[0] = '\0';
     jo->parent = NULL;
     jo->map = NULL;
+    jo->count = 0;
 
     *pjo = jo;
 
@@ -276,6 +277,10 @@ int u_json_obj_add (u_json_obj_t *head, u_json_obj_t *jo)
 
     TAILQ_INSERT_TAIL(&head->children, jo, siblings);
     jo->parent = head;
+
+    /* Adjust children counter for array-type parents. */
+    if (head->type == U_JSON_TYPE_ARRAY)
+        head->count += 1;
 
     return 0;
 }
@@ -469,7 +474,10 @@ int u_json_freeze (u_json_obj_t *jo)
     u_hmap_t *hmap = NULL;
 
     dbg_return_if (jo == NULL, ~0);
-    nop_return_if (jo->map, 0);  /* If already frozen, return ok. */
+    nop_return_if (jo->map, 0);     /* If already frozen, return ok. */
+#if CHECK_THIS
+    dbg_return_if (jo->parent, ~0); /* Freeze can be done on top-objs only. */
+#endif
 
     /* Create the associative array. */
     u_hmap_opts_init(&opts);
@@ -549,20 +557,71 @@ u_json_obj_t *u_json_get (u_json_obj_t *jo, const char *name)
     return (u_json_obj_t *) u_hmap_easy_get(jo->map, fqn);
 }
 
-/** \brief  Wrapper around ::u_json_get to retrieve string values from 
- *          terminal (i.e. non-container objects). */ 
-const char *u_json_get_val (u_json_obj_t *jo, const char *key)
+/** \brief  Return the number of elements in array \p jo, or \c 0 on error. */
+unsigned int u_json_array_count (u_json_obj_t *jo)
 {
-    u_json_obj_t *res = u_json_get(jo, key);
+    dbg_return_if (jo == NULL, 0);
+    dbg_return_if (jo->type != U_JSON_TYPE_ARRAY, 0);
 
-    if (res == NULL)
-        return NULL;
+    return jo->count;
+}
+
+/** \brief  Get n-th element from \p jo array.  */
+u_json_obj_t *u_json_array_get_nth (u_json_obj_t *jo, unsigned int n)
+{
+    u_json_obj_t *elem;
+
+    dbg_return_if (jo == NULL, NULL);
+    dbg_return_if (jo->type != U_JSON_TYPE_ARRAY, NULL);
+    dbg_return_if (n >= jo->count, NULL);
+
+    /* Use cache if available. */
+    if (jo->map)
+    {
+        char elem_fqn[U_JSON_FQN_SZ] = { '\0' };
+        dbg_if (u_snprintf(elem_fqn, sizeof elem_fqn, "%s[%u]", jo->fqn, n));
+        return u_json_get(jo, elem_fqn);
+    }
     
-    switch (res->type)
+    /* Too bad if we don't have cache in place: we have to go through the 
+     * list which is quadratic even with the following silly optimisation.
+     * So it's ok for a couple of lookups, but if done systematically it's
+     * an overkill.  Freeze instead ! */
+    if (n > (jo->count / 2))
+    {
+        unsigned int r = jo->count - (n + 1);
+
+        TAILQ_FOREACH_REVERSE (elem, &jo->children, u_json_obj_chld_s, siblings)
+        {
+            if (r == 0)
+                return elem;
+            r -= 1;
+        } 
+    }
+    else
+    {
+        TAILQ_FOREACH (elem, &jo->children, siblings)
+        {
+            if (n == 0)
+                return elem;
+            n -= 1;
+        } 
+    }
+
+    /* Unreachable. */
+    return NULL;
+}
+
+/** \brief  ... */
+const char *u_json_obj_get_val (u_json_obj_t *jo)
+{
+    dbg_return_if (jo == NULL, NULL);
+
+    switch (jo->type)
     {
         case U_JSON_TYPE_STRING:
         case U_JSON_TYPE_NUMBER:
-            return res->val;
+            return jo->val;
         case U_JSON_TYPE_TRUE:
             return "true";
         case U_JSON_TYPE_FALSE:
@@ -572,10 +631,18 @@ const char *u_json_get_val (u_json_obj_t *jo, const char *key)
         case U_JSON_TYPE_OBJECT:
         case U_JSON_TYPE_ARRAY:
         case U_JSON_TYPE_UNKNOWN:
+        default:
             return NULL;
     }
+}
 
-    return NULL;
+/** \brief  Wrapper around ::u_json_get to retrieve string values from 
+ *          terminal (i.e. non-container objects). */ 
+const char *u_json_get_val (u_json_obj_t *jo, const char *key)
+{
+    u_json_obj_t *res = u_json_get(jo, key);
+
+    return u_json_obj_get_val(res);
 }
 
 /**

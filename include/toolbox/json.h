@@ -67,6 +67,10 @@ int u_json_obj_new_leaf (u_json_type_t type, const char *key, const char *val,
 /* Getters. */
 u_json_obj_t *u_json_get (u_json_obj_t *jo, const char *key);
 const char *u_json_get_val (u_json_obj_t *jo, const char *key);
+unsigned int u_json_array_count (u_json_obj_t *jo);
+u_json_obj_t *u_json_array_get_nth (u_json_obj_t *jo, unsigned int n);
+
+const char *u_json_obj_get_val (u_json_obj_t *jo);
 
 /* Indexing (i.e. setup the fast retrieval interface). */
 int u_json_freeze (u_json_obj_t *jo);

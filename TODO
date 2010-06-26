@@ -13,6 +13,8 @@
     - test
     - src
 - json per type [gs]etters
-- json array iterators
+- return with error in setters when object is frozen
 - is zero-length key valid ? invalid zero-length would make possible to
   decide if a given name is (or isn't) fully qualified
+- rearrange naming of functions (especially u_json_obj/u_json logics)
+- node removal interface
