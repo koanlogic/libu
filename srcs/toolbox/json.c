@@ -12,6 +12,14 @@
 #include <toolbox/memory.h>
 #include <toolbox/lexer.h>
 
+/* Pointer to the name part of .fqn */
+#define U_JSON_OBJ_NAME(jo) \
+        ((jo->parent != NULL) ? jo->fqn + strlen(p->fqn) : jo->fqn)
+
+/* XXX Test if a name is a fully qualified name */
+#define NAME_IS_FQN(name)   \
+    (name[0] == '.' && (name[1] == '.' || name[1] == '[' || name[1] == '\0')
+
 /* Internal representation of any JSON value. */
 struct u_json_obj_s
 {
@@ -21,6 +29,7 @@ struct u_json_obj_s
     u_hmap_t *map;
 
     char fqn[U_JSON_FQN_SZ];    /* Fully qualified name of this (sub)object. */
+
     char key[U_TOKEN_SZ];       /* If applicable, i.e. !anonymous */
     char val[U_TOKEN_SZ];       /* If applicable, i.e. (!object && !array) */
 
@@ -515,13 +524,29 @@ int u_json_defrost (u_json_obj_t *jo)
  *  \return the retrieved JSON (sub)object on success; \c NULL in case \p key 
  *          was not found
  */
-u_json_obj_t *u_json_get (u_json_obj_t *jo, const char *key)
+u_json_obj_t *u_json_get (u_json_obj_t *jo, const char *name)
 {
+    u_json_obj_t *res, *p;
+    char fqn[U_JSON_FQN_SZ];
+
     dbg_return_if (jo == NULL, NULL);
     dbg_return_if (jo->map == NULL, NULL);
-    dbg_return_if (key == NULL, NULL);
+    dbg_return_if (name == NULL, NULL);
 
-    return (u_json_obj_t *) u_hmap_easy_get(jo->map, key);
+    if ((p = jo->parent) == NULL)
+    {
+        /* If 'jo' is top level, 'name' must be fully qualified. */ 
+        return (u_json_obj_t *) u_hmap_easy_get(jo->map, name);
+    }
+
+    /* Else ('jo' != top): first try 'name' as it were fully qualified. */
+    if ((res = (u_json_obj_t *) u_hmap_easy_get(jo->map, name)))
+        return res;
+
+    /* If 'name' is relative, prefix it with the expected name space. */
+    dbg_if (u_snprintf(fqn, sizeof fqn, "%s%s", jo->fqn, name));
+
+    return (u_json_obj_t *) u_hmap_easy_get(jo->map, fqn);
 }
 
 /** \brief  Wrapper around ::u_json_get to retrieve string values from 
@@ -1185,7 +1210,7 @@ static void u_json_obj_do_freeze (u_json_obj_t *jo, size_t l, void *map)
 
     if ((p = jo->parent) == NULL)
     {
-        /* Root node is named '.' */
+        /* Root node is named '.', its name and fully qualified name match. */
         (void) u_strlcpy(jo->fqn, ".", sizeof jo->fqn);
     }
     else if (p->type == U_JSON_TYPE_OBJECT)
@@ -1212,8 +1237,12 @@ static void u_json_obj_do_freeze (u_json_obj_t *jo, size_t l, void *map)
     /* Insert node into the hmap. */
     dbg_if (u_hmap_easy_put(hmap, jo->fqn, (const void *) jo));
 
+    /* Stick the map pointer inside each visited node, so that it can
+     * be readily referenced on retrieval. */
+    jo->map = map;
+
 #ifdef U_JSON_IDX_DEBUG
-    u_con("%p => %s = %s", jo, jo->fqn, jo->val);
+    u_con("%p => %s (%s) = %s", jo, jo->fqn, U_JSON_OBJ_NAME(jo), jo->val);
 #endif
 
     return;

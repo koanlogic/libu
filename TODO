@@ -13,4 +13,6 @@
     - test
     - src
 - json per type [gs]etters
-- json indexed retrieval with name spaces
+- json array iterators
+- is zero-length key valid ? invalid zero-length would make possible to
+  decide if a given name is (or isn't) fully qualified

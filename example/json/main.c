@@ -7,8 +7,9 @@ int load (const char *fn, char **ps);
 
 int main (int ac, char *av[])
 {
-    char *s = NULL, *s2 = NULL, *val;
-    u_json_obj_t *jo = NULL;
+    char *s = NULL, *s2 = NULL;
+    const char *val;
+    u_json_obj_t *jo = NULL, *res;
 
     con_err_ifm (ac != 3, "%s <file> <key>", av[0]);
 
@@ -31,6 +32,11 @@ int main (int ac, char *av[])
 
     /* Search through the map. */
     val = u_json_get_val(jo, av[2]);
+    u_con("%s = %s", "key", val ? val : "not found");
+
+    /* Test non-fqn search. */
+    res = u_json_get(jo, "..features[2].geometry");
+    val = u_json_get_val(res, av[2]);
     u_con("%s = %s", "key", val ? val : "not found");
 
     u_json_obj_free(jo);
