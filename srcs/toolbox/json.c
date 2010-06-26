@@ -17,9 +17,14 @@ struct u_json_obj_s
 {
     u_json_type_t type;
 
-    char key[U_TOKEN_SZ];
-    char val[U_TOKEN_SZ];  /* if applicable, i.e. (!object && !array) */
+    unsigned int icur;          /* Aux stuff used when indexing on arrays. */
+    u_hmap_t *map;
 
+    char fqn[U_JSON_FQN_SZ];    /* Fully qualified name of this (sub)object. */
+    char key[U_TOKEN_SZ];       /* If applicable, i.e. !anonymous */
+    char val[U_TOKEN_SZ];       /* If applicable, i.e. (!object && !array) */
+
+    struct u_json_obj_s *parent;
     TAILQ_ENTRY(u_json_obj_s) siblings;
     TAILQ_HEAD(, u_json_obj_s) children;
 };
@@ -55,11 +60,19 @@ static int u_json_match_seq (u_lexer_t *jl, u_json_obj_t *jo, int type,
 static const char *u_json_type_str (int type);
 
 /* Objects misc stuff. */
-static void u_json_obj_do_print (u_json_obj_t *jo, size_t l);
-static void u_json_obj_do_free (u_json_obj_t *jo, size_t l);
+static void u_json_obj_do_print (u_json_obj_t *jo, size_t l, void *opaque);
+static void u_json_obj_do_free (u_json_obj_t *jo, size_t l, void *opaque);
+static void u_json_obj_do_freeze (u_json_obj_t *jo, size_t l, void *map);
 
 /* Encoder. */
 static int u_json_do_encode (u_json_obj_t *jo, u_string_t *s);
+
+/* Needed by hmap_easy* because we are storing pointer data not owned by the
+ * hmap. */
+static void nopf (void *dummy) { return; }
+
+static int u_json_obj_new_container (u_json_type_t type, const char *key, 
+        u_json_obj_t **pjo);
 
 /**
     \defgroup json JSON
@@ -89,7 +102,9 @@ int u_json_obj_new (u_json_obj_t **pjo)
     warn_err_sif ((jo = u_zalloc(sizeof *jo)) == NULL);
     TAILQ_INIT(&jo->children);
     jo->type = U_JSON_TYPE_UNKNOWN;
-    jo->key[0] = jo->val[0] = '\0';
+    jo->key[0] = jo->val[0] = jo->fqn[0] = '\0';
+    jo->parent = NULL;
+    jo->map = NULL;
 
     *pjo = jo;
 
@@ -183,6 +198,52 @@ int u_json_obj_set_key (u_json_obj_t *jo, const char *key)
     return 0;
 }
 
+/** \brief  Wrapper function around u_json_obj_set_*()'s for one-shot 
+ *          settings of leaf nodes. */
+int u_json_obj_new_leaf (u_json_type_t type, const char *key, const char *val,
+        u_json_obj_t **pjo)
+{
+    u_json_obj_t *jo = NULL;
+
+    dbg_return_if (pjo == NULL, ~0);
+
+    dbg_err_if (u_json_obj_new(&jo));
+
+    dbg_err_if (u_json_obj_set_type(jo, type));
+    dbg_err_if (u_json_obj_set_key(jo, key));
+
+    /* Values are meaningful only in case of string and number objects. */
+    switch (type)
+    {
+        case U_JSON_TYPE_NUMBER:  
+        case U_JSON_TYPE_STRING:  
+            dbg_err_if (u_json_obj_set_val(jo, val));
+        default: break;
+    }
+
+    *pjo = jo;
+
+    return 0;
+err:
+    if (jo)
+        u_json_obj_free(jo);
+    return ~0;
+}
+
+/** \brief  Wrapper function that creates an array container.
+ *          (\p key may be \c NULL). */
+int u_json_obj_new_array (const char *key, u_json_obj_t **pjo)
+{
+    return u_json_obj_new_container(U_JSON_TYPE_ARRAY, key, pjo);
+}
+
+/** \brief  Wrapper function that creates an object container 
+ *          (\p key may be \c NULL). */
+int u_json_obj_new_object (const char *key, u_json_obj_t **pjo)
+{
+    return u_json_obj_new_container(U_JSON_TYPE_OBJECT, key, pjo);
+}
+
 /**
  *  \brief  Add a child JSON object to its parent container
  *
@@ -205,6 +266,7 @@ int u_json_obj_add (u_json_obj_t *head, u_json_obj_t *jo)
 #endif  /* U_JSON_OBJ_DEBUG */
 
     TAILQ_INSERT_TAIL(&head->children, jo, siblings);
+    jo->parent = head;
 
     return 0;
 }
@@ -282,8 +344,15 @@ void u_json_obj_free (u_json_obj_t *jo)
     if (jo == NULL)
         return;
 
+    /* If there is an associated hmap free it. */
+    if (jo->map)
+    {
+        u_hmap_easy_free(jo->map);
+        jo->map = NULL;
+    }
+ 
     /* Walk the tree in post order and free each node while we traverse. */
-    u_json_obj_walk(jo, U_JSON_WALK_POSTORDER, dummy, u_json_obj_do_free);
+    u_json_obj_walk(jo, U_JSON_WALK_POSTORDER, dummy, u_json_obj_do_free, NULL);
 
     return;
 }
@@ -328,11 +397,12 @@ err:
  *  \param  strategy    one of ::U_JSON_WALK_PREORDER or ::U_JSON_WALK_POSTORDER
  *  \param  l           depth level in the JSON tree (the root is at depth 0)
  *  \param  cb          function to invoke on each traversed node
+ *  \param  cb_args     optional opaque data which will be supplied to \p cb
  *
  *  \return nothing
- */ 
+ */
 void u_json_obj_walk (u_json_obj_t *jo, int strategy, size_t l, 
-        void (*cb)(u_json_obj_t *, size_t))
+        void (*cb)(u_json_obj_t *, size_t, void *), void *cb_args)
 {
     dbg_return_if (strategy != U_JSON_WALK_PREORDER && 
             strategy != U_JSON_WALK_POSTORDER, );
@@ -341,16 +411,16 @@ void u_json_obj_walk (u_json_obj_t *jo, int strategy, size_t l,
         return;
 
     if (strategy == U_JSON_WALK_PREORDER && cb)
-        cb(jo, l);
+        cb(jo, l, cb_args);
 
     /* When recurring into the children branch, increment depth by one. */
-    u_json_obj_walk(TAILQ_FIRST(&jo->children), strategy, l + 1, cb);
+    u_json_obj_walk(TAILQ_FIRST(&jo->children), strategy, l + 1, cb, cb_args);
 
     /* Siblings are at the same depth as the current node. */
-    u_json_obj_walk(TAILQ_NEXT(jo, siblings), strategy, l, cb);
+    u_json_obj_walk(TAILQ_NEXT(jo, siblings), strategy, l, cb, cb_args);
 
     if (strategy == U_JSON_WALK_POSTORDER && cb)
-        cb(jo, l);
+        cb(jo, l, cb_args);
 
     return;
 }
@@ -369,9 +439,118 @@ void u_json_obj_print (u_json_obj_t *jo)
     dbg_return_if (jo == NULL, );
 
     /* Tree root is at '0' depth. */
-    u_json_obj_walk(jo, U_JSON_WALK_PREORDER, 0, u_json_obj_do_print);
+    u_json_obj_walk(jo, U_JSON_WALK_PREORDER, 0, u_json_obj_do_print, NULL);
 
     return;
+}
+
+/**
+ *  \brief  TODO
+ *
+ *  TODO
+ *
+ *  \param  jo  Pointer to the ::u_json_obj_t object that must be indexed
+ *
+ *  \return nothing
+ */
+int u_json_freeze (u_json_obj_t *jo)
+{
+    size_t u;   /* Unused. */
+    u_hmap_opts_t opts;
+    u_hmap_t *hmap = NULL;
+
+    dbg_return_if (jo == NULL, ~0);
+    nop_return_if (jo->map, 0);  /* If already frozen, return ok. */
+
+    /* Create the associative array. */
+    u_hmap_opts_init(&opts);
+    dbg_err_if (u_hmap_opts_set_val_type(&opts, U_HMAP_OPTS_DATATYPE_POINTER));
+    dbg_err_if (u_hmap_opts_set_val_freefunc(&opts, nopf));
+    dbg_err_if (u_hmap_easy_new(&opts, &hmap));
+
+    /* Initialize array elems' indexing. */
+    jo->icur = 0;
+
+    /* Walk the tree in pre-order and freeze each node while we traverse. */
+    u_json_obj_walk(jo, U_JSON_WALK_PREORDER, u, u_json_obj_do_freeze, hmap);
+
+    /* Attach the associative array to the top level object. */
+    jo->map = hmap, hmap = NULL;
+
+    return 0;
+err:
+    if (hmap)
+        u_hmap_easy_free(hmap);
+    return ~0;
+}
+
+/**
+ *  \brief  TODO
+ *
+ *  TODO
+ *
+ *  \param  jo  Pointer to the ::u_json_obj_t object that must be de-indexed
+ *
+ *  \return nothing
+ */
+int u_json_defrost (u_json_obj_t *jo)
+{
+    dbg_return_if (jo == NULL, ~0);
+    nop_return_if (jo->map == NULL, 0);
+
+    u_hmap_easy_free(jo->map);
+    jo->map = NULL;
+
+    return 0;
+}
+
+/**
+ *  \brief  TODO
+ *
+ *  TODO
+ *
+ *  \param  jo  Pointer to the ::u_json_obj_t object that must be de-indexed
+ *  \param  key name of the element that must be searched
+ *
+ *  \return the retrieved JSON (sub)object on success; \c NULL in case \p key 
+ *          was not found
+ */
+u_json_obj_t *u_json_get (u_json_obj_t *jo, const char *key)
+{
+    dbg_return_if (jo == NULL, NULL);
+    dbg_return_if (jo->map == NULL, NULL);
+    dbg_return_if (key == NULL, NULL);
+
+    return (u_json_obj_t *) u_hmap_easy_get(jo->map, key);
+}
+
+/** \brief  Wrapper around ::u_json_get to retrieve string values from 
+ *          terminal (i.e. non-container objects). */ 
+const char *u_json_get_val (u_json_obj_t *jo, const char *key)
+{
+    u_json_obj_t *res = u_json_get(jo, key);
+
+    if (res == NULL)
+        return NULL;
+    
+    switch (res->type)
+    {
+        case U_JSON_TYPE_STRING:
+        case U_JSON_TYPE_NUMBER:
+            return res->val;
+        case U_JSON_TYPE_TRUE:
+            return "true";
+        case U_JSON_TYPE_FALSE:
+            return "false";
+        case U_JSON_TYPE_NULL:
+            return "null";
+        case U_JSON_TYPE_OBJECT:
+        case U_JSON_TYPE_ARRAY:
+        case U_JSON_TYPE_UNKNOWN:
+            return NULL;
+    }
+
+    return NULL;
 }
 
 /**
@@ -965,9 +1144,9 @@ static const char *u_json_type_str (int type)
     return "unknown";
 }
 
-static void u_json_obj_do_free (u_json_obj_t *jo, size_t l)
+static void u_json_obj_do_free (u_json_obj_t *jo, size_t l, void *opaque)
 {
-    u_unused_args(l);
+    u_unused_args(l, opaque);
 
     if (jo)
         u_free(jo);
@@ -975,8 +1154,10 @@ static void u_json_obj_do_free (u_json_obj_t *jo, size_t l)
     return;
 }
 
-static void u_json_obj_do_print (u_json_obj_t *jo, size_t l)
+static void u_json_obj_do_print (u_json_obj_t *jo, size_t l, void *opaque)
 {
+    u_unused_args(opaque);
+
     dbg_return_if (jo == NULL, );
 
     switch (jo->type)
@@ -994,3 +1175,69 @@ static void u_json_obj_do_print (u_json_obj_t *jo, size_t l)
 
     return;
 }
+
+static void u_json_obj_do_freeze (u_json_obj_t *jo, size_t l, void *map)
+{
+    u_json_obj_t *p;
+    u_hmap_t *hmap = (u_hmap_t *) map;
+
+    u_unused_args(l);
+
+    if ((p = jo->parent) == NULL)
+    {
+        /* Root node is named '.' */
+        (void) u_strlcpy(jo->fqn, ".", sizeof jo->fqn);
+    }
+    else if (p->type == U_JSON_TYPE_OBJECT)
+    {
+        /* Nodes in object containers are named after their key. */
+        dbg_if (u_snprintf(jo->fqn, sizeof jo->fqn, "%s.%s", p->fqn, jo->key));
+    }
+    else if (p->type == U_JSON_TYPE_ARRAY)
+    {
+        /* Nodes in array containers are named after their ordinal position. */
+        dbg_if (u_snprintf(jo->fqn, sizeof jo->fqn, "%s[%u]", p->fqn, p->icur));
+
+        /* Increment the counting index in the parent array. */
+        p->icur += 1;
+
+        /* In case we have an array inside another array, initialize the 
+         * counter for later recursive invocation. */
+        if (jo->type == U_JSON_TYPE_ARRAY)
+            jo->icur = 0;
+    }
+    else
+        warn("Expecting an object, an array, or a top-level node.");
+
+    /* Insert node into the hmap. */
+    dbg_if (u_hmap_easy_put(hmap, jo->fqn, (const void *) jo));
+
+#ifdef U_JSON_IDX_DEBUG
+    u_con("%p => %s = %s", jo, jo->fqn, jo->val);
+#endif
+
+    return;
+}
+
+static int u_json_obj_new_container (u_json_type_t type, const char *key, 
+        u_json_obj_t **pjo)
+{
+    u_json_obj_t *jo = NULL;
+
+    dbg_return_if (pjo == NULL, ~0);
+
+    dbg_err_if (u_json_obj_new(&jo));
+
+    dbg_err_if (u_json_obj_set_type(jo, type));
+    /* TBT: allow for anonymous containers via NULL key's ? */
+    dbg_err_if (u_json_obj_set_key(jo, key ? key : ""));
+
+    *pjo = jo;
+
+    return 0;
+err:
+    if (jo)
+        u_json_obj_free(jo);
+    return ~0;
+}
+

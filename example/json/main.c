@@ -7,22 +7,31 @@ int load (const char *fn, char **ps);
 
 int main (int ac, char *av[])
 {
-    char *s = NULL, *s2 = NULL;
+    char *s = NULL, *s2 = NULL, *val;
     u_json_obj_t *jo = NULL;
 
-    con_err_ifm (ac != 2, "%s <file>", av[0]);
+    con_err_ifm (ac != 3, "%s <file> <key>", av[0]);
 
     con_err_if (load(av[1], &s));
 
     con_err_if (u_json_decode(s, &jo));
 
+#if 0
     /* Print out what has been parsed. */
-    //u_json_obj_print(jo);
+    u_json_obj_print(jo);
 
     /* Re-encode the broken down JSON object. */
     con_err_if (u_json_encode(jo, &s2));
     u_con("%s", s2);
     u_free(s2), s2 = NULL;
+#endif
+
+    /* Test freeze interface. */
+    con_err_if (u_json_freeze(jo));
+
+    /* Search through the map. */
+    val = u_json_get_val(jo, av[2]);
+    u_con("%s = %s", "key", val ? val : "not found");
 
     u_json_obj_free(jo);
 

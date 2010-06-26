@@ -6,3 +6,11 @@
 - man page for each module
 [wip] complete the Net module
 - a decent README file :-)
+
+
+- conditional dependency of json on hmap
+    - configure
+    - test
+    - src
+- json per type [gs]etters
+- json indexed retrieval with name spaces
