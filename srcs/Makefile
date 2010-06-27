@@ -56,6 +56,10 @@ ifndef NO_BST
     SRCS += toolbox/bst.c
 endif
 ifndef NO_JSON
+    ifdef NO_HMAP   # json needs hmap
+        $(warning adding hmap module as a dependency to json)
+        SRCS += toolbox/hmap.c
+    endif   # NO_HMAP (JSON dep)
     SRCS += toolbox/json.c
 endif
 ifdef SHLIB_NO_UNDEFINED_SYMS

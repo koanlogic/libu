@@ -59,8 +59,9 @@ int test_suite_json_register (u_test_t *t)
 
     con_err_if (u_test_case_register("Encode-Decode", test_codec, ts));
 
-    /* json depends on the lexer module */
+    /* JSON depends on the lexer and hmap modules. */
     con_err_if (u_test_suite_dep_register("Lexer", ts));
+    con_err_if (u_test_suite_dep_register("Hash Map", ts));
 
     return u_test_suite_add(ts, t);
 err:

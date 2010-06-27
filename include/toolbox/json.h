@@ -72,6 +72,9 @@ u_json_obj_t *u_json_array_get_nth (u_json_obj_t *jo, unsigned int n);
 
 const char *u_json_obj_get_val (u_json_obj_t *jo);
 
+/* Removal. */
+int u_json_obj_remove (u_json_obj_t *jo);
+
 /* Indexing (i.e. setup the fast retrieval interface). */
 int u_json_freeze (u_json_obj_t *jo);
 int u_json_defrost (u_json_obj_t *jo);

@@ -16,26 +16,30 @@
 #define U_JSON_OBJ_NAME(jo) \
         ((jo->parent != NULL) ? jo->fqn + strlen(p->fqn) : jo->fqn)
 
-/* XXX Test if a name is a fully qualified name */
-#define NAME_IS_FQN(name)   \
-    (name[0] == '.' && (name[1] == '.' || name[1] == '[' || name[1] == '\0')
+#define U_JSON_OBJ_IS_CONTAINER(jo) \
+        ((jo->type == U_JSON_TYPE_OBJECT) || (jo->type == U_JSON_TYPE_ARRAY))
 
 /* Internal representation of any JSON value. */
 struct u_json_obj_s
 {
     u_json_type_t type;
 
-    unsigned int icur, count;   /* Aux stuff used when indexing on arrays. */
-    u_hmap_t *map;              /* Alias reference to the global cache. */
-
     char fqn[U_JSON_FQN_SZ];    /* Fully qualified name of this (sub)object. */
+    char key[U_TOKEN_SZ];       /* Local name, if applicable (i.e. !anon) */
+    char val[U_TOKEN_SZ];       /* If applicable, i.e. (!OBJECT && !ARRAY) */
 
-    char key[U_TOKEN_SZ];       /* If applicable, i.e. !anonymous */
-    char val[U_TOKEN_SZ];       /* If applicable, i.e. (!object && !array) */
+    /* Parent container. */
+    struct u_json_obj_s *parent;            
 
-    struct u_json_obj_s *parent;
+    /* Nodes at the same level as this one (if any). */
     TAILQ_ENTRY(u_json_obj_s) siblings;
+
+    /* Children nodes' list when i.e. (ARRAY || OBJECT). */
     TAILQ_HEAD(u_json_obj_chld_s, u_json_obj_s) children;
+
+    /* Cacheing machinery. */
+    unsigned int icur, count;   /* Aux stuff used when indexing arrays. */
+    u_hmap_t *map;              /* Alias reference to the global cache. */
 };
 
 /* Lexer methods */
@@ -139,6 +143,7 @@ err:
 int u_json_obj_set_type (u_json_obj_t *jo, u_json_type_t type)
 {
     dbg_return_if (jo == NULL, ~0);
+    dbg_return_ifm (jo->map, ~0, "Cannot set type of a frozen object");
 
     switch (type)
     {
@@ -177,12 +182,16 @@ int u_json_obj_set_val (u_json_obj_t *jo, const char *val)
 {
     dbg_return_if (jo == NULL, ~0);
     dbg_return_if (val == NULL, ~0);
+    /* Note that frozen objects allow for value overwrite. */
 
     /* Non-critical error, just emit some debug info. */
-    dbg_if (jo->type != U_JSON_TYPE_STRING && jo->type != U_JSON_TYPE_NUMBER);
+    if (jo->type != U_JSON_TYPE_STRING && jo->type != U_JSON_TYPE_NUMBER)
+        goto end;
 
     dbg_return_if (u_strlcpy(jo->val, val, sizeof jo->val), ~0);
 
+    /* Fall through. */       
+end:
     return 0;
 }
 
@@ -202,6 +211,7 @@ int u_json_obj_set_key (u_json_obj_t *jo, const char *key)
 {
     dbg_return_if (jo == NULL, ~0);
     dbg_return_if (key == NULL, ~0);
+    dbg_return_ifm (jo->map, ~0, "Cannot set key of a frozen object");
 
     dbg_return_if (u_strlcpy(jo->key, key, sizeof jo->key), ~0);
 
@@ -222,7 +232,8 @@ int u_json_obj_new_leaf (u_json_type_t type, const char *key, const char *val,
     dbg_err_if (u_json_obj_set_type(jo, type));
     dbg_err_if (u_json_obj_set_key(jo, key));
 
-    /* Values are meaningful only in case of string and number objects. */
+    /* Values are meaningful only in case of string and number objects,
+     * "null", "true" and "false" are completely defined by the type. */
     switch (type)
     {
         case U_JSON_TYPE_NUMBER:  
@@ -268,6 +279,8 @@ int u_json_obj_new_object (const char *key, u_json_obj_t **pjo)
 int u_json_obj_add (u_json_obj_t *head, u_json_obj_t *jo)
 {
     dbg_return_if (head == NULL, ~0);
+    dbg_return_if (!U_JSON_OBJ_IS_CONTAINER(head), ~0);
+    dbg_return_ifm (head->map, ~0, "Cannot add new child to a frozen object");
     dbg_return_if (jo == NULL, ~0);
 
 #ifdef U_JSON_OBJ_DEBUG
@@ -459,9 +472,14 @@ void u_json_obj_print (u_json_obj_t *jo)
 }
 
 /**
- *  \brief  TODO
+ *  \brief  Index JSON object contents.
  *
- *  TODO
+ *  Index all contents of the supplied ::u_json_obj_t top-level object \p jo.
+ *  After data has been indexed, no more key/type modifications are possible
+ *  on this object; values instead can still be changed.  Also, no child node
+ *  removal is possible after the object has been frozen.  If \p jo needs to
+ *  be changed in aforementioned ways, it must be explicitly 
+ *  ::u_json_defrost'ed.
  *
  *  \param  jo  Pointer to the ::u_json_obj_t object that must be indexed
  *
@@ -475,9 +493,7 @@ int u_json_freeze (u_json_obj_t *jo)
 
     dbg_return_if (jo == NULL, ~0);
     nop_return_if (jo->map, 0);     /* If already frozen, return ok. */
-#if CHECK_THIS
     dbg_return_if (jo->parent, ~0); /* Freeze can be done on top-objs only. */
-#endif
 
     /* Create the associative array. */
     u_hmap_opts_init(&opts);
@@ -502,13 +518,14 @@ err:
 }
 
 /**
- *  \brief  TODO
+ *  \brief  Defrost a previously frozen JSON object.
  *
- *  TODO
+ *  Defrost the previously frozen ::u_json_obj_t object \p jo.
  *
  *  \param  jo  Pointer to the ::u_json_obj_t object that must be de-indexed
  *
- *  \return nothing
+ *  \retval  0  on success
+ *  \retval ~0  on failure
  */
 int u_json_defrost (u_json_obj_t *jo)
 {
@@ -522,12 +539,13 @@ int u_json_defrost (u_json_obj_t *jo)
 }
 
 /**
- *  \brief  TODO
+ *  \brief  Retrieve JSON node by its (fully qualified) cache name.
  *
- *  TODO
+ *  Possibly retrieve a JSON node by its (fully qualified, or relative) cache 
+ *  \p name.
  *
- *  \param  jo  Pointer to the ::u_json_obj_t object that must be de-indexed
- *  \param  key name of the element that must be searched
+ *  \param  jo      Pointer to the ::u_json_obj_t object that must be searched
+ *  \param  name    name of the element that must be searched
  *
  *  \return the retrieved JSON (sub)object on success; \c NULL in case \p key 
  *          was not found
@@ -612,7 +630,7 @@ u_json_obj_t *u_json_array_get_nth (u_json_obj_t *jo, unsigned int n)
     return NULL;
 }
 
-/** \brief  ... */
+/** \brief  Get the value associated with the non-container object \p jo. */
 const char *u_json_obj_get_val (u_json_obj_t *jo)
 {
     dbg_return_if (jo == NULL, NULL);
@@ -637,12 +655,46 @@ const char *u_json_obj_get_val (u_json_obj_t *jo)
 }
 
 /** \brief  Wrapper around ::u_json_get to retrieve string values from 
- *          terminal (i.e. non-container objects). */ 
-const char *u_json_get_val (u_json_obj_t *jo, const char *key)
+ *          terminal (i.e. non-container) objects. */ 
+const char *u_json_get_val (u_json_obj_t *jo, const char *name)
 {
-    u_json_obj_t *res = u_json_get(jo, key);
+    u_json_obj_t *res = u_json_get(jo, name);
 
     return u_json_obj_get_val(res);
+}
+
+/**
+ *  \brief  Remove an object from its JSON container.
+ *
+ *  Remove an object from its JSON container.  This interface falls back to
+ *  ::u_json_obj_free in case the supplied \p jo is the root node.
+ *
+ *  \param  jo  Pointer to the ::u_json_obj_t object that must be removed
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on failure
+ */
+int u_json_obj_remove (u_json_obj_t *jo)
+{
+    u_json_obj_t *p;
+
+    dbg_return_if (jo == NULL, ~0);
+    dbg_return_ifm (jo->map, ~0, "Cannot remove (from) a frozen object");
+
+    if ((p = jo->parent))
+    {            
+        /* Fix counters when parent is an array. */
+        if (p->type == U_JSON_TYPE_ARRAY)
+            p->count -= 1;
+
+        /* Evict from the parent container. */
+        TAILQ_REMOVE(&p->children, jo, siblings);
+    }
+
+    /* Give back the resources. */
+    u_json_obj_free(jo);
+
+    return 0;
 }
 
 /**
