@@ -20,7 +20,7 @@
         ((jo->type == U_JSON_TYPE_OBJECT) || (jo->type == U_JSON_TYPE_ARRAY))
 
 /* Internal representation of any JSON value. */
-struct u_json_obj_s
+struct u_json_s
 {
     u_json_type_t type;
 
@@ -29,13 +29,13 @@ struct u_json_obj_s
     char val[U_TOKEN_SZ];       /* If applicable, i.e. (!OBJECT && !ARRAY) */
 
     /* Parent container. */
-    struct u_json_obj_s *parent;            
+    struct u_json_s *parent;            
 
     /* Nodes at the same level as this one (if any). */
-    TAILQ_ENTRY(u_json_obj_s) siblings;
+    TAILQ_ENTRY(u_json_s) siblings;
 
     /* Children nodes' list when i.e. (ARRAY || OBJECT). */
-    TAILQ_HEAD(u_json_obj_chld_s, u_json_obj_s) children;
+    TAILQ_HEAD(u_json_chld_s, u_json_s) children;
 
     /* Cacheing machinery. */
     unsigned int icur, count;   /* Aux stuff used when indexing arrays. */
@@ -43,9 +43,9 @@ struct u_json_obj_s
 };
 
 /* Lexer methods */
-static int u_json_match_value (u_lexer_t *jl, u_json_obj_t *jo);
+static int u_json_match_value (u_lexer_t *jl, u_json_t *jo);
 static int u_json_match_number_first (u_lexer_t *jl);
-static int u_json_match_number (u_lexer_t *jl, u_json_obj_t *jo);
+static int u_json_match_number (u_lexer_t *jl, u_json_t *jo);
 static int u_json_match_int (u_lexer_t *jl);
 static int u_json_match_frac_first (char c);
 static int u_json_match_frac (u_lexer_t *jl);
@@ -53,39 +53,41 @@ static int u_json_match_exp_first (char c);
 static int u_json_match_exp (u_lexer_t *jl);
 static int u_json_match_true_first (u_lexer_t *jl);
 static int u_json_match_false_first (u_lexer_t *jl);
-static int u_json_match_true (u_lexer_t *jl, u_json_obj_t *jo);
-static int u_json_match_false (u_lexer_t *jl, u_json_obj_t *jo);
+static int u_json_match_true (u_lexer_t *jl, u_json_t *jo);
+static int u_json_match_false (u_lexer_t *jl, u_json_t *jo);
 static int u_json_match_null_first (u_lexer_t *jl);
-static int u_json_match_null (u_lexer_t *jl, u_json_obj_t *jo);
-static int u_json_match_string (u_lexer_t *jl, u_json_obj_t *jo);
+static int u_json_match_null (u_lexer_t *jl, u_json_t *jo);
+static int u_json_match_string (u_lexer_t *jl, u_json_t *jo);
 static int u_json_match_string_first (u_lexer_t *jl);
 static int u_json_match_escaped_unicode (u_lexer_t *jl);
-static int u_json_match_object (u_lexer_t *jl, u_json_obj_t *jo);
+static int u_json_match_object (u_lexer_t *jl, u_json_t *jo);
 static int u_json_match_object_first (u_lexer_t *jl);
-static int u_json_match_array (u_lexer_t *jl, u_json_obj_t *jo);
+static int u_json_match_array (u_lexer_t *jl, u_json_t *jo);
 static int u_json_match_array_first (u_lexer_t *jl);
-static int u_json_match_pair (u_lexer_t *jl, u_json_obj_t *jo);
+static int u_json_match_pair (u_lexer_t *jl, u_json_t *jo);
 static int u_json_match_pair_first (u_lexer_t *jl);
 
 /* Lexer misc stuff. */
-static int u_json_match_seq (u_lexer_t *jl, u_json_obj_t *jo, int type, 
+static int u_json_match_seq (u_lexer_t *jl, u_json_t *jo, int type, 
         char first, const char *rem, size_t rem_sz);
 static const char *u_json_type_str (int type);
 
 /* Objects misc stuff. */
-static void u_json_obj_do_print (u_json_obj_t *jo, size_t l, void *opaque);
-static void u_json_obj_do_free (u_json_obj_t *jo, size_t l, void *opaque);
-static void u_json_obj_do_freeze (u_json_obj_t *jo, size_t l, void *map);
+static void u_json_do_print (u_json_t *jo, size_t l, void *opaque);
+static void u_json_do_free (u_json_t *jo, size_t l, void *opaque);
+static void u_json_do_index (u_json_t *jo, size_t l, void *map);
 
 /* Encoder. */
-static int u_json_do_encode (u_json_obj_t *jo, u_string_t *s);
+static int u_json_do_encode (u_json_t *jo, u_string_t *s);
 
 /* Needed by hmap_easy* because we are storing pointer data not owned by the
  * hmap. */
 static void nopf (void *dummy) { return; }
 
-static int u_json_obj_new_container (u_json_type_t type, const char *key, 
-        u_json_obj_t **pjo);
+static int u_json_new_container (u_json_type_t type, const char *key, 
+        u_json_t **pjo);
+static int u_json_new_atom (u_json_type_t type, const char *key, 
+        const char *val, u_json_t **pjo);
 
 /**
     \defgroup json JSON
@@ -101,14 +103,14 @@ static int u_json_obj_new_container (u_json_type_t type, const char *key,
  *  Create a new and empty JSON object container and return its handler as
  *  the result argument \p *pjo
  *
- *  \param  pjo Pointer to the ::u_json_obj_t that will be returned
+ *  \param  pjo Pointer to the ::u_json_t that will be returned
  *
  *  \retval ~0  on failure
  *  \retval  0  on success
  */
-int u_json_obj_new (u_json_obj_t **pjo)
+int u_json_new (u_json_t **pjo)
 {
-    u_json_obj_t *jo = NULL;
+    u_json_t *jo = NULL;
 
     dbg_return_if (pjo == NULL, ~0);
 
@@ -134,16 +136,16 @@ err:
  *
  *  Set the type of the supplied JSON object \p jo to \p type.
  *
- *  \param  jo      Pointer to a ::u_json_obj_t object
+ *  \param  jo      Pointer to a ::u_json_t object
  *  \param  type    One of the available ::u_json_type_t types
  *
  *  \retval ~0  on failure
  *  \retval  0  on success
  */
-int u_json_obj_set_type (u_json_obj_t *jo, u_json_type_t type)
+int u_json_set_type (u_json_t *jo, u_json_type_t type)
 {
     dbg_return_if (jo == NULL, ~0);
-    dbg_return_ifm (jo->map, ~0, "Cannot set type of a frozen object");
+    dbg_return_ifm (jo->map, ~0, "Cannot set type of a cached object");
 
     switch (type)
     {
@@ -172,17 +174,17 @@ int u_json_obj_set_type (u_json_obj_t *jo, u_json_type_t type)
  *  \p val.  This operation is meaningful only in case the underlying object
  *  is a number or a string.
  *
- *  \param  jo  Pointer to a ::u_json_obj_t object
+ *  \param  jo  Pointer to a ::u_json_t object
  *  \param  val Pointer to the (non-NULL) value string
  *
  *  \retval ~0  on failure
  *  \retval  0  on success
  */
-int u_json_obj_set_val (u_json_obj_t *jo, const char *val)
+int u_json_set_val (u_json_t *jo, const char *val)
 {
     dbg_return_if (jo == NULL, ~0);
     dbg_return_if (val == NULL, ~0);
-    /* Note that frozen objects allow for value overwrite. */
+    /* Note that cached objects allow for value overwrite. */
 
     /* Non-critical error, just emit some debug info. */
     if (jo->type != U_JSON_TYPE_STRING && jo->type != U_JSON_TYPE_NUMBER)
@@ -201,68 +203,36 @@ end:
  *  Set the key of the JSON object \p jo to the string value pointed by
  *  \p key.
  *
- *  \param  jo  Pointer to a ::u_json_obj_t object
+ *  \param  jo  Pointer to a ::u_json_t object
  *  \param  key Pointer to the (non-NULL) key string
  *
  *  \retval ~0  on failure
  *  \retval  0  on success
  */
-int u_json_obj_set_key (u_json_obj_t *jo, const char *key)
+int u_json_set_key (u_json_t *jo, const char *key)
 {
     dbg_return_if (jo == NULL, ~0);
     dbg_return_if (key == NULL, ~0);
-    dbg_return_ifm (jo->map, ~0, "Cannot set key of a frozen object");
+    dbg_return_ifm (jo->map, ~0, "Cannot set key of a cached object");
 
     dbg_return_if (u_strlcpy(jo->key, key, sizeof jo->key), ~0);
 
     return 0;
 }
 
-/** \brief  Wrapper function around u_json_obj_set_*()'s for one-shot 
- *          settings of leaf nodes. */
-int u_json_obj_new_leaf (u_json_type_t type, const char *key, const char *val,
-        u_json_obj_t **pjo)
-{
-    u_json_obj_t *jo = NULL;
-
-    dbg_return_if (pjo == NULL, ~0);
-
-    dbg_err_if (u_json_obj_new(&jo));
-
-    dbg_err_if (u_json_obj_set_type(jo, type));
-    dbg_err_if (u_json_obj_set_key(jo, key));
-
-    /* Values are meaningful only in case of string and number objects,
-     * "null", "true" and "false" are completely defined by the type. */
-    switch (type)
-    {
-        case U_JSON_TYPE_NUMBER:  
-        case U_JSON_TYPE_STRING:  
-            dbg_err_if (u_json_obj_set_val(jo, val));
-        default: break;
-    }
-
-    *pjo = jo;
-
-    return 0;
-err:
-    if (jo)
-        u_json_obj_free(jo);
-    return ~0;
-}
 
 /** \brief  Wrapper function that creates an array container.
  *          (\p key may be \c NULL). */
-int u_json_obj_new_array (const char *key, u_json_obj_t **pjo)
+int u_json_new_array (const char *key, u_json_t **pjo)
 {
-    return u_json_obj_new_container(U_JSON_TYPE_ARRAY, key, pjo);
+    return u_json_new_container(U_JSON_TYPE_ARRAY, key, pjo);
 }
 
 /** \brief  Wrapper function that creates an object container 
  *          (\p key may be \c NULL). */
-int u_json_obj_new_object (const char *key, u_json_obj_t **pjo)
+int u_json_new_object (const char *key, u_json_t **pjo)
 {
-    return u_json_obj_new_container(U_JSON_TYPE_OBJECT, key, pjo);
+    return u_json_new_container(U_JSON_TYPE_OBJECT, key, pjo);
 }
 
 /**
@@ -276,11 +246,11 @@ int u_json_obj_new_object (const char *key, u_json_obj_t **pjo)
  *  \retval ~0  on failure
  *  \retval  0  on success
  */
-int u_json_obj_add (u_json_obj_t *head, u_json_obj_t *jo)
+int u_json_add (u_json_t *head, u_json_t *jo)
 {
     dbg_return_if (head == NULL, ~0);
     dbg_return_if (!U_JSON_OBJ_IS_CONTAINER(head), ~0);
-    dbg_return_ifm (head->map, ~0, "Cannot add new child to a frozen object");
+    dbg_return_ifm (head->map, ~0, "Cannot add new child to a cached object");
     dbg_return_if (jo == NULL, ~0);
 
 #ifdef U_JSON_OBJ_DEBUG
@@ -301,8 +271,9 @@ int u_json_obj_add (u_json_obj_t *head, u_json_obj_t *jo)
 /**
  *  \brief  Break down a JSON string into pieces
  *
- *  Parse and validate the supplied JSON string \p json and, in case of success,
- *  return its internal representation into the result argument \p *pjo.
+ *  Parse and (implicitly) validate the supplied JSON string \p json. 
+ *  In case of success, its internal representation is returned into the result 
+ *  argument \p *pjo.
  *
  *  \param  json    A NUL-terminated string containing some serialized JSON
  *  \param  pjo     Result argument which will point to the internal 
@@ -311,9 +282,9 @@ int u_json_obj_add (u_json_obj_t *head, u_json_obj_t *jo)
  *  \retval ~0  on failure
  *  \retval  0  on success
  */
-int u_json_decode (const char *json, u_json_obj_t **pjo)
+int u_json_decode (const char *json, u_json_t **pjo)
 {
-    u_json_obj_t *jo = NULL;
+    u_json_t *jo = NULL;
     u_lexer_t *jl = NULL;
 
     dbg_return_if (json == NULL, ~0);
@@ -324,7 +295,7 @@ int u_json_decode (const char *json, u_json_obj_t **pjo)
     warn_err_if (u_lexer_new(json, &jl));
 
     /* Create top level json object. */
-    warn_err_if (u_json_obj_new(&jo));
+    warn_err_if (u_json_new(&jo));
 
     /* Consume any trailing white space before starting actual parsing. */
     if (u_lexer_eat_ws(jl) == -1)
@@ -350,8 +321,28 @@ int u_json_decode (const char *json, u_json_obj_t **pjo)
 
     return 0;
 err:
-    u_json_obj_free(jo);
+    u_json_free(jo);
     u_lexer_free(jl);
+    return ~0;
+}
+
+/**
+ *  \brief  Validate the supplied JSON string.
+ *
+ *  Validate the supplied JSON string \p json.  In case \p json contains 
+ *  invalid syntax, the parser/lexer error message is returned into \p status.
+ *
+ *  \param  json    A NUL-terminated string containing some serialized JSON
+ *  \param  status  In case of error, this result argument will contain an
+ *                  explanation message from the parser/lexer.
+ *
+ *  \retval ~0  on failure
+ *  \retval  0  on success
+ */
+int u_json_validate (const char *json, char status[U_LEXER_ERR_SZ])
+{
+    u_unused_args(json, status);
+    u_info("TODO");
     return ~0;
 }
 
@@ -360,11 +351,11 @@ err:
  *
  *  Dispose any resource allocated to the supplied JSON object \p jo
  *
- *  \param  jo  Pointer to the ::u_json_obj_t object that must be free'd
+ *  \param  jo  Pointer to the ::u_json_t object that must be free'd
  *
  *  \return nothing
  */
-void u_json_obj_free (u_json_obj_t *jo)
+void u_json_free (u_json_t *jo)
 {
     size_t dummy = 0;
 
@@ -379,7 +370,7 @@ void u_json_obj_free (u_json_obj_t *jo)
     }
  
     /* Walk the tree in post order and free each node while we traverse. */
-    u_json_obj_walk(jo, U_JSON_WALK_POSTORDER, dummy, u_json_obj_do_free, NULL);
+    u_json_walk(jo, U_JSON_WALK_POSTORDER, dummy, u_json_do_free, NULL);
 
     return;
 }
@@ -390,13 +381,13 @@ void u_json_obj_free (u_json_obj_t *jo)
  *  Encode the supplied JSON object \p jo to the result string pointed by 
  *  \p *ps
  *
- *  \param  jo  Pointer to the ::u_json_obj_t object that must be encoded
+ *  \param  jo  Pointer to the ::u_json_t object that must be encoded
  *  \param  ps  serialized JSON text corresponding to \p jo
  *
  *  \retval ~0  on failure
  *  \retval  0  on success
  */
-int u_json_encode (u_json_obj_t *jo, char **ps)
+int u_json_encode (u_json_t *jo, char **ps)
 {
     u_string_t *s = NULL;
 
@@ -420,7 +411,7 @@ err:
  *  Traverse the supplied JSON object \p jo in pre/post-order, depending on
  *  \p strategy, invoking the callback function \p cb on each node.
  *
- *  \param  jo          Pointer to ::u_json_obj_t object to traverse
+ *  \param  jo          Pointer to ::u_json_t object to traverse
  *  \param  strategy    one of ::U_JSON_WALK_PREORDER or ::U_JSON_WALK_POSTORDER
  *  \param  l           depth level in the JSON tree (the root is at depth 0)
  *  \param  cb          function to invoke on each traversed node
@@ -428,8 +419,8 @@ err:
  *
  *  \return nothing
  */
-void u_json_obj_walk (u_json_obj_t *jo, int strategy, size_t l, 
-        void (*cb)(u_json_obj_t *, size_t, void *), void *cb_args)
+void u_json_walk (u_json_t *jo, int strategy, size_t l, 
+        void (*cb)(u_json_t *, size_t, void *), void *cb_args)
 {
     dbg_return_if (strategy != U_JSON_WALK_PREORDER && 
             strategy != U_JSON_WALK_POSTORDER, );
@@ -441,10 +432,10 @@ void u_json_obj_walk (u_json_obj_t *jo, int strategy, size_t l,
         cb(jo, l, cb_args);
 
     /* When recurring into the children branch, increment depth by one. */
-    u_json_obj_walk(TAILQ_FIRST(&jo->children), strategy, l + 1, cb, cb_args);
+    u_json_walk(TAILQ_FIRST(&jo->children), strategy, l + 1, cb, cb_args);
 
     /* Siblings are at the same depth as the current node. */
-    u_json_obj_walk(TAILQ_NEXT(jo, siblings), strategy, l, cb, cb_args);
+    u_json_walk(TAILQ_NEXT(jo, siblings), strategy, l, cb, cb_args);
 
     if (strategy == U_JSON_WALK_POSTORDER && cb)
         cb(jo, l, cb_args);
@@ -457,16 +448,16 @@ void u_json_obj_walk (u_json_obj_t *jo, int strategy, size_t l,
  *
  *  Print to stderr the supplied JSON object \p jo
  *
- *  \param  jo  Pointer to the ::u_json_obj_t object that must be printed
+ *  \param  jo  Pointer to the ::u_json_t object that must be printed
  *
  *  \return nothing
  */
-void u_json_obj_print (u_json_obj_t *jo)
+void u_json_print (u_json_t *jo)
 {
     dbg_return_if (jo == NULL, );
 
     /* Tree root is at '0' depth. */
-    u_json_obj_walk(jo, U_JSON_WALK_PREORDER, 0, u_json_obj_do_print, NULL);
+    u_json_walk(jo, U_JSON_WALK_PREORDER, 0, u_json_do_print, NULL);
 
     return;
 }
@@ -474,26 +465,26 @@ void u_json_obj_print (u_json_obj_t *jo)
 /**
  *  \brief  Index JSON object contents.
  *
- *  Index all contents of the supplied ::u_json_obj_t top-level object \p jo.
+ *  Index all contents of the supplied ::u_json_t top-level object \p jo.
  *  After data has been indexed, no more key/type modifications are possible
- *  on this object; values instead can still be changed.  Also, no child node
- *  removal is possible after the object has been frozen.  If \p jo needs to
- *  be changed in aforementioned ways, it must be explicitly 
- *  ::u_json_defrost'ed.
+ *  on this object; instead, values of leaf nodes can still be changed.  
+ *  Also, either child node addition nor removal is possible after the object 
+ *  has been cached.  If \p jo needs to be changed in aforementioned ways 
+ *  (type, key, addition or removal), it must be explicitly ::u_json_unindex'ed.
  *
- *  \param  jo  Pointer to the ::u_json_obj_t object that must be indexed
+ *  \param  jo  Pointer to the ::u_json_t object that must be indexed
  *
  *  \return nothing
  */
-int u_json_freeze (u_json_obj_t *jo)
+int u_json_index (u_json_t *jo)
 {
     size_t u;   /* Unused. */
     u_hmap_opts_t opts;
     u_hmap_t *hmap = NULL;
 
     dbg_return_if (jo == NULL, ~0);
-    nop_return_if (jo->map, 0);     /* If already frozen, return ok. */
-    dbg_return_if (jo->parent, ~0); /* Freeze can be done on top-objs only. */
+    nop_return_if (jo->map, 0);     /* If already cached, return ok. */
+    dbg_return_if (jo->parent, ~0); /* Cache can be created on top-objs only. */
 
     /* Create the associative array. */
     u_hmap_opts_init(&opts);
@@ -504,8 +495,8 @@ int u_json_freeze (u_json_obj_t *jo)
     /* Initialize array elems' indexing. */
     jo->icur = 0;
 
-    /* Walk the tree in pre-order and freeze each node while we traverse. */
-    u_json_obj_walk(jo, U_JSON_WALK_PREORDER, u, u_json_obj_do_freeze, hmap);
+    /* Walk the tree in pre-order and cache each node while we traverse. */
+    u_json_walk(jo, U_JSON_WALK_PREORDER, u, u_json_do_index, hmap);
 
     /* Attach the associative array to the top level object. */
     jo->map = hmap, hmap = NULL;
@@ -518,16 +509,17 @@ err:
 }
 
 /**
- *  \brief  Defrost a previously frozen JSON object.
+ *  \brief  Remove cache from JSON object.
  *
- *  Defrost the previously frozen ::u_json_obj_t object \p jo.
+ *  Remove the whole cacheing machinery from the previously ::u_json_index'd 
+ *  ::u_json_t object \p jo.
  *
- *  \param  jo  Pointer to the ::u_json_obj_t object that must be de-indexed
+ *  \param  jo  Pointer to the ::u_json_t object that must be de-indexed
  *
  *  \retval  0  on success
  *  \retval ~0  on failure
  */
-int u_json_defrost (u_json_obj_t *jo)
+int u_json_unindex (u_json_t *jo)
 {
     dbg_return_if (jo == NULL, ~0);
     nop_return_if (jo->map == NULL, 0);
@@ -539,20 +531,20 @@ int u_json_defrost (u_json_obj_t *jo)
 }
 
 /**
- *  \brief  Retrieve JSON node by its (fully qualified) cache name.
+ *  \brief  Retrieve JSON node by its cache name.
  *
  *  Possibly retrieve a JSON node by its (fully qualified, or relative) cache 
  *  \p name.
  *
- *  \param  jo      Pointer to the ::u_json_obj_t object that must be searched
+ *  \param  jo      Pointer to the ::u_json_t object that must be searched
  *  \param  name    name of the element that must be searched
  *
  *  \return the retrieved JSON (sub)object on success; \c NULL in case \p key 
  *          was not found
  */
-u_json_obj_t *u_json_get (u_json_obj_t *jo, const char *name)
+u_json_t *u_json_cache_get (u_json_t *jo, const char *name)
 {
-    u_json_obj_t *res, *p;
+    u_json_t *res, *p;
     char fqn[U_JSON_FQN_SZ];
 
     dbg_return_if (jo == NULL, NULL);
@@ -562,21 +554,66 @@ u_json_obj_t *u_json_get (u_json_obj_t *jo, const char *name)
     if ((p = jo->parent) == NULL)
     {
         /* If 'jo' is top level, 'name' must be fully qualified. */ 
-        return (u_json_obj_t *) u_hmap_easy_get(jo->map, name);
+        return (u_json_t *) u_hmap_easy_get(jo->map, name);
     }
 
     /* Else ('jo' != top): first try 'name' as it were fully qualified. */
-    if ((res = (u_json_obj_t *) u_hmap_easy_get(jo->map, name)))
+    if ((res = (u_json_t *) u_hmap_easy_get(jo->map, name)))
         return res;
 
-    /* If 'name' is relative, prefix it with the expected name space. */
+    /* If 'name' is relative, we need to prefix it with the parent name 
+     * space. */
     dbg_if (u_snprintf(fqn, sizeof fqn, "%s%s", jo->fqn, name));
 
-    return (u_json_obj_t *) u_hmap_easy_get(jo->map, fqn);
+    return (u_json_t *) u_hmap_easy_get(jo->map, fqn);
+}
+
+/**
+ *  \brief  Set JSON node's type and value by its cache name.
+ *
+ *  Set type and value of the supplied JSON (leaf) node by its (fully qualified
+ *  or relative) cache \p name.  If \p type is ::U_JSON_TYPE_UNKNOWN the
+ *  underlying type will be left untouched.
+ *
+ *  \param  jo      Pointer to an ::u_json_t object
+ *  \param  name    name of the element that must be set
+ *  \param  type    new type (or ::U_JSON_TYPE_UNKNOWN if no type change)
+ *  \param  val     new value.  MUST be non-NULL in case we are setting a 
+ *                  string a or number.
+ *
+ *  \retval  0  on success
+ *  \retval ~0  on failure
+ */
+int u_json_cache_set_tv (u_json_t *jo, const char *name, 
+        u_json_type_t type, const char *val)
+{
+    u_json_t *res;
+
+    dbg_return_if (U_JSON_OBJ_IS_CONTAINER(jo), ~0);
+    dbg_return_if (type == U_JSON_TYPE_OBJECT || type == U_JSON_TYPE_ARRAY, ~0);
+    /* 'jo' and 'name' will be checked by u_json_cache_get(); 
+     * 'val' consistency is checked after type has been set. */
+
+    /* Retrieve the node. */
+    dbg_err_if ((res = u_json_cache_get(jo, name)) == NULL);
+
+    /* First set type (in case !unknown) so that we know how to check the
+     * subsequent value setting. */
+    if (type != U_JSON_TYPE_UNKNOWN)
+        res->type = type;
+
+    /* Set value.  The caller must have supplied some non-NULL 'val' in case 
+     * the final underlying type is a string or a number. */
+    if (res->type == U_JSON_TYPE_STRING || res->type == U_JSON_TYPE_NUMBER)
+        dbg_err_if (val == NULL || u_strlcpy(res->val, val, sizeof res->val));
+
+    return 0;
+err:
+    return ~0;
 }
 
 /** \brief  Return the number of elements in array \p jo, or \c 0 on error. */
-unsigned int u_json_array_count (u_json_obj_t *jo)
+unsigned int u_json_array_count (u_json_t *jo)
 {
     dbg_return_if (jo == NULL, 0);
     dbg_return_if (jo->type != U_JSON_TYPE_ARRAY, 0);
@@ -585,9 +622,9 @@ unsigned int u_json_array_count (u_json_obj_t *jo)
 }
 
 /** \brief  Get n-th element from \p jo array.  */
-u_json_obj_t *u_json_array_get_nth (u_json_obj_t *jo, unsigned int n)
+u_json_t *u_json_array_get_nth (u_json_t *jo, unsigned int n)
 {
-    u_json_obj_t *elem;
+    u_json_t *elem;
 
     dbg_return_if (jo == NULL, NULL);
     dbg_return_if (jo->type != U_JSON_TYPE_ARRAY, NULL);
@@ -598,7 +635,7 @@ u_json_obj_t *u_json_array_get_nth (u_json_obj_t *jo, unsigned int n)
     {
         char elem_fqn[U_JSON_FQN_SZ] = { '\0' };
         dbg_if (u_snprintf(elem_fqn, sizeof elem_fqn, "%s[%u]", jo->fqn, n));
-        return u_json_get(jo, elem_fqn);
+        return u_json_cache_get(jo, elem_fqn);
     }
     
     /* Too bad if we don't have cache in place: we have to go through the 
@@ -609,7 +646,7 @@ u_json_obj_t *u_json_array_get_nth (u_json_obj_t *jo, unsigned int n)
     {
         unsigned int r = jo->count - (n + 1);
 
-        TAILQ_FOREACH_REVERSE (elem, &jo->children, u_json_obj_chld_s, siblings)
+        TAILQ_FOREACH_REVERSE (elem, &jo->children, u_json_chld_s, siblings)
         {
             if (r == 0)
                 return elem;
@@ -631,7 +668,7 @@ u_json_obj_t *u_json_array_get_nth (u_json_obj_t *jo, unsigned int n)
 }
 
 /** \brief  Get the value associated with the non-container object \p jo. */
-const char *u_json_obj_get_val (u_json_obj_t *jo)
+const char *u_json_get_val (u_json_t *jo)
 {
     dbg_return_if (jo == NULL, NULL);
 
@@ -654,32 +691,32 @@ const char *u_json_obj_get_val (u_json_obj_t *jo)
     }
 }
 
-/** \brief  Wrapper around ::u_json_get to retrieve string values from 
- *          terminal (i.e. non-container) objects. */ 
-const char *u_json_get_val (u_json_obj_t *jo, const char *name)
+/** \brief  Wrapper around ::u_json_cache_get to retrieve string values from 
+ *          terminal (i.e. non-container) objects. */
+const char *u_json_cache_get_val (u_json_t *jo, const char *name)
 {
-    u_json_obj_t *res = u_json_get(jo, name);
+    u_json_t *res = u_json_cache_get(jo, name);
 
-    return u_json_obj_get_val(res);
+    return u_json_get_val(res);
 }
 
 /**
  *  \brief  Remove an object from its JSON container.
  *
  *  Remove an object from its JSON container.  This interface falls back to
- *  ::u_json_obj_free in case the supplied \p jo is the root node.
+ *  ::u_json_free in case the supplied \p jo is the root node.
  *
- *  \param  jo  Pointer to the ::u_json_obj_t object that must be removed
+ *  \param  jo  Pointer to the ::u_json_t object that must be removed
  *
  *  \retval  0  on success
  *  \retval ~0  on failure
  */
-int u_json_obj_remove (u_json_obj_t *jo)
+int u_json_remove (u_json_t *jo)
 {
-    u_json_obj_t *p;
+    u_json_t *p;
 
     dbg_return_if (jo == NULL, ~0);
-    dbg_return_ifm (jo->map, ~0, "Cannot remove (from) a frozen object");
+    dbg_return_ifm (jo->map, ~0, "Cannot remove (from) a cached object");
 
     if ((p = jo->parent))
     {            
@@ -692,16 +729,46 @@ int u_json_obj_remove (u_json_obj_t *jo)
     }
 
     /* Give back the resources. */
-    u_json_obj_free(jo);
+    u_json_free(jo);
 
     return 0;
+}
+
+/** \brief  ... */
+int u_json_new_string (const char *key, const char *val, u_json_t **pjo)
+{
+    return u_json_new_atom(U_JSON_TYPE_STRING, key, val, pjo);
+}
+
+/** \brief  ... */
+int u_json_new_number (const char *key, double val, u_json_t **pjo)
+{
+    char sval[U_TOKEN_SZ];
+
+    dbg_return_if (u_snprintf(sval, sizeof sval, "%.17g", val), ~0);
+    u_con("%s", sval);
+
+    return u_json_new_atom(U_JSON_TYPE_NUMBER, key, sval, pjo);
+}
+
+/** \brief  ... */
+int u_json_new_null (const char *key, u_json_t **pjo)
+{
+    return u_json_new_atom(U_JSON_TYPE_NULL, key, NULL, pjo);
+}
+
+/** \brief  ... */
+int u_json_new_bool (const char *key, char val, u_json_t **pjo)
+{
+    return u_json_new_atom(val ? U_JSON_TYPE_TRUE : U_JSON_TYPE_FALSE, 
+            key, NULL, pjo);
 }
 
 /**
  *  \}
  */ 
 
-static int u_json_do_encode (u_json_obj_t *jo, u_string_t *s)
+static int u_json_do_encode (u_json_t *jo, u_string_t *s)
 {
     if (jo == NULL)
         return 0;
@@ -766,7 +833,7 @@ err:
     return ~0;
 }
 
-static int u_json_match_value (u_lexer_t *jl, u_json_obj_t *jo)
+static int u_json_match_value (u_lexer_t *jl, u_json_t *jo)
 {
     dbg_return_if (jl == NULL, ~0);
     dbg_return_if (jo == NULL, ~0);
@@ -847,7 +914,7 @@ static int u_json_match_string_first (u_lexer_t *jl)
 }
 
 /* number ::= INT[FRAC][EXP] */
-static int u_json_match_number (u_lexer_t *jl, u_json_obj_t *jo)
+static int u_json_match_number (u_lexer_t *jl, u_json_t *jo)
 {
     char match[U_TOKEN_SZ];
 
@@ -871,8 +938,8 @@ static int u_json_match_number (u_lexer_t *jl, u_json_obj_t *jo)
     match[strlen(match) - 1] = '\0';
 
     /* Push the matched number into the supplied json object. */
-    warn_err_if (u_json_obj_set_type(jo, U_JSON_TYPE_NUMBER));
-    warn_err_if (u_json_obj_set_val(jo, match));
+    warn_err_if (u_json_set_type(jo, U_JSON_TYPE_NUMBER));
+    warn_err_if (u_json_set_val(jo, match));
 
 #ifdef U_JSON_LEX_DEBUG
     u_con("matched number: %s", u_lexer_get_match(jl, match));
@@ -971,7 +1038,7 @@ err:
     return ~0;
 }
 
-static int u_json_match_seq (u_lexer_t *jl, u_json_obj_t *jo, int type, 
+static int u_json_match_seq (u_lexer_t *jl, u_json_t *jo, int type, 
         char first, const char *rem, size_t rem_sz)
 {
     char c;
@@ -996,7 +1063,7 @@ static int u_json_match_seq (u_lexer_t *jl, u_json_obj_t *jo, int type,
     /* Consume last checked char. */
     U_LEXER_SKIP(jl, NULL);
 
-    warn_err_if (u_json_obj_set_type(jo, type));
+    warn_err_if (u_json_set_type(jo, type));
 
 #ifdef U_JSON_LEX_DEBUG
     u_con("matched \'%s\' sequence", u_json_type_str(type));
@@ -1006,28 +1073,28 @@ err:
     return ~0;
 }
 
-static int u_json_match_null (u_lexer_t *jl, u_json_obj_t *jo)
+static int u_json_match_null (u_lexer_t *jl, u_json_t *jo)
 {
     return u_json_match_seq(jl, jo, U_JSON_TYPE_NULL, 
             'n', "ull", strlen("ull"));
 }
 
-static int u_json_match_true (u_lexer_t *jl, u_json_obj_t *jo)
+static int u_json_match_true (u_lexer_t *jl, u_json_t *jo)
 {
     return u_json_match_seq(jl, jo, U_JSON_TYPE_TRUE, 
             't', "rue", strlen("rue"));
 }
 
-static int u_json_match_false (u_lexer_t *jl, u_json_obj_t *jo)
+static int u_json_match_false (u_lexer_t *jl, u_json_t *jo)
 {
     return u_json_match_seq(jl, jo, U_JSON_TYPE_FALSE, 
             'f', "alse", strlen("alse"));
 }
 
-static int u_json_match_array (u_lexer_t *jl, u_json_obj_t *jo)
+static int u_json_match_array (u_lexer_t *jl, u_json_t *jo)
 {
     char c;
-    u_json_obj_t *elem = NULL;
+    u_json_t *elem = NULL;
 
 #ifdef U_JSON_LEX_DEBUG
     u_con("ARRAY");
@@ -1040,7 +1107,7 @@ static int u_json_match_array (u_lexer_t *jl, u_json_obj_t *jo)
     }
 
     /* Parent object is an array. */
-    warn_err_if (u_json_obj_set_type(jo, U_JSON_TYPE_ARRAY));
+    warn_err_if (u_json_set_type(jo, U_JSON_TYPE_ARRAY));
 
     do {
         U_LEXER_SKIP(jl, &c);
@@ -1049,14 +1116,14 @@ static int u_json_match_array (u_lexer_t *jl, u_json_obj_t *jo)
             break;
 
         /* Create a new object to store next array element. */
-        warn_err_if (u_json_obj_new(&elem));
-        warn_err_if (u_json_obj_set_type(elem, U_JSON_TYPE_UNKNOWN));
+        warn_err_if (u_json_new(&elem));
+        warn_err_if (u_json_set_type(elem, U_JSON_TYPE_UNKNOWN));
 
         /* Fetch new value. */
         warn_err_if (u_json_match_value(jl, elem));
 
         /* Push the fetched element to its parent array. */
-        warn_err_if (u_json_obj_add(jo, elem)); 
+        warn_err_if (u_json_add(jo, elem)); 
         elem = NULL;
 
         /* Consume any trailing white spaces. */
@@ -1076,11 +1143,11 @@ static int u_json_match_array (u_lexer_t *jl, u_json_obj_t *jo)
 
     return 0;
 err:
-    u_json_obj_free(elem);
+    u_json_free(elem);
     return ~0;
 }
 
-static int u_json_match_object (u_lexer_t *jl, u_json_obj_t *jo)
+static int u_json_match_object (u_lexer_t *jl, u_json_t *jo)
 {
     char c;
 
@@ -1094,7 +1161,7 @@ static int u_json_match_object (u_lexer_t *jl, u_json_obj_t *jo)
                 c, u_lexer_lookahead(jl));
     }
 
-    warn_err_if (u_json_obj_set_type(jo, U_JSON_TYPE_OBJECT));
+    warn_err_if (u_json_set_type(jo, U_JSON_TYPE_OBJECT));
 
     do {
         U_LEXER_SKIP(jl, &c);
@@ -1126,11 +1193,11 @@ err:
     return ~0;
 }
 
-static int u_json_match_pair (u_lexer_t *jl, u_json_obj_t *jo)
+static int u_json_match_pair (u_lexer_t *jl, u_json_t *jo)
 {
     size_t mlen;
     char c, match[U_TOKEN_SZ];
-    u_json_obj_t *pair = NULL;
+    u_json_t *pair = NULL;
 
     dbg_return_if (jl == NULL, ~0);
     dbg_return_if (jo == NULL, ~0);
@@ -1144,7 +1211,7 @@ static int u_json_match_pair (u_lexer_t *jl, u_json_obj_t *jo)
     warn_err_if (u_json_match_string(jl, NULL));
 
     /* Initialize new json object to store the key/value pair. */
-    warn_err_if (u_json_obj_new(&pair));
+    warn_err_if (u_json_new(&pair));
 
     (void) u_lexer_get_match(jl, match);
 
@@ -1152,7 +1219,7 @@ static int u_json_match_pair (u_lexer_t *jl, u_json_obj_t *jo)
     if ((mlen = strlen(match)) >= 1)
         match[mlen - 1] = '\0';
 
-    warn_err_if (u_json_obj_set_key(pair, match));
+    warn_err_if (u_json_set_key(pair, match));
 
     /* Consume ':' */
     if ((c = u_lexer_peek(jl)) != ':')
@@ -1167,16 +1234,16 @@ static int u_json_match_pair (u_lexer_t *jl, u_json_obj_t *jo)
     warn_err_if (u_json_match_value(jl, pair));
 
     /* Push the new value to the parent json object. */
-    warn_err_if (u_json_obj_add(jo, pair));
+    warn_err_if (u_json_add(jo, pair));
     pair = NULL;
 
     return 0;
 err:
-    u_json_obj_free(pair);
+    u_json_free(pair);
     return ~0;
 }
 
-static int u_json_match_string (u_lexer_t *jl, u_json_obj_t *jo)
+static int u_json_match_string (u_lexer_t *jl, u_json_t *jo)
 {
     size_t mlen;
     char c, match[U_TOKEN_SZ];
@@ -1237,7 +1304,7 @@ static int u_json_match_string (u_lexer_t *jl, u_json_obj_t *jo)
      * supply the json object that has to be set. */
     if (jo)
     {
-        warn_err_if (u_json_obj_set_type(jo, U_JSON_TYPE_STRING));
+        warn_err_if (u_json_set_type(jo, U_JSON_TYPE_STRING));
 
         /* Remove trailing '"' from match. */
         (void) u_lexer_get_match(jl, match);
@@ -1246,7 +1313,7 @@ static int u_json_match_string (u_lexer_t *jl, u_json_obj_t *jo)
         if ((mlen = strlen(match)) >= 1)
             match[mlen - 1] = '\0';
 
-        warn_err_if (u_json_obj_set_val(jo, match));
+        warn_err_if (u_json_set_val(jo, match));
     }
 
     return 0;
@@ -1288,7 +1355,7 @@ static const char *u_json_type_str (int type)
     return "unknown";
 }
 
-static void u_json_obj_do_free (u_json_obj_t *jo, size_t l, void *opaque)
+static void u_json_do_free (u_json_t *jo, size_t l, void *opaque)
 {
     u_unused_args(l, opaque);
 
@@ -1298,7 +1365,7 @@ static void u_json_obj_do_free (u_json_obj_t *jo, size_t l, void *opaque)
     return;
 }
 
-static void u_json_obj_do_print (u_json_obj_t *jo, size_t l, void *opaque)
+static void u_json_do_print (u_json_t *jo, size_t l, void *opaque)
 {
     u_unused_args(opaque);
 
@@ -1320,9 +1387,9 @@ static void u_json_obj_do_print (u_json_obj_t *jo, size_t l, void *opaque)
     return;
 }
 
-static void u_json_obj_do_freeze (u_json_obj_t *jo, size_t l, void *map)
+static void u_json_do_index (u_json_t *jo, size_t l, void *map)
 {
-    u_json_obj_t *p;
+    u_json_t *p;
     u_hmap_t *hmap = (u_hmap_t *) map;
 
     u_unused_args(l);
@@ -1367,25 +1434,56 @@ static void u_json_obj_do_freeze (u_json_obj_t *jo, size_t l, void *map)
     return;
 }
 
-static int u_json_obj_new_container (u_json_type_t type, const char *key, 
-        u_json_obj_t **pjo)
+static int u_json_new_container (u_json_type_t type, const char *key, 
+        u_json_t **pjo)
 {
-    u_json_obj_t *jo = NULL;
+    u_json_t *jo = NULL;
 
     dbg_return_if (pjo == NULL, ~0);
 
-    dbg_err_if (u_json_obj_new(&jo));
+    dbg_err_if (u_json_new(&jo));
 
-    dbg_err_if (u_json_obj_set_type(jo, type));
+    dbg_err_if (u_json_set_type(jo, type));
     /* TBT: allow for anonymous containers via NULL key's ? */
-    dbg_err_if (u_json_obj_set_key(jo, key ? key : ""));
+    dbg_err_if (u_json_set_key(jo, key ? key : ""));
 
     *pjo = jo;
 
     return 0;
 err:
     if (jo)
-        u_json_obj_free(jo);
+        u_json_free(jo);
+    return ~0;
+}
+
+static int u_json_new_atom (u_json_type_t type, const char *key, 
+        const char *val, u_json_t **pjo)
+{
+    u_json_t *jo = NULL;
+
+    dbg_return_if (pjo == NULL, ~0);
+
+    dbg_err_if (u_json_new(&jo));
+
+    dbg_err_if (u_json_set_type(jo, type));
+    dbg_err_if (u_json_set_key(jo, key));
+
+    /* Values are meaningful only in case of string and number objects,
+     * "null", "true" and "false" are completely defined by the type. */
+    switch (type)
+    {
+        case U_JSON_TYPE_NUMBER:  
+        case U_JSON_TYPE_STRING:  
+            dbg_err_if (u_json_set_val(jo, val));
+        default: break;
+    }
+
+    *pjo = jo;
+
+    return 0;
+err:
+    if (jo)
+        u_json_free(jo);
     return ~0;
 }
 

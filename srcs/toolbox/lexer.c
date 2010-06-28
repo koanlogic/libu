@@ -17,7 +17,7 @@ struct u_lexer_s
     size_t pos;     /* Actual lexer position. */
     size_t lmatch;  /* Offset of current left side match. */
     size_t rmatch;  /* Offset of current right side match. */
-    char err[512];  /* Error string. */
+    char err[U_LEXER_ERR_SZ];   /* Error string. */
 };
 
 static void u_lexer_incr (u_lexer_t *l);

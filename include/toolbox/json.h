@@ -7,13 +7,14 @@
 
 #include <sys/types.h>
 #include <u/libu_conf.h>
+#include <u/toolbox/lexer.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Forward decls. */ 
-struct u_json_obj_s;
+struct u_json_s;
 
 /**
  *  \addtogroup json
@@ -21,7 +22,7 @@ struct u_json_obj_s;
  */ 
 
 /** \brief  Internal representation of any JSON object */
-typedef struct u_json_obj_s u_json_obj_t;
+typedef struct u_json_s u_json_t;
 
 /** \brief  Walk strategy when traversing JSON objects */
 enum { 
@@ -49,40 +50,47 @@ typedef enum {
 #endif  /* !U_JSON_FQN_SZ */
 
 /* Encode/Decode/Validate. */
-int u_json_decode (const char *json, u_json_obj_t **pjo);
-int u_json_encode (u_json_obj_t *jo, char **ps);
+int u_json_decode (const char *json, u_json_t **pjo);
+int u_json_encode (u_json_t *jo, char **ps);
+int u_json_validate (const char *json, char status[U_LEXER_ERR_SZ]);
 
-/* Setters. */
-int u_json_obj_new (u_json_obj_t **pjo);
-int u_json_obj_set_key (u_json_obj_t *jo, const char *key);
-int u_json_obj_set_val (u_json_obj_t *jo, const char *val);
-int u_json_obj_set_type (u_json_obj_t *jo, u_json_type_t type); 
-void u_json_obj_free (u_json_obj_t *jo);
-int u_json_obj_add (u_json_obj_t *head, u_json_obj_t *jo);
-int u_json_obj_new_array (const char *key, u_json_obj_t **pjo);
-int u_json_obj_new_object (const char *key, u_json_obj_t **pjo);
-int u_json_obj_new_leaf (u_json_type_t type, const char *key, const char *val,
-        u_json_obj_t **pjo);
+/* Cache creation/destruction. */
+int u_json_index (u_json_t *jo);
+int u_json_unindex (u_json_t *jo);
 
-/* Getters. */
-u_json_obj_t *u_json_get (u_json_obj_t *jo, const char *key);
-const char *u_json_get_val (u_json_obj_t *jo, const char *key);
-unsigned int u_json_array_count (u_json_obj_t *jo);
-u_json_obj_t *u_json_array_get_nth (u_json_obj_t *jo, unsigned int n);
+/* Cache-aided get/set operations. */
+u_json_t *u_json_cache_get (u_json_t *jo, const char *name);
+const char *u_json_cache_get_val (u_json_t *jo, const char *name);
+int u_json_cache_set_tv (u_json_t *jo, const char *name, 
+        u_json_type_t type, const char *val);
 
-const char *u_json_obj_get_val (u_json_obj_t *jo);
+/* JSON base objects [cd]tor. */
+int u_json_new (u_json_t **pjo);
+void u_json_free (u_json_t *jo);
 
-/* Removal. */
-int u_json_obj_remove (u_json_obj_t *jo);
+int u_json_new_object (const char *key, u_json_t **pjo);
+int u_json_new_array (const char *key, u_json_t **pjo);
+int u_json_new_string (const char *key, const char *val, u_json_t **pjo);
+int u_json_new_number (const char *key, double val, u_json_t **pjo);
+int u_json_new_null (const char *key, u_json_t **pjo);
+int u_json_new_bool (const char *key, char val, u_json_t **pjo);
 
-/* Indexing (i.e. setup the fast retrieval interface). */
-int u_json_freeze (u_json_obj_t *jo);
-int u_json_defrost (u_json_obj_t *jo);
+/* JSON base objects get/set/add/remove operations. */
+int u_json_set_key (u_json_t *jo, const char *key);
+int u_json_set_val (u_json_t *jo, const char *val);
+int u_json_set_type (u_json_t *jo, u_json_type_t type); 
+int u_json_add (u_json_t *head, u_json_t *jo);
+int u_json_remove (u_json_t *jo);
+const char *u_json_get_val (u_json_t *jo);
+
+/* Array specific ops. */
+unsigned int u_json_array_count (u_json_t *jo);
+u_json_t *u_json_array_get_nth (u_json_t *jo, unsigned int n);
 
 /* Misc. */
-void u_json_obj_print (u_json_obj_t *jo);
-void u_json_obj_walk (u_json_obj_t *jo, int strategy, size_t l, 
-        void (*cb)(u_json_obj_t *, size_t, void *), void *cb_args);
+void u_json_print (u_json_t *jo);
+void u_json_walk (u_json_t *jo, int strategy, size_t l, 
+        void (*cb)(u_json_t *, size_t, void *), void *cb_args);
 
 /**
  *  \}

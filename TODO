@@ -5,10 +5,11 @@
 - a decent README file :-)
 
 
-- json per type [gs]etters
-- rearrange naming of functions (especially u_json_obj/u_json logics)
 - validation (light decoder) interface
-- missing doxy
+- better naming of functions
+- container (objects and arrays) iterators
+- json per type [gs]etters
+- unit tests for new json interfaces
 
 * return with error in setters (except value) when object is frozen 
     - set + add done (when removal interface is added, provide the same

@@ -5,9 +5,17 @@
 #ifndef _U_LEXER_H_
 #define _U_LEXER_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef U_TOKEN_SZ
-  #define U_TOKEN_SZ 128
+  #define U_TOKEN_SZ    128
 #endif  /* !U_TOKEN_SZ */
+
+#ifndef U_LEXER_ERR_SZ
+  #define U_LEXER_ERR_SZ    512
+#endif  /* !U_LEXER_ERR_SZ */
 
 struct u_lexer_s;
 
@@ -64,5 +72,9 @@ const char *u_lexer_lookahead (u_lexer_t *l);
 /**
  *  \}
  */ 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  /* !_U_LEXER_H_ */

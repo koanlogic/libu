@@ -5,7 +5,48 @@ int facility = LOG_LOCAL0;
 
 int load (const char *fn, char **ps);
 
-int main (int ac, char *av[])
+int main (void)
+{
+    char *s = NULL;
+    u_json_t *root = NULL, *tmp = NULL;
+
+    con_err_if (u_json_new_object(NULL, &root));
+
+    con_err_if (u_json_new_number("num", -12.32e+10, &tmp));
+    con_err_if (u_json_add(root, tmp));
+    tmp = NULL;
+
+    con_err_if (u_json_new_string("string", "...", &tmp));
+    con_err_if (u_json_add(root, tmp));
+    tmp = NULL;
+
+    con_err_if (u_json_new_null("null", &tmp));
+    con_err_if (u_json_add(root, tmp));
+    tmp = NULL;
+
+    con_err_if (u_json_new_bool("bool", 1, &tmp));
+    con_err_if (u_json_add(root, tmp));
+    tmp = NULL;
+
+    con_err_if (u_json_encode(root, &s));
+    
+    u_con("%s", s);
+
+    u_json_free(root);
+    u_free(s);
+
+    return EXIT_SUCCESS;
+err:
+    if (root)
+        u_json_free(root);
+    if (s)
+        u_free(s);
+
+    return EXIT_FAILURE;
+}
+
+#if 0
+int __main (int ac, char *av[])
 {
     char *s = NULL, *s2 = NULL;
     const char *val;
@@ -26,20 +67,21 @@ int main (int ac, char *av[])
     con_err_if (u_json_encode(jo, &s2));
     u_con("%s", s2);
     u_free(s2), s2 = NULL;
-
-    /* Test freeze interface. */
-    con_err_if (u_json_freeze(jo));
-
-    /* Search through the map. */
-    val = u_json_get_val(jo, av[2]);
-    u_con("%s = %s", "key", val ? val : "not found");
-
-    /* Test non-fqn search. */
-    res = u_json_get(jo, "..features[2].geometry");
-    val = u_json_get_val(res, av[2]);
-    u_con("%s = %s", "key", val ? val : "not found");
 #endif
 
+#if 1
+    /* Test freeze interface. */
+    con_err_if (u_json_index(jo));
+
+    /* Search through the map. */
+    val = u_json_cache_get_val(jo, av[2]);
+    u_con("%s = %s", "key", val ? val : "not found");
+
+    /* Test non-fqn search on internal node 'res'. */
+    res = u_json_cache_get(jo, "..features[2].geometry");
+    val = u_json_cache_get_val(res, av[2]);
+    u_con("%s = %s", "key", val ? val : "not found");
+#else
     /* Test array. */
     n = u_json_array_count(jo);
     for (i = 0; i < n; i++)
@@ -50,6 +92,7 @@ int main (int ac, char *av[])
             u_con("[%u] %s", i, val ? val : "not found");
         }
     }
+#endif
 
     u_json_obj_free(jo);
 
@@ -91,3 +134,4 @@ err:
         (void) fclose(fp);
     return ~0;
 }
+#endif
