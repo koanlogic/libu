@@ -71,7 +71,9 @@ void u_json_free (u_json_t *jo);
 int u_json_new_object (const char *key, u_json_t **pjo);
 int u_json_new_array (const char *key, u_json_t **pjo);
 int u_json_new_string (const char *key, const char *val, u_json_t **pjo);
-int u_json_new_number (const char *key, double val, u_json_t **pjo);
+int u_json_new_number (const char *key, const char *val, u_json_t **pjo);
+int u_json_new_real (const char *key, double val, u_json_t **pjo);
+int u_json_new_int (const char *key, long val, u_json_t **pjo);
 int u_json_new_null (const char *key, u_json_t **pjo);
 int u_json_new_bool (const char *key, char val, u_json_t **pjo);
 

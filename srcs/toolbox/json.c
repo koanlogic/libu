@@ -82,12 +82,12 @@ static int u_json_do_encode (u_json_t *jo, u_string_t *s);
 
 /* Needed by hmap_easy* because we are storing pointer data not owned by the
  * hmap. */
-static void nopf (void *dummy) { return; }
+static void nopf (void *dummy) { u_unused_args(dummy); return; }
 
 static int u_json_new_container (u_json_type_t type, const char *key, 
         u_json_t **pjo);
 static int u_json_new_atom (u_json_type_t type, const char *key, 
-        const char *val, u_json_t **pjo);
+        const char *val, char validate, u_json_t **pjo);
 
 /**
     \defgroup json JSON
@@ -204,7 +204,8 @@ end:
  *  \p key.
  *
  *  \param  jo  Pointer to a ::u_json_t object
- *  \param  key Pointer to the (non-NULL) key string
+ *  \param  key Pointer to the key string.  In case \p key \c NULL the value
+ *              is reset to the empty string.
  *
  *  \retval ~0  on failure
  *  \retval  0  on success
@@ -212,10 +213,9 @@ end:
 int u_json_set_key (u_json_t *jo, const char *key)
 {
     dbg_return_if (jo == NULL, ~0);
-    dbg_return_if (key == NULL, ~0);
     dbg_return_ifm (jo->map, ~0, "Cannot set key of a cached object");
 
-    dbg_return_if (u_strlcpy(jo->key, key, sizeof jo->key), ~0);
+    dbg_return_if (u_strlcpy(jo->key, key ? key : "", sizeof jo->key), ~0);
 
     return 0;
 }
@@ -728,40 +728,62 @@ int u_json_remove (u_json_t *jo)
         TAILQ_REMOVE(&p->children, jo, siblings);
     }
 
-    /* Give back the resources. */
+    /* Give back the resources allocated to the node (and its children). */
     u_json_free(jo);
 
     return 0;
 }
 
-/** \brief  ... */
+/** \brief  Create new JSON string object. */
 int u_json_new_string (const char *key, const char *val, u_json_t **pjo)
 {
-    return u_json_new_atom(U_JSON_TYPE_STRING, key, val, pjo);
+    return u_json_new_atom(U_JSON_TYPE_STRING, key, val, 1, pjo);
 }
 
-/** \brief  ... */
-int u_json_new_number (const char *key, double val, u_json_t **pjo)
+/** \brief  Create new JSON number object. */
+int u_json_new_number (const char *key, const char *val, u_json_t **pjo)
+{
+    return u_json_new_atom(U_JSON_TYPE_NUMBER, key, val, 1, pjo);
+}
+
+/** \brief  Create new JSON number object from double precision FP number. */
+int u_json_new_real (const char *key, double val, u_json_t **pjo)
 {
     char sval[U_TOKEN_SZ];
 
-    dbg_return_if (u_snprintf(sval, sizeof sval, "%.17g", val), ~0);
-    u_con("%s", sval);
+    /* CHECK FORMAT STRING 
+     * especially against json specs about '0' handling after the '.' */
+    dbg_return_if (u_snprintf(sval, sizeof sval, "%f", val), ~0);
 
-    return u_json_new_atom(U_JSON_TYPE_NUMBER, key, sval, pjo);
+    /* Assume 'sval' correctly formatted (no need to validate). */
+    return u_json_new_atom(U_JSON_TYPE_NUMBER, key, sval, 0, pjo);
 }
 
-/** \brief  ... */
+/** \brief  Create new JSON number object from long integer. */
+int u_json_new_int (const char *key, long val, u_json_t **pjo)
+{
+    char sval[U_TOKEN_SZ];
+
+    /* CHECK FORMAT STRING */
+    dbg_return_if (u_snprintf(sval, sizeof sval, "%ld", val), ~0);
+
+    /* Assume 'sval' correctly formatted (no need to validate). */
+    return u_json_new_atom(U_JSON_TYPE_NUMBER, key, sval, 0, pjo);
+}
+
+/** \brief  Create new JSON null object. */
 int u_json_new_null (const char *key, u_json_t **pjo)
 {
-    return u_json_new_atom(U_JSON_TYPE_NULL, key, NULL, pjo);
+    /* No need to validate. */
+    return u_json_new_atom(U_JSON_TYPE_NULL, key, NULL, 0, pjo);
 }
 
-/** \brief  ... */
+/** \brief  Create new JSON true or false object. */
 int u_json_new_bool (const char *key, char val, u_json_t **pjo)
 {
+    /* No need to validate. */
     return u_json_new_atom(val ? U_JSON_TYPE_TRUE : U_JSON_TYPE_FALSE, 
-            key, NULL, pjo);
+            key, NULL, 0, pjo);
 }
 
 /**
@@ -1457,9 +1479,12 @@ err:
 }
 
 static int u_json_new_atom (u_json_type_t type, const char *key, 
-        const char *val, u_json_t **pjo)
+        const char *val, char validate, u_json_t **pjo)
 {
     u_json_t *jo = NULL;
+
+    if (validate)
+        u_info("validation not honoured (TODO)");
 
     dbg_return_if (pjo == NULL, ~0);
 

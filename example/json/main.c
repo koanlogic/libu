@@ -4,15 +4,105 @@
 int facility = LOG_LOCAL0;
 
 int load (const char *fn, char **ps);
+int simple_object (void);
+int simple_array (void);
+int nested_object (void);
 
 int main (void)
+{
+    con_err_if (simple_object());
+    con_err_if (simple_array());
+    con_err_if (nested_object());
+
+    return EXIT_SUCCESS;
+err:
+    return EXIT_FAILURE;
+}
+
+int nested_object (void)
+{
+    int i;
+    char *s = NULL;
+    u_json_t *array = NULL, *root = NULL, *tmp = NULL;
+
+    /* Nested array of null's. */
+    con_err_if (u_json_new_array("array", &array));
+
+    for (i= 0; i < 10 ; i++)
+    {
+        con_err_if (u_json_new_null(NULL, &tmp));
+        con_err_if (u_json_add(array, tmp));
+        tmp = NULL;
+    }
+
+    /* Top level container. */
+    con_err_if (u_json_new_object(NULL, &root));
+    con_err_if (u_json_add(root, array));
+    array = NULL;
+
+    con_err_if (u_json_encode(root, &s));
+    
+    u_con("%s", s);
+
+    u_json_free(root);
+    u_free(s);
+
+    return 0;
+err:
+    if (root)
+        u_json_free(root);
+    if (array)
+        u_json_free(array);
+    if (tmp)
+        u_json_free(tmp);
+    if (s)
+        u_free(s);
+
+    return ~0;
+}
+
+int simple_array (void)
+{
+    long l;
+    char *s = NULL;
+    u_json_t *root = NULL, *tmp = NULL;
+
+    con_err_if (u_json_new_array(NULL, &root));
+
+    for (l = 0; l < 10 ; l++)
+    {
+        con_err_if (u_json_new_int(NULL, l, &tmp));
+        con_err_if (u_json_add(root, tmp));
+        tmp = NULL;
+    }
+
+    con_err_if (u_json_encode(root, &s));
+    
+    u_con("%s", s);
+
+    u_json_free(root);
+    u_free(s);
+
+    return 0;
+err:
+    if (root)
+        u_json_free(root);
+    if (tmp)
+        u_json_free(tmp);
+    if (s)
+        u_free(s);
+
+    return ~0;
+}
+
+int simple_object (void)
 {
     char *s = NULL;
     u_json_t *root = NULL, *tmp = NULL;
 
     con_err_if (u_json_new_object(NULL, &root));
 
-    con_err_if (u_json_new_number("num", -12.32e+10, &tmp));
+    con_err_if (u_json_new_real("num", -12.32e+10, &tmp));
     con_err_if (u_json_add(root, tmp));
     tmp = NULL;
 
@@ -35,14 +125,16 @@ int main (void)
     u_json_free(root);
     u_free(s);
 
-    return EXIT_SUCCESS;
+    return 0;
 err:
     if (root)
         u_json_free(root);
+    if (tmp)
+        u_json_free(tmp);
     if (s)
         u_free(s);
 
-    return EXIT_FAILURE;
+    return ~0;
 }
 
 #if 0

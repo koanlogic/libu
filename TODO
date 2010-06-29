@@ -8,7 +8,6 @@
 - validation (light decoder) interface
 - better naming of functions
 - container (objects and arrays) iterators
-- json per type [gs]etters
 - unit tests for new json interfaces
 
 * return with error in setters (except value) when object is frozen 
@@ -16,3 +15,5 @@
       check)
 ? is zero-length json key valid ? invalid zero-length would make possible to
   decide if a given name is (or isn't) fully qualified !
+
+? json per type getters
