@@ -77,8 +77,10 @@ static void u_json_do_print (u_json_t *jo, size_t l, void *opaque);
 static void u_json_do_free (u_json_t *jo, size_t l, void *opaque);
 static void u_json_do_index (u_json_t *jo, size_t l, void *map);
 
-/* Encoder. */
+/* Encode/Decode/Validate. */
 static int u_json_do_encode (u_json_t *jo, u_string_t *s);
+static int u_json_do_parse (const char *json, u_json_t **pjo, 
+        char status[U_LEXER_ERR_SZ]);
 
 /* Needed by hmap_easy* because we are storing pointer data not owned by the
  * hmap. */
@@ -284,46 +286,7 @@ int u_json_add (u_json_t *head, u_json_t *jo)
  */
 int u_json_decode (const char *json, u_json_t **pjo)
 {
-    u_json_t *jo = NULL;
-    u_lexer_t *jl = NULL;
-
-    dbg_return_if (json == NULL, ~0);
-    dbg_return_if (pjo == NULL, ~0);
-
-    /* Create a disposable lexer context associated to the supplied
-     * 'json' string. */
-    warn_err_if (u_lexer_new(json, &jl));
-
-    /* Create top level json object. */
-    warn_err_if (u_json_new(&jo));
-
-    /* Consume any trailing white space before starting actual parsing. */
-    if (u_lexer_eat_ws(jl) == -1)
-        U_LEXER_ERR(jl, "Empty JSON text !");
-
-    /* Launch the lexer expecting the input JSON text as a serialized object 
-     * or array. */ 
-    if (u_json_match_object_first(jl))
-        warn_err_if (u_json_match_object(jl, jo));
-    else if (u_json_match_array_first(jl))
-        warn_err_if (u_json_match_array(jl, jo));
-    else
-    {
-        U_LEXER_ERR(jl, 
-                "Expecting \'{\' or \'[\', found \'%c\'.", u_lexer_peek(jl));
-    }
-
-    /* Dispose the lexer context. */
-    u_lexer_free(jl);
-
-    /* Copy out the broken down tree. */
-    *pjo = jo;
-
-    return 0;
-err:
-    u_json_free(jo);
-    u_lexer_free(jl);
-    return ~0;
+    return u_json_do_parse(json, pjo, NULL);
 }
 
 /**
@@ -341,9 +304,8 @@ err:
  */
 int u_json_validate (const char *json, char status[U_LEXER_ERR_SZ])
 {
-    u_unused_args(json, status);
-    u_info("TODO");
-    return ~0;
+    /* Just try to validate the input string (do not build the tree). */
+    return u_json_do_parse(json, NULL, status);
 }
 
 /**
@@ -857,8 +819,8 @@ err:
 
 static int u_json_match_value (u_lexer_t *jl, u_json_t *jo)
 {
+    /* 'jo' can be NULL in case of a validating-only parser. */
     dbg_return_if (jl == NULL, ~0);
-    dbg_return_if (jo == NULL, ~0);
 
     if (u_json_match_string_first(jl))
         warn_err_if (u_json_match_string(jl, jo));
@@ -875,10 +837,7 @@ static int u_json_match_value (u_lexer_t *jl, u_json_t *jo)
     else if (u_json_match_null_first(jl))
         warn_err_if (u_json_match_null(jl, jo));
     else
-    {
-        U_LEXER_ERR(jl, "unexpected value syntax at \'%s\'", 
-                u_lexer_lookahead(jl));
-    }
+        U_LEXER_ERR(jl, "value not found at \'%s\'", u_lexer_lookahead(jl));
 
     return 0;
 err:
@@ -960,8 +919,11 @@ static int u_json_match_number (u_lexer_t *jl, u_json_t *jo)
     match[strlen(match) - 1] = '\0';
 
     /* Push the matched number into the supplied json object. */
-    warn_err_if (u_json_set_type(jo, U_JSON_TYPE_NUMBER));
-    warn_err_if (u_json_set_val(jo, match));
+    if (jo)
+    {
+        warn_err_if (u_json_set_type(jo, U_JSON_TYPE_NUMBER));
+        warn_err_if (u_json_set_val(jo, match));
+    }
 
 #ifdef U_JSON_LEX_DEBUG
     u_con("matched number: %s", u_lexer_get_match(jl, match));
@@ -1085,7 +1047,8 @@ static int u_json_match_seq (u_lexer_t *jl, u_json_t *jo, int type,
     /* Consume last checked char. */
     U_LEXER_SKIP(jl, NULL);
 
-    warn_err_if (u_json_set_type(jo, type));
+    if (jo)
+        warn_err_if (u_json_set_type(jo, type));
 
 #ifdef U_JSON_LEX_DEBUG
     u_con("matched \'%s\' sequence", u_json_type_str(type));
@@ -1137,16 +1100,22 @@ static int u_json_match_array (u_lexer_t *jl, u_json_t *jo)
         if (c == ']')   /* break on empty array */
             break;
 
-        /* Create a new object to store next array element. */
-        warn_err_if (u_json_new(&elem));
-        warn_err_if (u_json_set_type(elem, U_JSON_TYPE_UNKNOWN));
+        if (jo)
+        {
+            /* Create a new object to store next array element. */
+            warn_err_if (u_json_new(&elem));
+            warn_err_if (u_json_set_type(elem, U_JSON_TYPE_UNKNOWN));
+        }
 
         /* Fetch new value. */
         warn_err_if (u_json_match_value(jl, elem));
 
-        /* Push the fetched element to its parent array. */
-        warn_err_if (u_json_add(jo, elem)); 
-        elem = NULL;
+        if (jo)
+        {
+            /* Push the fetched element to its parent array. */
+            warn_err_if (u_json_add(jo, elem)); 
+            elem = NULL;
+        }
 
         /* Consume any trailing white spaces. */
         if (isspace(u_lexer_peek(jl)))
@@ -1183,7 +1152,8 @@ static int u_json_match_object (u_lexer_t *jl, u_json_t *jo)
                 c, u_lexer_lookahead(jl));
     }
 
-    warn_err_if (u_json_set_type(jo, U_JSON_TYPE_OBJECT));
+    if (jo)
+        warn_err_if (u_json_set_type(jo, U_JSON_TYPE_OBJECT));
 
     do {
         U_LEXER_SKIP(jl, &c);
@@ -1222,7 +1192,6 @@ static int u_json_match_pair (u_lexer_t *jl, u_json_t *jo)
     u_json_t *pair = NULL;
 
     dbg_return_if (jl == NULL, ~0);
-    dbg_return_if (jo == NULL, ~0);
 
 #ifdef U_JSON_LEX_DEBUG
     u_con("PAIR");
@@ -1233,7 +1202,8 @@ static int u_json_match_pair (u_lexer_t *jl, u_json_t *jo)
     warn_err_if (u_json_match_string(jl, NULL));
 
     /* Initialize new json object to store the key/value pair. */
-    warn_err_if (u_json_new(&pair));
+    if (jo)
+        warn_err_if (u_json_new(&pair));
 
     (void) u_lexer_get_match(jl, match);
 
@@ -1241,7 +1211,8 @@ static int u_json_match_pair (u_lexer_t *jl, u_json_t *jo)
     if ((mlen = strlen(match)) >= 1)
         match[mlen - 1] = '\0';
 
-    warn_err_if (u_json_set_key(pair, match));
+    if (jo)
+        warn_err_if (u_json_set_key(pair, match));
 
     /* Consume ':' */
     if ((c = u_lexer_peek(jl)) != ':')
@@ -1256,8 +1227,11 @@ static int u_json_match_pair (u_lexer_t *jl, u_json_t *jo)
     warn_err_if (u_json_match_value(jl, pair));
 
     /* Push the new value to the parent json object. */
-    warn_err_if (u_json_add(jo, pair));
-    pair = NULL;
+    if (jo)
+    {
+        warn_err_if (u_json_add(jo, pair));
+        pair = NULL;
+    }
 
     return 0;
 err:
@@ -1512,3 +1486,51 @@ err:
     return ~0;
 }
 
+static int u_json_do_parse (const char *json, u_json_t **pjo, 
+        char status[U_LEXER_ERR_SZ])
+{
+    u_json_t *jo = NULL;
+    u_lexer_t *jl = NULL;
+
+    dbg_return_if (json == NULL, ~0);
+
+    /* Create a disposable lexer context associated to the supplied
+     * 'json' string. */
+    warn_err_if (u_lexer_new(json, &jl));
+
+    /* When 'pjo' is NULL, assume this is a validating-only parser. */
+
+    /* Create top level json object. */
+    warn_err_if (pjo && u_json_new(&jo));
+
+    /* Consume any trailing white space before starting actual parsing. */
+    if (u_lexer_eat_ws(jl) == -1)
+        U_LEXER_ERR(jl, "Empty JSON text !");
+
+    /* Launch the lexer expecting the input JSON text as a serialized object 
+     * or array. */ 
+    if (u_json_match_object_first(jl))
+        warn_err_if (u_json_match_object(jl, jo));
+    else if (u_json_match_array_first(jl))
+        warn_err_if (u_json_match_array(jl, jo));
+    else
+        U_LEXER_ERR(jl, "Expect \'{\' or \'[\', got \'%c\'.", u_lexer_peek(jl));
+
+    /* Dispose the lexer context. */
+    u_lexer_free(jl);
+
+    /* Copy out the broken down tree. */
+    if (pjo)
+        *pjo = jo;
+
+    return 0;
+err:
+    /* Copy out the lexer error string (if requested). */
+    if (status)
+        (void) u_strlcpy(status, u_lexer_geterr(jl), U_LEXER_ERR_SZ);
+
+    u_lexer_free(jl);
+    u_json_free(jo);
+
+    return ~0;
+}

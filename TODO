@@ -8,6 +8,9 @@
 - validation (light decoder) interface
 - container (objects and arrays) iterators
 * unit tests for new json interfaces (countinuous WIP)
+    - validator
+    - iterator
+    - ...
 - valgrind tour
 
 * return with error in setters (except value) when object is frozen 
@@ -17,3 +20,33 @@
   decide if a given name is (or isn't) fully qualified !
 
 ? json per-type getters
+
+iterator layout:
+
+{
+    u_json_it_t jit = NULL;
+
+    /* create a new iterator associated to json object jo
+     * (jo must have siblings, typically it's the first node of a
+     * container object) */
+
+    /* forward sequential scan of elements in container. */
+    u_json_it(u_json_first(jo), jit); 
+    while ((cur = u_json_it_next(jit)) != NULL)
+    {
+        /* do something with 'cur' */
+    }
+
+
+    /* backwards -- starting from the 10th position -- sequential scan of 
+     * elements in array */
+    u_json_it(u_json_array_get_nth(jo, 10), jit);
+    while ((cur = u_json_it_prev(jit)) != NULL)
+    {
+        /* do something with 'cur' */
+    }
+
+    
+
+
+}

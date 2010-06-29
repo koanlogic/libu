@@ -10,9 +10,14 @@ int nested_object (void);
 
 int main (void)
 {
-    con_err_if (simple_object());
-    con_err_if (simple_array());
-    con_err_if (nested_object());
+    char status[U_LEXER_ERR_SZ];
+
+    //con_err_if (simple_object());
+    //con_err_if (simple_array());
+    //con_err_if (nested_object());
+
+    if (u_json_validate("{\"x\": }", status))
+        u_con("%s", status);
 
     return EXIT_SUCCESS;
 err:
