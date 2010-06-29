@@ -3,13 +3,15 @@
 int test_suite_json_register (u_test_t *t);
 
 static int test_codec (u_test_case_t *tc);
-static int test_build (u_test_case_t *tc);
+static int test_build_simple_object (u_test_case_t *tc);
+static int test_build_nested_object (u_test_case_t *tc);
+static int test_build_simple_array (u_test_case_t *tc);
 
 static int test_codec (u_test_case_t *tc)
 {
     size_t i;
     char *s = NULL;
-    u_json_obj_t *jo = NULL;
+    u_json_t *jo = NULL;
 
     const char *tv[] = {
         /* Empty object. */
@@ -42,7 +44,7 @@ static int test_codec (u_test_case_t *tc)
         u_test_err_ifm (strcmp(s, tv[i]), "%s and %s differ !", tv[i], s);
 
         u_free(s), s = NULL;
-        u_json_obj_free(jo), jo = NULL;
+        u_json_free(jo), jo = NULL;
     }
 
     return U_TEST_SUCCESS;
@@ -50,30 +52,141 @@ err:
     if (s)
         u_free(s);
     if (jo)
-        u_json_obj_free(jo);
+        u_json_free(jo);
 
     return U_TEST_FAILURE;
 }
 
-static int test_build (u_test_case_t *tc)
+static int test_build_simple_array (u_test_case_t *tc)
 {
-    u_json_obj_t *root = NULL, *tmp = NULL;
+    long l;
+    char *s = NULL;
+    u_json_t *root = NULL, *tmp = NULL;
+    const char *exp = "[ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]";
 
-    u_test_err_if (u_json_obj_new(&root));
-     
+    /* [ ... ] */
+    con_err_if (u_json_new_array(NULL, &root));
 
+    for (l = 0; l < 10 ; l++)
+    {
+        /* "$i," */ 
+        con_err_if (u_json_new_int(NULL, l, &tmp));
+        con_err_if (u_json_add(root, tmp));
+        tmp = NULL;
+    }
 
-    u_json_obj_free(root);
+    con_err_if (u_json_encode(root, &s));
+
+    u_test_err_ifm (strcmp(exp, s), "expecting \'%s\', got \'%s\'", exp, s);
+    
+    u_json_free(root);
+    u_free(s);
+
+    return 0;
+err:
+    if (root)
+        u_json_free(root);
+    if (tmp)
+        u_json_free(tmp);
+    if (s)
+        u_free(s);
+
+    return ~0;
+}
+
+static int test_build_simple_object (u_test_case_t *tc)
+{
+    char *s = NULL;
+    u_json_t *root = NULL, *tmp = NULL;
+    const char *exp = 
+        "{ \"num\": 999, \"string\": \".\", \"null\": null, \"bool\": true }";
+
+    /* { ... } */
+    con_err_if (u_json_new_object(NULL, &root));
+
+    /* "num": "999" */
+    con_err_if (u_json_new_int("num", 999, &tmp));
+    con_err_if (u_json_add(root, tmp));
+    tmp = NULL;
+
+    /* "string": "." */
+    con_err_if (u_json_new_string("string", ".", &tmp));
+    con_err_if (u_json_add(root, tmp));
+    tmp = NULL;
+
+    /* "null": null */
+    con_err_if (u_json_new_null("null", &tmp));
+    con_err_if (u_json_add(root, tmp));
+    tmp = NULL;
+
+    /* "bool": true */
+    con_err_if (u_json_new_bool("bool", 1, &tmp));
+    con_err_if (u_json_add(root, tmp));
+    tmp = NULL;
+
+    con_err_if (u_json_encode(root, &s));
+
+    u_test_err_ifm (strcmp(exp, s), "expecting \'%s\', got \'%s\'", exp, s);
+ 
+    u_json_free(root);
+    u_free(s);
 
     return U_TEST_SUCCESS;
- err:
+err:
     if (root)
-        u_json_obj_free(root);
+        u_json_free(root);
+    if (tmp)
+        u_json_free(tmp);
+    if (s)
+        u_free(s);
 
     return U_TEST_FAILURE;
 }
 
+static int test_build_nested_object (u_test_case_t *tc)
+{
+    int i;
+    char *s = NULL;
+    u_json_t *array = NULL, *root = NULL, *tmp = NULL;
+    const char *exp = "{ \"array\": [ null, null, null ] }";
 
+    /* Nested array of null's. */
+    con_err_if (u_json_new_array("array", &array));
+
+    for (i= 0; i < 3 ; i++)
+    {
+        con_err_if (u_json_new_null(NULL, &tmp));
+        con_err_if (u_json_add(array, tmp));
+        tmp = NULL;
+    }
+
+    /* TODO add nested simple object. */
+
+    /* Top level container. */
+    con_err_if (u_json_new_object(NULL, &root));
+    con_err_if (u_json_add(root, array));
+    array = NULL;
+
+    con_err_if (u_json_encode(root, &s));
+    
+    u_test_err_ifm (strcmp(exp, s), "expecting \'%s\', got \'%s\'", exp, s);
+
+    u_json_free(root);
+    u_free(s);
+
+    return U_TEST_SUCCESS;
+err:
+    if (root)
+        u_json_free(root);
+    if (array)
+        u_json_free(array);
+    if (tmp)
+        u_json_free(tmp);
+    if (s)
+        u_free(s);
+
+    return U_TEST_FAILURE;
+}
 int test_suite_json_register (u_test_t *t)
 {
     u_test_suite_t *ts = NULL;
@@ -81,7 +194,12 @@ int test_suite_json_register (u_test_t *t)
     con_err_if (u_test_suite_new("JSON", &ts));
 
     con_err_if (u_test_case_register("Encode-Decode", test_codec, ts));
-    con_err_if (u_test_case_register("Builder", test_build, ts));
+    con_err_if (u_test_case_register("Builder (simple object)", 
+                test_build_simple_object, ts));
+    con_err_if (u_test_case_register("Builder (simple array)", 
+                test_build_simple_array, ts));
+    con_err_if (u_test_case_register("Builder (nested object)", 
+                test_build_nested_object, ts));
 
     /* JSON depends on the lexer and hmap modules. */
     con_err_if (u_test_suite_dep_register("Lexer", ts));
