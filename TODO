@@ -6,9 +6,9 @@
 
 
 - validation (light decoder) interface
-- better naming of functions
 - container (objects and arrays) iterators
-- unit tests for new json interfaces
+* unit tests for new json interfaces (countinuous WIP)
+- valgrind tour
 
 * return with error in setters (except value) when object is frozen 
     - set + add done (when removal interface is added, provide the same
@@ -16,4 +16,4 @@
 ? is zero-length json key valid ? invalid zero-length would make possible to
   decide if a given name is (or isn't) fully qualified !
 
-? json per type getters
+? json per-type getters
