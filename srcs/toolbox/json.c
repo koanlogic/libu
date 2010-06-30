@@ -13,13 +13,6 @@
 #include <toolbox/memory.h>
 #include <toolbox/lexer.h>
 
-/* Pointer to the name part of .fqn */
-#define U_JSON_OBJ_NAME(jo) \
-        ((jo->parent != NULL) ? jo->fqn + strlen(p->fqn) : jo->fqn)
-
-#define U_JSON_OBJ_IS_CONTAINER(jo) \
-        ((jo->type == U_JSON_TYPE_OBJECT) || (jo->type == U_JSON_TYPE_ARRAY))
-
 /* Internal representation of any JSON value. */
 struct u_json_s
 {
@@ -42,6 +35,13 @@ struct u_json_s
     unsigned int icur, count;   /* Aux stuff used when indexing arrays. */
     u_hmap_t *map;              /* Alias reference to the global cache. */
 };
+
+/* Pointer to the name part of .fqn */
+#define U_JSON_OBJ_NAME(jo) \
+        ((jo->parent != NULL) ? jo->fqn + strlen(p->fqn) : jo->fqn)
+
+#define U_JSON_OBJ_IS_CONTAINER(jo) \
+        ((jo->type == U_JSON_TYPE_OBJECT) || (jo->type == U_JSON_TYPE_ARRAY))
 
 /* Lexer methods */
 static int u_json_match_value (u_lexer_t *jl, u_json_t *jo);
@@ -95,9 +95,87 @@ static int u_json_new_atom (u_json_type_t type, const char *key,
 /**
     \defgroup json JSON
     \{
-        The \ref json module implements encoding and decoding of JSON objects as
-        defined in <a href="http://www.ietf.org/rfc/rfc4627.txt">RFC 4627</a>.
-        TODO
+        The \ref json module implements a family of routines that allow 
+        encoding, decoding and validation of JSON objects as defined in 
+        <a href="http://www.ietf.org/rfc/rfc4627.txt">RFC 4627</a>.
+        
+        A NUL-terminated string in JSON syntax is decoded into its parse
+        tree by means of the ::u_json_decode function as the showed in the
+        following snippet:
+    \code
+    u_json_t *jo = NULL;
+    const char *i2 = "[ [ 1, 0 ], [ 0, 1 ] ]";
+
+    dbg_err_if (u_json_decode(i2, &jo));
+    ...
+    \endcode
+        Should you just need to check the supplied string for syntax compliance
+        (i.e. without actually creating the syntax tree), the ::u_json_validate
+        interface can be used:
+    \code
+    char status[U_LEXER_ERR_SZ];
+
+    if (u_json_validate(i2, status))
+        u_con("Syntax error: %s", status);
+    \endcode
+    Once the string has been parsed and (implicitly or explicitly) validated,
+    if the application requests frequent and/or massive access to its deeply 
+    nested attributes, then the parse tree can be indexed via ::u_json_index.
+    This way its nodes can be accessed via a unique naming scheme, similar to
+    the typical struct/array access in C:
+    \code
+    dbg_err_if (u_json_index(jo));
+
+    u_json_get_int(u_json_cache_get(jo, ".[0][0]"), &l);    // l = 1
+    u_json_get_int(u_json_cache_get(jo, ".[0][1]"), &l);    // l = 0
+    u_json_get_int(u_json_cache_get(jo, ".[1][0]"), &l);    // l = 0
+    u_json_get_int(u_json_cache_get(jo, ".[1][1]"), &l);    // l = 1
+    \endcode
+    Please note that when index'ed, the parse tree enters a "frozen" state
+    in which nothing but values and types of non-container objects (i.e. string,
+    number, boolean and null's) can be changed.  So, if you want to come back to
+    free manipulation, you must remove the indexing structure by means of 
+    ::u_json_deindex -- which invalidates any subsequent cached access attempt.
+
+    JSON objects can be created ex-nihil via the ::u_json_new_* family
+    of functions, and then encoded in their serialized form via the 
+    ::u_json_encode interface:
+    \code
+    char *s = NULL;
+    u_json_t *root = NULL, *leaf = NULL;
+
+    dbg_err_if (u_json_new_object(NULL, &root));
+    dbg_err_if (u_json_new_int("integer", 999, &leaf));
+    dbg_err_if (u_json_add(root, leaf));
+    leaf = NULL;
+
+    // encode it, should give: "{ "integer": 999 }"
+    u_json_encode(root, &s);
+    ...
+    \endcode
+
+    The last basic concept that the user needs to know to work effectively with
+    the JSON module is iteration.  Iterators allow efficient and safe traversal
+    of container types (i.e. arrays and objects), where a naive walk strategy 
+    based on ::u_json_array_get_nth would instead lead to performance collapse 
+    as access time is quadratic in the number of elements in the container.
+    \code
+    long i, e;
+    u_json_it_t jit;
+    u_json_t *jo = NULL, *cur;
+    const char *s = "[ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]";
+
+    dbg_err_if (u_json_decode(s, &jo));
+
+    // init array iterator from first element and go forward.
+    dbg_err_if (u_json_it(u_json_child_first(jo), &jit));
+
+    for (i = 1; (cur = u_json_it_next(&jit)) != NULL; i++)
+    {
+        dbg_err_if (u_json_get_int(cur, &e));
+        dgb_err_if (e != i);    // e = 1..10
+    }
+    \endcode
  */
 
 /**

@@ -16,7 +16,7 @@ LibU 2.x.y
 	- [net] U_NET_OPT_DGRAM_BROADCAST to set DGRAM client socket broadcast 
 	  option
 	- [bst] new binary search tree module
-	- [json] new module to encode/decode JSON objects (RFC 4627)
+	- [json] new module to encode/decode/validate JSON objects (RFC 4627)
 	- [hmap] added u_hmap_count() to get the current number of objects stored
 	  into hmap
 

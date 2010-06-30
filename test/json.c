@@ -83,7 +83,7 @@ static int test_build_simple_array (u_test_case_t *tc)
     u_json_free(root);
     u_free(s);
 
-    return 0;
+    return U_TEST_SUCCESS;
 err:
     if (root)
         u_json_free(root);
@@ -92,7 +92,7 @@ err:
     if (s)
         u_free(s);
 
-    return ~0;
+    return U_TEST_FAILURE;
 }
 
 static int test_build_simple_object (u_test_case_t *tc)
