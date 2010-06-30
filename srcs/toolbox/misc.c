@@ -699,6 +699,48 @@ int u_sleep(unsigned int secs)
 }
 
 /** 
+ *  \brief  Convert string to \c long \c int representation
+ *
+ *  Try to convert the string \p nptr into a long integer at \p pl, handling 
+ *  all \c strtol(3) exceptions (overflow or underflow, invalid representation)
+ *  in a simple go/no-go way.
+ *
+ *  \param  nptr    NUL-terminated string (possibly) representing an integer
+ *                  value (base 10)
+ *  \param  pl      pointer to a \c long \c int variable that contains the 
+ *                  result of a successful conversion
+ *  
+ *  \retval 0   on success
+ *  \retval ~0  on error
+ */
+int u_atol (const char *nptr, long *pl)
+{
+    char *endptr;
+    long tmp, saved_errno = errno;
+
+    dbg_return_if (nptr == NULL, ~0);
+    dbg_return_if (pl == NULL, ~0);
+ 
+    tmp = strtol(nptr, &endptr, 10);
+    
+    dbg_err_sif (tmp == 0 && errno == EINVAL);
+    dbg_err_sif ((tmp == LONG_MIN || tmp == LONG_MAX) && errno == ERANGE);
+
+    /* check if no valid digit string was supplied
+     * glibc does not handle this as an explicit error (would return
+     * 0 with errno unset) */
+    dbg_err_ifm (nptr == endptr, "invalid base10 string: %s", nptr);
+
+    *pl = tmp;
+    
+    errno = saved_errno;
+    return 0;
+err:
+    errno = saved_errno;
+    return ~0;
+}
+
+/** 
  *  \brief  Convert string to \c int representation
  *
  *  Try to convert the string \p nptr into an integer at \p pi, handling all 
@@ -715,21 +757,9 @@ int u_sleep(unsigned int secs)
  */
 int u_atoi (const char *nptr, int *pi)
 {
-    char *endptr;
-    long int tmp, saved_errno = errno;
+    long int tmp;
 
-    dbg_return_if (nptr == NULL, ~0);
-    dbg_return_if (pi == NULL, ~0);
- 
-    tmp = strtol(nptr, &endptr, 10);
-    
-    dbg_err_sif (tmp == 0 && errno == EINVAL);
-    dbg_err_sif ((tmp == LONG_MIN || tmp == LONG_MAX) && errno == ERANGE);
-
-    /* check if no valid digit string was supplied
-     * glibc does not handle this as an explicit error (would return
-     * 0 with errno unset) */
-    dbg_err_ifm (nptr == endptr, "invalid base10 string: %s", nptr);
+    dbg_err_if (u_atol(nptr, &tmp));
 
     /* check overflows/underflows when int bits are less than long bits */
 #if (INT_MAX < LONG_MAX) 
@@ -741,10 +771,8 @@ int u_atoi (const char *nptr, int *pi)
         
     *pi = (int) tmp;
     
-    errno = saved_errno;
     return 0;
 err:
-    errno = saved_errno;
     return ~0;
 }
 

@@ -1,3 +1,4 @@
+#include <math.h>
 #include <sys/stat.h>
 #include <u/libu.h>
 
@@ -7,14 +8,16 @@ int load (const char *fn, char **ps);
 int simple_object (void);
 int simple_array (void);
 int nested_object (void);
+int iterator (void);
 
 int main (void)
 {
     char status[U_LEXER_ERR_SZ];
 
-    con_err_if (simple_object());
-    con_err_if (simple_array());
-    con_err_if (nested_object());
+    con_err_if (iterator());
+//    con_err_if (simple_object());
+//    con_err_if (simple_array());
+//    con_err_if (nested_object());
 
     if (u_json_validate("{\"x\": 123 }", status))
         u_con("%s", status);
@@ -22,6 +25,35 @@ int main (void)
     return EXIT_SUCCESS;
 err:
     return EXIT_FAILURE;
+}
+
+int iterator (void)
+{
+    u_json_it_t jit;
+    u_json_t *jo = NULL, *cur;
+    const char *s = "[ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]";
+
+    con_err_if (u_json_decode(s, &jo));
+
+    /* Init array iterator (forward direction). */
+    con_err_if (u_json_it(u_json_child_first(jo), &jit));
+
+    while ((cur = u_json_it_next(&jit)) != NULL)
+        u_con("%s", u_json_get_val(cur));
+
+    /* Init array iterator (backwards direction). */
+    con_err_if (u_json_it(u_json_child_last(jo), &jit));
+
+    while ((cur = u_json_it_prev(&jit)) != NULL)
+        u_con("%s", u_json_get_val(cur));
+
+    u_json_free(jo), jo = NULL;
+
+    return 0;
+err:
+    u_json_free(jo);
+
+    return ~0;
 }
 
 int nested_object (void)

@@ -59,6 +59,7 @@ typedef ssize_t (*iof_t) (int, void *, size_t);
 
 char *u_strdup (const char *s);
 char *u_strndup (const char *s, size_t len);
+int u_atol (const char *nptr, long *pl);
 int u_atoi (const char *nptr, int *pi);
 #ifdef HAVE_STRTOUMAX
 #include <inttypes.h>

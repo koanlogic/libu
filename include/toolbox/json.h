@@ -24,6 +24,9 @@ struct u_json_s;
 /** \brief  Internal representation of any JSON object */
 typedef struct u_json_s u_json_t;
 
+/** \brief  Opaque iterator for traversing arrays and objects. */
+typedef struct { u_json_t *cur; } u_json_it_t;
+
 /** \brief  Walk strategy when traversing JSON objects */
 enum { 
     U_JSON_WALK_PREORDER,   /**< pre-order tree walk */
@@ -85,6 +88,11 @@ int u_json_add (u_json_t *head, u_json_t *jo);
 int u_json_remove (u_json_t *jo);
 const char *u_json_get_val (u_json_t *jo);
 int u_json_set_val_ex (u_json_t *jo, const char *val, char validate);
+int u_json_get_int (u_json_t *jo, long *pl);
+
+/* Access to children of a container object. */
+u_json_t *u_json_child_first (u_json_t *jo);
+u_json_t *u_json_child_last (u_json_t *jo);
 
 /* Array specific ops. */
 unsigned int u_json_array_count (u_json_t *jo);
@@ -94,6 +102,11 @@ u_json_t *u_json_array_get_nth (u_json_t *jo, unsigned int n);
 void u_json_print (u_json_t *jo);
 void u_json_walk (u_json_t *jo, int strategy, size_t l, 
         void (*cb)(u_json_t *, size_t, void *), void *cb_args);
+
+/* Iterators. */
+int u_json_it (u_json_t *jo, u_json_it_t *it);
+u_json_t *u_json_it_next (u_json_it_t *it);
+u_json_t *u_json_it_prev (u_json_it_t *it);
 
 /**
  *  \}

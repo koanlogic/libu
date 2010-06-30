@@ -689,6 +689,20 @@ const char *u_json_get_val (u_json_t *jo)
     }
 }
 
+/** \brief  Get the \c long \c int value of the non-container object \p jo. */
+int u_json_get_int (u_json_t *jo, long *pl)
+{
+    dbg_return_if (jo == NULL, ~0);
+    dbg_return_if (jo->type != U_JSON_TYPE_NUMBER, ~0);
+    dbg_return_if (pl == NULL, ~0);
+
+    dbg_err_if (u_atol(jo->val, pl));
+
+    return 0;
+err:
+    return ~0;
+}
+
 /** \brief  Wrapper around ::u_json_cache_get to retrieve string values from 
  *          terminal (i.e. non-container) objects. */
 const char *u_json_cache_get_val (u_json_t *jo, const char *name)
@@ -792,6 +806,64 @@ int u_json_new_bool (const char *key, char val, u_json_t **pjo)
     /* No need to validate. */
     return u_json_new_atom(val ? U_JSON_TYPE_TRUE : U_JSON_TYPE_FALSE, 
             key, NULL, 0, pjo);
+}
+
+/** \brief  Return the first child (if any) from the supplied container 
+ *          \p jo. */
+u_json_t *u_json_child_first (u_json_t *jo)
+{
+    dbg_return_if (jo == NULL, NULL);
+    dbg_return_if (!U_JSON_OBJ_IS_CONTAINER(jo), NULL);
+
+    return TAILQ_FIRST(&jo->children);
+}
+
+/** \brief  Return the last child (if any) from the supplied container 
+ *          \p jo. */
+u_json_t *u_json_child_last (u_json_t *jo)
+{
+    dbg_return_if (jo == NULL, NULL);
+    dbg_return_if (!U_JSON_OBJ_IS_CONTAINER(jo), NULL);
+
+    return TAILQ_LAST(&jo->children, u_json_chld_s);
+}
+
+/** \brief  Initialize the iterator at \p it initially attached to \p jo. */
+int u_json_it (u_json_t *jo, u_json_it_t *it)
+{
+    dbg_return_if (it == NULL, ~0);
+
+    it->cur = jo;
+
+    return 0;
+}
+
+/** \brief  Get JSON element under cursor and step cursor in the forward
+ *          direction. */
+u_json_t *u_json_it_next (u_json_it_t *it)
+{
+    u_json_t *jo;
+
+    dbg_return_if (it == NULL, NULL);
+
+    if ((jo = it->cur) != NULL)
+        it->cur = TAILQ_NEXT(jo, siblings);
+
+    return jo;
+}
+
+/** \brief  Get JSON element under cursor and step cursor in the backwards
+ *          direction. */
+u_json_t *u_json_it_prev (u_json_it_t *it)
+{
+    u_json_t *jo;
+
+    dbg_return_if (it == NULL, NULL);
+
+    if ((jo = it->cur) != NULL)
+        it->cur = TAILQ_PREV(jo, u_json_chld_s, siblings);
+
+    return jo;
 }
 
 /**

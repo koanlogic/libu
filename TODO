@@ -1,15 +1,15 @@
 # $Id: TODO,v 1.6 2009/12/29 20:14:34 tho Exp $
 
 - u_config_t multi-line values
+= u_config "listener" feature (http://koanlogic.com/pipermail/klone-users/2010-June/000930.html)
 - man page for each module
 - a decent README file :-)
 
 
-- add "validate" option to setters
-- container (objects and arrays) iterators
+- add libu::json to json.org list of implementations (douglas@crockford.com)
+
 * unit tests for new json interfaces (countinuous WIP)
     - validator
-    - iterator
     - ...
 - valgrind tour
 
@@ -19,34 +19,5 @@
 ? is zero-length json key valid ? invalid zero-length would make possible to
   decide if a given name is (or isn't) fully qualified !
 
-? json per-type getters
-
-iterator layout:
-
-{
-    u_json_it_t jit = NULL;
-
-    /* create a new iterator associated to json object jo
-     * (jo must have siblings, typically it's the first node of a
-     * container object) */
-
-    /* forward sequential scan of elements in container. */
-    u_json_it(u_json_first(jo), jit); 
-    while ((cur = u_json_it_next(jit)) != NULL)
-    {
-        /* do something with 'cur' */
-    }
-
-
-    /* backwards -- starting from the 10th position -- sequential scan of 
-     * elements in array */
-    u_json_it(u_json_array_get_nth(jo, 10), jit);
-    while ((cur = u_json_it_prev(jit)) != NULL)
-    {
-        /* do something with 'cur' */
-    }
-
-    
-
-
-}
+* json per-type getters
+    - real 

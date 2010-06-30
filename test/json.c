@@ -6,6 +6,7 @@ static int test_codec (u_test_case_t *tc);
 static int test_build_simple_object (u_test_case_t *tc);
 static int test_build_nested_object (u_test_case_t *tc);
 static int test_build_simple_array (u_test_case_t *tc);
+static int test_iterators (u_test_case_t *tc);
 
 static int test_codec (u_test_case_t *tc)
 {
@@ -65,17 +66,17 @@ static int test_build_simple_array (u_test_case_t *tc)
     const char *exp = "[ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]";
 
     /* [ ... ] */
-    con_err_if (u_json_new_array(NULL, &root));
+    u_test_err_if (u_json_new_array(NULL, &root));
 
     for (l = 0; l < 10 ; l++)
     {
         /* "$i," */ 
-        con_err_if (u_json_new_int(NULL, l, &tmp));
-        con_err_if (u_json_add(root, tmp));
+        u_test_err_if (u_json_new_int(NULL, l, &tmp));
+        u_test_err_if (u_json_add(root, tmp));
         tmp = NULL;
     }
 
-    con_err_if (u_json_encode(root, &s));
+    u_test_err_if (u_json_encode(root, &s));
 
     u_test_err_ifm (strcmp(exp, s), "expecting \'%s\', got \'%s\'", exp, s);
     
@@ -102,29 +103,29 @@ static int test_build_simple_object (u_test_case_t *tc)
         "{ \"num\": 999, \"string\": \".\", \"null\": null, \"bool\": true }";
 
     /* { ... } */
-    con_err_if (u_json_new_object(NULL, &root));
+    u_test_err_if (u_json_new_object(NULL, &root));
 
     /* "num": "999" */
-    con_err_if (u_json_new_int("num", 999, &tmp));
-    con_err_if (u_json_add(root, tmp));
+    u_test_err_if (u_json_new_int("num", 999, &tmp));
+    u_test_err_if (u_json_add(root, tmp));
     tmp = NULL;
 
     /* "string": "." */
-    con_err_if (u_json_new_string("string", ".", &tmp));
-    con_err_if (u_json_add(root, tmp));
+    u_test_err_if (u_json_new_string("string", ".", &tmp));
+    u_test_err_if (u_json_add(root, tmp));
     tmp = NULL;
 
     /* "null": null */
-    con_err_if (u_json_new_null("null", &tmp));
-    con_err_if (u_json_add(root, tmp));
+    u_test_err_if (u_json_new_null("null", &tmp));
+    u_test_err_if (u_json_add(root, tmp));
     tmp = NULL;
 
     /* "bool": true */
-    con_err_if (u_json_new_bool("bool", 1, &tmp));
-    con_err_if (u_json_add(root, tmp));
+    u_test_err_if (u_json_new_bool("bool", 1, &tmp));
+    u_test_err_if (u_json_add(root, tmp));
     tmp = NULL;
 
-    con_err_if (u_json_encode(root, &s));
+    u_test_err_if (u_json_encode(root, &s));
 
     u_test_err_ifm (strcmp(exp, s), "expecting \'%s\', got \'%s\'", exp, s);
  
@@ -151,23 +152,23 @@ static int test_build_nested_object (u_test_case_t *tc)
     const char *exp = "{ \"array\": [ null, null, null ] }";
 
     /* Nested array of null's. */
-    con_err_if (u_json_new_array("array", &array));
+    u_test_err_if (u_json_new_array("array", &array));
 
     for (i= 0; i < 3 ; i++)
     {
-        con_err_if (u_json_new_null(NULL, &tmp));
-        con_err_if (u_json_add(array, tmp));
+        u_test_err_if (u_json_new_null(NULL, &tmp));
+        u_test_err_if (u_json_add(array, tmp));
         tmp = NULL;
     }
 
     /* TODO add nested simple object. */
 
     /* Top level container. */
-    con_err_if (u_json_new_object(NULL, &root));
-    con_err_if (u_json_add(root, array));
+    u_test_err_if (u_json_new_object(NULL, &root));
+    u_test_err_if (u_json_add(root, array));
     array = NULL;
 
-    con_err_if (u_json_encode(root, &s));
+    u_test_err_if (u_json_encode(root, &s));
     
     u_test_err_ifm (strcmp(exp, s), "expecting \'%s\', got \'%s\'", exp, s);
 
@@ -187,6 +188,39 @@ err:
 
     return U_TEST_FAILURE;
 }
+
+static int test_iterators (u_test_case_t *tc)
+{
+    long e, i;
+    u_json_it_t jit;
+    u_json_t *jo = NULL, *cur;
+    const char *s = "[ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]";
+
+    u_test_err_if (u_json_decode(s, &jo));
+
+    /* Init array iterator from first element and go forward. */
+    u_test_err_if (u_json_it(u_json_child_first(jo), &jit));
+    for (i = 1; (cur = u_json_it_next(&jit)) != NULL; i++)
+    {
+        u_test_err_if (u_json_get_int(cur, &e));
+        u_test_err_ifm (e != i, "expecting \'%d\', got \'%d\'", e, i);
+    }
+
+    /* Init array iterator from last element and go backwards. */
+    u_test_err_if (u_json_it(u_json_child_last(jo), &jit));
+    for (i = 10; (cur = u_json_it_prev(&jit)) != NULL; i--)
+    {
+        u_test_err_if (u_json_get_int(cur, &e));
+        u_test_err_ifm (e != i, "expecting \'%d\', got \'%d\'", e, i);
+    }
+
+    u_json_free(jo), jo = NULL;
+
+    return U_TEST_SUCCESS;
+err:
+    return U_TEST_FAILURE;
+}
+
 int test_suite_json_register (u_test_t *t)
 {
     u_test_suite_t *ts = NULL;
@@ -200,6 +234,7 @@ int test_suite_json_register (u_test_t *t)
                 test_build_simple_array, ts));
     con_err_if (u_test_case_register("Builder (nested object)", 
                 test_build_nested_object, ts));
+    con_err_if (u_test_case_register("Iterators", test_iterators, ts));
 
     /* JSON depends on the lexer and hmap modules. */
     con_err_if (u_test_suite_dep_register("Lexer", ts));
