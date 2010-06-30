@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 
 #include <toolbox/json.h>
 #include <toolbox/carpal.h>
@@ -202,8 +203,15 @@ int u_json_set_val_ex (u_json_t *jo, const char *val, char check)
 
     if (check)
     {
-        /* if (U_JSON_TYPE_STRING) "-wrap 'val' */
-        dbg_err_if (u_lexer_new(val, &vl));
+        /* XXX The following declaration assumes C99 or C89+support of variable 
+         *     length automatic arrays -- as in GCC since at least version 
+         *     2.95.3. */
+        char qval[strlen(val) + 3]; 
+
+        /* If we are supposed to set a string value, we need to quote it. */
+        (void) u_snprintf(qval, sizeof qval, "\"%s\"", val);
+
+        dbg_err_if (u_lexer_new(qval, &vl));
     }
 
     /* If requested, pass 'val' through its validator. */
@@ -727,26 +735,37 @@ int u_json_remove (u_json_t *jo)
 /** \brief  Create new JSON string object. */
 int u_json_new_string (const char *key, const char *val, u_json_t **pjo)
 {
-    return u_json_new_atom(U_JSON_TYPE_STRING, key, val, 0, pjo);
+    return u_json_new_atom(U_JSON_TYPE_STRING, key, val, 1, pjo);
 }
 
 /** \brief  Create new JSON number object. */
 int u_json_new_number (const char *key, const char *val, u_json_t **pjo)
 {
-    return u_json_new_atom(U_JSON_TYPE_NUMBER, key, val, 0, pjo);
+    return u_json_new_atom(U_JSON_TYPE_NUMBER, key, val, 1, pjo);
 }
 
 /** \brief  Create new JSON number object from double precision FP number. */
 int u_json_new_real (const char *key, double val, u_json_t **pjo)
 {
-    char sval[U_TOKEN_SZ];
+    char sval[U_TOKEN_SZ], check = 0;
 
-    /* CHECK FORMAT STRING 
-     * especially against json specs about '0' handling after the '.' */
-    dbg_return_if (u_snprintf(sval, sizeof sval, "%f", val), ~0);
+#ifdef HAVE_ISFINITE
+    /* Use isfinite() to avoid infity's and NaN's which would break the
+     * JSON syntax. */
+    dbg_return_if (!isfinite(val), ~0);
+#else
+    /* If isfinite() is not available (i.e. !C99), force check in 
+     * u_json_new_atom(). */
+    check = 1;
+#endif  /* HAVE_ISFINITE */
+
+    /* %g does exponential (i.e. [+-]d.d...de[+-]dd) or fixed-point (i.e.
+     * [+-]d...d.d...d) notation depending on 'val'.  Both should be compatible
+     * with JSON number specification. */ 
+    dbg_return_if (u_snprintf(sval, sizeof sval, "%g", val), ~0);
 
     /* Assume 'sval' correctly formatted (no need to validate). */
-    return u_json_new_atom(U_JSON_TYPE_NUMBER, key, sval, 0, pjo);
+    return u_json_new_atom(U_JSON_TYPE_NUMBER, key, sval, check, pjo);
 }
 
 /** \brief  Create new JSON number object from long integer. */
@@ -754,7 +773,6 @@ int u_json_new_int (const char *key, long val, u_json_t **pjo)
 {
     char sval[U_TOKEN_SZ];
 
-    /* CHECK FORMAT STRING */
     dbg_return_if (u_snprintf(sval, sizeof sval, "%ld", val), ~0);
 
     /* Assume 'sval' correctly formatted (no need to validate). */
