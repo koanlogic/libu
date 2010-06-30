@@ -5,7 +5,7 @@
 - a decent README file :-)
 
 
-- validation (light decoder) interface
+- add "validate" option to setters
 - container (objects and arrays) iterators
 * unit tests for new json interfaces (countinuous WIP)
     - validator

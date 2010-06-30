@@ -12,11 +12,11 @@ int main (void)
 {
     char status[U_LEXER_ERR_SZ];
 
-    //con_err_if (simple_object());
-    //con_err_if (simple_array());
-    //con_err_if (nested_object());
+    con_err_if (simple_object());
+    con_err_if (simple_array());
+    con_err_if (nested_object());
 
-    if (u_json_validate("{\"x\": }", status))
+    if (u_json_validate("{\"x\": 123 }", status))
         u_con("%s", status);
 
     return EXIT_SUCCESS;

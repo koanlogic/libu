@@ -84,6 +84,7 @@ int u_json_set_type (u_json_t *jo, u_json_type_t type);
 int u_json_add (u_json_t *head, u_json_t *jo);
 int u_json_remove (u_json_t *jo);
 const char *u_json_get_val (u_json_t *jo);
+int u_json_set_val_ex (u_json_t *jo, const char *val, char validate);
 
 /* Array specific ops. */
 unsigned int u_json_array_count (u_json_t *jo);

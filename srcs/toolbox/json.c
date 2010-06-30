@@ -89,7 +89,7 @@ static void nopf (void *dummy) { u_unused_args(dummy); return; }
 static int u_json_new_container (u_json_type_t type, const char *key, 
         u_json_t **pjo);
 static int u_json_new_atom (u_json_type_t type, const char *key, 
-        const char *val, char validate, u_json_t **pjo);
+        const char *val, char check, u_json_t **pjo);
 
 /**
     \defgroup json JSON
@@ -170,35 +170,64 @@ int u_json_set_type (u_json_t *jo, u_json_type_t type)
 }
 
 /**
+ *  \brief  ::u_json_set_val_ex wrapper with no \p val syntax check
+ */
+int u_json_set_val (u_json_t *jo, const char *val)
+{
+    return u_json_set_val_ex(jo, val, 0);
+}
+
+/*
  *  \brief  Set the value of a JSON object
  *
  *  Set the value of the JSON object \p jo to the string value pointed by
  *  \p val.  This operation is meaningful only in case the underlying object
- *  is a number or a string.
+ *  is a number or a string, in which case the syntax of the supplied value
+ *  can be checked by passing non-0 value to the \p check parameter.
  *
- *  \param  jo  Pointer to a ::u_json_t object
- *  \param  val Pointer to the (non-NULL) value string
+ *  \param  jo      Pointer to a ::u_json_t object
+ *  \param  val     Pointer to the (non-NULL) value string
+ *  \param  check   Set to non-0 if you need to syntax check \p val
  *
  *  \retval ~0  on failure
  *  \retval  0  on success
  */
-int u_json_set_val (u_json_t *jo, const char *val)
+int u_json_set_val_ex (u_json_t *jo, const char *val, char check)
 {
+    u_lexer_t *vl = NULL;
+
     dbg_return_if (jo == NULL, ~0);
     dbg_return_if (val == NULL, ~0);
     /* Note that cached objects allow for value overwrite. */
 
-    /* Non-critical error, just emit some debug info. */
-    if (jo->type != U_JSON_TYPE_STRING && jo->type != U_JSON_TYPE_NUMBER)
-        goto end;
+    if (check)
+    {
+        /* if (U_JSON_TYPE_STRING) "-wrap 'val' */
+        dbg_err_if (u_lexer_new(val, &vl));
+    }
+
+    /* If requested, pass 'val' through its validator. */
+    switch (jo->type)
+    {
+        case U_JSON_TYPE_STRING:
+            dbg_err_if (check && u_json_match_string(vl, NULL));
+            break;
+        case U_JSON_TYPE_NUMBER:
+            dbg_err_if (check && u_json_match_number(vl, NULL));
+            break;
+        default:
+            /* Non-critical error, just emit some debug info. */
+            goto end;
+    }
 
     dbg_return_if (u_strlcpy(jo->val, val, sizeof jo->val), ~0);
 
     /* Fall through. */       
 end:
     return 0;
+err:
+    return ~0;
 }
-
 /**
  *  \brief  Set the key of a JSON object
  *
@@ -221,7 +250,6 @@ int u_json_set_key (u_json_t *jo, const char *key)
 
     return 0;
 }
-
 
 /** \brief  Wrapper function that creates an array container.
  *          (\p key may be \c NULL). */
@@ -699,13 +727,13 @@ int u_json_remove (u_json_t *jo)
 /** \brief  Create new JSON string object. */
 int u_json_new_string (const char *key, const char *val, u_json_t **pjo)
 {
-    return u_json_new_atom(U_JSON_TYPE_STRING, key, val, 1, pjo);
+    return u_json_new_atom(U_JSON_TYPE_STRING, key, val, 0, pjo);
 }
 
 /** \brief  Create new JSON number object. */
 int u_json_new_number (const char *key, const char *val, u_json_t **pjo)
 {
-    return u_json_new_atom(U_JSON_TYPE_NUMBER, key, val, 1, pjo);
+    return u_json_new_atom(U_JSON_TYPE_NUMBER, key, val, 0, pjo);
 }
 
 /** \brief  Create new JSON number object from double precision FP number. */
@@ -1440,7 +1468,6 @@ static int u_json_new_container (u_json_type_t type, const char *key,
     dbg_err_if (u_json_new(&jo));
 
     dbg_err_if (u_json_set_type(jo, type));
-    /* TBT: allow for anonymous containers via NULL key's ? */
     dbg_err_if (u_json_set_key(jo, key ? key : ""));
 
     *pjo = jo;
@@ -1453,12 +1480,9 @@ err:
 }
 
 static int u_json_new_atom (u_json_type_t type, const char *key, 
-        const char *val, char validate, u_json_t **pjo)
+        const char *val, char check, u_json_t **pjo)
 {
     u_json_t *jo = NULL;
-
-    if (validate)
-        u_info("validation not honoured (TODO)");
 
     dbg_return_if (pjo == NULL, ~0);
 
@@ -1473,7 +1497,7 @@ static int u_json_new_atom (u_json_type_t type, const char *key,
     {
         case U_JSON_TYPE_NUMBER:  
         case U_JSON_TYPE_STRING:  
-            dbg_err_if (u_json_set_val(jo, val));
+            dbg_err_if (u_json_set_val_ex(jo, val, check));
         default: break;
     }
 
@@ -1492,13 +1516,12 @@ static int u_json_do_parse (const char *json, u_json_t **pjo,
     u_json_t *jo = NULL;
     u_lexer_t *jl = NULL;
 
+    /* When 'pjo' is NULL, assume this is a validating-only parser. */
     dbg_return_if (json == NULL, ~0);
 
     /* Create a disposable lexer context associated to the supplied
      * 'json' string. */
     warn_err_if (u_lexer_new(json, &jl));
-
-    /* When 'pjo' is NULL, assume this is a validating-only parser. */
 
     /* Create top level json object. */
     warn_err_if (pjo && u_json_new(&jo));
@@ -1534,3 +1557,5 @@ err:
 
     return ~0;
 }
+
+
