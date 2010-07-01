@@ -2,21 +2,21 @@ $Id: ChangeLog,v 1.111 2010/06/01 20:26:45 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
-LibU 2.x.y
-	- [misc] added u_atol interface
+LibU 2.1.0
+	- [lexer] new module to do basic lexical tokenizing 
+	- [json] new module to encode/decode/validate JSON objects (RFC 4627)
+	- [bst] new binary search tree module
+	- [misc] added u_atol and u_atof interfaces
 	- [rb] malloc based implementation, both using contiguous (i.e. double
-	  sized) and wrapped buffer ; can be now used also on Windows
-	- [test] make it work on non-UNIXes
-	- [lexer] basic lexical tokenizer
-	- [uri] regex-free uri parser (now recursive descent) ; it has the happy
-	  side-effect of making the net module work on MinGw ; path is now optional
-	  and has default value "/" ; missing "//" in u_uri_knead_authority()
-	- [config] add u_config_walk function to traverse a config tree
+	  sized) and wrapped buffer ; make it work on Windows
+	- [test] make it work on Windows
+	- [uri] regex-free uri parser (now recursive descent) ; make it work on
+	  MinGw ; path is now optional and has default value "/" ; fixed missing 
+	  "//" in u_uri_knead_authority()
+	- [config] add u_config_walk function to traverse the config tree
 	- [carpal] fixed 1.0 compatibility (missing u_con)
 	- [net] U_NET_OPT_DGRAM_BROADCAST to set DGRAM client socket broadcast 
 	  option
-	- [bst] new binary search tree module
-	- [json] new module to encode/decode/validate JSON objects (RFC 4627)
 	- [hmap] added u_hmap_count() to get the current number of objects stored
 	  into hmap
 

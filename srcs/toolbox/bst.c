@@ -58,7 +58,65 @@ static u_bst_node_t *u_bst_node_balance (u_bst_node_t *node);
 /**
     \defgroup   bst Binary Search Tree
     \{
-        TODO
+        This module implements interfaces that let you work with a simple
+        binary search tree.
+
+    \section load Load
+
+    A new BST instance is created via ::u_bst_new.  New nodes are added
+    one after another by calling ::u_bst_push:
+
+    \code
+    size_t i;
+    char key[KEY_SZ];
+    u_bst_t *bst = NULL;
+
+    // Create the root container
+    dbg_err_if (u_bst_new(U_BST_OPT_NONE, &bst));
+
+    // Add random keys referencing dummy NULL values
+    for (i = 0; i < NELEMS; i++)
+    {
+        (void) u_snprintf(key, sizeof key, "%12.12d", rand());
+        dbg_err_if (u_bst_push(bst, key, NULL));
+    }
+    \endcode
+
+    By default keys are strings -- of which the BST holds a private copy -- 
+    and values are pointers to any data type, under the user's complete 
+    responsibility.
+    If you need to handle other key or value types, or different ownership 
+    logics, use the u_bst_set_* family of functions.
+
+
+    \section search Search
+
+    Typically, once the tree is loaded, specific key values are searched,
+    via ::u_bst_search, to retrieve their associated values (e.g. symbol table 
+    lookups), like in the following:
+
+    \code
+    ...
+    dbg_err_if (u_bst_push(symtbl, "HAVE_LIBU_BST", "0"));
+    ...
+    if ((node = u_bst_search(symtbl, "HAVE_LIBU_BST")) == NULL ||
+            strcmp((const char *) u_bst_node_val(node), "1"))
+    {
+        u_con("HAVE_LIBU_BST undefined.");
+        return ~0;
+    }
+    \endcode
+
+
+    \section term Termination
+
+    When you are done, the resources allocated to the BST can be reclaimed back
+    with ::u_bst_free:
+    
+    \code
+    u_bst_free(bst);
+    \endcode
+
  */
 
 /**
