@@ -43,6 +43,9 @@ struct u_json_s
 #define U_JSON_OBJ_IS_CONTAINER(jo) \
         ((jo->type == U_JSON_TYPE_OBJECT) || (jo->type == U_JSON_TYPE_ARRAY))
 
+#define U_JSON_OBJ_IS_BOOL(jo) \
+        ((jo->type == U_JSON_TYPE_TRUE) || (jo->type == U_JSON_TYPE_FALSE))
+
 /* Lexer methods */
 static int u_json_match_value (u_lexer_t *jl, u_json_t *jo);
 static int u_json_match_number_first (u_lexer_t *jl);
@@ -145,12 +148,14 @@ static int u_json_new_atom (u_json_type_t type, const char *key,
     "{ "I2": [ [ 1, 0 ], [ 0, 1 ] ] }".
 
     \code
+    long l;
+
     dbg_err_if (u_json_index(jo));
 
-    u_json_get_int(u_json_cache_get(jo, ".[0][0]"), &l);    // l = 1
-    u_json_get_int(u_json_cache_get(jo, ".[0][1]"), &l);    // l = 0
-    u_json_get_int(u_json_cache_get(jo, ".[1][0]"), &l);    // l = 0
-    u_json_get_int(u_json_cache_get(jo, ".[1][1]"), &l);    // l = 1
+    u_json_cache_get_int(jo, ".[0][0]", &l);    // l = 1
+    u_json_cache_get_int(jo, ".[0][1]", &l);    // l = 0
+    u_json_cache_get_int(jo, ".[1][0]", &l);    // l = 0
+    u_json_cache_get_int(jo, ".[1][1]", &l);    // l = 1
     \endcode
 
     Please note that when index'ed, the parse tree enters a "frozen" state
@@ -810,6 +815,42 @@ err:
     return ~0;
 }
 
+/** \brief  Get the \c double precision FP value of the non-container object 
+ *          \p jo. */
+int u_json_get_real (u_json_t *jo, double *pd)
+{
+    dbg_return_if (jo == NULL, ~0);
+    dbg_return_if (jo->type != U_JSON_TYPE_NUMBER, ~0);
+    dbg_return_if (pd == NULL, ~0);
+
+    /* TODO */
+    *pd = atof(jo->val);
+
+    return 0;
+}
+
+/** \brief  Get the boolean value of the non-container object \p jo. */
+int u_json_get_bool (u_json_t *jo, char *pb)
+{
+    dbg_return_if (jo == NULL, ~0);
+    dbg_return_if (pb == NULL, ~0);
+
+    switch (jo->type)
+    {
+        case U_JSON_TYPE_TRUE:
+            *pb = 1;
+            break;
+        case U_JSON_TYPE_FALSE:
+            *pb = 0;
+            break;
+        default:
+            return ~0;
+    }
+
+    return 0;
+}
+
+
 /** \brief  Wrapper around ::u_json_cache_get to retrieve string values from 
  *          terminal (i.e. non-container) objects. */
 const char *u_json_cache_get_val (u_json_t *jo, const char *name)
@@ -817,6 +858,39 @@ const char *u_json_cache_get_val (u_json_t *jo, const char *name)
     u_json_t *res = u_json_cache_get(jo, name);
 
     return u_json_get_val(res);
+}
+
+/** \brief  Wrapper around ::u_json_cache_get to retrieve integer values from 
+ *          terminal (i.e. non-container) objects. */
+int u_json_cache_get_int (u_json_t *jo, const char *name, long *pval)
+{
+    u_json_t *res;
+
+    dbg_return_if ((res = u_json_cache_get(jo, name)) == NULL, ~0);
+
+    return u_json_get_int(res, pval);
+}
+
+/** \brief  Wrapper around ::u_json_cache_get to retrieve double precision FP
+ *          values from terminal (i.e. non-container) objects. */
+int u_json_cache_get_real (u_json_t *jo, const char *name, double *pval)
+{
+    u_json_t *res;
+
+    dbg_return_if ((res = u_json_cache_get(jo, name)) == NULL, ~0);
+
+    return u_json_get_real(res, pval);
+}
+
+/** \brief  Wrapper around ::u_json_cache_get to retrieve boolean values from 
+ *          terminal (i.e. non-container) objects. */
+int u_json_cache_get_bool (u_json_t *jo, const char *name, char *pval)
+{
+    u_json_t *res;
+
+    dbg_return_if ((res = u_json_cache_get(jo, name)) == NULL, ~0);
+
+    return u_json_get_bool(res, pval);
 }
 
 /**
@@ -871,7 +945,7 @@ int u_json_new_real (const char *key, double val, u_json_t **pjo)
     char sval[U_TOKEN_SZ], check = 0;
 
 #ifdef HAVE_ISFINITE
-    /* Use isfinite() to avoid infity's and NaN's which would break the
+    /* Use isfinite() to avoid infinity's and NaN's which would break the
      * JSON syntax. */
     dbg_return_if (!isfinite(val), ~0);
 #else
@@ -880,12 +954,11 @@ int u_json_new_real (const char *key, double val, u_json_t **pjo)
     check = 1;
 #endif  /* HAVE_ISFINITE */
 
-    /* %g does exponential (i.e. [+-]d.d...de[+-]dd) or fixed-point (i.e.
+    /* "%g" does exponential (i.e. [+-]d.d...dE[+-]dd) or fixed-point (i.e.
      * [+-]d...d.d...d) notation depending on 'val'.  Both should be compatible
-     * with JSON number specification. */ 
+     * with JSON number spec. */ 
     dbg_return_if (u_snprintf(sval, sizeof sval, "%g", val), ~0);
 
-    /* Assume 'sval' correctly formatted (no need to validate). */
     return u_json_new_atom(U_JSON_TYPE_NUMBER, key, sval, check, pjo);
 }
 
@@ -1754,5 +1827,4 @@ err:
 
     return ~0;
 }
-
 

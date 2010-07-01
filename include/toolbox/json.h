@@ -64,6 +64,10 @@ int u_json_unindex (u_json_t *jo);
 /* Cache-aided get/set operations. */
 u_json_t *u_json_cache_get (u_json_t *jo, const char *name);
 const char *u_json_cache_get_val (u_json_t *jo, const char *name);
+int u_json_cache_get_int (u_json_t *jo, const char *name, long *pval);
+int u_json_cache_get_real (u_json_t *jo, const char *name, double *pval);
+int u_json_cache_get_bool (u_json_t *jo, const char *name, char *pval);
+
 int u_json_cache_set_tv (u_json_t *jo, const char *name, 
         u_json_type_t type, const char *val);
 
@@ -89,6 +93,8 @@ int u_json_remove (u_json_t *jo);
 const char *u_json_get_val (u_json_t *jo);
 int u_json_set_val_ex (u_json_t *jo, const char *val, char validate);
 int u_json_get_int (u_json_t *jo, long *pl);
+int u_json_get_real (u_json_t *jo, double *pd);
+int u_json_get_bool (u_json_t *jo, char *pb);
 
 /* Access to children of a container object. */
 u_json_t *u_json_child_first (u_json_t *jo);

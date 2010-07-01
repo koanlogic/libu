@@ -18,6 +18,3 @@
       check)
 ? is zero-length json key valid ? invalid zero-length would make possible to
   decide if a given name is (or isn't) fully qualified !
-
-* json per-type getters
-    - real 
