@@ -177,7 +177,6 @@ static int u_json_new_atom (u_json_type_t type, const char *key,
 
     // encode it, should give: "{ "integer": 999 }"
     u_json_encode(root, &s);
-    ...
     \endcode
 
 
@@ -203,7 +202,7 @@ static int u_json_new_atom (u_json_type_t type, const char *key,
     for (i = 1; (cur = u_json_it_next(&jit)) != NULL; i++)
     {
         dbg_err_if (u_json_get_int(cur, &e));
-        dgb_err_if (e != i);    // e = 1..10
+        dbg_err_if (e != i);    // e = 1..10
     }
     \endcode
  */
