@@ -61,6 +61,7 @@ char *u_strdup (const char *s);
 char *u_strndup (const char *s, size_t len);
 int u_atol (const char *nptr, long *pl);
 int u_atoi (const char *nptr, int *pi);
+int u_atof (const char *nptr, double *pd);
 #ifdef HAVE_STRTOUMAX
 #include <inttypes.h>
 int u_atoumax (const char *nptr, uintmax_t *pumax);

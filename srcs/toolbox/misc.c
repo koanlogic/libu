@@ -815,6 +815,66 @@ err:
 }
 #endif  /* HAVE_STRTOUMAX */
 
+/** 
+ *  \brief  Convert string to \c double representation
+ *
+ *  Try to convert the string \p nptr into a double precision FP number at 
+ *  \p pl, handling all \c strtod(3) exceptions (overflow or underflow, invalid
+ *  representation) in a simple go/no-go way.
+ *  Beware that if your platform does not implements the strtod(3) interface,
+ *  this function falls back using plain old atof(3) which does have severe 
+ *  limitations as of error handling and thread safety.
+ *
+ *  \param  nptr    NUL-terminated string (possibly) representing an floating
+ *                  point number (see strtod(3) for formatting details)
+ *  \param  pd      pointer to a \c double variable that contains the result of
+ *                  a successful conversion
+ *  
+ *  \retval 0   on success  (always if \c HAVE_STRTOD is not defined)
+ *  \retval ~0  on error
+ */
+int u_atof (const char *nptr, double *pd)
+{
+#ifdef HAVE_STRTOD
+    double tmp;
+    char *endptr;
+    int saved_errno = errno;
+
+    dbg_return_if (nptr == NULL, ~0);
+    dbg_return_if (pd == NULL, ~0);
+
+    /* Reset errno. */
+    errno = 0;  
+ 
+    /* Try conversion. */
+    tmp = strtod(nptr, &endptr);
+    
+    /* No conversion performed */
+    dbg_err_if (tmp == 0 && nptr == endptr);
+
+    /* Overflow/underflow conditions.
+     * 'tmp' can be 0 or [+-]HUGE_VAL, but we're not interested in 
+     * distinguishing. */
+    dbg_err_sif (errno == ERANGE);
+
+    *pd = tmp;
+ 
+    errno = saved_errno;
+    return 0;
+err:
+    errno = saved_errno;
+    return ~0;
+#else
+    /* Fall back to old plain atof(3). */
+    dbg_return_if (nptr == NULL, ~0);
+    dbg_return_if (pd == NULL, ~0);
+
+    *pd = atof(nptr);
+
+    return 0;
+#endif  /* HAVE_STRTOD */
+}
+
 /**
  *  \brief  tokenize the supplied \p wlist string (<b>DEPRECATED</b>, use 
  *          ::u_strtok instead)

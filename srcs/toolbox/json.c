@@ -823,10 +823,11 @@ int u_json_get_real (u_json_t *jo, double *pd)
     dbg_return_if (jo->type != U_JSON_TYPE_NUMBER, ~0);
     dbg_return_if (pd == NULL, ~0);
 
-    /* TODO */
-    *pd = atof(jo->val);
+    dbg_err_if (u_atof(jo->val, pd));
 
     return 0;
+err:
+    return ~0;
 }
 
 /** \brief  Get the boolean value of the non-container object \p jo. */
@@ -849,7 +850,6 @@ int u_json_get_bool (u_json_t *jo, char *pb)
 
     return 0;
 }
-
 
 /** \brief  Wrapper around ::u_json_cache_get to retrieve string values from 
  *          terminal (i.e. non-container) objects. */
