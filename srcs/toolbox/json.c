@@ -99,16 +99,23 @@ static int u_json_new_atom (u_json_type_t type, const char *key,
         encoding, decoding and validation of JSON objects as defined in 
         <a href="http://www.ietf.org/rfc/rfc4627.txt">RFC 4627</a>.
         
-        A NUL-terminated string in JSON syntax is decoded into its parse
-        tree by means of the ::u_json_decode function as the showed in the
-        following snippet:
+
+    \section decode Decoding
+
+    A NUL-terminated string in JSON syntax is decoded into its parse
+    tree by means of the ::u_json_decode function as the showed in the
+    following snippet:
+
     \code
     u_json_t *jo = NULL;
     const char *i2 = "[ [ 1, 0 ], [ 0, 1 ] ]";
 
     dbg_err_if (u_json_decode(i2, &jo));
-    ...
     \endcode
+
+
+    \section validate Validating
+
         Should you just need to check the supplied string for syntax compliance
         (i.e. without actually creating the syntax tree), the ::u_json_validate
         interface can be used:
@@ -118,11 +125,25 @@ static int u_json_new_atom (u_json_type_t type, const char *key,
     if (u_json_validate(i2, status))
         u_con("Syntax error: %s", status);
     \endcode
-    Once the string has been parsed and (implicitly or explicitly) validated,
-    if the application requests frequent and/or massive access to its deeply 
-    nested attributes, then the parse tree can be indexed via ::u_json_index.
-    This way its nodes can be accessed via a unique naming scheme, similar to
-    the typical struct/array access in C:
+
+
+    \section cache Indexing
+
+    Once the string has been parsed and (implicitly or explicitly) 
+    validated, should the application request frequent and/or massive access 
+    to its deeply nested attributes, then you may want to create an auxiliary 
+    index to the parse tree via ::u_json_index.  This way its nodes can be 
+    accessed via a unique (and unambiguous -- provided that no anonymous key is
+    embedded into the JSON object) naming scheme, similar to the typical 
+    struct/array access in C, i.e.:
+        - "." is the root node;
+        - ".k" is used to access value in the parent object stored under the 
+          key "k";
+        - "[i]" is used to access the i-th value in the parent array.
+
+    So, for example, the string ".I2[0][0]" would retrieve the value "1" from 
+    "{ "I2": [ [ 1, 0 ], [ 0, 1 ] ] }".
+
     \code
     dbg_err_if (u_json_index(jo));
 
@@ -131,11 +152,16 @@ static int u_json_new_atom (u_json_type_t type, const char *key,
     u_json_get_int(u_json_cache_get(jo, ".[1][0]"), &l);    // l = 0
     u_json_get_int(u_json_cache_get(jo, ".[1][1]"), &l);    // l = 1
     \endcode
+
     Please note that when index'ed, the parse tree enters a "frozen" state
-    in which nothing but values and types of non-container objects (i.e. string,
-    number, boolean and null's) can be changed.  So, if you want to come back to
-    free manipulation, you must remove the indexing structure by means of 
-    ::u_json_deindex -- which invalidates any subsequent cached access attempt.
+    in which nothing but values and types of non-container objects (i.e. 
+    string, number, boolean and null's) can be changed.  So, if you want to 
+    come back to full tree manipulation, you must remove the indexing structure 
+    by means of ::u_json_deindex -- which invalidates any subsequent cached 
+    access attempt.
+
+
+    \section build Building and Encoding
 
     JSON objects can be created ex-nihil via the ::u_json_new_* family
     of functions, and then encoded in their serialized form via the 
@@ -154,11 +180,15 @@ static int u_json_new_atom (u_json_type_t type, const char *key,
     ...
     \endcode
 
+
+    \section iter Iterators
+
     The last basic concept that the user needs to know to work effectively with
     the JSON module is iteration.  Iterators allow efficient and safe traversal
     of container types (i.e. arrays and objects), where a naive walk strategy 
     based on ::u_json_array_get_nth would instead lead to performance collapse 
     as access time is quadratic in the number of elements in the container.
+
     \code
     long i, e;
     u_json_it_t jit;
