@@ -16,3 +16,5 @@
   decide if a given name is (or isn't) fully qualified !
 
 ? u_config_t multi-line values
+
+- memory with pools
