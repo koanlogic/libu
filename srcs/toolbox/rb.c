@@ -140,7 +140,7 @@ static void free_malloc (u_rb_t *rb);
  *  object is a multiple of the target system page size.
  *
  *  \param  hint_sz the suggested size in bytes for the ring buffer (the actual
- *                  size could be more than that because of alignement needs)
+ *                  size could be more than that because of alignment needs)
  *  \param  opts    Bitwise inclusive OR of ::u_rb_opts_t values
  *  \param  prb     result argument which holds the reference to the newly
  *                  created ::u_rb_t object
@@ -546,7 +546,7 @@ static int create_mmap (size_t hint_sz, int opts, u_rb_t **prb)
     dbg_err_sif (u_remove(path));
  
     /* round the supplied size to a page multiple (mmap is quite picky
-     * about page boundary alignement) */
+     * about page boundary alignment) */
     rb->sz = round_sz(hint_sz);
     rb->wr_off = rb->rd_off = rb->ready = 0;
     rb->opts = opts;
