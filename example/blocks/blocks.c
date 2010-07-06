@@ -2,6 +2,12 @@
 #include <u/libu.h>
 #include "blocks.h"
 
+#ifdef DEBUG
+  #define BLOCKS_DEBUG(...)   blocks_debug(__VA_ARGS__)
+#else
+  #define BLOCKS_DEBUG(...)
+#endif
+
 /* 
  * - One (default) or many (non upper bounded) blocks (BLOCKS_OPT_GROW);
  * - Blocks cannot be coalesced, but block size can change at any time during
@@ -23,7 +29,7 @@ typedef struct block_s block_t;
 
 struct blocks_s
 {
-    size_t cur_sz;  /* Current cumulative size of block. */
+    size_t cur_len; /* Current cumulative size of allocated memory. */
     size_t blk_sz;  /* Default size of each mmap'd memory block. */
     unsigned char opts;
     LIST_HEAD(BH, block_s) blocks;
@@ -36,6 +42,9 @@ static int block_clear (block_t *blk);
 
 static int round_sz (size_t hint_sz, size_t *psz);
 static block_t *first_fit (struct BH *bh, size_t len);
+static block_t *get_block_by_addr (struct BH *bh, void *addr);
+
+static int blocks_debug (const char *fmt, ...);
 
 /**
  *  \{
@@ -58,16 +67,20 @@ int blocks_new (size_t hint_sz, unsigned char opts, blocks_t **pblks)
     /* Create header. */
     dbg_err_sif ((blks = u_malloc(sizeof *blks)) == NULL);
 
+    /* Initialize list head before pushing the first element. */
+    LIST_FIRST(&blks->blocks) = NULL;
+
     /* Create first (and possibly unique) mem block. */
     dbg_err_if (block_new(blk_sz, &blk));
 
-    /* Attach block to header. */
+    /* Attach it to the header. */
     dbg_err_if (block_append(blk, blks));
     blk = NULL;
 
     /* Fix header info. */
     blks->opts = opts;
-    blks->blk_sz = blks->cur_sz = blk_sz;
+    blks->blk_sz = blk_sz;
+    blks->cur_len = 0;
 
     /* Return. */
     *pblks = blks;
@@ -100,9 +113,11 @@ void *blocks_alloc (blocks_t *blks, size_t len)
         /* We've got a match from the currently allocated blocks' list:
          *  - save pointer;
          *  - increment offset;
+         *  - increment parent's cumulative size counter
          *  - return saved pointer. */ 
         p = blk->mem + blk->offset;
         blk->offset += len;
+        blks->cur_len += len;
         return p;
     }
     else if (!(blks->opts & BLOCKS_OPT_GROW))
@@ -122,6 +137,7 @@ void *blocks_alloc (blocks_t *blks, size_t len)
     dbg_err_if (block_new(sz, &nblk));
     p = nblk->mem;
     nblk->offset += len;
+    blks->cur_len += len;
     dbg_err_if (block_append(nblk, blks));
     nblk = NULL;
 
@@ -132,17 +148,44 @@ err:
 
     return NULL;
 }
+
+/**
+ *  \brief  ...
+ */ 
+int blocks_info (blocks_t *blks)
+{
+    size_t nblks = 0, totmem = 0;
+    block_t *blk;
+
+    dbg_return_if (blks == NULL, ~0);
+
+    LIST_FOREACH (blk, &blks->blocks, next)
+    {
+        nblks += 1;
+        totmem += blk->sz;
+    }
+
+    u_con("\nBlocks stats at %p:\n"
+        "  total used bytes: %u\n"
+        "  total allocated bytes: %u\n"
+        "  default block size: %u\n"
+        "  allocated blocks: %u\n"
+        "  options bitmask: 0x%x", 
+        blks, blks->cur_len, totmem, blks->blk_sz, nblks, blks->opts);
+
+    return 0;
+}
  
 /**
  *  \brief  ...
  */
 void blocks_free (blocks_t *blks)
 {
-    block_t *blk;
+    block_t *blk, *tmp;
 
     nop_return_if (blks == NULL, );
 
-    LIST_FOREACH (blk, &blks->blocks, next)
+    LIST_FOREACH_SAFE (blk, &blks->blocks, next, tmp)
         block_free(blk);
 
     u_free(blks);
@@ -162,7 +205,37 @@ int blocks_clear (blocks_t *blks)
     LIST_FOREACH (blk, &blks->blocks, next)
         block_clear(blk);
 
+    /* Reset total bytes conter. */
+    blks->cur_len = 0;
+
     return 0;
+}
+
+/**
+ *  \brief  a safer memcpy(3) for memory regions allocated by blocks
+ */ 
+int blocks_copyout (blocks_t *blks, void *src, void *dst, size_t nbytes)
+{
+    block_t *blk;
+    unsigned char *rend;
+
+    dbg_return_if (blks == NULL, ~0);
+    dbg_return_if (src == NULL, ~0);
+    dbg_return_if (dst == NULL, ~0);
+    dbg_return_if (nbytes == 0, ~0);
+
+    /* First of all, src must be somewhere in one of our allocated blocks. */
+    dbg_err_if ((blk = get_block_by_addr(&blks->blocks, src)) == NULL);
+
+    /* Copyout region must be completely framed inside the block. */
+    rend = (unsigned char *) src + nbytes;
+    dbg_err_if (rend > (blk->mem + blk->offset));
+
+    memcpy(dst, src, nbytes);
+
+    return 0;
+err:
+    return ~0;
 }
 
 /**
@@ -184,6 +257,7 @@ static int block_new (size_t sz, block_t **pblk)
     blk->sz = sz;
     blk->offset = 0;
     LIST_NEXT(blk, next) = NULL;
+    blk->next.le_prev = NULL;
 
     *pblk = blk;
 
@@ -248,3 +322,35 @@ static block_t *first_fit (struct BH *bh, size_t len)
 
     return NULL;
 }
+
+static block_t *get_block_by_addr (struct BH *bh, void *addr)
+{
+    block_t *blk;
+
+    LIST_FOREACH (blk, bh, next)
+    {
+        /* Is addr IN [.mem, .mem + .offset] interval ? */
+        if (addr >= (void *) blk->mem && 
+                addr <= (void *) (blk->mem + blk->offset))
+            return blk;
+    }
+
+    return NULL;
+}
+
+static int blocks_debug (const char *fmt, ...)
+{
+    va_list ap;
+    char msg[1024];
+
+    dbg_return_if (fmt == NULL, ~0);
+
+    va_start(ap, fmt);
+    (void) vsnprintf(msg, sizeof msg, fmt, ap);
+    va_end(ap);
+
+    (void) fprintf(stdout, "<BLOCKS DBG> %s\n", msg);
+
+    return 0;
+}
+

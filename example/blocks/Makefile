@@ -7,7 +7,7 @@ PROG = blocks
 SRCS = main.c 
 SRCS += blocks.c 
 
-CFLAGS += -ggdb -DDEBUG
+#CFLAGS += -ggdb -DDEBUG
 
 LDADD += $(SRCDIR)/srcs/libu.a
 
