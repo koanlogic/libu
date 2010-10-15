@@ -22,9 +22,15 @@ extern "C" {
  *  \defgroup log Logging
  *  \{
  *      \par Logging levels
+ *
+ *          All standard syslog(3) levels:
  * 
+ *          \li LOG_EMERG
+ *          \li LOG_ALERT
+ *          \li LOG_CRIT
  *          \li LOG_ERR
  *          \li LOG_WARNING
+ *          \li LOG_NOTICE
  *          \li LOG_INFO
  *          \li LOG_DEBUG
  *
