@@ -68,9 +68,9 @@ static int test_uri_parser (u_test_case_t *tc)
     u_uri_t *u = NULL;
 
 #define CHECK_EXP_MSG(field) do {   \
-    if (((vt[i].exp.field == NULL) ?                                           \
-            strlen(u_uri_get_##field(u)) :                                     \
-            strcmp(u_uri_get_##field(u), vt[i].exp.field)))                    \
+    if ((vt[i].exp.field == NULL) ?                                            \
+            (strlen(u_uri_get_##field(u)) > 0) :                               \
+            (strcmp(u_uri_get_##field(u), vt[i].exp.field) != 0))              \
     {                                                                          \
         u_test_case_printf(tc, "%s != %s at idx %d",                           \
                 u_uri_get_##field(u), vt[i].exp.field, i);                     \
