@@ -34,6 +34,9 @@ ifndef NO_BST
 endif
 ifndef NO_JSON
     SRCS += json.c
+    ifdef HAVE_ISFINITE
+        LDFLAGS += -lm
+    endif
 endif
 
 LDADD += ../srcs/libu.a

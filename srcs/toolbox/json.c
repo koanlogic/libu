@@ -1712,7 +1712,7 @@ static void u_json_do_index (u_json_t *jo, size_t l, void *map)
             jo->icur = 0;
     }
     else
-        warn("Expecting an object, an array, or a top-level node.");
+        u_warn("Expecting an object, an array, or a top-level node.");
 
     /* Insert node into the hmap. */
     dbg_if (u_hmap_easy_put(hmap, jo->fqn, (const void *) jo));
