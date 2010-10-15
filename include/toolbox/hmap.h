@@ -80,7 +80,7 @@ typedef struct u_hmap_q_s u_hmap_q_t;
 struct u_hmap_o_s 
 {
     void *key;
-   void *val;
+    void *val;
 
     LIST_ENTRY(u_hmap_o_s) next;
 
