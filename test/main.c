@@ -11,6 +11,9 @@ int test_suite_uri_register (u_test_t *t);
 int test_suite_pqueue_register (u_test_t *t);
 int test_suite_rb_register (u_test_t *t);
 int test_suite_pwd_register (u_test_t *t);
+int test_suite_json_register (u_test_t *t);
+int test_suite_lexer_register (u_test_t *t);
+int test_suite_bst_register (u_test_t *t);
 
 int main(int argc, char **argv)
 {

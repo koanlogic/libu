@@ -1,11 +1,11 @@
 #include <u/libu.h>
 #include <string.h>
 
+int test_suite_hmap_register (u_test_t *t);
 
 static size_t __sample_hash (const void *key, size_t size);
 static int __sample_comp(const void *key1, const void *key2);
 static u_string_t *__sample_str(u_hmap_o_t *obj);
-static u_hmap_o_t *__sample_obj(u_hmap_t *hmap, int key, const char *val);
 
 static int example_easy_basic (u_test_case_t *tc)
 {
@@ -106,7 +106,10 @@ struct mystruct_s {
 };
 typedef struct mystruct_s mystruct_t;
 
-void mystruct_free (void *val)
+static mystruct_t *mystruct_create (void);
+static void mystruct_free (void *val);
+
+static void mystruct_free (void *val)
 {
     mystruct_t *mystruct = (mystruct_t *) val;
 
@@ -118,7 +121,7 @@ void mystruct_free (void *val)
     u_free(mystruct);
 }
 
-mystruct_t *mystruct_create (void)
+static mystruct_t *mystruct_create (void)
 {
     mystruct_t *myval = NULL;
 
@@ -179,13 +182,13 @@ err:
 
 static size_t __sample_hash(const void *key, size_t size)
 {
-    return (*((int *) key) % size);
+    return (*((const int *) key) % size);
 }
 
 static int __sample_comp(const void *key1, const void *key2)
 {
-    int k1 = *((int *) key1),
-        k2 = *((int *) key2);
+    int k1 = *((const int *) key1),
+        k2 = *((const int *) key2);
     
     return k1 < k2 ? -1 : ((k1 > k2)? 1 : 0);
 }
@@ -450,33 +453,6 @@ err:
     return U_TEST_FAILURE;
 }
 
-/* Allocate (key, value) pair dynamically */
-static u_hmap_o_t *__sample_obj(u_hmap_t *hmap, int key, const char *val)
-{
-    u_hmap_o_t *new = NULL;
-
-    int *k = NULL;
-    char *v = NULL;
-    
-    k = (int *) malloc(sizeof(int));
-    dbg_err_if (k == NULL);
-    *k = key;
-
-    v = u_strdup(val);
-    dbg_err_if (v == NULL);
-    
-    new = u_hmap_o_new(hmap, k, v);
-    dbg_err_if (new == NULL);
-    
-    return new;
-
-err:
-    u_free(k);
-    u_free(v);
-    
-    return NULL;
-}
-
 static int example_types_custom (u_test_case_t *tc)
 {
     u_hmap_opts_t opts;
@@ -485,7 +461,7 @@ static int example_types_custom (u_test_case_t *tc)
     int keys[] = { 2, 1, 4, 7, 4, 3, 6, 1, 5 };
     const char *vals[] = { "two", "one", "four", "seven", "four2", "three", 
         "six", "one2", "five" };
-    int i, x;
+    int i;
     
     u_dbg("example_types_custom()"); 
 
@@ -618,8 +594,9 @@ static int test_scope (u_test_case_t *tc)
     int i;
     u_hmap_opts_t opts;
     u_hmap_t *hmap = NULL;
-    char *vals[] = { "zero", "one", "two", "three", "four", "five",
+    const char *vals[] = { "zero", "one", "two", "three", "four", "five", 
         "six", "seven", "eight", "nine" };
+    char key[KEY_SZ];
 
     u_dbg("test_scope()");
 
@@ -631,25 +608,18 @@ static int test_scope (u_test_case_t *tc)
     /* default is string key and pointer value */
     u_test_err_if (u_hmap_easy_new(&opts, &hmap));
 
-    {
-        char key[KEY_SZ];
-        for (i = 0; i < 10; i++) {
-            u_snprintf(key, KEY_SZ, "key%d", i);
-            u_test_err_if (u_hmap_easy_put(hmap, key, vals[i]));
-        }
+    for (i = 0; i < 10; i++) {
+        u_snprintf(key, KEY_SZ, "key%d", i);
+        u_test_err_if (u_hmap_easy_put(hmap, key, vals[i]));
     }
 
 #ifdef DEBUG_HEAVY
     u_hmap_dbg(hmap);
 #endif
 
-    {
-        char key[KEY_SZ];
-        char key2[KEY_SZ];
-        for (i = 0; i < 10; i++) {
-            u_snprintf(key2, KEY_SZ, "key%d", i);
-            u_test_err_if (strcmp(u_hmap_easy_get(hmap, key2), vals[i]) != 0);
-        }
+    for (i = 0; i < 10; i++) {
+        u_snprintf(key, KEY_SZ, "key%d", i);
+        u_test_err_if (strcmp(u_hmap_easy_get(hmap, key), vals[i]) != 0);
     }
 
     u_hmap_easy_free(hmap);

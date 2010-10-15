@@ -16,24 +16,24 @@ static int test_u_str (u_test_case_t *tc)
 {
     u_string_t *s = NULL;
 
-    con_err_if(u_string_create("0", 1, &s));
+    u_test_err_if (u_string_create("0", 1, &s));
 
-    con_err_if(strcmp(u_string_c(s), "0"));
+    u_test_err_if (strcmp(u_string_c(s), "0"));
 
-    con_err_if(u_string_sprintf(s, "%s", "1"));
-    con_err_if(strcmp(u_string_c(s), "1"));
+    u_test_err_if (u_string_sprintf(s, "%s", "1"));
+    u_test_err_if (strcmp(u_string_c(s), "1"));
 
-    con_err_if(u_string_aprintf(s, "%s", "23"));
-    con_err_if(strcmp(u_string_c(s), "123"));
+    u_test_err_if (u_string_aprintf(s, "%s", "23"));
+    u_test_err_if (strcmp(u_string_c(s), "123"));
 
-    con_err_if(u_string_cat(s, "45"));
-    con_err_if(strcmp(u_string_c(s), "12345"));
+    u_test_err_if (u_string_cat(s, "45"));
+    u_test_err_if (strcmp(u_string_c(s), "12345"));
 
-    con_err_if(u_string_ncat(s, "6777", 2));
-    con_err_if(strcmp(u_string_c(s), "1234567"));
+    u_test_err_if (u_string_ncat(s, "6777", 2));
+    u_test_err_if (strcmp(u_string_c(s), "1234567"));
 
-    con_err_if(u_string_sprintf(s, "%s", "reset"));
-    con_err_if(strcmp(u_string_c(s), "reset"));
+    u_test_err_if (u_string_sprintf(s, "%s", "reset"));
+    u_test_err_if (strcmp(u_string_c(s), "reset"));
 
     u_string_free(s);
 

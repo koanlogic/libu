@@ -15,12 +15,12 @@ static int test_u_pwd (u_test_case_t *tc)
     char pass[INT_SZ];
     int i;
 
-    con_err_if (u_pwd_init_file("passwd", NULL, 0, 1, &pwd));
+    u_test_err_if (u_pwd_init_file("passwd", NULL, 0, 1, &pwd));
 
     for (i = 0; i < PWD_NUM; i++)  {
-        con_err_if (u_snprintf(user, INT_SZ, "user%d", i));
-        con_err_if (u_snprintf(pass, INT_SZ, "pass%d", i));
-        con_err_if (u_pwd_auth_user(pwd, user, pass));
+        u_test_err_if (u_snprintf(user, INT_SZ, "user%d", i));
+        u_test_err_if (u_snprintf(pass, INT_SZ, "pass%d", i));
+        u_test_err_if (u_pwd_auth_user(pwd, user, pass));
     }
 
     u_pwd_term(pwd);

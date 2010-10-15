@@ -48,7 +48,8 @@ static int test_search (u_test_case_t *tc)
     /* Search for it. */
     u_test_err_if ((node = u_bst_search(bst, "needle")) == NULL);
 
-    u_test_case_printf(tc, "\'%s\' found !", (char *) u_bst_node_key(node));
+    u_test_case_printf(tc, "\'%s\' found !", 
+            (const char *) u_bst_node_key(node));
 
     u_bst_free(bst);
 
