@@ -27,7 +27,6 @@ struct u_bst_s
 };
 
 static int u_bst_keycmp (const void *a, const void *b);
-static int u_bst_keycmp_dbg (const void *a, const void *b);
 static void u_bst_genfree (void *p);
 static int u_bst_node_new (u_bst_t *bst, const void *key, const void *val, 
         u_bst_node_t **pnode);
@@ -52,8 +51,11 @@ static u_bst_node_t *u_bst_node_promote_nth (u_bst_node_t *node, size_t n);
 static u_bst_node_t *u_bst_node_join_lr (u_bst_node_t *l, u_bst_node_t *r);
 static u_bst_node_t *u_bst_node_delete (u_bst_t *bst, u_bst_node_t *node, 
         const void *key, int *pfound);
-static u_bst_node_t *u_bst_node_join (u_bst_node_t *b1, u_bst_node_t *b2);
 static u_bst_node_t *u_bst_node_balance (u_bst_node_t *node);
+
+#ifdef BST_DEBUG
+static int u_bst_keycmp_dbg (const void *a, const void *b);
+#endif  /* BST_DEBUG */
 
 /**
     \defgroup   bst Binary Search Tree
@@ -922,22 +924,10 @@ static u_bst_node_t *u_bst_node_balance (u_bst_node_t *node)
     node = u_bst_node_promote_nth(node, node->nelem / 2);
 
     /* Then go recursively into its subtrees. */
-    node->left = u_bst_node_balance(node->left);
+    node->left  = u_bst_node_balance(node->left);
     node->right = u_bst_node_balance(node->right);
 
     return node;
-}
-
-static u_bst_node_t *u_bst_node_join (u_bst_node_t *b1, u_bst_node_t *b2)
-{
-    if (b2 == NULL)
-        return b1;
-
-    if (b1 == NULL)
-        return b2;
-
-    /* TODO */
-    return NULL;
 }
 
 static int u_bst_keycmp (const void *a, const void *b)
@@ -945,6 +935,13 @@ static int u_bst_keycmp (const void *a, const void *b)
     return strcmp((const char *) a, (const char *) b);
 }
 
+static void u_bst_genfree (void *p) 
+{ 
+    u_free(p); 
+    return;
+}
+
+#ifdef BST_DEBUG
 static int u_bst_keycmp_dbg (const void *a, const void *b)
 {
     int rc;
@@ -956,9 +953,4 @@ static int u_bst_keycmp_dbg (const void *a, const void *b)
 
     return rc;
 }
-
-static void u_bst_genfree (void *p) 
-{ 
-    u_free(p); 
-    return;
-}
+#endif  /* BST_DEBUG */

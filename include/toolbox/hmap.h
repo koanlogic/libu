@@ -31,6 +31,8 @@ typedef enum {
     U_HMAP_TYPE_LAST = U_HMAP_TYPE_LINEAR           
 } u_hmap_type_t;
 
+#define U_HMAP_IS_TYPE(t)   (t <= U_HMAP_TYPE_LAST)
+
 /** \brief hmap options */
 typedef enum {
     U_HMAP_OPTS_OWNSDATA =      0x1,    /**< hmap owns memory */
@@ -41,11 +43,13 @@ typedef enum {
 /** \brief hmap data type for keys and values 
  * (only for U_HMAP_OPTS_OWNSDATA) */
 typedef enum {
-    U_HMAP_OPTS_DATATYPE_POINTER,   /**< pointer to custom data */
-    U_HMAP_OPTS_DATATYPE_STRING,    /**< null-terminated string */
-    U_HMAP_OPTS_DATATYPE_OPAQUE,    /**< user data of given size */
+    U_HMAP_OPTS_DATATYPE_POINTER = 0,   /**< pointer to custom data */
+    U_HMAP_OPTS_DATATYPE_STRING,        /**< null-terminated string */
+    U_HMAP_OPTS_DATATYPE_OPAQUE,        /**< user data of given size */
     U_HMAP_OPTS_DATATYPE_LAST = U_HMAP_OPTS_DATATYPE_OPAQUE
 } u_hmap_options_datatype_t;
+
+#define U_HMAP_IS_DATATYPE(t)   (t <= U_HMAP_OPTS_DATATYPE_LAST)
 
 /** \brief Policies to discard hmap elements */
 typedef enum {
@@ -56,6 +60,8 @@ typedef enum {
     U_HMAP_PCY_LFU,     /**< discard least frequently used */     
     U_HMAP_PCY_LAST = U_HMAP_PCY_LFU 
 } u_hmap_pcy_type_t;
+
+#define U_HMAP_IS_PCY(p)    (p <= U_HMAP_PCY_LAST)
 
 typedef struct u_hmap_s u_hmap_t;     
 typedef struct u_hmap_pcy_s u_hmap_pcy_t;     

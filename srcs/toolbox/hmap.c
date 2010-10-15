@@ -367,8 +367,7 @@ static int __opts_check (u_hmap_opts_t *opts)
     dbg_err_if (opts->max == 0);
     dbg_err_if (opts->type != U_HMAP_TYPE_CHAIN && 
             opts->type != U_HMAP_TYPE_LINEAR);
-    dbg_err_if (opts->policy < U_HMAP_PCY_NONE || 
-            opts->policy > U_HMAP_PCY_LFU);
+    dbg_err_if (!U_HMAP_IS_PCY(opts->policy));
     dbg_err_if (opts->f_hash == NULL);
     dbg_err_if (opts->f_comp == NULL);
 
@@ -1095,8 +1094,7 @@ err:
 int u_hmap_opts_set_type (u_hmap_opts_t *opts, u_hmap_type_t type)
 {
     dbg_err_if (opts == NULL);
-
-    dbg_err_if (type < 0 || type > U_HMAP_TYPE_LAST);
+    dbg_err_if (!U_HMAP_IS_TYPE(type));
 
     opts->type = type;
 
@@ -1108,7 +1106,8 @@ err:
 /** \brief Set discard policy */
 int u_hmap_opts_set_policy (u_hmap_opts_t *opts, u_hmap_pcy_type_t policy)
 {
-    dbg_err_if (opts == NULL || policy < 0 || policy > U_HMAP_TYPE_LAST);
+    dbg_err_if (opts == NULL);
+    dbg_err_if (!U_HMAP_IS_PCY(policy));
 
     opts->policy = policy; 
 
@@ -1215,11 +1214,12 @@ err:
 int u_hmap_opts_set_key_type (u_hmap_opts_t *opts, 
         u_hmap_options_datatype_t type)
 {
-    dbg_err_if (opts == NULL ||
-            (type < 0 || type > U_HMAP_OPTS_DATATYPE_LAST));
+    dbg_err_if (opts == NULL);
+    dbg_err_if (!U_HMAP_IS_DATATYPE(type));
 
     /* not available for hmap_easy interface */
-    dbg_err_if (opts->easy);
+    dbg_err_ifm (opts->easy, 
+            "cannot set data type when \"easy\" interface is in use");
 
     opts->key_type = type;
 
@@ -1264,8 +1264,8 @@ err:
 int u_hmap_opts_set_val_type (u_hmap_opts_t *opts, 
         u_hmap_options_datatype_t type)
 {
-    dbg_err_if (opts == NULL ||
-            (type < 0 || type > U_HMAP_OPTS_DATATYPE_LAST));
+    dbg_err_if (opts == NULL);
+    dbg_err_if (!U_HMAP_IS_DATATYPE(type));
 
     opts->val_type = type;
 
