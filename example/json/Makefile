@@ -11,5 +11,6 @@ SRCS = main.c
 #CFLAGS += -DJSON_OBJ_DEBUG
 
 LDADD += $(SRCDIR)/srcs/libu.a
+LDFLAGS += -lm
 
 include prog.mk
