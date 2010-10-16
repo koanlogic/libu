@@ -69,14 +69,16 @@ static int u_string_do_vprintf (u_string_t *, int, const char *, va_list);
 */
 
 /**
- *  \brief  Detach the NUL-terminated C string inside the supplied object.
+ *  \brief  Detach the NUL-terminated C string associated to the supplied 
+ *          ::u_string_t object
  *
- *  Detach the NUL-terminated C string inside the supplied ::u_string_t object,
- *  which is in turn free'd.
+ *  Detach the NUL-terminated C string embedded into the supplied ::u_string_t 
+ *  object.  The original string object is then free'd and can't be accessed
+ *  anymore.
  *
  *  \param  s   an ::u_string_t object
  *
- *  \retval the NUL-terminated C string or \c NULL if no string has been stored
+ *  \retval a NUL-terminated C string
  */
 char *u_string_detach_cstr (u_string_t *s)
 {

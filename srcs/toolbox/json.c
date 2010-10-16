@@ -321,7 +321,8 @@ int u_json_set_val_ex (u_json_t *jo, const char *val, char check)
         char qval[strlen(val) + 3]; 
 
         /* If we are supposed to set a string value, we need to quote it. */
-        (void) u_snprintf(qval, sizeof qval, "\"%s\"", val);
+        (void) u_snprintf(qval, sizeof qval, 
+                (jo->type == U_JSON_TYPE_STRING) ? "\"%s\"" : "%s", val);
 
         dbg_err_if (u_lexer_new(qval, &vl));
     }

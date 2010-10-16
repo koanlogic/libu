@@ -15,9 +15,9 @@ int main (void)
     char status[U_LEXER_ERR_SZ];
 
     con_err_if (iterator());
-//    con_err_if (simple_object());
-//    con_err_if (simple_array());
-//    con_err_if (nested_object());
+    con_err_if (simple_object());
+    con_err_if (simple_array());
+    con_err_if (nested_object());
 
     if (u_json_validate("{\"x\": 123 }", status))
         u_con("%s", status);
@@ -108,8 +108,8 @@ int simple_array (void)
 
     for (l = 0; l < 10 ; l++)
     {
-//        con_err_if (u_json_new_int(NULL, l, &tmp));
-        con_err_if (u_json_new_real(NULL, 10 * exp((double) (l * 500)), &tmp));
+        con_err_if (u_json_new_int(NULL, l, &tmp));
+        con_err_if (u_json_new_real(NULL, 10 * exp((double) (l * 50)), &tmp));
         con_err_if (u_json_add(root, tmp));
         tmp = NULL;
     }
