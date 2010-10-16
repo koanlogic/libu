@@ -69,6 +69,29 @@ static int u_string_do_vprintf (u_string_t *, int, const char *, va_list);
 */
 
 /**
+ *  \brief  Detach the NUL-terminated C string inside the supplied object.
+ *
+ *  Detach the NUL-terminated C string inside the supplied ::u_string_t object,
+ *  which is in turn free'd.
+ *
+ *  \param  s   an ::u_string_t object
+ *
+ *  \retval the NUL-terminated C string or \c NULL if no string has been stored
+ */
+char *u_string_detach_cstr (u_string_t *s)
+{
+    char *tmp;
+
+    dbg_return_if (s == NULL, NULL);
+
+    tmp = s->data;
+
+    u_free(s);
+
+    return tmp;
+}
+
+/**
  *  \brief  Remove leading and trailing blanks
  *
  *  Remove leading and trailing blanks from the given string

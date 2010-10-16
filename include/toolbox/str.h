@@ -71,6 +71,7 @@ int u_string_set_length (u_string_t *s, size_t len);
 int u_string_sprintf (u_string_t *s, const char *fmt, ...);
 int u_string_trim (u_string_t *s);
 size_t u_string_len (u_string_t *s);
+char *u_string_detach_cstr (u_string_t *s);
 
 /**
  *  \}

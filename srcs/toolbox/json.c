@@ -506,7 +506,7 @@ int u_json_encode (u_json_t *jo, char **ps)
 
     dbg_err_if (u_string_create(NULL, 0, &s));
     dbg_err_if (u_json_do_encode(jo, s));
-    *ps = u_string_c(s);
+    *ps = u_string_detach_cstr(s);
 
     return 0;
 err:
