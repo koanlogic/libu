@@ -345,8 +345,10 @@ int u_json_set_val_ex (u_json_t *jo, const char *val, char check)
 
     /* Fall through. */       
 end:
+    u_lexer_free(vl);
     return 0;
 err:
+    u_lexer_free(vl);
     return ~0;
 }
 /**

@@ -108,7 +108,6 @@ int simple_array (void)
 
     for (l = 0; l < 10 ; l++)
     {
-        con_err_if (u_json_new_int(NULL, l, &tmp));
         con_err_if (u_json_new_real(NULL, 10 * exp((double) (l * 50)), &tmp));
         con_err_if (u_json_add(root, tmp));
         tmp = NULL;
