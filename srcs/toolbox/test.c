@@ -1546,7 +1546,7 @@ static int u_test_case_exec (u_test_case_t *tc)
     tc->o.parent->nchildren += 1;   /* Tell the u_test_case's head we have one
                                        more child */
 
-    CHAT("started test case %s with pid %d\n", tc->o.id, tc->pid);
+    CHAT("started test case %s with pid %d\n", tc->o.id, (int) tc->pid);
 #endif  /* U_TEST_SANDBOX_ENABLED */
 
     /* always return ok here, the reaper will know the test exit status */
@@ -2040,7 +2040,7 @@ static void u_test_bail_out (TO *h)
 
         if (tc->pid != U_TEST_CASE_PID_INITIALIZER)
         {
-            CHAT("Killing test case %s [%d]\n", to->id, tc->pid);
+            CHAT("Killing test case %s [%d]\n", to->id, (int) tc->pid);
             dbg_if (kill(tc->pid, SIGKILL) == -1);
         }
     }
