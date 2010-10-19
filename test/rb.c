@@ -83,7 +83,7 @@ int test_suite_rb_register (u_test_t *t)
 
     con_err_if (u_test_suite_new("Ring Buffer", &ts));
 
-#ifdef HAVE_MMAP
+#if defined(HAVE_MMAP) && !defined(RB_INHIBIT_MMAP)
     con_err_if (u_test_case_register("Read-write (mmap)", test_rw, ts));
     con_err_if (u_test_case_register("Read-write fast (mmap)", 
                 test_rw_fast, ts));

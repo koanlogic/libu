@@ -155,13 +155,13 @@ int u_rb_create (size_t hint_sz, int opts, u_rb_t **prb)
     if (opts & U_RB_OPT_IMPL_MALLOC)
         return create_malloc(hint_sz, opts, prb);
 
-#ifdef HAVE_MMAP
+#if defined(HAVE_MMAP) && !defined(RB_INHIBIT_MMAP)
     /* Default is to use mmap implementation. */
     return create_mmap(hint_sz, opts, prb);
-#else   /* !HAVE_MMAP */
+#else   /* !HAVE_MMAP || RB_INHIBIT_MMAP */
     /* Fallback to malloc in case mmap is not available. */
     return create_malloc(hint_sz, opts | U_RB_OPT_IMPL_MALLOC, prb);
-#endif  /* HAVE_MMAP */
+#endif  /* HAVE_MMAP && !RB_INHIBIT_MMAP */
 }
 
 /**

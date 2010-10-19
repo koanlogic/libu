@@ -48,6 +48,7 @@ case ${target} in
         ;;
     *cygwin*)
         makl_set_var_mk "SHLIB_NO_UNDEFINED_SYMS"
+        makl_set_var_h "RB_INHIBIT_MMAP"
         ;;
     sunos*)
         makl_add_var_mk "LDFLAGS" "-lsocket -lnsl"
