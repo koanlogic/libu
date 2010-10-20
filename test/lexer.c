@@ -15,7 +15,7 @@ static int scan (u_test_case_t *tc, int (*f)(u_lexer_t *, char *))
     int i = 0;
     u_lexer_t *l = NULL;
     const char *s = "abc  AB\tC\n1 2    3 ";
-    const char *exp0 = "abcABC123", *exp1 = s;
+    const char *ex0 = "abcABC123", *ex1 = s;
     char dest[1024] = { '\0' };
 
     u_test_err_if (u_lexer_new(s, &l));
@@ -30,9 +30,9 @@ static int scan (u_test_case_t *tc, int (*f)(u_lexer_t *, char *))
     dest[++i] = '\0';
     
     if (f == u_lexer_next)
-        u_test_err_if (strcmp(dest, exp1));
+        u_test_err_if (strcmp(dest, ex1));
     else if (f == u_lexer_skip)
-        u_test_err_if (strcmp(dest, exp0));
+        u_test_err_if (strcmp(dest, ex0));
     else
         u_test_err_ifm (1, "uh?");
 

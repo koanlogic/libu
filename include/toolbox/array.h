@@ -6,6 +6,7 @@
 #define _U_ARRAY_H_
 
 #include <u/libu_conf.h>
+#include <stdint.h>
 #ifdef HAVE__BOOL
 #include <stdbool.h>
 #endif  /* HAVE__BOOL */

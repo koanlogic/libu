@@ -201,7 +201,7 @@ static int test_u_strtok (u_test_case_t *tc)
     {
         const char *in; 
         const char *delim; 
-        const char *exp[MAX_TOKENS];
+        const char *ex[MAX_TOKENS];
     } vt[] = {
         { 
             /* tv idx 0 */
@@ -316,11 +316,11 @@ static int test_u_strtok (u_test_case_t *tc)
 
         for (j = 0; j < nelems; j++)
         {
-            u_test_err_ifm (strcmp(tv[j], vt[i].exp[j]), 
-                    "%s != %s (tv idx=%zu)", tv[j], vt[i].exp[j], i);
+            u_test_err_ifm (strcmp(tv[j], vt[i].ex[j]), 
+                    "%s != %s (tv idx=%zu)", tv[j], vt[i].ex[j], i);
         }
 
-        u_test_err_ifm (vt[i].exp[j] != NULL, 
+        u_test_err_ifm (vt[i].ex[j] != NULL, 
                 "got %zu tokens from u_strtok, need some more (tv idx=%zu)", 
                 nelems, i);
 
@@ -338,7 +338,7 @@ static int test_u_path_snprintf (u_test_case_t *tc)
 {
     struct vt_s
     {
-        const char *src, *exp;
+        const char *src, *ex;
     } vt[] = {
         { "",           "" },
         { "/",          "/" },
@@ -369,8 +369,8 @@ static int test_u_path_snprintf (u_test_case_t *tc)
     for(i = 0; vt[i].src; ++i)
     {
         u_path_snprintf(buf, sizeof(buf), '/', "%s", vt[i].src);
-        u_test_err_ifm(strcmp(buf, vt[i].exp), "src: %s  exp: %s  got: %s",
-                vt[i].src, vt[i].exp, buf);
+        u_test_err_ifm(strcmp(buf, vt[i].ex), "src: %s  exp: %s  got: %s",
+                vt[i].src, vt[i].ex, buf);
     }
 
     return U_TEST_SUCCESS;
@@ -385,7 +385,7 @@ static int test_u_atoi (u_test_case_t *tc)
     struct
     {
         const char *in;
-        int exp, rc;
+        int ex, rc;
     } vt[] = {
         /* minimum value for INT_MIN (16-bit) */
         {   "-32767",   -32767, 0   },  
@@ -436,9 +436,9 @@ static int test_u_atoi (u_test_case_t *tc)
 
         if (rc == 0)
         {
-            u_test_err_ifm (j != vt[i].exp, 
+            u_test_err_ifm (j != vt[i].ex, 
                     "unexpected conversion value %d != %d on  %s",
-                    j, vt[i].exp, vt[i].in);
+                    j, vt[i].ex, vt[i].in);
         }
     }
 

@@ -15,7 +15,7 @@ static int test_uri_parser (u_test_case_t *tc)
     struct vt_s
     {
         const char *in;
-        u_uri_exp_t exp;
+        u_uri_exp_t ex;
     } vt[] = {
         { 
             "tcp4://www.kame.net:http/index.html",
@@ -68,12 +68,12 @@ static int test_uri_parser (u_test_case_t *tc)
     u_uri_t *u = NULL;
 
 #define CHECK_EXP_MSG(field) do {   \
-    if ((vt[i].exp.field == NULL) ?                                            \
+    if ((vt[i].ex.field == NULL) ?                                             \
             (strlen(u_uri_get_##field(u)) > 0) :                               \
-            (strcmp(u_uri_get_##field(u), vt[i].exp.field) != 0))              \
+            (strcmp(u_uri_get_##field(u), vt[i].ex.field) != 0))               \
     {                                                                          \
         u_test_case_printf(tc, "%s != %s at idx %d",                           \
-                u_uri_get_##field(u), vt[i].exp.field, i);                     \
+                u_uri_get_##field(u), vt[i].ex.field, i);                      \
         goto err;                                                              \
     }                                                                          \
 } while (0)

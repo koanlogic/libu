@@ -63,7 +63,7 @@ static int test_build_simple_array (u_test_case_t *tc)
     long l;
     char *s = NULL;
     u_json_t *root = NULL, *tmp = NULL;
-    const char *exp = "[ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]";
+    const char *ex = "[ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]";
 
     /* [ ... ] */
     u_test_err_if (u_json_new_array(NULL, &root));
@@ -78,7 +78,7 @@ static int test_build_simple_array (u_test_case_t *tc)
 
     u_test_err_if (u_json_encode(root, &s));
 
-    u_test_err_ifm (strcmp(exp, s), "expecting \'%s\', got \'%s\'", exp, s);
+    u_test_err_ifm (strcmp(ex, s), "expecting \'%s\', got \'%s\'", ex, s);
     
     u_json_free(root);
     u_free(s);
@@ -99,7 +99,7 @@ static int test_build_simple_object (u_test_case_t *tc)
 {
     char *s = NULL;
     u_json_t *root = NULL, *tmp = NULL;
-    const char *exp = 
+    const char *ex = 
         "{ \"num\": 999, \"string\": \".\", \"null\": null, \"bool\": true }";
 
     /* { ... } */
@@ -127,7 +127,7 @@ static int test_build_simple_object (u_test_case_t *tc)
 
     u_test_err_if (u_json_encode(root, &s));
 
-    u_test_err_ifm (strcmp(exp, s), "expecting \'%s\', got \'%s\'", exp, s);
+    u_test_err_ifm (strcmp(ex, s), "expecting \'%s\', got \'%s\'", ex, s);
  
     u_json_free(root);
     u_free(s);
@@ -149,7 +149,7 @@ static int test_build_nested_object (u_test_case_t *tc)
     int i;
     char *s = NULL;
     u_json_t *array = NULL, *root = NULL, *tmp = NULL;
-    const char *exp = "{ \"array\": [ null, null, null ] }";
+    const char *ex = "{ \"array\": [ null, null, null ] }";
 
     /* Nested array of null's. */
     u_test_err_if (u_json_new_array("array", &array));
@@ -170,7 +170,7 @@ static int test_build_nested_object (u_test_case_t *tc)
 
     u_test_err_if (u_json_encode(root, &s));
     
-    u_test_err_ifm (strcmp(exp, s), "expecting \'%s\', got \'%s\'", exp, s);
+    u_test_err_ifm (strcmp(ex, s), "expecting \'%s\', got \'%s\'", ex, s);
 
     u_json_free(root);
     u_free(s);
