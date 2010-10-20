@@ -172,13 +172,13 @@ static int test_u_rdwr (u_test_case_t *tc)
         buf_size = (buf_size << 1) + 1;
         file_size = (file_size << 1) + 1;
 
-        con_err_if(tmpnam(fn) == NULL);
+        u_test_err_if(tmpnam(fn) == NULL);
 
-        con_err_if(tmp_u_rdwr(0 /* write */, fn, &hash_write));
+        u_test_err_if(tmp_u_rdwr(0 /* write */, fn, &hash_write));
 
-        con_err_if(tmp_u_rdwr(1 /* read */, fn, &hash_read));
+        u_test_err_if(tmp_u_rdwr(1 /* read */, fn, &hash_read));
 
-        con_err_if(hash_read != hash_write);
+        u_test_err_if(hash_read != hash_write);
 
         unlink(fn);
     }
