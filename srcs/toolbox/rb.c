@@ -10,7 +10,7 @@
 #include <u/toolbox/misc.h>
 #include <u/toolbox/carpal.h>
 
-#ifdef U_RB_CAN_MMAP
+#if defined(U_RB_CAN_MMAP)
   #include <sys/mman.h>
 #if defined(HAVE_SYSCONF) && defined(_SC_PAGE_SIZE)
   #define u_vm_page_sz  sysconf(_SC_PAGE_SIZE)
@@ -54,7 +54,7 @@ static void *fast_read (u_rb_t *rb, size_t *pb_sz);
 static int is_wrapped (u_rb_t *rb);
 static int mirror (u_rb_t *rb, const void *b, size_t to_be_written);
 
-#ifdef U_RB_CAN_MMAP    /* specific to mmap(2) based implementation. */
+#if defined(U_RB_CAN_MMAP)  /* specific to mmap(2) based implementation. */
   static int create_mmap (size_t hint_sz, int opts, u_rb_t **prb);
   static void free_mmap (u_rb_t *rb);
   static size_t round_sz (size_t sz);
@@ -533,7 +533,7 @@ end:
     return to_be_read;
 }
 
-#ifdef U_RB_CAN_MMAP
+#if defined(U_RB_CAN_MMAP)
 
 static int create_mmap (size_t hint_sz, int opts, u_rb_t **prb)
 {
