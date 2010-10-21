@@ -567,7 +567,7 @@ const char *u_inet_ntop (int af, const void *src, char *dst, u_socklen_t len)
 
     if (af == AF_INET)
     {
-        char s[INET_ADDRSTRLEN];
+        char s[U_INET_ADDRSTRLEN];
 
         dbg_if (u_snprintf(s, sizeof s, "%d.%d.%d.%d", p[0], p[1], p[2], p[3]));
 
@@ -705,8 +705,14 @@ static int do_csock (struct sockaddr *sad, u_socklen_t sad_len, int domain,
     dbg_err_sif ((s = u_socket(domain, type, protocol)) == -1);
 
     if ((type == SOCK_DGRAM) && (opts & U_NET_OPT_DGRAM_BROADCAST))
-        dbg_err_sif (u_setsockopt(s, SOL_SOCKET, SO_BROADCAST, &bc, sizeof bc) 
-                == -1);
+    {
+#ifdef HAVE_SO_BROADCAST
+        dbg_err_sif (u_setsockopt(s, SOL_SOCKET, SO_BROADCAST, 
+                    &bc, sizeof bc) == -1);
+#else
+        u_warn("SO_BROADCAST is not defined on this platform");
+#endif
+    }
 
 #ifndef NO_SCTP
     if (opts & U_NET_OPT_SCTP_ONE_TO_MANY)

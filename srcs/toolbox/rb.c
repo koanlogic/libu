@@ -10,7 +10,7 @@
 #include <u/toolbox/misc.h>
 #include <u/toolbox/carpal.h>
 
-#ifdef HAVE_MMAP
+#ifdef U_RB_CAN_MMAP
   #include <sys/mman.h>
 #if defined(HAVE_SYSCONF) && defined(_SC_PAGE_SIZE)
   #define u_vm_page_sz  sysconf(_SC_PAGE_SIZE)
@@ -21,7 +21,7 @@
 #else
   #error "don't know how to get page size.  reconfigure with --no_ringbuffer."
 #endif
-#endif  /* HAVE_MMAP */
+#endif  /* U_RB_CAN_MMAP */
 
 struct u_rb_s
 {
@@ -54,11 +54,11 @@ static void *fast_read (u_rb_t *rb, size_t *pb_sz);
 static int is_wrapped (u_rb_t *rb);
 static int mirror (u_rb_t *rb, const void *b, size_t to_be_written);
 
-#ifdef HAVE_MMAP    /* specific to mmap(2) based implementation. */
+#ifdef U_RB_CAN_MMAP    /* specific to mmap(2) based implementation. */
   static int create_mmap (size_t hint_sz, int opts, u_rb_t **prb);
   static void free_mmap (u_rb_t *rb);
   static size_t round_sz (size_t sz);
-#endif  /* HAVE_MMAP */
+#endif  /* U_RB_CAN_MMAP */
 
 static int create_malloc (size_t sz, int opts, u_rb_t **prb);
 static void free_malloc (u_rb_t *rb);
@@ -155,13 +155,13 @@ int u_rb_create (size_t hint_sz, int opts, u_rb_t **prb)
     if (opts & U_RB_OPT_IMPL_MALLOC)
         return create_malloc(hint_sz, opts, prb);
 
-#if defined(HAVE_MMAP) && !defined(RB_INHIBIT_MMAP)
+#if defined(U_RB_CAN_MMAP)
     /* Default is to use mmap implementation. */
     return create_mmap(hint_sz, opts, prb);
-#else   /* !HAVE_MMAP || RB_INHIBIT_MMAP */
+#else   /* !U_RB_CAN_MMAP */
     /* Fallback to malloc in case mmap is not available. */
     return create_malloc(hint_sz, opts | U_RB_OPT_IMPL_MALLOC, prb);
-#endif  /* HAVE_MMAP && !RB_INHIBIT_MMAP */
+#endif  /* U_RB_CAN_MMAP */
 }
 
 /**
@@ -533,7 +533,7 @@ end:
     return to_be_read;
 }
 
-#ifdef HAVE_MMAP
+#ifdef U_RB_CAN_MMAP
 
 static int create_mmap (size_t hint_sz, int opts, u_rb_t **prb)
 {
@@ -619,7 +619,7 @@ static size_t round_sz (size_t sz)
     return !sz ? pg_sz : (((sz - 1) / pg_sz) + 1) * pg_sz;
 }
 
-#endif  /* HAVE_MMAP */
+#endif  /* U_RB_CAN_MMAP */
 
 static int create_malloc (size_t sz, int opts, u_rb_t **prb)
 {

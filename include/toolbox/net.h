@@ -50,6 +50,12 @@
   typedef socklen_t u_socklen_t;
 #endif  /* !HAVE_SOCKLEN_T */
 
+#ifndef HAVE_INET_ADDRSTRLEN
+#define U_INET_ADDRSTRLEN 16
+#else   /* HAVE_INET_ADDRSTRLEN */
+#define U_INET_ADDRSTRLEN   INET_ADDRSTRLEN
+#endif  /* !HAVE_INET_ADDRSTRLEN */
+
 #ifdef __cplusplus
 extern "C" {
 #endif

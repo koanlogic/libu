@@ -60,6 +60,9 @@ case ${target} in
     linux*)
         makl_set_var "OS_LINUX"
         ;;
+    minix*)
+        makl_append_var_mk "CFLAGS" "-D_POSIX_SOURCE"
+        ;;
 esac
 
 # C Flags
@@ -87,7 +90,12 @@ makl_checktype          0   "in_addr_t"         \
                             "<netinet/in.h>"    \
                             "<arpa/inet.h>"
 makl_checktype          0   "struct rusage" "<sys/types.h>" "<sys/resource.h>"
+
 makl_checksymbol        0   "TCP_NODELAY"   "<sys/types.h>" "<netinet/tcp.h>"
+makl_checksymbol        0   "INET_ADDRSTRLEN"   "<netinet/in.h>"
+makl_checksymbol        0   "SO_BROADCAST"   "<sys/socket.h>"
+makl_checksymbol        0   "MAP_FIXED" "<sys/mman.h>"
+
 makl_checkfunc          0   "daemon"        2   ""  "<stdlib.h>"
 makl_checkfunc          0   "setsockopt"    5   ""  "<sys/types.h>" "<sys/socket.h>"
 makl_checkfunc          0   "getsockopt"    5   ""  "<sys/types.h>" "<sys/socket.h>" 
