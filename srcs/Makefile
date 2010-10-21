@@ -67,6 +67,9 @@ ifdef SHLIB_NO_UNDEFINED_SYMS
 endif
 
 # missing sources
+ifndef HAVE_VSYSLOG
+    SRCS += missing/vsyslog.c
+endif
 ifndef HAVE_SYSLOG
     SRCS += missing/syslog.c
 endif

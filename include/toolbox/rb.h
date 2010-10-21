@@ -7,6 +7,12 @@
 
 #include <u/libu_conf.h>
 
+/* Test if we have all the pieces needed to provide the mmap-based 
+ * implementation. */
+#if defined(HAVE_MMAP) && defined(HAVE_MAP_FIXED) && !defined(RB_INHIBIT_MMAP)
+  #define U_RB_CAN_MMAP
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif  /* __cplusplus */

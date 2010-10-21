@@ -54,7 +54,7 @@ case ${target} in
         makl_add_var_mk "LDFLAGS" "-lsocket -lnsl"
         ;;
     darwin*)
-        makl_set_var_mk "OS_DARWIN" "true"
+        makl_set_var_mk "OS_DARWIN"
         makl_set_var_mk "SHLIB_LDFLAGS" "-undefined suppress -flat_namespace"
         ;;
     linux*)
@@ -62,6 +62,7 @@ case ${target} in
         ;;
     minix*)
         makl_append_var_mk "CFLAGS" "-D_POSIX_SOURCE"
+        makl_set_var "OS_MINIX"
         ;;
 esac
 
@@ -117,6 +118,7 @@ makl_checkfunc          0   "strtod"        2   ""  "<stdlib.h>"
 makl_checkfunc          0   "gettimeofday"  2   ""  "<sys/time.h>"
 makl_checkfunc          0   "timegm"        1   ""  "<time.h>"
 makl_checkfunc          0   "syslog"        2   ""  "<syslog.h>"
+makl_checkfunc          0   "vsyslog"       3   ""  "<syslog.h>"
 makl_checkfunc          0   "strtoumax"     3   ""  "<inttypes.h>"
 makl_checkfunc          0   "getaddrinfo"   4   ""  "<netdb.h>"
 makl_checkfunc          0   "uname"         1   ""  "<sys/utsname.h>"
