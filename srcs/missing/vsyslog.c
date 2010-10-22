@@ -57,7 +57,11 @@ void vsyslog(int priority, const char *fmt, va_list ap)
 
 void vsyslog(int priority, const char *fmt, va_list args)
 {
-    /* TODO minix vsyslog() */
+    char buf[1024];
+
+    (void) vsnprintf(buf, sizeof buf, fmt, args);
+    syslog(priority, "%s", buf);
+
     return;
 }
 

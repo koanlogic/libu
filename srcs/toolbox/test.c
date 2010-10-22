@@ -8,16 +8,12 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <strings.h>
 #include <time.h>
 
 #include <toolbox/carpal.h>
 #include <toolbox/misc.h>
 #include <toolbox/test.h>
-
-#ifdef U_TEST_SANDBOX_ENABLED
-  #include <sys/resource.h>
-  #include <sys/wait.h>
-#endif  /* U_TEST_SANDBOX_ENABLED */
 
 #ifdef HAVE_UNAME
   #include <sys/utsname.h>
@@ -85,9 +81,9 @@ struct u_test_case_s
     int (*func) (struct u_test_case_s *);   /* The unit test function */
     u_test_obj_t o;                         /* Test case attributes */
     pid_t pid;                              /* Proc Id when exec'd in subproc */
-#ifdef U_TEST_SANDBOX_ENABLED
+#ifdef HAVE_STRUCT_RUSAGE
     struct rusage stats;                    /* Resources returned by wait3 */
-#endif  /* U_TEST_SANDBOX_ENABLED */
+#endif  /* HAVE_STRUCT_RUSAGE */
     struct u_test_suite_s *pts;             /* Parent test suite */
 };
 
@@ -200,8 +196,10 @@ static void u_test_interrupted (int signo);
 static void u_test_bail_out (TO *h);
 static int u_test_obj_ts_fmt (u_test_obj_t *to, char b[80], char e[80], 
         char d[80]);
+#ifdef HAVE_STRUCT_RUSAGE
 static int u_test_case_rusage_fmt (u_test_case_t *tc, char uti[80], 
         char sti[80]);
+#endif  /* HAVE_STRUCT_RUSAGE */
 static int __timeval_fmt (struct timeval *tv, char t[80]);
 
 /* Pre-cooked reporters. */
@@ -760,9 +758,9 @@ int u_test_case_new (const char *id, u_test_f func, u_test_case_t **ptc)
 
     tc->func = func;
     tc->pid = U_TEST_CASE_PID_INITIALIZER;
-#ifdef U_TEST_SANDBOX_ENABLED
+#ifdef HAVE_STRUCT_RUSAGE
     memset(&tc->stats, 0, sizeof tc->stats);
-#endif  /* U_TEST_SANDBOX_ENABLED */
+#endif  /* HAVE_STRUCT_RUSAGE */
 
     *ptc = tc;
 
@@ -1309,13 +1307,19 @@ static int u_test_cases_reap (TO *h)
     int status;
     pid_t child;
     u_test_case_t *tc;
+#ifdef HAVE_STRUCT_RUSAGE
     struct rusage rusage;
+#endif  /* HAVE_STRUCT_RUSAGE */
 
     dbg_return_if (h == NULL, ~0);
 
     while (h->nchildren > 0)
     {
+#ifdef HAVE_WAIT3
         if ((child = wait3(&status, 0, &rusage)) == -1)
+#else   /* i.e. HAVE_WAIT */
+        if ((child = wait(&status)) == -1)
+#endif
         {
             /* Interrupted (should be by user interaction) or no more child 
              * processes */
@@ -1358,7 +1362,10 @@ static int u_test_cases_reap (TO *h)
                     WTERMSIG(status));
         }
 
+#ifdef HAVE_STRUCT_RUSAGE
         tc->stats = rusage;
+#endif  /* HAVE_STRUCT_RUSAGE */
+
         tc->o.stop = time(NULL);
 
         h->nchildren -= 1;
@@ -1669,6 +1676,7 @@ static int u_test_case_report_txt (FILE *fp, u_test_case_t *tc)
 
     if (status == U_TEST_SUCCESS)
     {
+#ifdef HAVE_STRUCT_RUSAGE
         if (tc->pts->pt->sandboxed)
         {
             (void) u_test_case_rusage_fmt(tc, u, s);
@@ -1676,6 +1684,7 @@ static int u_test_case_report_txt (FILE *fp, u_test_case_t *tc)
             (void) fprintf(fp, "\t\t   user time: %s\n", u);
         }
         else
+#endif  /* HAVE_STRUCT_RUSAGE */
         {
             (void) u_test_obj_ts_fmt(&tc->o, NULL, NULL, d);
             (void) fprintf(fp, "\t\t     elapsed:%s\n", d);
@@ -1779,6 +1788,7 @@ static int u_test_case_report_xml (FILE *fp, u_test_case_t *tc)
     {
         char u[80], s[80], d[80];
 
+#ifdef HAVE_STRUCT_RUSAGE
         /* When sandboxed we have rusage info. */
         if (tc->pts->pt->sandboxed)
         {
@@ -1787,6 +1797,7 @@ static int u_test_case_report_xml (FILE *fp, u_test_case_t *tc)
             (void) fprintf(fp, "\t\t\t<user_time>%s</user_time>\n", u);
         }
         else
+#endif  /* HAVE_STRUCT_RUSAGE */
         {
             (void) u_test_obj_ts_fmt(&tc->o, NULL, NULL, d);
             (void) fprintf(fp, "\t\t\t<elapsed>%s</elapsed>\n", d);
@@ -1957,12 +1968,12 @@ static void u_test_interrupted (int signo)
     g_interrupted = 1;
 }
 
+#ifdef HAVE_STRUCT_RUSAGE
 static int u_test_case_rusage_fmt (u_test_case_t *tc, char uti[80], 
         char sti[80])
 {
     dbg_return_if (tc == NULL, ~0);
 
-#ifdef U_TEST_SANDBOX_ENABLED
     if (uti)
         (void) __timeval_fmt(&tc->stats.ru_utime, uti);
 
@@ -1972,10 +1983,10 @@ static int u_test_case_rusage_fmt (u_test_case_t *tc, char uti[80],
     /* TODO Other rusage fields depending on UNIX implementation. 
      * By POSIX we're only guaranteed about the existence of ru_utime and 
      * ru_stime fields. */
-#endif  /* U_TEST_SANDBOX_ENABLED */
 
     return 0;
 }
+#endif  /* HAVE_STRUCT_RUSAGE */
 
 static int __timeval_fmt (struct timeval *tv, char t[80])
 {
