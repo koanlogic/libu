@@ -6,8 +6,10 @@
 int test_suite_rb_register (u_test_t *t);
 
 static int rw (u_test_case_t *tc, int malloc_based, int fast);
+#ifdef U_RB_CAN_MMAP
 static int test_rw (u_test_case_t *tc);
 static int test_rw_fast (u_test_case_t *tc);
+#endif  /* U_RB_CAN_MMAP */
 
 static int rw (u_test_case_t *tc, int malloc_based, int fast)
 {
@@ -76,8 +78,11 @@ err:
     return U_TEST_FAILURE;
 }
 
+
+#ifdef U_RB_CAN_MMAP
 static int test_rw (u_test_case_t *tc) { return rw(tc, 0, 0); }
 static int test_rw_fast (u_test_case_t *tc) { return rw(tc, 0, 1); }
+#endif  /* U_RB_CAN_MMAP */
 static int test_rw_malloc (u_test_case_t *tc) { return rw(tc, 1, 0); }
 static int test_rw_fast_malloc (u_test_case_t *tc) { return rw(tc, 1, 1); }
 
