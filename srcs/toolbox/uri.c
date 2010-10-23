@@ -376,12 +376,12 @@ static int u_uri_parse_scheme (u_lexer_t *l, u_uri_t *u)
 
     u_lexer_record_lmatch(l);
 
-    if (!isalpha(c))
+    if (!isalpha((int) c))
         U_LEXER_ERR(l, "Expect an alpha char, got \'%c\' instead.", c);
 
     do {
         U_LEXER_NEXT(l, &c); 
-    } while (isalnum(c) || c == '+' || c == '-' || c == '.');
+    } while (isalnum((int) c) || c == '+' || c == '-' || c == '.');
 
     u_lexer_record_rmatch(l);
 
@@ -437,7 +437,7 @@ static int u_uri_parse_port (u_lexer_t *l, u_uri_t *u)
 
     u_lexer_record_lmatch(l);
 
-    while (isalnum(c) || c == '_' || c == '-' || c == '.')
+    while (isalnum((int) c) || c == '_' || c == '-' || c == '.')
         U_LEXER_NEXT(l, &c);
 
     u_lexer_record_rmatch(l);
@@ -747,7 +747,7 @@ static int u_uri_match_ups (u_lexer_t *l)
 
         /* ALPHA / DIGIT */
         default:
-            return isalnum(c);
+            return isalnum((int) c);
     }
 
     /* fallthrough */
@@ -788,7 +788,7 @@ static int u_uri_expect_pct_encoded (u_lexer_t *l)
     {
         U_LEXER_NEXT(l, &c);
 
-        if (!isxdigit(c))
+        if (!isxdigit((int) c))
             U_LEXER_ERR(l, "Non hex digit \'%c\' in percent encoding.", c);
     }
 

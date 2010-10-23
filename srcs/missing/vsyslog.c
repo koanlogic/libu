@@ -55,6 +55,9 @@ void vsyslog(int priority, const char *fmt, va_list ap)
 
 #elif defined(OS_MINIX)
 
+#include <stdarg.h>
+#include <stdio.h>
+
 void vsyslog(int priority, const char *fmt, va_list args)
 {
     char buf[1024];

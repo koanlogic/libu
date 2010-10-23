@@ -199,8 +199,8 @@ static int u_test_obj_ts_fmt (u_test_obj_t *to, char b[80], char e[80],
 #ifdef HAVE_STRUCT_RUSAGE
 static int u_test_case_rusage_fmt (u_test_case_t *tc, char uti[80], 
         char sti[80]);
-#endif  /* HAVE_STRUCT_RUSAGE */
 static int __timeval_fmt (struct timeval *tv, char t[80]);
+#endif  /* HAVE_STRUCT_RUSAGE */
 
 /* Pre-cooked reporters. */
 struct u_test_rep_s xml_reps = {
@@ -1665,7 +1665,10 @@ static int u_test_suite_report_txt (FILE *fp, u_test_suite_t *ts,
 static int u_test_case_report_txt (FILE *fp, u_test_case_t *tc)
 {
     int status;
-    char s[80] = { '\0' }, u[80] = { '\0' }, d[80] = { '\0' };
+#ifdef HAVE_STRUCT_RUSAGE
+    char s[80] = { '\0' }, u[80] = { '\0' };
+#endif  /* HAVE_STRUCT_RUSAGE */
+    char d[80] = { '\0' };
 
     dbg_return_if (fp == NULL, ~0);
     dbg_return_if (tc == NULL, ~0);
@@ -1786,9 +1789,10 @@ static int u_test_case_report_xml (FILE *fp, u_test_case_t *tc)
 
     if (status == U_TEST_SUCCESS)
     {
-        char u[80], s[80], d[80];
-
+        char d[80];
 #ifdef HAVE_STRUCT_RUSAGE
+        char u[80], s[80];
+
         /* When sandboxed we have rusage info. */
         if (tc->pts->pt->sandboxed)
         {
@@ -1986,7 +1990,6 @@ static int u_test_case_rusage_fmt (u_test_case_t *tc, char uti[80],
 
     return 0;
 }
-#endif  /* HAVE_STRUCT_RUSAGE */
 
 static int __timeval_fmt (struct timeval *tv, char t[80])
 {
@@ -2003,6 +2006,7 @@ static int __timeval_fmt (struct timeval *tv, char t[80])
 
     return 0;
 }
+#endif  /* HAVE_STRUCT_RUSAGE */
 
 static int u_test_obj_ts_fmt (u_test_obj_t *to, char b[80], char e[80], 
         char d[80])

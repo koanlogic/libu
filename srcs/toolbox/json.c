@@ -1419,7 +1419,7 @@ static int u_json_match_array (u_lexer_t *jl, u_json_t *jo)
         }
 
         /* Consume any trailing white spaces. */
-        if (isspace(u_lexer_peek(jl)))
+        if (isspace((int) u_lexer_peek(jl)))
             U_LEXER_SKIP(jl, NULL);
 
     } while (u_lexer_peek(jl) == ',');
@@ -1467,7 +1467,7 @@ static int u_json_match_object (u_lexer_t *jl, u_json_t *jo)
         warn_err_if (!u_json_match_pair_first(jl) || u_json_match_pair(jl, jo));
 
         /* Consume trailing white spaces, if any. */
-        if (isspace(u_lexer_peek(jl)))
+        if (isspace((int) u_lexer_peek(jl)))
             U_LEXER_SKIP(jl, NULL);
 
     } while (u_lexer_peek(jl) == ',');
@@ -1579,7 +1579,7 @@ static int u_json_match_string (u_lexer_t *jl, u_json_t *jo)
                     U_LEXER_ERR(jl, "invalid char %c in escape", c);
             }
         }
-        else if (iscntrl(c))
+        else if (iscntrl((int) c))
             U_LEXER_ERR(jl, "control character in string", c); 
         else    
             U_LEXER_NEXT(jl, &c);
@@ -1626,7 +1626,7 @@ static int u_json_match_escaped_unicode (u_lexer_t *jl)
     {
         U_LEXER_NEXT(jl, &c);
 
-        if (!isxdigit(c))
+        if (!isxdigit((int) c))
             U_LEXER_ERR(jl, "non hex digit %c in escaped unicode", c); 
     }
 

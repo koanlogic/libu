@@ -145,7 +145,7 @@ makl_checkextvar        0   "optarg"
 makl_checkextvar        0   "optind"
 makl_checkinline        0
 if [ $? -ne 0 ]; then
-    makl_append_var_mk "CFLAGS" "-Dinline=\"\""
+    makl_append_var_mk "CFLAGS" "-Dinline="
 fi
 
 # Handle command-line arguments

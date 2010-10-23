@@ -696,7 +696,9 @@ static int do_csock (struct sockaddr *sad, u_socklen_t sad_len, int domain,
         int type, int protocol, int opts, int dummy)
 {
     int s = -1;
+#ifdef HAVE_SO_BROADCAST
     int bc = 1;
+#endif  /* HAVE_SO_BROADCAST */
 
     u_unused_args(dummy);
 
@@ -711,13 +713,13 @@ static int do_csock (struct sockaddr *sad, u_socklen_t sad_len, int domain,
                     &bc, sizeof bc) == -1);
 #else
         u_warn("SO_BROADCAST is not defined on this platform");
-#endif
+#endif  /* HAVE_SO_BROADCAST */
     }
 
 #ifndef NO_SCTP
     if (opts & U_NET_OPT_SCTP_ONE_TO_MANY)
         dbg_err_sif (sctp_enable_events(s, opts));
-#endif
+#endif  /* NO_SCTP */
 
     /* NOTE that by default UDP and SCTP sockets (not only TCP and UNIX) are 
      * connected.  For UDP this has a couple of important implications:
