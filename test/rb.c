@@ -51,12 +51,16 @@ static int rw (u_test_case_t *tc, int malloc_based, int fast)
 
         /* u_rb_read is (4 * 1024) bytes behind */
         if (++i > 4)
+        {
             u_test_err_ifm (obuf_ptr[0] != (c - 4) || 
                     obuf_ptr[BUF_SZ - 1] != (c - 4), 
                     "expecting \'%c\', got \'%c\'", c - 4, obuf_ptr[0]);
+        }
         else
+        {
             u_test_err_ifm (obuf_ptr[0] != '*' || obuf_ptr[BUF_SZ - 1] != '*', 
                     "expecting \'%c\', got \'%c\'", '*', obuf_ptr[0]);
+        }
 
         /* refill */
         memset(ibuf, c, sizeof ibuf);
@@ -83,11 +87,11 @@ int test_suite_rb_register (u_test_t *t)
 
     con_err_if (u_test_suite_new("Ring Buffer", &ts));
 
-#if defined(HAVE_MMAP) && !defined(RB_INHIBIT_MMAP)
+#ifdef U_RB_CAN_MMAP
     con_err_if (u_test_case_register("Read-write (mmap)", test_rw, ts));
     con_err_if (u_test_case_register("Read-write fast (mmap)", 
                 test_rw_fast, ts));
-#endif  /* HAVE_MMAP */
+#endif  /* U_RB_CAN_MMAP */
     con_err_if (u_test_case_register("Read-write (malloc)", 
                 test_rw_malloc, ts));
     con_err_if (u_test_case_register("Read-write fast (malloc)", 
