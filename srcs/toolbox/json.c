@@ -1396,10 +1396,22 @@ static int u_json_match_array (u_lexer_t *jl, u_json_t *jo)
     warn_err_if (u_json_set_type(jo, U_JSON_TYPE_ARRAY));
 
     do {
-        U_LEXER_SKIP(jl, &c);
+        /* As long as we want to accept empty arrays in this same scan loop, 
+         * we could let trailing ',' pass unseen when a value has been already
+         * consumed.  So, at each iteration, last non-whitespace char is saved 
+         * to 'd' and checked when testing the empty array condition so that
+         * we can emit a warn if needed.  
+         * NOTE this is done equivalently in u_json_match_object(). */
+        char d = u_lexer_peek(jl);
 
+        U_LEXER_SKIP(jl, &c);
+        
         if (c == ']')   /* break on empty array */
+        {
+            if (d == ',')
+                u_warn("Trailing \',\' at the end of array !");
             break;
+        }
 
         if (jo)
         {
@@ -1457,11 +1469,17 @@ static int u_json_match_object (u_lexer_t *jl, u_json_t *jo)
         warn_err_if (u_json_set_type(jo, U_JSON_TYPE_OBJECT));
 
     do {
+        char d = u_lexer_peek(jl);
+
         U_LEXER_SKIP(jl, &c);
 
         /* Break on empty object. */
         if (c == '}')
+        {
+            if (d == ',')
+                u_warn("Trailing \',\' at the end of object !");
             break;
+        }
 
         /* Process assignement. */
         warn_err_if (!u_json_match_pair_first(jl) || u_json_match_pair(jl, jo));
@@ -1483,6 +1501,7 @@ static int u_json_match_object (u_lexer_t *jl, u_json_t *jo)
 
     return 0;
 err:
+    u_dbg("error at position %u (%s)", u_lexer_pos(jl), u_lexer_lookahead(jl));
     return ~0;
 }
 
@@ -1514,6 +1533,10 @@ static int u_json_match_pair (u_lexer_t *jl, u_json_t *jo)
 
     if (jo)
         warn_err_if (u_json_set_key(pair, match));
+
+    /* Consume trailing white spaces, if any. */
+    if (isspace((int) u_lexer_peek(jl)))
+        U_LEXER_SKIP(jl, NULL);
 
     /* Consume ':' */
     if ((c = u_lexer_peek(jl)) != ':')
@@ -1811,6 +1834,13 @@ static int u_json_do_parse (const char *json, u_json_t **pjo,
         warn_err_if (u_json_match_array(jl, jo));
     else
         U_LEXER_ERR(jl, "Expect \'{\' or \'[\', got \'%c\'.", u_lexer_peek(jl));
+
+    /* Just warn in case the JSON string has not been completely consumed. */
+    if (!u_lexer_eot(jl))
+    {
+        u_warn("Unparsed trailing text \'%s\' at position %u", 
+                u_lexer_lookahead(jl), u_lexer_pos(jl));
+    }
 
     /* Dispose the lexer context. */
     u_lexer_free(jl);
