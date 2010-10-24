@@ -1501,7 +1501,6 @@ static int u_json_match_object (u_lexer_t *jl, u_json_t *jo)
 
     return 0;
 err:
-    u_dbg("error at position %u (%s)", u_lexer_pos(jl), u_lexer_lookahead(jl));
     return ~0;
 }
 
