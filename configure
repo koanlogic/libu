@@ -128,14 +128,15 @@ makl_checkfunc          0   "wait"          1   ""  "<sys/wait.h>"
 makl_checkfunc          0   "sigaction"     3   ""  "<signal.h>"
 makl_checkfunc          0   "setitimer"     3   ""  "<sys/time.h>"
 makl_checkfunc          0   "isfinite"      1   ""  "<math.h>"
+
 makl_func_strerror_r    0
+
 makl_checkheader        0   "complex"   "<complex.h>"
 makl_checkheader        0   "unistd"    "<unistd.h>"
 makl_checkheader        0   "stdlib"    "<stdlib.h>"
 makl_checkheader        0   "paths"     "<paths.h>"
 makl_checkheader        0   "sysuio"    "<sys/uio.h>" "<sys/types.h>"
 makl_checkheader        0   "strings"   "<strings.h>"
-
 makl_checkheader        0   "sys_socket"    "<sys/socket.h>" "<sys/types.h>"
 makl_checkheader        0   "netinet_in"    "<netinet/in.h>" "<sys/types.h>"
 makl_checkheader        0   "netinet_tcp"   "<netinet/tcp.h>" "<sys/types.h>"
