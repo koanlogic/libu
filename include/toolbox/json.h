@@ -52,6 +52,12 @@ typedef enum {
 #define U_JSON_FQN_SZ   256
 #endif  /* !U_JSON_FQN_SZ */
 
+/** \brief  Max nesting of JSON fields (can be changed at compile time 
+ *          via \c -DU_JSON_MAX_DEPTH=nnn flag) */
+#ifndef U_JSON_MAX_DEPTH
+#define U_JSON_MAX_DEPTH   16
+#endif  /* !U_JSON_MAX_DEPTH */
+
 /* Encode/Decode/Validate. */
 int u_json_decode (const char *json, u_json_t **pjo);
 int u_json_encode (u_json_t *jo, char **ps);

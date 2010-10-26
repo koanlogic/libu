@@ -31,6 +31,8 @@ struct u_json_s
     /* Children nodes' list when i.e. (ARRAY || OBJECT). */
     TAILQ_HEAD(u_json_chld_s, u_json_s) children;
 
+    unsigned int depth;         /* Depth of this node in the decoded tree. */
+
     /* Cacheing machinery. */
     unsigned int icur, count;   /* Aux stuff used when indexing arrays. */
     u_hmap_t *map;              /* Alias reference to the global cache. */
@@ -94,6 +96,8 @@ static int u_json_new_container (u_json_type_t type, const char *key,
         u_json_t **pjo);
 static int u_json_new_atom (u_json_type_t type, const char *key, 
         const char *val, char check, u_json_t **pjo);
+
+static int u_json_set_depth (u_json_t *jo, unsigned int depth);
 
 /**
     \defgroup json JSON
@@ -236,6 +240,7 @@ int u_json_new (u_json_t **pjo)
     jo->parent = NULL;
     jo->map = NULL;
     jo->count = 0;
+    jo->depth = 0;
 
     *pjo = jo;
 
@@ -407,8 +412,10 @@ int u_json_add (u_json_t *head, u_json_t *jo)
     dbg_return_if (jo == NULL, ~0);
 
 #ifdef U_JSON_OBJ_DEBUG
-    u_con("chld (%p): %s {%s} added", jo, u_json_type_str(jo->type), jo->key);
-    u_con("prnt (%p): %s {%s}\n", head, u_json_type_str(head->type), head->key);
+    u_con("chld (%p): %s {%s} added at depth %u", 
+            jo, u_json_type_str(jo->type), jo->key, jo->depth);
+    u_con("prnt (%p): %s {%s} at depth %u\n", 
+            head, u_json_type_str(head->type), head->key, head->depth);
 #endif  /* U_JSON_OBJ_DEBUG */
 
     TAILQ_INSERT_TAIL(&head->children, jo, siblings);
@@ -1124,19 +1131,19 @@ static int u_json_match_value (u_lexer_t *jl, u_json_t *jo)
     dbg_return_if (jl == NULL, ~0);
 
     if (u_json_match_string_first(jl))
-        warn_err_if (u_json_match_string(jl, jo));
+        dbg_err_if (u_json_match_string(jl, jo));
     else if (u_json_match_number_first(jl))
-        warn_err_if (u_json_match_number(jl, jo));
+        dbg_err_if (u_json_match_number(jl, jo));
     else if (u_json_match_object_first(jl))
-        warn_err_if (u_json_match_object(jl, jo));
+        dbg_err_if (u_json_match_object(jl, jo));
     else if (u_json_match_array_first(jl))
-        warn_err_if (u_json_match_array(jl, jo));
+        dbg_err_if (u_json_match_array(jl, jo));
     else if (u_json_match_true_first(jl))
-        warn_err_if (u_json_match_true(jl, jo));
+        dbg_err_if (u_json_match_true(jl, jo));
     else if (u_json_match_false_first(jl))
-        warn_err_if (u_json_match_false(jl, jo));
+        dbg_err_if (u_json_match_false(jl, jo));
     else if (u_json_match_null_first(jl))
-        warn_err_if (u_json_match_null(jl, jo));
+        dbg_err_if (u_json_match_null(jl, jo));
     else
         U_LEXER_ERR(jl, "value not found at \'%s\'", u_lexer_lookahead(jl));
 
@@ -1201,15 +1208,15 @@ static int u_json_match_number (u_lexer_t *jl, u_json_t *jo)
     char match[U_TOKEN_SZ];
 
     /* INT is mandatory */
-    warn_err_if (u_json_match_int(jl));
+    dbg_err_if (u_json_match_int(jl));
 
     /* c IN first(FRAC) */
     if (u_json_match_frac_first(u_lexer_peek(jl)))
-        warn_err_if (u_json_match_frac(jl));
+        dbg_err_if (u_json_match_frac(jl));
 
     /* c IN first(EXP) */
     if (u_json_match_exp_first(u_lexer_peek(jl)))
-        warn_err_if (u_json_match_exp(jl));
+        dbg_err_if (u_json_match_exp(jl));
 
     /* Register right side of the matched number. */
     u_lexer_record_rmatch(jl);
@@ -1222,8 +1229,8 @@ static int u_json_match_number (u_lexer_t *jl, u_json_t *jo)
     /* Push the matched number into the supplied json object. */
     if (jo)
     {
-        warn_err_if (u_json_set_type(jo, U_JSON_TYPE_NUMBER));
-        warn_err_if (u_json_set_val(jo, match));
+        dbg_err_if (u_json_set_type(jo, U_JSON_TYPE_NUMBER));
+        dbg_err_if (u_json_set_val(jo, match));
     }
 
 #ifdef U_JSON_LEX_DEBUG
@@ -1349,7 +1356,7 @@ static int u_json_match_seq (u_lexer_t *jl, u_json_t *jo, int type,
     U_LEXER_SKIP(jl, NULL);
 
     if (jo)
-        warn_err_if (u_json_set_type(jo, type));
+        dbg_err_if (u_json_set_type(jo, type));
 
 #ifdef U_JSON_LEX_DEBUG
     u_con("matched \'%s\' sequence", u_json_type_str(type));
@@ -1393,7 +1400,8 @@ static int u_json_match_array (u_lexer_t *jl, u_json_t *jo)
     }
 
     /* Parent object is an array. */
-    warn_err_if (u_json_set_type(jo, U_JSON_TYPE_ARRAY));
+    if (jo)
+        dbg_err_if (u_json_set_type(jo, U_JSON_TYPE_ARRAY));
 
     do {
         /* As long as we want to accept empty arrays in this same scan loop, 
@@ -1416,17 +1424,18 @@ static int u_json_match_array (u_lexer_t *jl, u_json_t *jo)
         if (jo)
         {
             /* Create a new object to store next array element. */
-            warn_err_if (u_json_new(&elem));
-            warn_err_if (u_json_set_type(elem, U_JSON_TYPE_UNKNOWN));
+            dbg_err_if (u_json_new(&elem));
+            dbg_err_if (u_json_set_type(elem, U_JSON_TYPE_UNKNOWN));
+            dbg_err_if (u_json_set_depth(elem, jo->depth + 1));
         }
 
         /* Fetch new value. */
-        warn_err_if (u_json_match_value(jl, elem));
+        dbg_err_if (u_json_match_value(jl, elem));
 
         if (jo)
         {
             /* Push the fetched element to its parent array. */
-            warn_err_if (u_json_add(jo, elem)); 
+            dbg_err_if (u_json_add(jo, elem)); 
             elem = NULL;
         }
 
@@ -1466,7 +1475,7 @@ static int u_json_match_object (u_lexer_t *jl, u_json_t *jo)
     }
 
     if (jo)
-        warn_err_if (u_json_set_type(jo, U_JSON_TYPE_OBJECT));
+        dbg_err_if (u_json_set_type(jo, U_JSON_TYPE_OBJECT));
 
     do {
         char d = u_lexer_peek(jl);
@@ -1482,7 +1491,7 @@ static int u_json_match_object (u_lexer_t *jl, u_json_t *jo)
         }
 
         /* Process assignement. */
-        warn_err_if (!u_json_match_pair_first(jl) || u_json_match_pair(jl, jo));
+        dbg_err_if (!u_json_match_pair_first(jl) || u_json_match_pair(jl, jo));
 
         /* Consume trailing white spaces, if any. */
         if (isspace((int) u_lexer_peek(jl)))
@@ -1518,11 +1527,14 @@ static int u_json_match_pair (u_lexer_t *jl, u_json_t *jo)
 
     /* Here we use the matched string as the 'key' for the associated value, 
      * hence there is no associated json object. */
-    warn_err_if (u_json_match_string(jl, NULL));
+    dbg_err_if (u_json_match_string(jl, NULL));
 
     /* Initialize new json object to store the key/value pair. */
     if (jo)
-        warn_err_if (u_json_new(&pair));
+    {
+        dbg_err_if (u_json_new(&pair));
+        dbg_err_if (u_json_set_depth(pair, jo->depth + 1));
+    }
 
     (void) u_lexer_get_match(jl, match);
 
@@ -1531,7 +1543,7 @@ static int u_json_match_pair (u_lexer_t *jl, u_json_t *jo)
         match[mlen - 1] = '\0';
 
     if (jo)
-        warn_err_if (u_json_set_key(pair, match));
+        dbg_err_if (u_json_set_key(pair, match));
 
     /* Consume trailing white spaces, if any. */
     if (isspace((int) u_lexer_peek(jl)))
@@ -1547,12 +1559,12 @@ static int u_json_match_pair (u_lexer_t *jl, u_json_t *jo)
     U_LEXER_SKIP(jl, &c);
 
     /* Assign value. */
-    warn_err_if (u_json_match_value(jl, pair));
+    dbg_err_if (u_json_match_value(jl, pair));
 
     /* Push the new value to the parent json object. */
     if (jo)
     {
-        warn_err_if (u_json_add(jo, pair));
+        dbg_err_if (u_json_add(jo, pair));
         pair = NULL;
     }
 
@@ -1591,7 +1603,7 @@ static int u_json_match_string (u_lexer_t *jl, u_json_t *jo)
             switch (c)
             {
                 case 'u':
-                    warn_err_if (u_json_match_escaped_unicode(jl));
+                    dbg_err_if (u_json_match_escaped_unicode(jl));
                     break;
                 case '"': case '\\': case '/': case 'b':
                 case 'f': case 'n':  case 'r': case 't':
@@ -1623,7 +1635,7 @@ static int u_json_match_string (u_lexer_t *jl, u_json_t *jo)
      * supply the json object that has to be set. */
     if (jo)
     {
-        warn_err_if (u_json_set_type(jo, U_JSON_TYPE_STRING));
+        dbg_err_if (u_json_set_type(jo, U_JSON_TYPE_STRING));
 
         /* Remove trailing '"' from match. */
         (void) u_lexer_get_match(jl, match);
@@ -1632,7 +1644,7 @@ static int u_json_match_string (u_lexer_t *jl, u_json_t *jo)
         if ((mlen = strlen(match)) >= 1)
             match[mlen - 1] = '\0';
 
-        warn_err_if (u_json_set_val(jo, match));
+        dbg_err_if (u_json_set_val(jo, match));
     }
 
     return 0;
@@ -1816,10 +1828,10 @@ static int u_json_do_parse (const char *json, u_json_t **pjo,
 
     /* Create a disposable lexer context associated to the supplied
      * 'json' string. */
-    warn_err_if (u_lexer_new(json, &jl));
+    dbg_err_if (u_lexer_new(json, &jl));
 
     /* Create top level json object. */
-    warn_err_if (pjo && u_json_new(&jo));
+    dbg_err_if (pjo && u_json_new(&jo));
 
     /* Consume any trailing white space before starting actual parsing. */
     if (u_lexer_eat_ws(jl) == -1)
@@ -1828,9 +1840,9 @@ static int u_json_do_parse (const char *json, u_json_t **pjo,
     /* Launch the lexer expecting the input JSON text as a serialized object 
      * or array. */ 
     if (u_json_match_object_first(jl))
-        warn_err_if (u_json_match_object(jl, jo));
+        dbg_err_if (u_json_match_object(jl, jo));
     else if (u_json_match_array_first(jl))
-        warn_err_if (u_json_match_array(jl, jo));
+        dbg_err_if (u_json_match_array(jl, jo));
     else
         U_LEXER_ERR(jl, "Expect \'{\' or \'[\', got \'%c\'.", u_lexer_peek(jl));
 
@@ -1860,3 +1872,13 @@ err:
     return ~0;
 }
 
+static int u_json_set_depth (u_json_t *jo, unsigned int depth)
+{
+    /* Don't let'em smash our stack. */
+    warn_err_ifm ((jo->depth = depth) > U_JSON_MAX_DEPTH,
+        "Maximum allowed nesting is %u.", U_JSON_MAX_DEPTH);
+
+    return 0;
+err:
+    return ~0;
+}
