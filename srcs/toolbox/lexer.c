@@ -193,7 +193,7 @@ int u_lexer_eat_ws (u_lexer_t *l)
     dbg_return_if (l == NULL, -1);
     dbg_return_if (u_lexer_eot(l), -1);
 
-    while (isspace(l->s[l->pos]))
+    while (isspace((int) l->s[l->pos]))
     {
         dbg_return_if (u_lexer_eot(l), -1);
         u_lexer_incr(l);
