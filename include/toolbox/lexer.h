@@ -9,10 +9,6 @@
 extern "C" {
 #endif
 
-#ifndef U_TOKEN_SZ
-  #define U_TOKEN_SZ    128
-#endif  /* !U_TOKEN_SZ */
-
 #ifndef U_LEXER_ERR_SZ
   #define U_LEXER_ERR_SZ    512
 #endif  /* !U_LEXER_ERR_SZ */
@@ -26,6 +22,12 @@ struct u_lexer_s;
 
 /** \brief  Lexer base type. */
 typedef struct u_lexer_s u_lexer_t;
+
+/** \brief  Maximum size of input tokens (can be changed at compile time via 
+ *          \c -DU_TOKEN_SZ=nnn compiler flag) */
+#ifndef U_TOKEN_SZ
+  #define U_TOKEN_SZ    128
+#endif  /* !U_TOKEN_SZ */
 
 /*
  * All the following U_LEXER_ macros need the "err" label in scope.

@@ -133,6 +133,15 @@ static int u_json_set_depth (u_json_t *jo, unsigned int depth);
         u_con("Syntax error: %s", status);
     \endcode
 
+    You should not use the validating interface on untrusted input.
+    In fact no maximum nesting depth is enforced on validation -- on the 
+    contrary, the parsing interface has the compile-time define 
+    ::U_JSON_MAX_DEPTH for such task -- so a malicious user could make your 
+    application stack explode by simply supplying a string made by all \c '['.  
+    The intended use of the validating interface is for checking your 
+    hand-crafted JSON strings before pushing them out, i.e. without going 
+    through all the ::u_json_new -> ::u_json_add -> ::u_json_encode passages.
+
 
     \section cache Indexing
 
@@ -214,6 +223,65 @@ static int u_json_set_depth (u_json_t *jo, unsigned int depth);
         dbg_err_if (e != i);    // e = 1..10
     }
     \endcode
+
+    
+    \section rfcimpl RFC implementation
+
+    Re Section 4. of RFC 4627, the following implementation choices have been 
+    made:
+
+    <table>
+      <tr>
+        <th>MAY</th>
+        <th>Answer</th>
+        <th>Notes</th>
+      </tr>
+      <tr>
+        <td>Accept non-JSON forms or extensions ?</td>
+        <td><b>NO</b></td>
+        <td>
+            Trailing non-JSON text is allowed (though warned) at the end of
+            string.
+        </td>
+      </tr>
+      <tr>
+        <td>Set limits on the size of accepted texts ?</td>
+        <td><b>NO</b></td>
+        <td>
+            Depending only upon the memory available to the parsing process.
+        </td>
+      </tr>
+      <tr>
+        <td>Set limits on the maximum depth of nesting ?</td>
+        <td><b>YES</b></td>
+        <td>
+            Made available to the parsing interface through the compile-time
+            constant ::U_JSON_MAX_DEPTH.  The validating interface ignores this
+            limit, and as such should be used with care (i.e. never on untrusted
+            input).
+        </td>
+      </tr>
+      <tr>
+        <td>Set limits on the range of numbers ?</td>
+        <td><b>NO</b></td>
+        <td>
+            All numerical values are stored as strings.  Truncation/conversion
+            issues can arise only when trying to extract their \c long or 
+            \c double counterparts through the ::u_json_get_int or 
+            ::u_json_get_real commodity interfaces.  In case they fail you can
+            still access the original (C-string) value through ::u_json_get_val.
+        </td>
+      </tr>
+      <tr>
+        <td>Set limits on the length and character contents of strings ?</td>
+        <td><b>YES</b></td>
+        <td>
+            String length for both keys and values are upper-bounded by
+            the compile-time constant ::U_TOKEN_SZ.
+        </td>
+      </tr>
+    </table>
+
  */
 
 /**
