@@ -235,9 +235,7 @@ static int test_max_nesting (u_test_case_t *tc)
     memset(ns + U_JSON_MAX_DEPTH + 1, ']', U_JSON_MAX_DEPTH + 1);
     ns[(U_JSON_MAX_DEPTH * 2) + 2] = '\0';
 
-    u_con("%s", ns);
-
-    /* ... and try to parse it. */
+    /* Try to parse it (should fail). */
     u_test_err_ifm (u_json_decode(ns, &jo) == 0, 
             "expecting parser rejection because of excessive nesting");
 
