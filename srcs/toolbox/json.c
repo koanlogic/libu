@@ -136,17 +136,19 @@ static int u_json_set_depth (u_json_t *jo, unsigned int depth);
     You should not use the validating interface on untrusted input.
     In fact no maximum nesting depth is enforced on validation -- on the 
     contrary, the parsing interface has the compile-time define 
-    ::U_JSON_MAX_DEPTH for such task -- so a malicious user could make your 
-    application stack explode by simply supplying a string made by all \c '['.  
+    ::U_JSON_MAX_DEPTH for such purpose -- so a malicious user could make your 
+    application stack explode by simply supplying a string made by all 
+    \c '[' chars.
     The intended use of the validating interface is for checking your 
-    hand-crafted JSON strings before pushing them out, i.e. without going 
-    through all the ::u_json_new -> ::u_json_add -> ::u_json_encode passages.
+    hand-crafted JSON strings before pushing them out, i.e. those you've
+    created without going through all the ::u_json_new -> ::u_json_add -> 
+    ::u_json_encode chain.
 
 
     \section cache Indexing
 
     Once the string has been parsed and (implicitly or explicitly) 
-    validated, should the application request frequent and/or massive access 
+    validated, should your application request frequent and/or massive access 
     to its deeply nested attributes, then you may want to create an auxiliary 
     index to the parse tree via ::u_json_index.  This way its nodes can be 
     accessed via a unique (and unambiguous -- provided that no anonymous key is
@@ -227,8 +229,8 @@ static int u_json_set_depth (u_json_t *jo, unsigned int depth);
     
     \section rfcimpl RFC implementation
 
-    Re Section 4. of RFC 4627, the following implementation choices have been 
-    made:
+    The following implementation choices have been made (re Section 4. of 
+    RFC 4627):
 
     <table>
       <tr>
@@ -241,7 +243,8 @@ static int u_json_set_depth (u_json_t *jo, unsigned int depth);
         <td><b>NO</b></td>
         <td>
             Trailing non-JSON text is allowed (though warned) at the end of
-            string.
+            string.  I.e. the input string in scanned until the outermost 
+            container is matched.
         </td>
       </tr>
       <tr>
@@ -1943,7 +1946,7 @@ err:
 static int u_json_set_depth (u_json_t *jo, unsigned int depth)
 {
     /* Don't let'em smash our stack. */
-    warn_err_ifm ((jo->depth = depth) > U_JSON_MAX_DEPTH,
+    warn_err_ifm ((jo->depth = depth) >= U_JSON_MAX_DEPTH,
         "Maximum allowed nesting is %u.", U_JSON_MAX_DEPTH);
 
     return 0;

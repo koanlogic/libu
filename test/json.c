@@ -7,6 +7,7 @@ static int test_build_simple_object (u_test_case_t *tc);
 static int test_build_nested_object (u_test_case_t *tc);
 static int test_build_simple_array (u_test_case_t *tc);
 static int test_iterators (u_test_case_t *tc);
+static int test_max_nesting (u_test_case_t *tc);
 
 static int test_codec (u_test_case_t *tc)
 {
@@ -221,6 +222,35 @@ err:
     return U_TEST_FAILURE;
 }
 
+static int test_max_nesting (u_test_case_t *tc)
+{
+    u_json_t *jo = NULL;
+    char ns[(U_JSON_MAX_DEPTH * 2) + 2 + 1];
+
+    /*
+     * [[[[[[[[[[[[[[[[[[[...[]...]]]]]]]]]]]]]]]]]]] 
+     *  `--U_JSON_MAX_DEPTH--'                        
+     */
+    memset(ns, '[', U_JSON_MAX_DEPTH + 1);
+    memset(ns + U_JSON_MAX_DEPTH + 1, ']', U_JSON_MAX_DEPTH + 1);
+    ns[(U_JSON_MAX_DEPTH * 2) + 2] = '\0';
+
+    u_con("%s", ns);
+
+    /* ... and try to parse it. */
+    u_test_err_ifm (u_json_decode(ns, &jo) == 0, 
+            "expecting parser rejection because of excessive nesting");
+
+    u_json_free(jo);
+
+    return U_TEST_SUCCESS;
+err:
+    if (jo)
+        u_json_free(jo);
+
+    return U_TEST_FAILURE;
+}
+
 int test_suite_json_register (u_test_t *t)
 {
     u_test_suite_t *ts = NULL;
@@ -235,6 +265,7 @@ int test_suite_json_register (u_test_t *t)
     con_err_if (u_test_case_register("Builder (nested object)", 
                 test_build_nested_object, ts));
     con_err_if (u_test_case_register("Iterators", test_iterators, ts));
+    con_err_if (u_test_case_register("Nesting", test_max_nesting, ts));
 
     /* JSON depends on the lexer and hmap modules. */
     con_err_if (u_test_suite_dep_register("Lexer", ts));
