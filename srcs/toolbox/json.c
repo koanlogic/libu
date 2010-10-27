@@ -137,8 +137,8 @@ static int u_json_set_depth (u_json_t *jo, unsigned int depth);
     In fact no maximum nesting depth is enforced on validation -- on the 
     contrary, the parsing interface has the compile-time define 
     ::U_JSON_MAX_DEPTH for such purpose -- so a malicious user could make your 
-    application stack explode by simply supplying a string made by all 
-    \c '[' chars.
+    application stack explode by simply supplying a big-enough string made by 
+    all \c '[' chars.
     The intended use of the validating interface is for checking your 
     hand-crafted JSON strings before pushing them out, i.e. those you've
     created without going through all the ::u_json_new -> ::u_json_add -> 
