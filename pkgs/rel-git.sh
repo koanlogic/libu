@@ -3,10 +3,9 @@
 # LibU release script
 
 # set these !
-REL_TAG="LIBU_REL_2_0_0"
-REL_VERSION="2.0.0"
+REL_TAG="LIBU_REL_2_1_0"
+REL_VERSION="2.1.0"
 
-# cvs 
 REL_ROOT="libu"
 
 REL_DIR="/tmp/LIBU_REL"
