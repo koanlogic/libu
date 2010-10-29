@@ -68,7 +68,7 @@ static void bubble_down (u_pq_item_t *pi, size_t k, size_t n);
         for (i = 0; !u_pq_empty(pq); i++)
         {
             (void) u_pq_delmax(pq, &key);
-            u_test_case_printf(tc, "%zu: %.0lf", EMAX - i, key);
+            u_con("%zu: %.0lf", EMAX - i, key);
         }
     }
     \endcode
