@@ -1054,16 +1054,16 @@ void u_hmap_opts_dbg (u_hmap_opts_t *opts)
     u_dbg("  discard policy: %s", __pcy2str(opts->policy));
     u_dbg("  buckets: %u (max: %u -- if discard policy != none)", 
             opts->size, opts->max);
-    u_dbg("  owns data: %d, object dtor: %s, key dtor: %s, value dtor: %s",
-            (opts->options & U_HMAP_OPTS_OWNSDATA) ? "yes" : "no",
-            opts->f_free ? "set" : "not set", 
-            opts->f_key_free ? "set" : "not set", 
-            opts->f_val_free ? "set" : "not set");
+    u_dbg("  owns data: %s", 
+            (opts->options & U_HMAP_OPTS_OWNSDATA) ? "yes" : "no");
+    u_dbg("  objects dtor: %s", opts->f_free ? "set" : "not set");
+    u_dbg("  keys dtor: %s", opts->f_key_free ? "set" : "not set");
+    u_dbg("  values dtor: %s", opts->f_val_free ? "set" : "not set");
     u_dbg("  object serializer: %s", opts->f_str ? "set" : "not set");
-    u_dbg("  overwrite equal keys: %d", 
+    u_dbg("  overwrite equal keys: %s", 
             (opts->options & U_HMAP_OPTS_NO_OVERWRITE) ? "no" : "yes");
-    u_dbg("  key type: %s, val type: %s", 
-            __datatype2str(opts->key_type), __datatype2str(opts->val_type));
+    u_dbg("  key type: %s", __datatype2str(opts->key_type));
+    u_dbg("  val type: %s", __datatype2str(opts->val_type));
     u_dbg("</hmap_options>");
 
     return;
