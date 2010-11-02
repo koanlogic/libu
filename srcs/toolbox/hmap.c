@@ -269,18 +269,16 @@ err:
  * \param   hmap      hmap object
  * \param   key       key to be retrieved 
  * 
- * \retval  void *    on success
- * \retval  NULL      on failure or no match
+ * \return  a pointer to the retrieved value on success, \c NULL on failure or 
+ *          no match 
  */
 void *u_hmap_easy_get (u_hmap_t *hmap, const char *key)
 {
     u_hmap_o_t *obj = NULL;
 
-    dbg_err_if (u_hmap_get(hmap, key, &obj));
+    nop_return_if (u_hmap_get(hmap, key, &obj), NULL);
 
     return obj->val;
-err:
-    return NULL;
 }
 
 /**
