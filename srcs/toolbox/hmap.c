@@ -1063,7 +1063,7 @@ void u_hmap_opts_dbg (u_hmap_opts_t *opts)
     u_dbg("  overwrite equal keys: %s", 
             (opts->options & U_HMAP_OPTS_NO_OVERWRITE) ? "no" : "yes");
     u_dbg("  key type: %s", __datatype2str(opts->key_type));
-    u_dbg("  val type: %s", __datatype2str(opts->val_type));
+    u_dbg("  value type: %s", __datatype2str(opts->val_type));
     u_dbg("</hmap_options>");
 
     return;
