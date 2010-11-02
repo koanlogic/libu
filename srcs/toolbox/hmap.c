@@ -74,6 +74,8 @@ static int __queue_pop_back (u_hmap_t *hmap, u_hmap_o_t **obj);
 static int __resize(u_hmap_t *hmap);
 static int __next_prime(size_t *prime, size_t sz, size_t *idx);
 
+static const char *__datatype2str(u_hmap_options_datatype_t datatype);
+
 /**
  *  \defgroup hmap HMap 
  *  \{
@@ -1045,19 +1047,26 @@ err:
  */
 void u_hmap_opts_dbg (u_hmap_opts_t *opts)
 {
-    dbg_ifb (opts == NULL) return;
+    dbg_return_if (opts == NULL, );
 
-    u_dbg("[hmap options]");
-    u_dbg("easy: %d", opts->easy);
-    u_dbg("size: %u", opts->size);
-    u_dbg("max: %u", opts->max);
-    u_dbg("policy: %s", __pcy2str(opts->policy));
-    u_dbg("ownsdata: %d, f_free: %p, f_key_free: %p, f_val_free: %p", 
-            opts->options & U_HMAP_OPTS_OWNSDATA,
-            opts->f_free, opts->f_key_free, opts->f_val_free);
-    u_dbg("f_str: %p", opts->f_str);
-    u_dbg("no_overwrite: %d", opts->options & U_HMAP_OPTS_NO_OVERWRITE);
-    u_dbg("key type: %d, val type: %d", opts->key_type, opts->val_type);
+    u_dbg("<hmap_options>");
+    u_dbg("  easy: %s", opts->easy ? "yes" : "no");
+    u_dbg("  discard policy: %s", __pcy2str(opts->policy));
+    u_dbg("  buckets: %u (max: %u -- if discard policy != none)", 
+            opts->size, opts->max);
+    u_dbg("  owns data: %d, object dtor: %s, key dtor: %s, value dtor: %s",
+            (opts->options & U_HMAP_OPTS_OWNSDATA) ? "yes" : "no",
+            opts->f_free ? "set" : "not set", 
+            opts->f_key_free ? "set" : "not set", 
+            opts->f_val_free ? "set" : "not set");
+    u_dbg("  object serializer: %s", opts->f_str ? "set" : "not set");
+    u_dbg("  overwrite equal keys: %d", 
+            (opts->options & U_HMAP_OPTS_NO_OVERWRITE) ? "no" : "yes");
+    u_dbg("  key type: %s, val type: %s", 
+            __datatype2str(opts->key_type), __datatype2str(opts->val_type));
+    u_dbg("</hmap_options>");
+
+    return;
 }
 
 /** \brief Set initial size of hmap's dynamic array */
@@ -1753,10 +1762,26 @@ static const char *__pcy2str (u_hmap_pcy_type_t policy)
         case U_HMAP_PCY_FIFO:
             return "fifo";
         case U_HMAP_PCY_LRU:
-            return "fifo";
+            return "lru";
         case U_HMAP_PCY_LFU:
             return "lfu";
     }
+    return NULL;
+}
+
+/* Get a string representation of a policy */
+static const char *__datatype2str(u_hmap_options_datatype_t datatype)
+{
+    switch (datatype)
+    {
+        case U_HMAP_OPTS_DATATYPE_POINTER:
+            return "pointer";
+        case U_HMAP_OPTS_DATATYPE_STRING:
+            return "string";
+        case U_HMAP_OPTS_DATATYPE_OPAQUE:
+            return "opaque";
+    }
+
     return NULL;
 }
 

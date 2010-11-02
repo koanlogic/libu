@@ -93,7 +93,7 @@ typedef struct u_hmap_o_s u_hmap_o_t;
 /** \brief Map options */
 struct u_hmap_opts_s {
 
-    size_t size,            /**< approximate size of hashhmap array */
+    size_t size,            /**< approximate size of hashmap array */
            max;             /**< maximum number of elements in hmap -
                              only applies to hmaps with discard policy */
 
