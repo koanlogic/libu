@@ -12,6 +12,7 @@
 #endif  /* HAVE__BOOL */
 #ifdef HAVE_COMPLEX
 #include <complex.h>
+#undef I    /* Let them use I as an identifier if they want to. */
 #endif  /* HAVE_COMPLEX */
 
 #ifdef __cplusplus
