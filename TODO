@@ -1,20 +1,10 @@
 # $Id: TODO,v 1.6 2009/12/29 20:14:34 tho Exp $
 
 = u_config "listener" feature (http://koanlogic.com/pipermail/klone-users/2010-June/000930.html)
-
-- add libu::json to json.org list of implementations (douglas@crockford.com)
-
-* unit tests for new json interfaces (countinuous WIP)
-    - validator
-    - ...
-- valgrind tour
-
-* return with error in setters (except value) when object is frozen 
-    - set + add done (when removal interface is added, provide the same
-      check)
-? is zero-length json key valid ? invalid zero-length would make possible to
-  decide if a given name is (or isn't) fully qualified !
-
 ? u_config_t multi-line values
 
-- memory with pools
+- implement json-templates 
+    * http://code.google.com/p/json-template/wiki/Reference
+    * http://chubot.org/json-template/test-cases/
+
+- add time-constrained tests + TIMEOUTED exit status
