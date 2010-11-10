@@ -131,10 +131,13 @@ typedef enum {
     U_NET_OPT_SCTP_AUTHENTICATION_EVENT = (1 << 11),
     /**< SCTP only: get authentication events, e.g. activation of new keys */
 
-    U_NET_OPT_DGRAM_BROADCAST = (1 << 20)
+    U_NET_OPT_DGRAM_BROADCAST = (1 << 20),
     /**< DGRAM only: automatically sets broadcast option in client socket using
-     * setsockopt() */
+     *   setsockopt() */
 
+    U_NET_OPT_DONT_RETRY = (1 << 21)
+    /**< Don't retry operations that can be interrupted by signals, e.g.
+     *   connect(2)  */
 } u_net_opts_t;
 
 /** \brief ::u_io specialisation for output ops */

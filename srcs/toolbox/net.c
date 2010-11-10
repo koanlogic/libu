@@ -726,7 +726,15 @@ static int do_csock (struct sockaddr *sad, u_socklen_t sad_len, int domain,
      * 1) the caller must use u{,_net}_write for I/O instead of sendto 
      * 2) async errors are returned to the process. */
     if (!(opts & U_NET_OPT_DONT_CONNECT))
-        dbg_err_sif (u_connect(s, sad, sad_len) == -1);
+    {
+        /* In case U_NET_OPT_DONT_RETRY was supplied, use plain connect(2),
+         * otherwise shield connection establishment against signals via
+         * u_connect. */
+        int (*cf)(int, const struct sockaddr *, u_socklen_t) =  
+            (opts & U_NET_OPT_DONT_RETRY) ? connect : u_connect; 
+
+        dbg_err_sif (cf(s, sad, sad_len) == -1);
+    }
 
     return s;
 err:
