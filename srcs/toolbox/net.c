@@ -73,12 +73,16 @@ static int resolv_port (const char *s_port, uint16_t *pin_port);
 
 /* socket creation horses */
 static int do_sock (
-        int f(struct sockaddr *, u_socklen_t, int, int, int, int, int), 
-        struct u_net_addr_s *a, int backlog, u_addrinfo_t **pai);
+        int f(struct sockaddr *, u_socklen_t, int, int, int, int, int, 
+            struct timeval *),
+        struct u_net_addr_s *a, int backlog, u_addrinfo_t **pai, 
+        struct timeval *timeout);
 static int do_csock (struct sockaddr *sad, u_socklen_t sad_len, int domain, 
-        int type, int protocol, int opts, int dummy);
+        int type, int protocol, int opts, int dummy,
+        struct timeval *timeout);
 static int do_ssock (struct sockaddr *sad, u_socklen_t sad_len, int domain, 
-        int type, int protocol, int opts, int backlog);
+        int type, int protocol, int opts, int backlog,
+        struct timeval *dummy);
 
 /* URI scheme mapper */
 struct u_net_scheme_map_s
@@ -269,19 +273,27 @@ err:
  *
  *  \return the created socket descriptor, or \c -1 on error.
  */ 
-int u_net_sd_by_addr (u_net_addr_t *a)
+int u_net_sd_by_addr_ex (u_net_addr_t *a, struct timeval *timeout)
 {
     dbg_return_if (a == NULL, ~1);
 
     switch (a->mode)
     {
         case U_NET_SSOCK:
-            return do_sock(do_ssock, a, U_NET_BACKLOG, &a->cur);
+            return do_sock(do_ssock, a, U_NET_BACKLOG, &a->cur, timeout);
         case U_NET_CSOCK:
-            return do_sock(do_csock, a, 0, &a->cur);
+            return do_sock(do_csock, a, 0, &a->cur, timeout);
         default:
             dbg_return_ifm (1, -1, "unknown socket mode %d", a->mode);
     }
+}
+
+/**
+ *  \brief  ::u_net_sd_by_addr_ex wrapper with no timeout
+ */ 
+int u_net_sd_by_addr (u_net_addr_t *a)
+{
+    return u_net_sd_by_addr_ex(a, NULL);
 }
 
 /**
@@ -294,7 +306,8 @@ int u_net_sd_by_addr (u_net_addr_t *a)
  *
  *  \return the newly created socket descriptor, or \c -1 on error.
  */ 
-int u_net_sd (const char *uri, u_net_mode_t mode, int opts)
+int u_net_sd_ex (const char *uri, u_net_mode_t mode, int opts, 
+        struct timeval *timeout)
 {
     int s = -1;
     u_net_addr_t *a = NULL;
@@ -310,7 +323,7 @@ int u_net_sd (const char *uri, u_net_mode_t mode, int opts)
     u_net_addr_set_opts(a, opts);
 
     /* do the real job */
-    s = u_net_sd_by_addr(a);
+    s = u_net_sd_by_addr_ex(a, timeout);
 
     /* dispose the (one-shot) address */
     u_net_addr_free(a);
@@ -325,6 +338,14 @@ err:
     return -1;
 }
 
+/**
+ *  \brief  ::u_net_sd_ex wrapper with no timeout
+ */ 
+int u_net_sd (const char *uri, u_net_mode_t mode, int opts)
+{
+    return u_net_sd_ex(uri, mode, opts, NULL);
+}
+ 
 /** 
  *  \brief  Tell if the supplied address is entitled to call accept(2) 
  *
@@ -447,20 +468,97 @@ err:
 /** \brief  connect(2) wrapper that handles \c EINTR */
 int u_connect (int sd, const struct sockaddr *addr, u_socklen_t addrlen)
 {
-    int s;
+    return u_connect_ex(sd, addr, addrlen, NULL);
+}
+
+/**
+ *  \brief  timeouted connect(2) wrapper that handles \c EINTR
+ *
+ *  Timeouted connect(2) wrapper that handles \c EINTR.
+ *  Upon successful completion, the underlying select(2) function may 
+ *  modify the object pointed to by the \p timeout argument. 
+ *
+ *  \param  sd      socket descriptor
+ *  \param  addr    address of the peer
+ *  \param  addrlen size of \p addr in bytes
+ *  \param  timeout if non-NULL specifies a maximum interval to wait for the 
+ *                  connection attempt to complete.  If a NULL value is supplied
+ *                  the default platform timeout is in place.
+ *
+ *  \retval  0  success
+ *  \retval -1  generic error
+ *  \retval -2  timeout
+ */ 
+int u_connect_ex (int sd, const struct sockaddr *addr, u_socklen_t addrlen,
+        struct timeval *timeout)
+{
+    int rc;
+    u_socklen_t rc_len = sizeof rc;
+    fd_set writefds;
+
+    dbg_return_if (sd < 0, -1);
+    dbg_return_if (addr == NULL, -1);
+    dbg_return_if (addrlen == 0, -1);
+
+    if (timeout)
+        dbg_err_if (u_net_set_nonblocking(sd));
    
-again:
-    if ((s = connect(sd, addr, addrlen)) == -1 && (errno == EINTR))
-        goto again;
+    /* Open Group Base Specifications:
+     *  "If connect() is interrupted by a signal that is caught while blocked 
+     *   waiting to establish a connection, connect() shall fail and set 
+     *   connect() to [EINTR], but the connection request shall not be aborted, 
+     *   and the connection shall be established asynchronously." 
+     * That's why we can't just simply 'goto again' here when errno==EINTR,
+     * instead a rather convoluted select() based machinery must be put in
+     * place.  Anyway, since the timeout'ed version shares the same code layout
+     * we can kill two birds with one stone... */
+    nop_return_if ((rc = connect(sd, addr, addrlen)) == 0, 0);
+    dbg_err_sif (errno != EINTR && errno != EINPROGRESS);
 
-#ifdef U_NET_TRACE
-    u_dbg("connect(%d, %p, %d) = %d", sd, addr, addrlen, s); 
-#endif
+    /* When the connection has been established asynchronously, select() and 
+     * poll() shall indicate that the file descriptor for the socket is ready 
+     * for writing. */
+    FD_ZERO(&writefds);
+    FD_SET(sd, &writefds);
 
-    /* in case of error log errno, otherwise fall through */
-    dbg_err_sif (s == -1);
+    for (;;)
+    {
+        /* Try repeatedly to select the socket descriptor for a write 
+         * condition to happen. */
+        if ((rc = select(sd + 1, NULL, &writefds, NULL, timeout)) > 0)
+            break;
+
+        /* Timeout: jump to err. */
+        if (rc == 0)
+        {
+            errno = ETIMEDOUT;
+            dbg_err("connection timeouted on socket %d", sd);
+        }
+
+        /* Unless interrupted by a cought signal (in which case select() is
+         * re-entered), bail out. */
+        dbg_err_sif (rc == -1 && errno != EINTR);
+    }
+
+    /* Ok, if we reached here we're almost done, just peek at SO_ERROR to
+     * check if there is any pending error on the socket. */
+    dbg_err_sif (u_getsockopt(sd, SOL_SOCKET, SO_ERROR, &rc, &rc_len) == -1);
+
+    if (rc)
+    {
+        errno = rc;
+        warn_err("error detected on socket %d: %s", sd, strerror(errno));
+    }
+
+    if (timeout)
+        (void) u_net_unset_nonblocking(sd);
+
+    return 0;
 err:
-    return s;
+    if (timeout)
+        (void) u_net_unset_nonblocking(sd);
+
+    return (errno == ETIMEDOUT) ? -2 : -1;
 }
 
 /** \brief  bind(2) wrapper */
@@ -531,6 +629,55 @@ err:
     u_info("getsockopt not implemented on this platform");
     return -1;
 #endif  /* HAVE_GETSOCKOPT */
+}
+
+/**
+ *  \brief  Mark the supplied socket descriptor as non-blocking
+ *
+ *  \param  s   a TCP socket descriptor
+ *
+ *  \retval  0  if successful
+ *  \retval ~0  on error or fcntl(2) not implemented
+ */ 
+int u_net_set_nonblocking (int s)
+{
+#ifdef HAVE_FCNTL
+    int flags;
+
+    dbg_err_sif ((flags = fcntl(s, F_GETFL, 0)) == -1);
+    flags |= O_NONBLOCK;
+    dbg_err_sif (fcntl(s, F_SETFL, flags) == -1);
+#else   /* !HAVE_FCNTL */
+    warn_err("missing fcntl(2): can't set socket %d as non blocking", s);
+#endif  /* HAVE_FCNTL */
+
+    return 0;
+err:
+    return ~0;
+}
+
+/**
+ *  \brief  Unset the non-blocking bit on the supplied socket descriptor.
+ *
+ *  \param  s   a TCP socket descriptor
+ *
+ *  \retval  0  if successful
+ *  \retval ~0  on error or fcntl(2) not implemented
+ */ int u_net_unset_nonblocking (int s)
+{
+#ifdef HAVE_FCNTL
+    int flags;
+
+    dbg_err_sif ((flags = fcntl(s, F_GETFL, 0)) == -1);
+    flags &= ~O_NONBLOCK;
+    dbg_err_sif (fcntl(s, F_SETFL, flags) == -1);
+#else   /* !HAVE_FCNTL */
+    warn_err("missing fcntl(2): can't reset non-blocking bit on socket %d", s);
+#endif  /* HAVE_FCNTL */
+
+    return 0;
+err:
+    return ~0;
 }
 
 /**
@@ -639,8 +786,10 @@ err:
 /* - 'wf' is one of do_ssock() or do_csock() 
  * - if 'psa' is not NULL it will receive the connected/bound sockaddr back */
 static int do_sock (
-        int wf (struct sockaddr *, u_socklen_t, int, int, int, int, int), 
-        struct u_net_addr_s *a, int backlog, u_addrinfo_t **pai)
+        int wf (struct sockaddr *, u_socklen_t, int, int, int, int, int,
+            struct timeval *), 
+        struct u_net_addr_s *a, int backlog, u_addrinfo_t **pai,
+        struct timeval *timeout)
 {
     int sock_type, sd = -1;
     u_addrinfo_t *ap;
@@ -662,7 +811,7 @@ static int do_sock (
 #endif  /* !NO_SCTP */
 
         if ((sd = wf(ap->ai_addr, ap->ai_addrlen, ap->ai_family, sock_type, 
-                    ap->ai_protocol, a->opts, backlog)) != -1)
+                    ap->ai_protocol, a->opts, backlog, timeout)) >= 0)
         {
             /* TODO call getsockname to catch the real connected/bound address 
              * to feed 'pai' */
@@ -693,7 +842,7 @@ static int do_sock (
 }
 
 static int do_csock (struct sockaddr *sad, u_socklen_t sad_len, int domain, 
-        int type, int protocol, int opts, int dummy)
+        int type, int protocol, int opts, int dummy, struct timeval *timeout)
 {
     int s = -1;
 #ifdef HAVE_SO_BROADCAST
@@ -726,15 +875,7 @@ static int do_csock (struct sockaddr *sad, u_socklen_t sad_len, int domain,
      * 1) the caller must use u{,_net}_write for I/O instead of sendto 
      * 2) async errors are returned to the process. */
     if (!(opts & U_NET_OPT_DONT_CONNECT))
-    {
-        /* In case U_NET_OPT_DONT_RETRY was supplied, use plain connect(2),
-         * otherwise shield connection establishment against signals via
-         * u_connect. */
-        int (*cf)(int, const struct sockaddr *, u_socklen_t) =  
-            (opts & U_NET_OPT_DONT_RETRY) ? connect : u_connect; 
-
-        dbg_err_sif (cf(s, sad, sad_len) == -1);
-    }
+        dbg_err_sif (u_connect_ex(s, sad, sad_len, timeout) < 0);
 
     return s;
 err:
@@ -743,11 +884,12 @@ err:
 }
 
 static int do_ssock (struct sockaddr *sad, u_socklen_t sad_len, int domain, 
-        int type, int protocol, int opts, int backlog)
+        int type, int protocol, int opts, int backlog, struct timeval *dummy)
 {
     int s = -1;
 
     dbg_return_if (sad == NULL, -1);
+    u_unused_args(dummy);
 
     dbg_err_sif ((s = u_socket(domain, type, protocol)) == -1);
     

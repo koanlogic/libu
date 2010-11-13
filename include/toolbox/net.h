@@ -31,6 +31,10 @@
   #endif
 #endif  /* OS_UNIX */
 
+#ifdef HAVE_FCNTL
+  #include <fcntl.h>
+#endif  /* HAVE_FCNTL */
+
 #ifdef OS_WIN
   #include <windows.h>
   /* #include <winsock.h> not compatible with ws2tcpip.h */
@@ -131,13 +135,10 @@ typedef enum {
     U_NET_OPT_SCTP_AUTHENTICATION_EVENT = (1 << 11),
     /**< SCTP only: get authentication events, e.g. activation of new keys */
 
-    U_NET_OPT_DGRAM_BROADCAST = (1 << 20),
+    U_NET_OPT_DGRAM_BROADCAST = (1 << 20)
     /**< DGRAM only: automatically sets broadcast option in client socket using
      *   setsockopt() */
 
-    U_NET_OPT_DONT_RETRY = (1 << 21)
-    /**< Don't retry operations that can be interrupted by signals, e.g.
-     *   connect(2)  */
 } u_net_opts_t;
 
 /** \brief ::u_io specialisation for output ops */
@@ -161,7 +162,10 @@ typedef enum {
  */
 
 /* hi-level socket creation */
+int u_net_sd_ex (const char *uri, u_net_mode_t mode, int opts, 
+        struct timeval *timeout);
 int u_net_sd (const char *uri, u_net_mode_t mode, int opts);
+int u_net_sd_by_addr_ex (u_net_addr_t *a, struct timeval *timeout);
 int u_net_sd_by_addr (u_net_addr_t *a);
 
 /* address ctor/dtor & co. */
@@ -175,9 +179,13 @@ void u_net_addr_add_opts (u_net_addr_t *a, int opts);
 
 /* misc */
 int u_net_nagle_off (int sd);
+int u_net_set_nonblocking (int sd);
+int u_net_unset_nonblocking (int sd);
 
 /* networking syscall wrappers */
 int u_socket (int domain, int type, int protocol);
+int u_connect_ex (int sd, const struct sockaddr *addr, u_socklen_t addrlen,
+        struct timeval *timeout);
 int u_connect (int sd, const struct sockaddr *addr, u_socklen_t addrlen);
 int u_listen (int sd, int backlog);
 int u_accept(int ld, struct sockaddr *addr, u_socklen_t *addrlen);

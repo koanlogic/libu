@@ -98,15 +98,19 @@ makl_checksymbol        0   "SO_BROADCAST"   "<sys/socket.h>"
 makl_checksymbol        0   "MAP_FIXED" "<sys/mman.h>"
 
 makl_checkfunc          0   "daemon"        2   ""  "<stdlib.h>"
-makl_checkfunc          0   "setsockopt"    5   ""  "<sys/types.h>" "<sys/socket.h>"
-makl_checkfunc          0   "getsockopt"    5   ""  "<sys/types.h>" "<sys/socket.h>" 
+makl_checkfunc          0   "setsockopt"    5   ""  "<sys/types.h>" \
+                                                    "<sys/socket.h>"
+makl_checkfunc          0   "getsockopt"    5   ""  "<sys/types.h>" \
+                                                    "<sys/socket.h>" 
 makl_checkfunc          0   "getpid"        0   ""  "<unistd.h>"
 makl_checkfunc          0   "link"          2   ""  "<unistd.h>"
 makl_checkfunc          0   "unlink"        1   ""  "<unistd.h>"
 makl_checkfunc          0   "sleep"         1   ""  "<unistd.h>"
 makl_checkfunc          0   "mkstemps"      2   ""  "<unistd.h>"
 makl_checkfunc          0   "setenv"        3   ""  "<stdlib.h>"
-makl_checkfunc          0   "mmap"          6   ""  "<sys/types.h>" "<sys/mman.h>"
+makl_checkfunc          0   "mmap"          6   ""  "<sys/types.h>" \
+                                                    "<sys/mman.h>"
+makl_checkfunc          0   "fcntl"         3   ""  "<fcntl.h>"
 makl_checkfunc          0   "sysconf"       1   ""  "<unistd.h>"
 makl_checkfunc          0   "getpagesize"   0   ""  "<unistd.h>"
 makl_checkfunc          0   "fnmatch"       3   ""  "<fnmatch.h>"
