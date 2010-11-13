@@ -5,8 +5,9 @@ ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 LibU X.Y.Z
 	- [array] #undef 'I' (imaginary unit) when including complex.h to avoid
 	  name clash -- e.g. openssl/rsa.h
-	- [net] add U_NET_OPT_DONT_RETRY to avoid shielding connection attempts
-	  against signal interrupts.
+	- [net] fix u_connect buggy behaviour on EINTR (reported by Mickael Auger)
+	- [net] add _ex variants to socket creation interfaces to handle timeouted
+	  operations
 
 LibU 2.1.0
 	- fix bug in configure when handling the inline keyword support

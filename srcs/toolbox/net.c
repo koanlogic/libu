@@ -270,6 +270,7 @@ err:
  *
  *  \param  a       a valid ::u_net_addr_t address, created by a previous
  *                  call to ::u_net_uri2addr 
+ *  \param  timeout maximum time to wait for connection
  *
  *  \return the created socket descriptor, or \c -1 on error.
  */ 
@@ -289,7 +290,7 @@ int u_net_sd_by_addr_ex (u_net_addr_t *a, struct timeval *timeout)
 }
 
 /**
- *  \brief  ::u_net_sd_by_addr_ex wrapper with no timeout
+ *  \brief  Wrapper to ::u_net_sd_by_addr_ex() with no timeout
  */ 
 int u_net_sd_by_addr (u_net_addr_t *a)
 {
@@ -303,6 +304,7 @@ int u_net_sd_by_addr (u_net_addr_t *a)
  *  \param  uri     an URI string
  *  \param  mode    one of ::U_NET_CSOCK (connected) or ::U_NET_SSOCK (passive)
  *  \param  opts    set of OR'd <code>U_NET_OPT_*</code> bits
+ *  \param  timeout maximum time to wait for connection
  *
  *  \return the newly created socket descriptor, or \c -1 on error.
  */ 
@@ -339,7 +341,7 @@ err:
 }
 
 /**
- *  \brief  ::u_net_sd_ex wrapper with no timeout
+ *  \brief  Wrapper to ::u_net_sd_ex() with no timeout
  */ 
 int u_net_sd (const char *uri, u_net_mode_t mode, int opts)
 {
@@ -465,7 +467,7 @@ err:
     return s;
 }
 
-/** \brief  connect(2) wrapper that handles \c EINTR */
+/** \brief  Wrapper to ::u_connect_ex with no timeout   */
 int u_connect (int sd, const struct sockaddr *addr, u_socklen_t addrlen)
 {
     return u_connect_ex(sd, addr, addrlen, NULL);
@@ -476,7 +478,8 @@ int u_connect (int sd, const struct sockaddr *addr, u_socklen_t addrlen)
  *
  *  Timeouted connect(2) wrapper that handles \c EINTR.
  *  Upon successful completion, the underlying select(2) function may 
- *  modify the object pointed to by the \p timeout argument. 
+ *  modify the object pointed to by the \p timeout argument, so it's safer
+ *  to explicitly reinitialize it for subsequent use.
  *
  *  \param  sd      socket descriptor
  *  \param  addr    address of the peer
@@ -543,7 +546,6 @@ int u_connect_ex (int sd, const struct sockaddr *addr, u_socklen_t addrlen,
     /* Ok, if we reached here we're almost done, just peek at SO_ERROR to
      * check if there is any pending error on the socket. */
     dbg_err_sif (u_getsockopt(sd, SOL_SOCKET, SO_ERROR, &rc, &rc_len) == -1);
-
     if (rc)
     {
         errno = rc;
