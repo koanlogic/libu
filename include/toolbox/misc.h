@@ -53,6 +53,17 @@ extern "C" {
 #define U_SSTRCPY(to, from) u_sstrncpy((to), (from), sizeof(to) - 1)
 #define u_unused_args(...) u_use_unused_args(NULL, __VA_ARGS__)
 
+#define u_timersub(t1, t0, delta)                           \
+    do {                                                    \
+        (delta)->tv_sec = (t1)->tv_sec - (t0)->tv_sec;      \
+        (delta)->tv_usec = (t1)->tv_usec - (t0)->tv_usec;   \
+        if ((delta)->tv_usec < 0)                           \
+        {                                                   \
+            (delta)->tv_sec--;                              \
+            (delta)->tv_usec += 1000000;                    \
+        }                                                   \
+} while ((delta)->tv_usec >= 1000000)
+
 /** \brief  Prototype for an I/O driver function used by ::u_io, e.g. \c read(2)
  *          or \c write(2) */
 typedef ssize_t (*iof_t) (int, void *, size_t);
@@ -85,7 +96,7 @@ ssize_t u_write (int fd, void *buf, size_t size);
 void u_strtok_cleanup (char **tv, size_t nelems);
 void u_trim (char *s);
 void u_use_unused_args (char *dummy, ...);
-void* u_memdup (const void *src, size_t size);
+void *u_memdup (const void *src, size_t size);
 
 /* depreacated interfaces */
 int u_tokenize (char *wlist, const char *delim, char **tokv, size_t tokv_sz) \

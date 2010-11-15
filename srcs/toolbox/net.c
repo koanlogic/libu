@@ -9,7 +9,9 @@
 #include <string.h>
 #include <strings.h>
 
+#include <toolbox/carpal.h>
 #include <toolbox/net.h>
+#include <toolbox/misc.h>
 
 #ifdef HAVE_GETADDRINFO
 typedef struct addrinfo u_addrinfo_t;
@@ -95,6 +97,8 @@ typedef struct u_net_scheme_map_s u_net_scheme_map_t;
 
 static int scheme_mapper (const char *scheme, u_net_scheme_map_t *map);
 static int uri2addr (u_uri_t *u, u_net_scheme_map_t *m, u_net_addr_t *a);
+static inline int update_timeout (struct timeval *timeout, 
+        struct timeval *tstart);
 
 /**
     \defgroup net Networking
@@ -477,9 +481,9 @@ int u_connect (int sd, const struct sockaddr *addr, u_socklen_t addrlen)
  *  \brief  timeouted connect(2) wrapper that handles \c EINTR
  *
  *  Timeouted connect(2) wrapper that handles \c EINTR.
- *  Upon successful completion, the underlying select(2) function may 
- *  modify the object pointed to by the \p timeout argument, so it's safer
- *  to explicitly reinitialize it for subsequent use.
+ *  In case the underlying select(2) is interrupted by a trapped signal, 
+ *  the object pointed to by the \p timeout argument may be modified, so it's 
+ *  safer to explicitly reinitialize it for any subsequent use.
  *
  *  \param  sd      socket descriptor
  *  \param  addr    address of the peer
@@ -497,6 +501,7 @@ int u_connect_ex (int sd, const struct sockaddr *addr, u_socklen_t addrlen,
 {
     int rc;
     u_socklen_t rc_len = sizeof rc;
+    struct timeval tstart;
     fd_set writefds;
 
     dbg_return_if (sd < 0, -1);
@@ -504,7 +509,10 @@ int u_connect_ex (int sd, const struct sockaddr *addr, u_socklen_t addrlen,
     dbg_return_if (addrlen == 0, -1);
 
     if (timeout)
+    {
         dbg_err_if (u_net_set_nonblocking(sd));
+        dbg_err_sif (gettimeofday(&tstart, NULL) == -1);
+    }
    
     /* Open Group Base Specifications:
      *  "If connect() is interrupted by a signal that is caught while blocked 
@@ -518,9 +526,9 @@ int u_connect_ex (int sd, const struct sockaddr *addr, u_socklen_t addrlen,
     nop_return_if ((rc = connect(sd, addr, addrlen)) == 0, 0);
     dbg_err_sif (errno != EINTR && errno != EINPROGRESS);
 
-    /* When the connection has been established asynchronously, select() and 
-     * poll() shall indicate that the file descriptor for the socket is ready 
-     * for writing. */
+    /* "When the connection has been established asynchronously, select() and 
+     *  poll() shall indicate that the file descriptor for the socket is ready 
+     *  for writing." */
     FD_ZERO(&writefds);
     FD_SET(sd, &writefds);
 
@@ -541,6 +549,10 @@ int u_connect_ex (int sd, const struct sockaddr *addr, u_socklen_t addrlen,
         /* Unless interrupted by a cought signal (in which case select() is
          * re-entered), bail out. */
         dbg_err_sif (rc == -1 && errno != EINTR);
+
+        /* When interrupted, recalculate timeout value. */
+        if (timeout)
+            dbg_err_if (update_timeout(timeout, &tstart));
     }
 
     /* Ok, if we reached here we're almost done, just peek at SO_ERROR to
@@ -1407,3 +1419,27 @@ err:
 }
 
 #endif  /* HAVE_GETADDRINFO */
+
+static inline int update_timeout (struct timeval *timeout, 
+        struct timeval *tstart)
+{
+    struct timeval now, telapsed;
+
+    dbg_return_if (timeout == NULL, ~0);
+    dbg_return_if (tstart == NULL, ~0);
+
+    dbg_err_sif (gettimeofday(&now, NULL) == -1);
+
+    /* Time elapsed since last interrupt or first call to select(). */
+    u_timersub(&now, tstart, &telapsed);
+
+    /* Update timeout value by subtracting the elapsed interval. */
+    u_timersub(timeout, &telapsed, timeout);
+
+    /* Assign new tstart value. */
+    *tstart = now;
+
+    return 0;
+err:
+    return ~0;
+}

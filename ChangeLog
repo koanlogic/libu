@@ -8,6 +8,7 @@ LibU X.Y.Z
 	- [net] fix u_connect buggy behaviour on EINTR (reported by Mickael Auger)
 	- [net] add _ex variants to socket creation interfaces to handle timeouted
 	  operations
+	- [hmap] header cleanup: remove object and policy struct's explicit layout.
 
 LibU 2.1.0
 	- fix bug in configure when handling the inline keyword support

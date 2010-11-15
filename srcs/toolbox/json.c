@@ -670,7 +670,7 @@ void u_json_print (u_json_t *jo)
 int u_json_index (u_json_t *jo)
 {
     size_t u;   /* Unused. */
-    u_hmap_opts_t opts;
+    u_hmap_opts_t *opts = NULL;
     u_hmap_t *hmap = NULL;
 
     dbg_return_if (jo == NULL, ~0);
@@ -678,10 +678,11 @@ int u_json_index (u_json_t *jo)
     dbg_return_if (jo->parent, ~0); /* Cache can be created on top-objs only. */
 
     /* Create the associative array. */
-    u_hmap_opts_init(&opts);
-    dbg_err_if (u_hmap_opts_set_val_type(&opts, U_HMAP_OPTS_DATATYPE_POINTER));
-    dbg_err_if (u_hmap_opts_set_val_freefunc(&opts, nopf));
-    dbg_err_if (u_hmap_easy_new(&opts, &hmap));
+    dbg_err_if (u_hmap_opts_new(&opts));
+    dbg_err_if (u_hmap_opts_set_val_type(opts, U_HMAP_OPTS_DATATYPE_POINTER));
+    dbg_err_if (u_hmap_opts_set_val_freefunc(opts, nopf));
+    dbg_err_if (u_hmap_easy_new(opts, &hmap));
+    opts = NULL;
 
     /* Initialize array elems' indexing. */
     jo->icur = 0;
@@ -694,6 +695,8 @@ int u_json_index (u_json_t *jo)
 
     return 0;
 err:
+    if (opts)
+        u_hmap_opts_free(opts);
     if (hmap)
         u_hmap_easy_free(hmap);
     return ~0;

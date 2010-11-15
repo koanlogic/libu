@@ -622,15 +622,17 @@ static int u_pwd_need_reload (u_pwd_t *pwd)
 
 static int u_pwd_db_new (u_pwd_t *pwd)
 {
-    u_hmap_opts_t hopts;
+    u_hmap_opts_t *hopts = NULL;
 
     dbg_err_if (pwd == NULL);
 
-    u_hmap_opts_init(&hopts);
-    dbg_err_if (u_hmap_opts_set_val_freefunc(&hopts, &__hmap_pwd_rec_free));
+    dbg_err_if (u_hmap_opts_new(&hopts));
+    dbg_err_if (u_hmap_opts_set_val_freefunc(hopts, &__hmap_pwd_rec_free));
             
-    return u_hmap_easy_new(&hopts, &pwd->db);
+    return u_hmap_easy_new(hopts, &pwd->db);
 err:
+    if (hopts)
+        u_hmap_opts_free(hopts);
     return ~0;
 }
 

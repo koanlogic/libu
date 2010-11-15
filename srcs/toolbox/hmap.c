@@ -9,6 +9,8 @@
 #include <toolbox/memory.h>
 #include <toolbox/carpal.h>
 #include <toolbox/hmap.h>
+#include <toolbox/queue.h>
+#include <toolbox/str.h>
 #include <toolbox/misc.h>
 
 /* default limits handled by policies */
@@ -22,6 +24,16 @@ enum {
     U_HMAP_PCY_OP_GET = 0x2
 };
 
+/* policy queue object */
+struct u_hmap_q_s 
+{
+    void *key;
+    void *o;
+
+    TAILQ_ENTRY(u_hmap_q_s) next;
+};
+typedef struct u_hmap_q_s u_hmap_q_t;
+
 /* hmap policy representation */
 struct u_hmap_pcy_s 
 {
@@ -33,6 +45,58 @@ struct u_hmap_pcy_s
     TAILQ_HEAD(u_hmap_q_h_s, u_hmap_q_s) queue;
 };
 typedef struct u_hmap_q_h_s u_hmap_q_h_t;
+
+/* hmap element object */
+struct u_hmap_o_s 
+{
+    void *key;
+    void *val;
+
+    LIST_ENTRY(u_hmap_o_s) next;
+
+    u_hmap_q_t *pqe; 
+
+    u_hmap_t *hmap;         
+};
+
+/* Map options */
+struct u_hmap_opts_s 
+{
+    size_t size,            /**< approximate size of hashmap array */
+           max;             /**< maximum number of elements in hmap -
+                             only applies to hmaps with discard policy */
+
+    u_hmap_type_t type;         /**< type of hashmap */
+
+    u_hmap_pcy_type_t policy;   /**< discard policy (disabled by default) */
+
+    int options;                /**< see definitions for U_HMAP_OPTS_* */ 
+
+    u_hmap_options_datatype_t key_type;         /**< type of key */     
+    u_hmap_options_datatype_t val_type;         /**< type of value */     
+
+    size_t key_sz;                      /* size of key (if OPAQUE) */
+    size_t val_sz;                      /* size of value (if OPAQUE) */
+                              
+    /** hash function to be used in hashhmap */
+    size_t (*f_hash)(const void *key, size_t buckets);   
+    /** function for key comparison */
+    int (*f_comp)(const void *k1, const void *k2);   
+    /** function for freeing an object */
+    void (*f_free)(u_hmap_o_t *obj);   
+    /** function for freeing a key */
+    void (*f_key_free)(const void *key);   
+    /** function for freeing a value */
+    void (*f_val_free)(void *val);   
+    /** function to get a string representation of a (key, val) object */
+    u_string_t *(*f_str)(u_hmap_o_t *obj);   
+
+    unsigned char easy;         /**< whether simplified interface is active
+                                  (internal) */ 
+    unsigned char val_free_set; /**< whether value free function has been set -
+                                  used in easy interface to force the call
+                                  (internal) */ 
+};
 
 /* hmap representation */
 struct u_hmap_s 
@@ -525,7 +589,7 @@ void u_hmap_free (u_hmap_t *hmap)
         __q_o_free(data);
     }
 
-    u_free(hmap->opts);
+    u_hmap_opts_free(hmap->opts);
     u_free(hmap);
 
     return;
@@ -877,6 +941,18 @@ void u_hmap_o_free (u_hmap_o_t *obj)
     dbg_ifb (obj == NULL) return;
 
     u_free(obj);
+}
+
+/** \brief  Access the key of the hmap element pointed to by \p obj. */
+void *u_hmap_o_get_key (u_hmap_o_t *obj)
+{
+    return obj->key;
+}
+
+/** \brief  Access the value of the hmap element pointed to by \p obj. */
+void *u_hmap_o_get_val (u_hmap_o_t *obj)
+{
+    return obj->val;
 }
 
 /* Free a data object including content (only if U_HMAP_OPTS_OWNSDATA) */
