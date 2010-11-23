@@ -8,3 +8,5 @@
     * http://chubot.org/json-template/test-cases/
 
 - add time-constrained tests + TIMEOUTED exit status
+
+- json: improve error reporting (context++)

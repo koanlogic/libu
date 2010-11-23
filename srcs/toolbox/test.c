@@ -15,6 +15,15 @@
 #include <toolbox/misc.h>
 #include <toolbox/test.h>
 
+#if defined(HAVE_WAIT3) || defined(HAVE_WAIT)
+  #include <sys/wait.h>
+#endif  /* HAVE_WAIT3 || HAVE_WAIT */
+#ifdef HAVE_STRUCT_RUSAGE
+  #include <sys/resource.h>
+#endif  /* HAVE_STRUCT_RUSAGE */
+#if defined(HAVE_FORK)
+  #define U_TEST_SANDBOX_ENABLED  1
+#endif  /* HAVE_FORK */
 #ifdef HAVE_UNAME
   #include <sys/utsname.h>
 #endif  /* HAVE_UNAME */

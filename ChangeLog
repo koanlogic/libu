@@ -9,6 +9,7 @@ LibU X.Y.Z
 	- [net] add _ex variants to socket creation interfaces to handle timeouted
 	  operations
 	- [hmap] header cleanup: remove object and policy struct's explicit layout.
+	- [test] fix conditional include logics that enables sandboxing
 
 LibU 2.1.0
 	- fix bug in configure when handling the inline keyword support

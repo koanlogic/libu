@@ -16,18 +16,6 @@ extern "C" {
  *  \{
  */ 
 
-#if defined(HAVE_FORK)
-  #define U_TEST_SANDBOX_ENABLED    1
-  #if defined(HAVE_WAIT3) && defined(HAVE_STRUCT_RUSAGE)
-    #include <sys/wait.h>
-    #include <sys/resource.h>
-  #elif defined(HAVE_WAIT)
-    #include <sys/wait.h>
-  #else
-    #undef U_TEST_SANDBOX_ENABLED
-  #endif
-#endif
-
 struct u_test_case_s;
 struct u_test_suite_s;
 struct u_test_s;
