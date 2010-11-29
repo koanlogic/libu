@@ -4,12 +4,13 @@ ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
 LibU X.Y.Z
 	- [array] #undef 'I' (imaginary unit) when including complex.h to avoid
-	  name clash -- e.g. openssl/rsa.h
+	  name clash -- e.g. with openssl/rsa.h
 	- [net] fix u_connect buggy behaviour on EINTR (reported by Mickael Auger)
 	- [net] add _ex variants to socket creation interfaces to handle timeouted
 	  operations
-	- [hmap] header cleanup: remove object and policy struct's explicit layout.
+	- [hmap] header cleanup: remove object and policy struct's explicit layout
 	- [test] fix conditional include logics that enables sandboxing
+	- [str] don't rely on calloc for initialization of str object internal vars
 
 LibU 2.1.0
 	- fix bug in configure when handling the inline keyword support
