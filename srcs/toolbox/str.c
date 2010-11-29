@@ -243,8 +243,11 @@ int u_string_create (const char *buf, size_t len, u_string_t **ps)
 
     dbg_return_if (ps == NULL, ~0);
 
-    dbg_err_sif ((s = u_zalloc(sizeof(u_string_t))) == NULL);
+    dbg_err_sif ((s = u_malloc(sizeof(u_string_t))) == NULL);
 
+    s->data_sz = 0;
+    s->data_len = 0;
+    s->shift_cnt = 0;
     s->data = null;
 
     if (buf)
