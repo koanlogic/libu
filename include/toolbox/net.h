@@ -41,6 +41,8 @@
   #include <winsock2.h>
   #include <ws2tcpip.h>
 
+  #define EINPROGRESS   WSAEWOULDBLOCK
+  #define ETIMEDOUT     WSAETIMEDOUT
   #define EAFNOSUPPORT  WSAEAFNOSUPPORT
 #endif  /* OS_WIN */
 
