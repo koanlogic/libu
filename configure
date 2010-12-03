@@ -107,7 +107,6 @@ makl_checkfunc          0   "link"          2   ""  "<unistd.h>"
 makl_checkfunc          0   "unlink"        1   ""  "<unistd.h>"
 makl_checkfunc          0   "sleep"         1   ""  "<unistd.h>"
 makl_checkfunc          0   "mkstemps"      2   ""  "<unistd.h>"
-makl_checkfunc          0   "tempnam"       2   ""  "<stdio.h>"
 makl_checkfunc          0   "setenv"        3   ""  "<stdlib.h>"
 makl_checkfunc          0   "mmap"          6   ""  "<sys/types.h>" \
                                                     "<sys/mman.h>"
