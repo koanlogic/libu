@@ -109,6 +109,9 @@ endif
 ifndef HAVE_SETENV
     SRCS += missing/setenv.c
 endif
+ifndef HAVE_TEMPNAM
+    SRCS += missing/tempnam.c
+endif
 
 include lib.mk
 
