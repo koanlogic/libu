@@ -3,6 +3,7 @@ $Id: ChangeLog,v 1.111 2010/06/01 20:26:45 tho Exp $
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
 LibU X.Y.Z
+	- [net] disable u_net_nagle_off() on Minix
 	- [array] #undef 'I' (imaginary unit) when including complex.h to avoid
 	  name clash -- e.g. with openssl/rsa.h
 	- [net] fix u_connect buggy behaviour on EINTR (reported by Mickael Auger)

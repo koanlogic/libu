@@ -704,7 +704,7 @@ err:
  */ 
 int u_net_nagle_off (int s)
 {
-#ifdef HAVE_TCP_NODELAY
+#if defined(HAVE_TCP_NODELAY) && !defined(__minix)
     int y = 1;
 
     dbg_return_if (s < 0, ~0);
@@ -714,11 +714,11 @@ int u_net_nagle_off (int s)
     return 0;
 err:
     return ~0;
-#else   /* !HAVE_TCP_NODELAY */
+#else   /* !HAVE_TCP_NODELAY || __minix */
     u_unused_args(s);
     u_dbg("TCP_NODELAY not supported on this platform");
     return 0;
-#endif  /* HAVE_TCP_NODELAY */
+#endif  /* HAVE_TCP_NODELAY && !__minix */
 }
 
 /** \brief  Wrapper to inet_ntop(3) */
