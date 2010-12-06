@@ -53,11 +53,12 @@ void vsyslog(int priority, const char *fmt, va_list ap)
     return;
 }
 
-#elif defined(OS_MINIX)
+#else   /* !OS_WIN */
 
 #include <stdarg.h>
 #include <stdio.h>
 
+/* Try with this as last resort (MINIX and QNX for SH target will be glad). */
 void vsyslog(int priority, const char *fmt, va_list args)
 {
     char buf[1024];
@@ -68,9 +69,7 @@ void vsyslog(int priority, const char *fmt, va_list args)
     return;
 }
 
-#else   /* !OS_WIN && !OS_MINIX */
-    #error "We don't have a vsyslog(3) implementation for this platform"
-#endif
+#endif  /* OS_WIN */
 
 #else   /* HAVE_VSYSLOG */
 
