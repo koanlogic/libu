@@ -501,7 +501,7 @@ int u_connect_ex (int sd, const struct sockaddr *addr, u_socklen_t addrlen,
 {
     int rc;
     u_socklen_t rc_len = sizeof rc;
-    struct timeval tstart;
+    struct timeval tstart, tcopy, *ptcopy = timeout ? &tcopy : NULL;
     fd_set writefds;
 
     dbg_return_if (sd < 0, -1);
@@ -534,9 +534,17 @@ int u_connect_ex (int sd, const struct sockaddr *addr, u_socklen_t addrlen,
 
     for (;;)
     {
+        /* On Linux, select() also modifies timeout if the call is 
+         * interrupted by a signal handler (i.e., the EINTR error return).
+         * We have to take care of this non-POSIX Linux feature by making a 
+         * copy of the original timeout value, so that, on EINTR, it can be 
+         * correctly re-computed by update_timeout(). */
+        if (timeout)
+            tcopy = *timeout;
+
         /* Try repeatedly to select the socket descriptor for a write 
          * condition to happen. */
-        if ((rc = select(sd + 1, NULL, &writefds, NULL, timeout)) > 0)
+        if ((rc = select(sd + 1, NULL, &writefds, NULL, ptcopy)) > 0)
             break;
 
         /* Timeout: jump to err. */
