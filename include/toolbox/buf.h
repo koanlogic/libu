@@ -40,6 +40,7 @@ int u_buf_set (u_buf_t *buf, const void *data, size_t size);
 ssize_t u_buf_len (u_buf_t *buf);
 ssize_t u_buf_size (u_buf_t *ubuf);
 void *u_buf_ptr (u_buf_t *buf);
+int u_buf_shrink(u_buf_t *ubuf, size_t newlen);
 
 /**
  *  \}

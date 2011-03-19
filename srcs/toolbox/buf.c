@@ -287,6 +287,31 @@ void *u_buf_ptr (u_buf_t *ubuf)
 }
 
 /**
+ *  \brief  Removes bytes from the tail of the buffer
+ *
+ *  Set the new length of the buffer; \p newlen must be less or equal to the
+ *  current buffer length.
+ *
+ *  \param  ubuf    a previously allocated buffer object
+ *  \param  newlen     new length of the buffer
+ *
+ *  \return 
+ *  \retval  0  on success
+ *  \retval ~0  on error
+ */
+int u_buf_shrink(u_buf_t *ubuf, size_t newlen)
+{
+    dbg_err_if (ubuf == NULL);
+    dbg_err_if (newlen > ubuf->len);
+
+    ubuf->len = newlen;
+
+    return 0;
+err:
+    return ~0;
+}
+
+/**
  *  \brief  Free a buffer
  *
  *  Release all resources and free the given buffer object.
@@ -361,6 +386,7 @@ err:
     va_end(ap);
     return ~0;
 }
+
 
 /**
  *  \brief  Create a new buffer
