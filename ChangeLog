@@ -5,7 +5,8 @@ ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 LibU X.Y.Z
 	- [buf] u_buf_shrink added
 	- [net] fix u_connect_ex timeout re-computation on EINTR to take care
-	  of Linux non-POSIX compliant behaviour
+	  of Linux non-POSIX compliant behaviour; also check the updated timeout 
+	  value after EINTR to catch corner case underflow conditions.
 	- [net] disable u_net_nagle_off() on Minix
 	- [array] #undef 'I' (imaginary unit) when including complex.h to avoid
 	  name clash -- e.g. with openssl/rsa.h

@@ -560,7 +560,16 @@ int u_connect_ex (int sd, const struct sockaddr *addr, u_socklen_t addrlen,
 
         /* When interrupted, recalculate timeout value. */
         if (timeout)
+        {
             dbg_err_if (update_timeout(timeout, &tstart));
+
+            /* Handle corner case. */
+            if (timeout->tv_sec < 0)
+            {
+                errno = ETIMEDOUT;
+                goto err;
+            }
+        }
     }
 
     /* Ok, if we reached here we're almost done, just peek at SO_ERROR to
