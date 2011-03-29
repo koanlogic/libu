@@ -62,7 +62,7 @@ extern "C" {
             (delta)->tv_sec--;                              \
             (delta)->tv_usec += 1000000;                    \
         }                                                   \
-} while ((delta)->tv_usec >= 1000000)
+     } while (0)
 
 /** \brief  Prototype for an I/O driver function used by ::u_io, e.g. \c read(2)
  *          or \c write(2) */
