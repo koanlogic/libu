@@ -567,7 +567,7 @@ int u_connect_ex (int sd, const struct sockaddr *addr, u_socklen_t addrlen,
             if (timeout->tv_sec < 0)
             {
                 errno = ETIMEDOUT;
-                goto err;
+                dbg_err("negative timeout on socket %d.", sd);
             }
         }
     }
