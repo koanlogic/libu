@@ -31,7 +31,7 @@
 
 #include <missing/daemon.h>
 
-#ifndef OS_WIN
+#if !defined(OS_WIN) && defined(HAVE_FORK)
 
 #ifndef _PATH_DEVNULL
 #define _PATH_DEVNULL "/dev/null"
@@ -74,4 +74,12 @@ int daemon(int nochdir, int noclose)
 	return (0);
 }
 
-#endif
+#else   /* OS_WIN || !HAVE_FORK */
+
+int daemon(int nochdir, int noclose)
+{
+    u_unused_args(nochdir, noclose);
+    u_warn("daemon(3) not implemented: fork(2) is not available on target OS");
+    return -1;
+}
+#endif  /* !OS_WIN && HAVE_FORK */
