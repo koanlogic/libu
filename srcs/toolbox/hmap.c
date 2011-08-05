@@ -169,14 +169,13 @@ static const char *__datatype2str(u_hmap_options_datatype_t datatype);
  *      interface:
  *
  *      \code
- *          u_hmap_opts_t opts;
+ *          u_hmap_opts_t *opts = NULL;
  *          u_hmap_t *hmap = NULL;
  *          
- *          u_hmap_opts_init(&opts);
- *              
- *          dbg_err_if (u_hmap_easy_new(&opts, &hmap));
- *          dbg_err_if (u_hmap_opts_set_val_type(&opts, 
+ *          dbg_err_if (u_hmap_opts_new(&opts));
+ *          dbg_err_if (u_hmap_opts_set_val_type(opts,
  *                          U_HMAP_OPTS_DATATYPE_STRING));
+ *          dbg_err_if (u_hmap_easy_new(opts, &hmap));
  *          
  *          dbg_err_if (u_hmap_easy_put(hmap, "jack", (const void *) ":S"));
  *          dbg_err_if (u_hmap_easy_put(hmap, "jill", (const void *) ":)))"));
@@ -184,8 +183,9 @@ static const char *__datatype2str(u_hmap_options_datatype_t datatype);
  *          u_con("jack is %s and jill is %s", 
  *              (const char *) u_hmap_easy_get(hmap, "jack"),
  *              (const char *) u_hmap_easy_get(hmap, "jill"));
- *          
- *          u_hmap_easy_free(hmap);
+ *      err:
+ *          U_FREEF(hmap, u_hmap_easy_free);
+ *          U_FREEF(opts, u_hmap_opts_free);
  *      \endcode
  *      
  *      As illustrated by the example above, keys are always strings in the easy
