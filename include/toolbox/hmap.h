@@ -77,6 +77,7 @@ int u_hmap_easy_new (u_hmap_opts_t *opts, u_hmap_t **phmap);
 int u_hmap_easy_put (u_hmap_t *hmap, const char *key, const void *val); 
 void *u_hmap_easy_get (u_hmap_t *hmap, const char *key); 
 int u_hmap_easy_del (u_hmap_t *hmap, const char *key); 
+void u_hmap_easy_clear (u_hmap_t *hmap);
 void u_hmap_easy_free (u_hmap_t *hmap);
 
 /* [u_hmap_*] */
@@ -85,6 +86,7 @@ int u_hmap_put (u_hmap_t *hmap, u_hmap_o_t *obj, u_hmap_o_t **old);
 int u_hmap_get (u_hmap_t *hmap, const void *key, u_hmap_o_t **obj);
 int u_hmap_del (u_hmap_t *hmap, const void *key, u_hmap_o_t **obj);
 int u_hmap_copy (u_hmap_t *to, u_hmap_t *from);
+void u_hmap_clear (u_hmap_t *hmap);
 void u_hmap_free (u_hmap_t *hmap);
 int u_hmap_foreach (u_hmap_t *hmap, int f(const void *val));
 int u_hmap_foreach_keyval (u_hmap_t *hmap, int f(const void *key, 

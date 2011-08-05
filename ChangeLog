@@ -15,7 +15,7 @@ LibU X.Y.Z
 	- [net] add _ex variants to socket creation interfaces to handle timeouted
 	  operations
 	- [hmap] header cleanup: remove object and policy struct's explicit layout ;
-	  missing u_hmap_opts_free() calls in test/
+	  added u_hmap_{easy_,}clear() ; missing u_hmap_opts_free() calls in test/
 	- [test] fix conditional include logics that enables sandboxing
 	- [str] don't rely on calloc for initialization of str object internal vars
 

@@ -271,6 +271,20 @@ err:
 }
 
 /**
+ * \brief   Clear hmap
+ *
+ * See u_hmap_clear().
+ *
+ * \param   hmap      hmap object
+ */
+void u_hmap_easy_clear (u_hmap_t *hmap)
+{
+    dbg_ifb (hmap == NULL) return;
+
+    u_hmap_clear(hmap);
+}
+
+/**
  * \brief   Deallocate hmap 
  * 
  * Deallocate \p hmap along with all hmapd objects. Objects are freed by using
@@ -554,15 +568,14 @@ err:
 }
 
 /**
- * \brief   Deallocate hmap
+ * \brief   Clear hmap
  * 
- * Deallocate \p hmap along with all hmapd objects (unless U_HMAP_OPTS_OWNSDATA
- * is set). Objects are freed via free() by default or using the custom
- * deallocation function passed in the hmap options. 
+ * Clears all hmap elements. Objects are freed via free() by default or using
+ * the custom deallocation function passed in the hmap options.
  * 
  * \param   hmap      hmap object
  */
-void u_hmap_free (u_hmap_t *hmap)
+void u_hmap_clear (u_hmap_t *hmap)
 {
     u_hmap_o_t *obj;
     u_hmap_q_t *data;
@@ -580,19 +593,31 @@ void u_hmap_free (u_hmap_t *hmap)
         }
     }
 
-    u_free(hmap->hmap);
-
     /* free the policy queue */
     while ((data = TAILQ_FIRST(&hmap->pcy.queue)) != NULL) 
     {
         TAILQ_REMOVE(&hmap->pcy.queue, data, next);
         __q_o_free(data);
     }
+}
 
+/**
+ * \brief   Deallocate hmap
+ *
+ * Deallocate \p hmap along with all hmapd objects (unless U_HMAP_OPTS_OWNSDATA
+ * is set). Objects are freed via free() by default or using the custom
+ * deallocation function passed in the hmap options. 
+ *
+ * \param   hmap      hmap object
+ */
+void u_hmap_free (u_hmap_t *hmap)
+{
+    dbg_ifb (hmap == NULL) return;
+
+    u_hmap_clear(hmap);
+    u_free(hmap->hmap);
     u_hmap_opts_free(hmap->opts);
     u_free(hmap);
-
-    return;
 }
 
 /**
