@@ -9,26 +9,30 @@ static u_string_t *__sample_str(u_hmap_o_t *obj);
 
 static int example_easy_basic (u_test_case_t *tc)
 {
-      u_hmap_opts_t *opts = NULL;
-      u_hmap_t *hmap = NULL;
-      
-      dbg_err_if (u_hmap_opts_new(&opts));
-      dbg_err_if (u_hmap_opts_set_val_type(opts, U_HMAP_OPTS_DATATYPE_STRING));
-          
-      dbg_err_if (u_hmap_easy_new(opts, &hmap));
-      
-      dbg_err_if (u_hmap_easy_put(hmap, "jack", (const void *) ":S"));
-      dbg_err_if (u_hmap_easy_put(hmap, "jill", (const void *) ":)))"));
-      
-      u_test_case_printf(tc, "jack is %s and jill is %s",
-          (const char *) u_hmap_easy_get(hmap, "jack"),
-          (const char *) u_hmap_easy_get(hmap, "jill"));
-      
-      u_hmap_easy_free(hmap);
+    u_hmap_opts_t *opts = NULL;
+    u_hmap_t *hmap = NULL;
 
-      return U_TEST_SUCCESS;
+    dbg_err_if (u_hmap_opts_new(&opts));
+    dbg_err_if (u_hmap_opts_set_val_type(opts, U_HMAP_OPTS_DATATYPE_STRING));
+      
+    dbg_err_if (u_hmap_easy_new(opts, &hmap));
+
+    dbg_err_if (u_hmap_easy_put(hmap, "jack", (const void *) ":S"));
+    dbg_err_if (u_hmap_easy_put(hmap, "jill", (const void *) ":)))"));
+
+    u_test_case_printf(tc, "jack is %s and jill is %s",
+      (const char *) u_hmap_easy_get(hmap, "jack"),
+      (const char *) u_hmap_easy_get(hmap, "jill"));
+
+    u_hmap_easy_free(hmap);
+    u_hmap_opts_free(opts);
+
+    return U_TEST_SUCCESS;
 err:
-      return U_TEST_FAILURE;
+    U_FREEF(hmap, u_hmap_easy_free);
+    U_FREEF(opts, u_hmap_opts_free);
+
+    return U_TEST_FAILURE;
 }
 
 static int example_easy_static (u_test_case_t *tc)
@@ -92,10 +96,12 @@ static int example_easy_static (u_test_case_t *tc)
     
     /* free hmap (options and elements are freed automatically) */
     u_hmap_easy_free(hmap);
+    u_hmap_opts_free(opts);
 
     return U_TEST_SUCCESS;
 err:
     U_FREEF(hmap, u_hmap_easy_free);
+    U_FREEF(opts, u_hmap_opts_free);
 
     return U_TEST_FAILURE;
 }
@@ -172,10 +178,12 @@ static int example_easy_dynamic (u_test_case_t *tc)
     
     /* internal objects freed automatically using custom function */
     u_hmap_easy_free(hmap);
+    u_hmap_opts_free(opts);
 
     return U_TEST_SUCCESS;
 err:
     U_FREEF(hmap, u_hmap_easy_free);
+    U_FREEF(opts, u_hmap_opts_free);
 
     return U_TEST_FAILURE;
 }
@@ -201,10 +209,6 @@ static u_string_t *__sample_str(u_hmap_o_t *obj)
 
     int key = *((int *) u_hmap_o_get_key(obj));
     char *val = (char *) u_hmap_o_get_val(obj);
-//    int *kp = u_hmap_o_get_key(obj);
-//    char *vp = u_hmap_o_get_val(obj);
-//    int key = *kp;
-//    char val = *vp;
 
     dbg_err_if (u_snprintf(buf, MAX_OBJ_STR, "[%d:%s]", key, val));
     dbg_err_if (u_string_create(buf, strlen(buf)+1, &s));
@@ -266,10 +270,12 @@ static int example_easy_opaque (u_test_case_t *tc)
 
     /* free hmap (options and elements are freed automatically) */
     u_hmap_easy_free(hmap);
+    u_hmap_opts_free(opts);
 
     return U_TEST_SUCCESS;
 err:
     U_FREEF(hmap, u_hmap_free);
+    U_FREEF(opts, u_hmap_opts_free);
 
     return U_TEST_FAILURE;
 }
@@ -326,10 +332,12 @@ static int example_static (u_test_case_t *tc)
 
     /* free hmap and options */
     u_hmap_free(hmap);
+    u_hmap_opts_free(opts);
     
     return U_TEST_SUCCESS;
 err:
     U_FREEF(hmap, u_hmap_free);
+    U_FREEF(opts, u_hmap_opts_free);
 
     return U_TEST_FAILURE;
 }
@@ -379,11 +387,13 @@ static int example_dynamic_own_hmap (u_test_case_t *tc)
 
     /* free hmap (options and elements are freed automatically) */
     u_hmap_free(hmap);
+    u_hmap_opts_free(opts);
 
     return U_TEST_SUCCESS;
 
 err:
     U_FREEF(hmap, u_hmap_free);
+    U_FREEF(opts, u_hmap_opts_free);
 
     return U_TEST_FAILURE;
 }
@@ -459,11 +469,13 @@ static int example_dynamic_own_user (u_test_case_t *tc)
 
     /* free hmap (options and elements are freed automatically) */
     u_hmap_free(hmap);
+    u_hmap_opts_free(opts);
 
     return U_TEST_SUCCESS;
 
 err:
     U_FREEF(hmap, u_hmap_free);
+    U_FREEF(opts, u_hmap_opts_free);
 
     return U_TEST_FAILURE;
 }
@@ -512,10 +524,12 @@ static int example_types_custom (u_test_case_t *tc)
     }
 
     u_hmap_free(hmap);
+    u_hmap_opts_free(opts);
 
     return U_TEST_SUCCESS;
 err:
     U_FREEF(hmap, u_hmap_free);
+    U_FREEF(opts, u_hmap_opts_free);
 
     return U_TEST_FAILURE;
 }
@@ -550,11 +564,13 @@ static int test_resize (u_test_case_t *tc)
     }
 
     u_hmap_easy_free(hmap);
+    u_hmap_opts_free(opts);
     
     return U_TEST_SUCCESS;
 
 err:
     U_FREEF(hmap, u_hmap_easy_free);
+    U_FREEF(opts, u_hmap_opts_free);
 
     return U_TEST_FAILURE;
 }
@@ -590,11 +606,13 @@ static int test_linear (u_test_case_t *tc)
     }
 
     u_hmap_easy_free(hmap);
+    u_hmap_opts_free(opts);
     
     return U_TEST_SUCCESS;
 
 err:
     U_FREEF(hmap, u_hmap_easy_free);
+    U_FREEF(opts, u_hmap_opts_free);
 
     return U_TEST_FAILURE;
 }
@@ -638,11 +656,12 @@ static int test_scope (u_test_case_t *tc)
     }
 
     u_hmap_easy_free(hmap);
+    u_hmap_opts_free(opts);
 
     return U_TEST_SUCCESS;
 err:
-    if (hmap)
-        u_hmap_easy_free(hmap);
+    U_FREEF(hmap, u_hmap_easy_free);
+    U_FREEF(opts, u_hmap_opts_free);
 
     return U_TEST_FAILURE;
 }
