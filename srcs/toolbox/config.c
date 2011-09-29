@@ -61,8 +61,8 @@ static char *u_config_buf_gets (void *arg, char *buf, size_t size);
         sections and parameter assignements.
         
         A section begins with the name of the section - which can't contain
-        whitespaces - is followed by a \c '{' and continues until the 
-        corresponding \c '}' is found.  
+        whitespaces - is followed by a \c '{' (which must be on a line by 
+        itself) and continues until the corresponding \c '}' is found.  
         
         Sections can contain other sections or parameter assignements of the 
         form:
