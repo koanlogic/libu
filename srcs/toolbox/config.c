@@ -234,7 +234,7 @@ err:
 void u_config_print_to_fp (u_config_t *c, FILE *fp, int lev)
 {
 #define U_CONFIG_INDENT(fp, l)  \
-    do { int i; for(i = 1; i < l; ++i) fputs("  ", fp); } while (0);
+    do { int i; for(i = 1; i < l; ++i) fputs("\t", fp); } while (0);
 
     u_config_t *item;
 
@@ -244,7 +244,12 @@ void u_config_print_to_fp (u_config_t *c, FILE *fp, int lev)
      * equivalence to the dumped object (included key/val's are already 
      * there) */
     if (c->key && strcmp(c->key, "include"))
-        fprintf(fp, "%s  %s\n", c->key, c->value == NULL ? "" : c->value);
+    {
+        fprintf(fp, "%s", c->key);
+        if (c->value != NULL) 
+            fprintf(fp, "\t%s", c->value);
+        fputs("\n", fp);
+    }
 
     ++lev;
 
