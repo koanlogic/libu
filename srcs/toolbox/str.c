@@ -406,9 +406,9 @@ err:
 }
 
 /**
- *  \brief  Set the string from sprintf-style arguments
+ *  \brief  Set the string from printf-style arguments
  *
- *  Set an ::u_string_t object \p s from the sprintf-style arguments \p fmt
+ *  Set an ::u_string_t object \p s from the printf-style arguments \p fmt
  *
  *  \param  s   an ::u_string_t object
  *  \param  fmt printf-style format
@@ -430,7 +430,7 @@ int u_string_sprintf (u_string_t *s, const char *fmt, ...)
 }
 
 /**
- *  \brief  Set the string from sprintf-style arguments
+ *  \brief  Append to the string the supplied printf-style arguments
  *
  *  Append the format string \p fmt to the supplied ::u_string_t object \p s 
  *
