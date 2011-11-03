@@ -143,6 +143,13 @@ typedef enum {
 
 } u_net_opts_t;
 
+#ifdef HAVE_GETADDRINFO
+typedef struct addrinfo u_addrinfo_t;
+#else
+struct u_addrinfo_s;
+typedef struct u_addrinfo_s u_addrinfo_t;
+#endif  /* HAVE_GETADDRINFO */
+
 /** \brief ::u_io specialisation for output ops */
 #define u_net_write(sd, buf, nbytes, nw, iseof) \
     u_io((iof_t) write, sd, buf, nbytes, nw, iseof)
