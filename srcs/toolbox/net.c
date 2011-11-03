@@ -60,6 +60,7 @@ static int resolv_sun (const char *dummy1, const char *dummy2, const char *path,
 static int ai_resolv (const char *host, const char *port, const char *path,
         int family, int type, int proto, int passive, u_addrinfo_t **pai);
 
+#ifndef HAVE_GETADDRINFO
 static int resolv_sin (const char *host, const char *port, const char *dummy, 
         u_addrinfo_t *ai); 
 #ifndef NO_IPV6
@@ -67,6 +68,7 @@ static int resolv_sin6 (const char *host, const char *port, const char *dummy,
         u_addrinfo_t *ai);
 #endif  /* !NO_IPV6 */
 static int resolv_port (const char *s_port, uint16_t *pin_port);
+#endif  /* !HAVE_GETADDRINFO */
 
 /* socket creation horses */
 static int do_sock (
@@ -1198,6 +1200,7 @@ static int ai_resolv (const char *host, const char *port, const char *path,
         int family, int type, int proto, int passive, u_addrinfo_t **pai)
 {
     int e;
+    const char *hostname, *servname;
     struct addrinfo hints, *ai = NULL;
 
     /* 'host', 'port' and 'path' check depend on 'family' */
@@ -1217,22 +1220,8 @@ static int ai_resolv (const char *host, const char *port, const char *path,
     /* 
      * Handle '*' for both host and port.
      */
-    if (!strcmp(host, "*") || !strcmp(port, "*"))
-    {
-        switch (family)
-        {
-            case AF_INET:
-                return do_resolv(resolv_sin, host, port, NULL, family, type, 
-                        proto, pai);
-#ifndef NO_IPV6
-            case AF_INET6:
-                return do_resolv(resolv_sin6, host, port, NULL, family, type, 
-                        proto, pai);
-#endif  /* !NO_IPV6 */
-            default:
-                u_warn("wildcard unsupported for non-IP addresses");
-        } 
-    }
+    hostname = !strcmp(host, "*") ? NULL : host;
+    servname = !strcmp(port, "*") ? NULL : port;
 
     memset(&hints, 0, sizeof hints);
 
@@ -1243,7 +1232,7 @@ static int ai_resolv (const char *host, const char *port, const char *path,
     hints.ai_socktype = type;
     hints.ai_protocol = proto;
 
-    switch ((e = getaddrinfo(host, port, &hints, &ai)))
+    switch ((e = getaddrinfo(hostname, servname, &hints, &ai)))
     {
         case 0:             /* ok */
             break;
@@ -1289,8 +1278,6 @@ static int ai_resolv (const char *host, const char *port, const char *path,
             dbg_return_ifm (1, ~0, "address family not supported");
     }
 }
-
-#endif  /* HAVE_GETADDRINFO */
 
 static int resolv_sin (const char *host, const char *port, 
         const char *dummy, u_addrinfo_t *ai)
@@ -1449,7 +1436,7 @@ static int resolv_port (const char *s_port, uint16_t *pin_port)
 err:
     return ~0;
 }
-
+#endif  /* HAVE_GETADDRINFO */
 
 static inline int update_timeout (struct timeval *timeout, 
         struct timeval *tstart)
