@@ -764,13 +764,13 @@ const char *u_inet_ntop (int af, const void *src, char *dst, u_socklen_t len)
 }
 
 /** \brief  Pretty print the given sockaddr (path, or address and port) */
-const char *u_sa_ntop (const struct sockaddr *sa, char *dst, size_t dst_len)
+const char *u_sa_ntop (const struct sockaddr *sa, char *d, size_t dlen)
 {
     char a[256];    /* should be big enough for UNIX sock pathnames */
 
     dbg_err_if (sa == NULL);
-    dbg_err_if (dst == NULL);
-    dbg_err_if (dst_len == 0);
+    dbg_err_if (d == NULL);
+    dbg_err_if (dlen == 0);
 
     switch (sa->sa_family)
     {
@@ -778,7 +778,7 @@ const char *u_sa_ntop (const struct sockaddr *sa, char *dst, size_t dst_len)
         {
             const struct sockaddr_in *s4 = (const struct sockaddr_in *) sa;
             dbg_err_if (!u_inet_ntop(AF_INET, &s4->sin_addr, a, sizeof a));
-            dbg_if (u_snprintf(dst, dst_len, "%s:%d", a, ntohs(s4->sin_port)));
+            dbg_if (u_snprintf(d, dlen, "%s:%d", a, ntohs(s4->sin_port)));
             break;
         }
 #ifndef NO_IPV6
@@ -786,7 +786,7 @@ const char *u_sa_ntop (const struct sockaddr *sa, char *dst, size_t dst_len)
         {
             const struct sockaddr_in6 *s6 = (const struct sockaddr_in6 *) sa;
             dbg_err_if (!u_inet_ntop(AF_INET6, &s6->sin6_addr, a, sizeof a));
-            dbg_if (u_snprintf(dst, dst_len, "%s:%d", a, ntohs(s6->sin6_port)));
+            dbg_if (u_snprintf(d, dlen, "[%s]:%d", a, ntohs(s6->sin6_port)));
             break;
         }
 #endif  /* !NO_IPV6 */
@@ -794,7 +794,7 @@ const char *u_sa_ntop (const struct sockaddr *sa, char *dst, size_t dst_len)
         case AF_UNIX:
         {
             const struct sockaddr_un *su = (const struct sockaddr_un *) sa;
-            dbg_if (u_strlcpy(dst, su->sun_path, dst_len));
+            dbg_if (u_strlcpy(d, su->sun_path, dlen));
             break;
         }
 #endif  /* !NO_UNIXSOCK */
@@ -802,7 +802,7 @@ const char *u_sa_ntop (const struct sockaddr *sa, char *dst, size_t dst_len)
             dbg_err("unhandled socket type");
     }
 
-    return dst;
+    return d;
 err:
     return "(sockaddr conversion failed)";
 }
