@@ -3,10 +3,11 @@
 include common.mk
 
 PROG = uconfig
-SRCS = main.c
+#SRCS = main.c
+SRCS = conf.c
 
 CFLAGS += -ggdb -DDEBUG
-CFLAGS += -W -Wall
+CFLAGS += -W -Wall -Wextra
 CFLAGS += -I../../include
 #LDFLAGS += -L../../srcs -lu
 LDADD += ../../srcs/libu.a

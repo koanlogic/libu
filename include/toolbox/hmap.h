@@ -7,7 +7,7 @@
 
 #include <sys/types.h>
 #include <u/libu_conf.h>
-#include <toolbox/str.h>
+#include <u/toolbox/str.h>
 
 #ifdef __cplusplus
 extern "C" {
