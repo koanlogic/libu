@@ -3,8 +3,7 @@
 include common.mk
 
 PROG = uconfig
-#SRCS = main.c
-SRCS = conf.c
+SRCS = main.c
 
 CFLAGS += -ggdb -DDEBUG
 CFLAGS += -W -Wall -Wextra
