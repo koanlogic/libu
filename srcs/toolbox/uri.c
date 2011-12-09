@@ -15,6 +15,7 @@
 /* Internal representation of an URI value. */
 struct u_uri_s
 {
+    unsigned int opts, flags;
     char scheme[U_TOKEN_SZ];
     char userinfo[U_TOKEN_SZ];
     char user[U_TOKEN_SZ], pwd[U_TOKEN_SZ];
@@ -24,7 +25,6 @@ struct u_uri_s
     char path[U_TOKEN_SZ];
     char query[U_TOKEN_SZ];
     char fragment[U_TOKEN_SZ];
-    int opts;
 };
 
 static int u_uri_parser (u_lexer_t *l, u_uri_opts_t opts, u_uri_t **pu);
@@ -253,6 +253,7 @@ int u_uri_new (u_uri_opts_t opts, u_uri_t **pu)
     warn_err_sif (u == NULL);
 
     u->opts = opts;
+    u->flags = U_URI_FLAGS_NONE;
     dbg_err_if (u_uri_set_path(u, "/"));    /* path is mandatory, so we set
                                                default value here */
     *pu = u;
@@ -307,6 +308,8 @@ U_URI_GETSET_F(authority)
 U_URI_GETSET_F(path)
 U_URI_GETSET_F(query)
 U_URI_GETSET_F(fragment)
+
+u_uri_flags_t u_uri_get_flags (u_uri_t *uri) { return uri->flags; }
 
 /**
  *  \}
@@ -456,7 +459,10 @@ static int u_uri_parse_host (u_lexer_t *l, u_uri_t *u)
     u_lexer_record_lmatch(l);
 
     if (u_uri_ipv4address_first(l))
+    {
         warn_err_if (u_uri_parse_ipv4address(l));
+        u->flags |= U_URI_FLAGS_HOST_IS_IPADDRESS;
+    }
     else if (u_uri_regname_first(l))
         warn_err_if (u_uri_parse_regname(l));
     else if (u_uri_ipliteral_first(l))
@@ -464,6 +470,7 @@ static int u_uri_parse_host (u_lexer_t *l, u_uri_t *u)
         /* Both left and right pointers are handled inside the ipliteral
          * parser as it must take care (i.e. skip) for '[' and ']'. */
         warn_err_if (u_uri_parse_ipliteral(l));
+        u->flags |= U_URI_FLAGS_HOST_IS_IPADDRESS;
         inner_match = 1;
     }
 

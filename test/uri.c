@@ -7,6 +7,7 @@ static int test_uri_parser (u_test_case_t *tc);
 /* shall match struct u_uri_s */
 typedef struct 
 {
+    unsigned int flags;
     const char *scheme, *user, *pwd, *host, *port, *path, *query;
 } u_uri_exp_t;
 
@@ -20,6 +21,7 @@ static int test_uri_parser (u_test_case_t *tc)
         { 
             "tcp4://www.kame.net:http/index.html",
             {
+                .flags = U_URI_FLAGS_NONE,
                 .scheme = "tcp4",
                 .user = NULL,
                 .pwd = NULL,
@@ -31,6 +33,7 @@ static int test_uri_parser (u_test_case_t *tc)
         { 
             "http://wiki.koanlogic.com/doku.php?id=libu",
             {
+                .flags = U_URI_FLAGS_NONE,
                 .scheme = "http",
                 .user = NULL,
                 .pwd = NULL,
@@ -43,6 +46,7 @@ static int test_uri_parser (u_test_case_t *tc)
         { 
             "http://[2001:200::8002:203:47ff:fea5:3085]:80/index.html",
             {
+                .flags = U_URI_FLAGS_HOST_IS_IPADDRESS,
                 .scheme = "http",
                 .user = NULL,
                 .pwd = NULL,
@@ -88,6 +92,7 @@ static int test_uri_parser (u_test_case_t *tc)
         CHECK_EXP_MSG(host);
         CHECK_EXP_MSG(port);
         CHECK_EXP_MSG(path);
+        u_test_err_if (u_uri_get_flags(u) != vt[i].ex.flags);
 
         u_uri_free(u), u = NULL;
     }

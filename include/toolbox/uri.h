@@ -33,6 +33,17 @@ typedef enum
     /**< do not try to split user":"password in userinfo */
 } u_uri_opts_t;
 
+/** \brief  Flags set by the parsing machinery. */
+typedef enum
+{
+    U_URI_FLAGS_NONE = 0x00,
+    /**< use default parsing algorithm */
+
+    U_URI_FLAGS_HOST_IS_IPADDRESS = 0x01,
+    /**< host is in IP-literal or IPv4address format (otherwise assume 
+     *   reg-name.) */
+} u_uri_flags_t;
+
 /** \brief  Base type for all URI operations */
 typedef struct u_uri_s u_uri_t;
 
@@ -81,6 +92,9 @@ int u_uri_set_host (u_uri_t *uri, const char *val);
 
 /** \brief  Get the port value from the supplied \p uri */
 const char *u_uri_get_port (u_uri_t *uri);
+
+/** \brief  Get flags set by the parser (if any.) */
+u_uri_flags_t u_uri_get_flags (u_uri_t *uri);
 
 /** \brief  Set the port value to \p val on the supplied \p uri */
 int u_uri_set_port (u_uri_t *uri, const char *val);
