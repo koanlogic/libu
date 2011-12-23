@@ -1761,12 +1761,14 @@ void u_hmap_dbg (u_hmap_t *hmap)
 
     dbg_ifb (hmap == NULL) return;
 
-    u_dbg ("<hmap>");
     for (i = 0; i < hmap->size; ++i) 
     {
+        if (LIST_FIRST(&hmap->hmap[i]) == NULL)
+            continue;
+
         dbg_ifb (u_string_create("", 1, &s)) return;
         dbg_err_if (u_string_clear(s));
-        dbg_err_if (u_string_append(s, "|", 1));
+        dbg_err_if (u_string_aprintf(s, "%5d ", i));
 
         LIST_FOREACH(obj, &hmap->hmap[i], next) 
         {
@@ -1780,11 +1782,9 @@ void u_hmap_dbg (u_hmap_t *hmap)
                 u_string_free(st);
             }
         } 
-        dbg_err_if (u_string_append(s, "|", 1));
         u_dbg(u_string_c(s));
         dbg_ifb (u_string_free(s)) return;
     }
-    u_dbg("</hmap>");
 
     return;
 err:
