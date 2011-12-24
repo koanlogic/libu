@@ -20,8 +20,10 @@ LibU X.Y.Z
 	- [net] add _ex variants to socket creation interfaces to handle timeouted
 	  operations
 	- [net] ai_resolv fix: don't ask for AI_CANONNAME when hostname is NULL
-	- [hmap] header cleanup: remove object and policy struct's explicit layout;
-	  added u_hmap_{easy_,}clear() ; missing u_hmap_opts_free() calls in test/
+	- [hmap] new discard policy U_HMAP_PCY_CUSTOM which allows user to specify
+	  object comparison function via u_hmap_opts_set_policy_cmp() ; header
+	  cleanup: remove object and policy struct's explicit layout; added
+	  u_hmap_{easy_,}clear() ; missing u_hmap_opts_free() calls in test/
 	- [test] fix conditional include logics that enables sandboxing
 	- [str] don't rely on calloc for initialization of str object internal vars
 

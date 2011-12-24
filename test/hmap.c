@@ -534,12 +534,44 @@ err:
     return U_TEST_FAILURE;
 }
 
-/* turn on debug to view results
+static int is_vowel (char c)
+{
+    return (c == 'a' || c == 'A' ||
+            c == 'e' || c == 'E' ||
+            c == 'i' || c == 'I' ||
+            c == 'o' || c == 'o' ||
+            c == 'u' || c == 'U');
+}
 
-   FIFO: discard a, b
-   LRU: discard b, c
-   LFU: discard c, d
-*/
+/**
+ * Custom policy comparison function.
+ *
+ * In this example we define vowels to have higher priority than consonants.
+ */
+static int __pcy_custom_cmp (void *o1, void *o2)
+{
+    /* cast to original value data type */
+    const char *s1 = (const char *) o1;
+    const char *s2 = (const char *) o2;
+    char c1 = s1[0];
+    char c2 = s2[0];
+
+    if (is_vowel(c1) == is_vowel(c2))       /* same priority */
+        return 0;
+    else if (is_vowel(c1) > is_vowel(c2))   /* c1 has higher priority */
+        return 1;
+    else
+        return -1;                          /* c1 has lower priority */
+}
+
+/**
+ * Turn on debug to view results - should be something like:
+ *
+ * FIFO: discard a, b => (e, d, c)
+ * LRU: discard b, c => (e, d, a)
+ * LFU: discard c, b => (e, a, d)
+ * CUSTOM (defined above): discard b, c => (e, a, d)
+ */
 static int example_policies (u_test_case_t *tc)
 {
     u_hmap_opts_t *opts = NULL;
@@ -552,9 +584,12 @@ static int example_policies (u_test_case_t *tc)
 
         u_test_err_if (u_hmap_opts_new(&opts));
         u_test_err_if (u_hmap_opts_set_val_type(opts, U_HMAP_OPTS_DATATYPE_STRING));
+        u_test_err_if (u_hmap_opts_unset_option(opts, U_HMAP_OPTS_NO_OVERWRITE));
         u_test_err_if (u_hmap_opts_set_size(opts, 3));
         u_test_err_if (u_hmap_opts_set_max(opts, 3));
         u_test_err_if (u_hmap_opts_set_policy(opts, i));
+        if (i == U_HMAP_PCY_CUSTOM)
+            u_test_err_if (u_hmap_opts_set_policy_cmp(opts, __pcy_custom_cmp));
         u_test_err_if (u_hmap_easy_new(opts, &hmap));
 
         u_test_err_if (u_hmap_easy_put(hmap, "a", (const void *) "A"));
@@ -562,24 +597,35 @@ static int example_policies (u_test_case_t *tc)
         u_test_err_if (strcmp(u_hmap_easy_get(hmap, "b"), "B") != 0);
         u_test_err_if (strcmp(u_hmap_easy_get(hmap, "b"), "B") != 0);
         u_test_err_if (strcmp(u_hmap_easy_get(hmap, "b"), "B") != 0);
-        u_test_err_if (strcmp(u_hmap_easy_get(hmap, "b"), "B") != 0);
         u_test_err_if (u_hmap_easy_put(hmap, "c", (const void *) "C"));
 
-        u_test_err_if (strcmp(u_hmap_easy_get(hmap, "c"), "C") != 0);
+        u_test_err_if (strcmp(u_hmap_easy_get(hmap, "a"), "A") != 0);
         u_test_err_if (strcmp(u_hmap_easy_get(hmap, "a"), "A") != 0);
         u_test_err_if (strcmp(u_hmap_easy_get(hmap, "a"), "A") != 0);
         u_test_err_if (strcmp(u_hmap_easy_get(hmap, "a"), "A") != 0);
 
-        u_dbg("before policy");
-        u_hmap_dbg(hmap);
+        u_dbg("before any discards");
+        u_hmap_dbg(hmap); u_hmap_pcy_dbg(hmap);
 
         u_test_err_if (u_hmap_easy_put(hmap, "d", (const void *) "D"));
-        u_dbg("after policy 1");
-        u_hmap_dbg(hmap);
+        /* test overwrite of policies */
+        u_test_err_if (u_hmap_easy_put(hmap, "d", (const void *) "D2"));
+
+        u_dbg("after discard 1");
+        u_hmap_pcy_dbg(hmap);
+
+        u_test_err_if (strcmp(u_hmap_easy_get(hmap, "d"), "D2") != 0);
+        u_test_err_if (strcmp(u_hmap_easy_get(hmap, "d"), "D2") != 0);
+        u_test_err_if (strcmp(u_hmap_easy_get(hmap, "d"), "D2") != 0);
+        u_test_err_if (strcmp(u_hmap_easy_get(hmap, "d"), "D2") != 0);
+
+        u_dbg("after accesses");
+        u_hmap_pcy_dbg(hmap);
 
         u_test_err_if (u_hmap_easy_put(hmap, "e", (const void *) "E"));
-        u_dbg("after policy 2");
-        u_hmap_dbg(hmap);
+        u_dbg("after discard 2");
+
+        u_hmap_dbg(hmap); u_hmap_pcy_dbg(hmap);
 
         U_FREEF(hmap, u_hmap_easy_free);
         U_FREEF(opts, u_hmap_opts_free);
@@ -748,7 +794,7 @@ int test_suite_hmap_register (u_test_t *t)
                 example_dynamic_own_user, ts));
     con_err_if (u_test_case_register("Custom Handlers",
                 example_types_custom, ts));
-    con_err_if (u_test_case_register("Policies",
+    con_err_if (u_test_case_register("Discard Policies",
                 example_policies, ts));
 
     /* tests */

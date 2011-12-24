@@ -54,12 +54,35 @@ typedef enum {
 
 /** \brief Policies to discard hmap elements */
 typedef enum {
-    U_HMAP_PCY_NONE = 0,    /**< never discard old elements - 
-                                 grow if size is exceeded */
+/*
+ * Legend:
+ *
+ *      ()      pointer
+ *      {}      empty queue
+ *      []      queue object
+ *      ->,<-   push/pop direction
+ *      n       element number
+ *      t       time
+ *      a       accesses
+ *      p       priority
+ */
+    U_HMAP_PCY_NONE = 0,    /**< never discard old elements
+                                 (grow if threshold is exceeded) */
+                            /* queue: -> (front) {} (back) */
+
     U_HMAP_PCY_FIFO,    /**< discard entry inserted longest ago */
-    U_HMAP_PCY_LRU,     /**< discard least recently used */
-    U_HMAP_PCY_LFU,     /**< discard least frequently used */     
-    U_HMAP_PCY_LAST = U_HMAP_PCY_LFU 
+                        /* queue: -> (front) [n][n-1][n-2].. (back) ->  */
+
+    U_HMAP_PCY_LRU,     /**< discard least recently used (accessed) */
+                        /* queue: -> (front) [tn][tn-1][tn-2].. (back) -> */
+
+    U_HMAP_PCY_LFU,     /**< discard least frequently used (accessed) */
+                        /* queue: <-> (front) ..[a-2][a-1][a] (back) */
+
+    U_HMAP_PCY_CUSTOM,  /**< user policy via u_hmap_opts_set_policy_cmp() */
+                        /* queue: -> (front) [p][p-1][p-2].. (back) -> */
+
+    U_HMAP_PCY_LAST = U_HMAP_PCY_CUSTOM
 } u_hmap_pcy_type_t;
 
 #define U_HMAP_IS_PCY(p)    (p <= U_HMAP_PCY_LAST)
@@ -110,6 +133,8 @@ int u_hmap_opts_set_size (u_hmap_opts_t *opts, int sz);
 int u_hmap_opts_set_max (u_hmap_opts_t *opts, int max);
 int u_hmap_opts_set_type (u_hmap_opts_t *opts, u_hmap_type_t type);
 int u_hmap_opts_set_policy (u_hmap_opts_t *opts, u_hmap_pcy_type_t policy);
+int u_hmap_opts_set_policy_cmp (u_hmap_opts_t *opts,
+        int (*f_pcy_cmp)(void *o1, void *o2));
 int u_hmap_opts_set_val_freefunc (u_hmap_opts_t *opts, 
         void (*f_free)(void *val));
 int u_hmap_opts_set_val_type (u_hmap_opts_t *opts, 
