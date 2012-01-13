@@ -317,7 +317,8 @@ void u_hmap_easy_free (u_hmap_t *hmap)
  *      set with u_hmap_opts_set_val_sz()
  *
  * Values are not overwritten if a value already exists in the hmap for a given
- * \p key.
+ * \p key, unless U_HMAP_OPTS_NO_OVERWRITE is explicitly unset using
+ * u_hmap_opts_unset_option().
  * 
  * \param   hmap      hmap object
  * \param   key       key to be inserted 
@@ -625,8 +626,9 @@ void u_hmap_free (u_hmap_t *hmap)
  * 
  * Insert a (key, val) pair \p obj into \p hmap. Such object should be created
  * with u_hmap_o_new(). The user is responsible for allocation of keys and
- * values unless U_HMAP_OPTS_OWNSDATA is set. If a value is overwritten, the \p
- * old value is returned (only if data is owned by user).
+ * values unless U_HMAP_OPTS_OWNSDATA is set. If a value is overwritten
+ * (U_HMAP_OPTS_NO_OVERWRITE must be unset via u_hmap_opts_unset_option()) and
+ * data is owned by the user, the \p old value is returned.
  * 
  * \param   hmap      hmap object
  * \param   obj       key to be inserted 
