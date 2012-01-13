@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2005-2010 by KoanLogic s.r.l.
+ * Copyright (c) 2005-2012 by KoanLogic s.r.l.
  */
 
 #ifndef _U_PQUEUE_H_

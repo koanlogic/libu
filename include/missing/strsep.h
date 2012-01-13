@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2005-2010 by KoanLogic s.r.l. - All rights reserved.  
+ * Copyright (c) 2005-2012 by KoanLogic s.r.l. - All rights reserved.  
  */
 #ifndef _LIBU_STRSEP_H_
 #define _LIBU_STRSEP_H_

@@ -7,7 +7,7 @@ bits (in source or binary form), as long as you retain the copyright notices
 and the license's disclaimers of warranty:
 
 \code
-  LibU - Copyright (c) 2005-2010 by KoanLogic srl
+  LibU - Copyright (c) 2005-2012 by KoanLogic srl
   All rights reserved.
   ...
 \endcode
