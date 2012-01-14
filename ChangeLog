@@ -16,7 +16,8 @@ LibU X.Y.Z
 	- [net] fix u_connect buggy behaviour on EINTR (reported by Mickael Auger)
 	- [net] add _ex variants to socket creation interfaces to handle timeouted
 	  operations
-	- [hmap] header cleanup: remove object and policy struct's explicit layout ;
+	- [net] ai_resolv fix: don't ask for AI_CANONNAME when hostname is NULL
+	- [hmap] header cleanup: remove object and policy struct's explicit layout;
 	  added u_hmap_{easy_,}clear() ; missing u_hmap_opts_free() calls in test/
 	- [test] fix conditional include logics that enables sandboxing
 	- [str] don't rely on calloc for initialization of str object internal vars
