@@ -1226,7 +1226,7 @@ static int ai_resolv (const char *host, const char *port, const char *path,
     memset(&hints, 0, sizeof hints);
 
     hints.ai_flags = passive ? AI_PASSIVE : 0;
-    hints.ai_flags |= AI_CANONNAME;
+    hints.ai_flags |= hostname ? AI_CANONNAME : 0;
 
     hints.ai_family = family;
     hints.ai_socktype = type;
