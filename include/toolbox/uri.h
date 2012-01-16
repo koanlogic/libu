@@ -42,6 +42,11 @@ typedef enum
     U_URI_FLAGS_HOST_IS_IPADDRESS = 0x01,
     /**< host is in IP-literal or IPv4address format (otherwise assume 
      *   reg-name.) */
+
+    U_URI_FLAGS_HOST_IS_IPLITERAL = 0x02,
+    /**< host is in IP-literal.  User must set this flag if she wants to
+     *   correctly knead an IP-literal address, i.e. one surrounded by
+     *   square brackets. */
 } u_uri_flags_t;
 
 /** \brief  Base type for all URI operations */

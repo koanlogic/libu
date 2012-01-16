@@ -46,13 +46,40 @@ static int test_uri_parser (u_test_case_t *tc)
         { 
             "http://[2001:200::8002:203:47ff:fea5:3085]:80/index.html",
             {
-                .flags = U_URI_FLAGS_HOST_IS_IPADDRESS,
+                .flags = U_URI_FLAGS_HOST_IS_IPADDRESS | 
+                         U_URI_FLAGS_HOST_IS_IPLITERAL,
                 .scheme = "http",
                 .user = NULL,
                 .pwd = NULL,
                 .host = "2001:200::8002:203:47ff:fea5:3085",
                 .port = "80",
                 .path = "/index.html"
+            }
+        },
+        { 
+            "coap://[::1]/.well-known/core",
+            {
+                .flags = U_URI_FLAGS_HOST_IS_IPADDRESS |
+                         U_URI_FLAGS_HOST_IS_IPLITERAL,
+                .scheme = "coap",
+                .user = NULL,
+                .pwd = NULL,
+                .host = "::1",
+                .port = NULL,
+                .path = "/.well-known/core"
+            }
+        },
+        { 
+            "coaps://[::1]",
+            {
+                .flags = U_URI_FLAGS_HOST_IS_IPADDRESS |
+                         U_URI_FLAGS_HOST_IS_IPLITERAL,
+                .scheme = "coaps",
+                .user = NULL,
+                .pwd = NULL,
+                .host = "::1",
+                .port = NULL,
+                .path = NULL
             }
         },
         { 

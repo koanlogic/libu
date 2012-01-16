@@ -453,8 +453,6 @@ err:
 
 static int u_uri_parse_host (u_lexer_t *l, u_uri_t *u)
 {
-    int inner_match = 0;
-
     /* u_uri_parse_ipliteral() will override this. */
     u_lexer_record_lmatch(l);
 
@@ -467,15 +465,15 @@ static int u_uri_parse_host (u_lexer_t *l, u_uri_t *u)
         warn_err_if (u_uri_parse_regname(l));
     else if (u_uri_ipliteral_first(l))
     {
-        /* Both left and right pointers are handled inside the ipliteral
-         * parser as it must take care (i.e. skip) for '[' and ']'. */
+        /* The left pointer is handled inside the ipliteral parser as it must 
+         * take care (i.e. skip) of starting '['. */
         warn_err_if (u_uri_parse_ipliteral(l));
-        u->flags |= U_URI_FLAGS_HOST_IS_IPADDRESS;
-        inner_match = 1;
+
+        u->flags |= U_URI_FLAGS_HOST_IS_IPADDRESS | 
+                    U_URI_FLAGS_HOST_IS_IPLITERAL;
     }
 
-    if (!inner_match)
-        u_lexer_record_rmatch(l);
+    u_lexer_record_rmatch(l);
 
     (void) u_uri_adjust_greedy_match(l, u->host);
 
@@ -492,8 +490,18 @@ static int u_uri_adjust_greedy_match (u_lexer_t *l, char match[U_TOKEN_SZ])
     dbg_return_if (match == NULL, ~0);
 
     (void) u_lexer_get_match(l, match);
+    mlen = strlen(match);
 
-    mlen = u_lexer_eot(l) ? strlen(match) : strlen(match) - 1;
+    if (!u_lexer_eot(l))
+        --mlen;
+
+    /* Take care of the one-char-extra greedy match in case of IP-literal's.
+     * Please note that "This [Internet Protocol literal address] is the only 
+     * place where square bracket characters are allowed in the URI syntax",
+     * i.e. the following is safe as it doesn't impact no URI component other
+     * than the IP-literal. */
+    if (mlen && match[mlen - 1] == ']')
+        --mlen;
 
     match[mlen] = '\0';
 
@@ -522,8 +530,6 @@ static int u_uri_parse_ipliteral (u_lexer_t *l)
     /* We need to reach here with lexer cursor over the ']' char. */
     if ((c = u_lexer_peek(l)) != ']')
         U_LEXER_ERR(l, "Expect \']\', got \'%c\' instead.", c);
-
-    u_lexer_record_rmatch(l);
 
     /* Consume ending ']' and go out. */
     U_LEXER_NEXT(l, NULL);
@@ -867,7 +873,13 @@ static int u_uri_knead_authority (u_uri_t *u, char s[U_URI_STRMAX])
         dbg_err_if (u_strlcat(s, "@", U_URI_STRMAX));
     }
 
+    if (u->flags & U_URI_FLAGS_HOST_IS_IPLITERAL)
+        dbg_err_if (u_strlcat(s, "[", U_URI_STRMAX));
+
     dbg_err_if (u_strlcat(s, u->host, U_URI_STRMAX));
+
+    if (u->flags & U_URI_FLAGS_HOST_IS_IPLITERAL)
+        dbg_err_if (u_strlcat(s, "]", U_URI_STRMAX));
 
     if (strlen(u->port))
     {
