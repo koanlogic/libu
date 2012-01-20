@@ -1306,7 +1306,7 @@ static int resolv_sin (const char *host, const char *port,
         if (strspn(host, "0123456789.") != strlen(host)) /* !ipv4 dotted */
         {
             dbg_err_ifm ((hp = gethostbyname(host)) == NULL, 
-                    "%s: %s", host, hstrerror(h_errno));
+                    "%s: %d", host, h_errno);
             dbg_err_if (hp->h_addrtype != AF_INET);
             memcpy(&sin->sin_addr.s_addr, hp->h_addr, sizeof(in_addr_t));
         }
@@ -1368,7 +1368,7 @@ static int resolv_sin6 (const char *host, const char *port,
              * XXX reached here is because our platform is not that POSIX, 
              * XXX i.e. IPv6 is implemented but addrinfo is not available. */
             dbg_err_ifm ((hp = gethostbyname2(host, AF_INET6)) == NULL, 
-                    "%s: %s", host, hstrerror(h_errno));
+                    "%s: %d", host, h_errno);
             dbg_err_if (hp->h_addrtype != AF_INET6);
             dbg_err_if (hp->h_length != sizeof(struct in6_addr));
             memcpy(&sin6->sin6_addr, hp->h_addr, hp->h_length);
