@@ -853,6 +853,11 @@ static int u_uri_knead_authority (u_uri_t *u, char s[U_URI_STRMAX])
     dbg_return_if (strlen(u->host) == 0, ~0);
     dbg_return_if (s == NULL, ~0);
 
+    /* If host is IPv6 literal, automatically add the IPLITERAL flag.
+     * XXX Lousy test, we'd better parse it through u_uri_parse_ipliteral() */
+    if (strchr(u->host, ':'))
+        u->flags |= U_URI_FLAGS_HOST_IS_IPLITERAL;
+
     dbg_err_if (u_strlcat(s, "//", U_URI_STRMAX));
 
     if (strlen(u->userinfo))

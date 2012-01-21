@@ -3,20 +3,21 @@
 int test_suite_uri_register (u_test_t *t);
 
 static int test_uri_parser (u_test_case_t *tc);
+static int test_uri_builder (u_test_case_t *tc);
 
 /* shall match struct u_uri_s */
 typedef struct 
 {
     unsigned int flags;
-    const char *scheme, *user, *pwd, *host, *port, *path, *query;
-} u_uri_exp_t;
+    const char *scheme, *user, *pwd, *host, *port, *path, *query, *fragment;
+} u_uri_atoms_t;
 
 static int test_uri_parser (u_test_case_t *tc)
 {
     struct vt_s
     {
         const char *in;
-        u_uri_exp_t ex;
+        u_uri_atoms_t ex;
     } vt[] = {
         { 
             "tcp4://www.kame.net:http/index.html",
@@ -124,9 +125,82 @@ static int test_uri_parser (u_test_case_t *tc)
         u_uri_free(u), u = NULL;
     }
 
+#undef CHECK_EXP_MSG
+
     return U_TEST_SUCCESS;
 err:
     u_uri_free(u);
+    return U_TEST_FAILURE;
+}
+
+static int test_uri_builder (u_test_case_t *tc)
+{
+    struct vt_s
+    {
+        u_uri_atoms_t in;
+        const char *ex;
+    } vt[] = {
+        { 
+            .in = {
+                .scheme = "tcp4",
+                .user = NULL,
+                .pwd = NULL,
+                .host = "www.kame.net",
+                .port = "http",
+                .path = "/index.html",
+                .fragment = "overview"
+            },
+            .ex = "tcp4://www.kame.net:http/index.html#overview"
+        },
+        { 
+            .in = {
+                .scheme = "coap",
+                .user = NULL,
+                .pwd = NULL,
+                .host = "::1",
+                .port = NULL,
+                .path = "/.well-known/core"
+            },
+            .ex = "coap://[::1]/.well-known/core"
+        },
+        { .ex = NULL }
+    };
+
+    int i;
+    u_uri_t *u = NULL;
+
+#define SET_URI_ATOM(field) do {    \
+    if (vt[i].in.field != NULL)                                 \
+        u_test_err_if (u_uri_set_##field(u, vt[i].in.field));   \
+} while (0)
+
+    for (i = 0; vt[i].ex; i++)
+    {
+        char s[U_URI_STRMAX];
+
+        u_test_err_if (u_uri_new(0, &u));
+
+        SET_URI_ATOM(scheme);
+        SET_URI_ATOM(user);
+        SET_URI_ATOM(pwd);
+        SET_URI_ATOM(host);
+        SET_URI_ATOM(port);
+        SET_URI_ATOM(path);
+        SET_URI_ATOM(query);
+        SET_URI_ATOM(fragment);
+
+        u_test_err_if (u_uri_knead(u, s));
+        u_test_err_ifm (strcasecmp(s, vt[i].ex), "%s != %s", s, vt[i].ex);
+
+        u_uri_free(u), u = NULL;
+    }
+
+#undef SET_URI_ATOM
+
+    return U_TEST_SUCCESS;
+err:
+    if (u)    
+        u_uri_free(u);
     return U_TEST_FAILURE;
 }
 
@@ -137,6 +211,7 @@ int test_suite_uri_register (u_test_t *t)
     con_err_if (u_test_suite_new("URI", &ts));
 
     con_err_if (u_test_case_register("u_uri_crumble", test_uri_parser, ts));
+    con_err_if (u_test_case_register("u_uri_knead", test_uri_builder, ts));
 
     /* uri depends on the lexer module */
     con_err_if (u_test_suite_dep_register("Lexer", ts));
