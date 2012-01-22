@@ -2,7 +2,7 @@ $Id: ChangeLog,v 1.111 2010/06/01 20:26:45 tho Exp $
 
 ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
-LibU X.Y.Z
+LibU 2.2.0
 	- [uri] fix excessively greedy match in IP-literal parser when there is no
 	  path component; temp fix in URI builder to take care of IP-literal's
 	- [uri] the URI parser set flags while decoding (e.g. tell if the host
