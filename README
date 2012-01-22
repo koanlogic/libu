@@ -5,8 +5,8 @@ LibU needs http://koanlogic.com/makl to configure and build.
 The following commands should be sufficient to get MaKL installed on any Linux 
 flavour or Darwin/MacOSX:
 
-$ wget http://koanlogic.com/download/makl/makl-1.8.3.tar.gz
-$ tar zxf makl-1.8.3.tar.gz && cd makl-1.8.3
+$ wget http://koanlogic.com/download/makl/makl-${VERSION}.tar.gz
+$ tar zxf makl-${VERSION}.tar.gz && cd makl-${VERSION}
 $ sh configure.sh
 $ su 
 Password: ****
@@ -23,8 +23,8 @@ Once MaKL is there, you can start downloading the package (always check the
 official http://koanlogic.com/libu page for the latest version and related 
 ChangeLog) and tailor it to your specific needs:
 
-$ wget http://koanlogic.com/download/libu/libu-2.1.0.tar.gz
-$ tar zxf libu-2.1.0.tar.gz && cd libu-2.1.0
+$ wget http://koanlogic.com/download/libu/libu-${VERSION}.tar.gz
+$ tar zxf libu-${VERSION}.tar.gz && cd libu-${VERSION}
 
 
 == Configure ==
