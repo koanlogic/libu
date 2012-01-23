@@ -207,7 +207,9 @@ fi
 makl_set_var "INCDIR" "`makl_get_var_mk \"INCDIR\"`/u"
 
 # apply substitutions
-makl_file_sub "doc/doxy/libu.doxy"
+if [ -r "doc/doxy/libu.doxy.in" ]; then
+    makl_file_sub "doc/doxy/libu.doxy"
+fi
 
 # MaKL closing
 . "${MAKL_DIR}"/cf/makl.term
