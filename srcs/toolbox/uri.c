@@ -307,8 +307,12 @@ int u_uri_is_absolute(const char *uri)
     /* fragment is not allowed. */
     dbg_err_if ((p = u_uri_get_fragment(u)) != NULL && *p != '\0');
 
+    u_uri_free(u);
+
     return 1;
 err:
+    if (u)
+        u_uri_free(u);
     return 0;
 }
 
