@@ -63,6 +63,9 @@ int u_uri_knead (u_uri_t *u, char s[U_URI_STRMAX]);
 /* print u_uri_t internal state */
 void u_uri_print (u_uri_t *u, int extended);
 
+/* test if supplied URI is absolute (RFC3986, Section 4.3) */
+int u_uri_is_absolute(const char *uri);
+
 /* getter/setter methods for u_uri_t objects */
 
 /** \brief  Get the scheme value from the supplied \p uri */

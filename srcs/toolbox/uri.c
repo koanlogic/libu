@@ -279,6 +279,39 @@ void u_uri_free (u_uri_t *u)
     return;
 }
 
+/**
+ *  \brief  test if the supplied \p uri is absolute
+ *
+ *  Test if the supplied \p uri is absolute as per RFC3986, Section 4.3.
+ *
+ *  \param  uri the URI string to test
+ *
+ *  \return true if \p uri is absolute, false otherwise
+ */
+int u_uri_is_absolute(const char *uri)
+{
+    const char *p;
+    u_uri_t *u = NULL;
+
+    dbg_return_if (uri == NULL, -1);
+
+    dbg_err_if (u_uri_crumble(uri, 0, &u));
+
+    /* absolute-URI  = scheme ":" hier-part [ "?" query ] */
+
+    /* scheme must be there. */
+    dbg_err_if ((p = u_uri_get_scheme(u)) == NULL || *p == '\0');
+
+    /* hier-part is implicitly checked by u_uri_crumble(). */
+
+    /* fragment is not allowed. */
+    dbg_err_if ((p = u_uri_get_fragment(u)) != NULL && *p != '\0');
+
+    return 1;
+err:
+    return 0;
+}
+
 #define U_URI_GETSET_F(field)                                       \
 const char *u_uri_get_##field (u_uri_t *uri)                        \
 {                                                                   \
