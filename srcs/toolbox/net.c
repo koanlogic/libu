@@ -864,6 +864,9 @@ static int do_sock (
         u_info("could not %s %s", (wf == do_ssock) ? "bind" : "connect to", 
                 (wai->ai_family == AF_UNIX) ? wai->ai_canonname 
                 : u_sa_ntop(wai->ai_addr, h, sizeof h));
+
+        /* Leave errno trace to debug. */
+        dbg_strerror(errno);
     }
 
     return sd;
