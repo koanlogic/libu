@@ -635,7 +635,7 @@ err:
 #else
     u_unused_args(sd, lev, name, val, len);
     u_info("setsockopt not implemented on this platform");
-    return -1;
+    return 0;
 #endif  /* HAVE_SETSOCKOPT */
 }
 

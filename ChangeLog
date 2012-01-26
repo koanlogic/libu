@@ -4,6 +4,8 @@ ChangeLog file of LibU - http://www.koanlogic.com/libu/index.html
 
 LibU x.y.z
 	- [uri] add u_uri_is_absolute interface
+	- [net] be more tolerant with missing setsockopt() (was causing bind()
+			failures on some platforms)
 
 LibU 2.2.0
 	- [uri] fix excessively greedy match in IP-literal parser when there is no
