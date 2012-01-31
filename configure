@@ -70,7 +70,7 @@ esac
 makl_append_var_mk "CFLAGS" "-DHAVE_CONF_H -I`pwd`/include"
 
 # Binary dependencies
-makl_optional           1    "featx"   "doxygen"    "PATH_DOXYGEN"
+makl_optional           1    "featx"   "doxygen"
 
 ## Function dependencies
 makl_checktype          0   "long double"

@@ -74,8 +74,10 @@ static int u_config_remove_comment(u_string_t *line);
         The file is line-based, that is, each newline-terminated line 
         represents either a section name or a parameter assignement.  
         
-        Comments start from the hash sign (\c '#') and eat all the characters 
-        they encounter until the end of the line.
+        Comments start from the hash sign (\c '#') and eat all the chars 
+        they encounter until the end of the line, unless the \c '#' is escaped -
+        i.e. \c '\\#' - in which case it looses its special meaning and is
+        treated as a normal name or value. 
 
         Section and parameter names are case sensitive.
 
