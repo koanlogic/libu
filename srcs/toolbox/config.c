@@ -52,6 +52,7 @@ static int u_config_include (u_config_t *c, u_config_driver_t *drv,
 static void u_config_del_key (u_config_t *c, u_config_t *child);
 static int u_config_to_str (u_config_t *c, u_string_t *s);
 static char *u_config_buf_gets (void *arg, char *buf, size_t size);
+static int u_config_remove_comment(u_string_t *line);
 
 
 /**
@@ -1118,9 +1119,7 @@ static int u_config_do_load_drv (u_config_t *c, u_config_driver_t *drv,
 
     for(; cs_getline(drv->gets, arg, line) == 0; u_string_clear(line), ++lineno)
     {
-        /* remove comments if any */
-        if((p = strchr(u_string_c(line), '#')) != NULL)
-            dbg_err_if(u_string_set_length(line, p - u_string_c(line)));
+        dbg_err_if (u_config_remove_comment(line));
 
         /* remove leading and trailing blanks */
         dbg_err_if(u_string_trim(line));
@@ -1345,3 +1344,48 @@ static char *u_config_buf_gets (void *arg, char *buf, size_t size)
 err:
     return NULL;
 }
+
+static int u_config_remove_comment(u_string_t *line)
+{
+    char last, ln[2048], *p;
+
+    dbg_return_if (line == NULL, ~0);
+
+    dbg_err_if (u_strlcpy(ln, u_string_c(line), sizeof ln));
+
+    for (last = '\0', p = ln; *p != '\0'; )
+    {
+        if (*p == '#')
+        {
+            /* See if '#' was escaped. */
+            if (last != '\\')
+            {
+                *p = '\0';
+                break;
+            }
+            else
+            {
+                size_t rlen = strlen(p);
+
+                /* Save 'last' before memmove operation and implicitly unput
+                 * it (i.e. don't increment p) so that scanning can resume at
+                 * the right position. */
+                last = *p;
+
+                memmove(p - 1, p, rlen);
+                p[rlen - 1] = '\0';
+
+                continue;
+            }
+        }
+
+        last = *p++;
+    }
+
+    dbg_err_if (u_string_set(line, ln, strlen(ln)));
+
+    return 0;
+err:
+    return ~0;
+}
+
