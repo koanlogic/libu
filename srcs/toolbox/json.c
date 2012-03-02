@@ -682,7 +682,7 @@ int u_json_index (u_json_t *jo)
     dbg_err_if (u_hmap_opts_set_val_type(opts, U_HMAP_OPTS_DATATYPE_POINTER));
     dbg_err_if (u_hmap_opts_set_val_freefunc(opts, nopf));
     dbg_err_if (u_hmap_easy_new(opts, &hmap));
-    opts = NULL;
+    u_hmap_opts_free(opts), opts = NULL;
 
     /* Initialize array elems' indexing. */
     jo->icur = 0;
