@@ -7,6 +7,7 @@ LibU x.y.z
 	- [uri] add u_uri_is_absolute interface
 	- [net] be more tolerant with missing setsockopt() (was causing bind()
 			failures on some platforms)
+	- [json] fix a memory leak in the indexing interface
 
 LibU 2.2.0
 	- [uri] fix excessively greedy match in IP-literal parser when there is no
