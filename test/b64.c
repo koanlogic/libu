@@ -2,8 +2,6 @@
 
 int test_suite_b64_register (u_test_t *t);
 
-static int test_b64_codec (u_test_case_t *tc);
-
 static int test_b64_codec (u_test_case_t *tc)
 {
     struct 

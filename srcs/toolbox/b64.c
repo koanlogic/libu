@@ -41,19 +41,20 @@ static inline void chunk_decode (char in[4], uint8_t out[3]);
 /**
     \defgroup b64 Base64 codec
     \{
-        The \ref b64 module provides a couple of interfaces for handling 
-        the encoding and decoding of Base64 encoded data.
+        The \ref b64 module provides a couple of interfaces for performing 
+        encoding and decoding of Base64 data as defined by
+        <a href="http://www.ietf.org/rfc/rfc4627.txt">RFC 4648</a>.
  */
 
 /**
- *  \brief IN: binary data, OUT: B64 string (possibly NUL-terminated).
+ *  \brief  Encode binary data to Base64 string
  * 
- *  TODO
+ *  Encode binary data from \p in to Base64 string \p out
  * 
- *  \param  in      ...
- *  \param  in_sz   ...
- *  \param  out     ...
- *  \param  out_sz  ...
+ *  \param  in      Reference to the binary buffer to be encoded
+ *  \param  in_sz   Size in bytes of \p in
+ *  \param  out     Pre-allocated string of length U_B64_LENGTH(in_sz) + 1
+ *  \param  out_sz  U_B64_LENGTH(in_sz) + 1
  *
  *  \retval  0  on success
  *  \retval ~0  on failure
@@ -106,14 +107,16 @@ int u_b64_encode (const uint8_t *in, size_t in_sz, char *out, size_t out_sz)
 }
 
 /**
- *  \brief IN: B64 string (possibly NUL-terminated); OUT: binary data.
+ *  \brief  Decode Base64 encoded string to binary data
  * 
- *  TODO
+ *  Decode Base64 encoded string \p in to binary data \p out
  * 
- *  \param  in      ...
- *  \param  in_sz   ...
- *  \param  out     ...
- *  \param  out_sz  ...
+ *  \param  in      Reference to a Base64 encoded string
+ *  \param  in_sz   length of \p in in bytes (excluding the terminating \c NUL)
+ *  \param  out     Pre-allocated buffer of size approx as \p in_sz
+ *  \param  out_sz  Value-result argument initially containing the total
+ *                  size of \p out in bytes.  On successful return it
+ *                  holds the decoded buffer size.
  *
  *  \retval  0  on success
  *  \retval ~0  on failure
@@ -195,15 +198,5 @@ static inline void chunk_decode (char in[4], uint8_t out[3])
     out[0] = (val(in[0]) << 2) | (val(in[1]) >> 4);
     out[1] = ((val(in[1]) & 0x0f) << 4) | (val(in[2]) >> 2);
     out[2] = ((val(in[2]) & 0x03) << 6) | val(in[3]);
-}
-int u_remove(const char *file)
-{
-    dbg_return_if (file == NULL, ~0);
-
-    dbg_err_sif(unlink(file) < 0);
-
-    return 0;
-err:
-    return ~0;
 }
 

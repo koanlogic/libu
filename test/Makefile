@@ -32,6 +32,9 @@ endif
 ifndef NO_BST
     SRCS += bst.c
 endif
+ifndef NO_B64
+    SRCS += b64.c
+endif
 ifndef NO_JSON
     SRCS += json.c
     ifdef HAVE_ISFINITE

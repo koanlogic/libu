@@ -33,6 +33,9 @@ endif
 ifndef NO_FS
     SRCS += toolbox/fs.c
 endif
+ifndef NO_B64
+    SRCS += toolbox/b64.c
+endif
 ifndef NO_PWD
     ifdef NO_HMAP   # pwd needs hmap
         $(warning adding hmap module as a dependency to pwd)

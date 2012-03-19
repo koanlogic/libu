@@ -69,4 +69,9 @@
   #include <u/toolbox/json.h>
 #endif  /* !NO_JSON */
 
+#ifndef NO_B64
+  #include <u/toolbox/b64.h>
+#endif  /* !NO_B64 */
+
+
 #endif  /* !_LIBU_TOOLBOX_H_ */

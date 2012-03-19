@@ -5,7 +5,10 @@
 #ifndef _U_B64_H_
 #define _U_B64_H_
 
+#include <inttypes.h>
 #include <u/libu_conf.h>
+
+#define U_B64_LENGTH(inlen) ((((inlen) + 2) / 3) * 4)
 
 #ifdef __cplusplus
 extern "C" {

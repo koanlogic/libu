@@ -53,6 +53,9 @@ int main(int argc, char **argv)
 #ifndef NO_JSON
     con_err_if (test_suite_json_register(t));
 #endif  /* !NO_JSON */
+#ifndef NO_BST
+    con_err_if (test_suite_b64_register(t));
+#endif  /* !NO_BST */
 
     rc = u_test_run(argc, argv, t);
     u_test_free(t);
