@@ -622,7 +622,8 @@ void u_hmap_clear (u_hmap_t *hmap)
         while ((obj = LIST_FIRST(&hmap->hmap[i])) != NULL)
         {
             LIST_REMOVE(obj, next);
-            __o_free(hmap, obj);
+            if (hmap->opts->options & U_HMAP_OPTS_OWNSDATA)
+                __o_free(hmap, obj);
         }
     }
 
