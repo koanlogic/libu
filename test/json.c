@@ -26,6 +26,8 @@ static int test_codec (u_test_case_t *tc)
         "{ \"ascii\": \"This is an ASCII string.\" }",
         /* UNICODE String. */
         "{ \"unicode\": \"This is a \\uDEAD\\uBEEF.\" }",
+        /* UTF-8 String. */
+        "{ \"utf8\": \"蘊\" }",
         /* Integer. */ 
         "{ \"int\": 12439084123 }",
         /* Exp. */ 
