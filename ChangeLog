@@ -7,10 +7,13 @@ LibU x.y.z
 	- [config] '#' can be escaped
 	- [uri] add u_uri_is_absolute interface
 	- [net] be more tolerant with missing setsockopt() (was causing bind()
-			failures on some platforms)
+			failures on MinGW)
 	- [json] fix a memory leak in the indexing interface
 	- [hmap] fix bad free() in hmap_clear() when user owns data
 	- [queue] avoid complaints about redefined macros
+	- [str] fix inconsistency in u_string_detach_cstr which would impact
+	        also the json_encode interface in case an empty string was
+	        generated
 
 LibU 2.2.0
 	- [uri] fix excessively greedy match in IP-literal parser when there is no

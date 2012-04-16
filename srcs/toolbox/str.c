@@ -78,7 +78,7 @@ static int u_string_do_vprintf (u_string_t *, int, const char *, va_list);
  *
  *  \param  s   an ::u_string_t object
  *
- *  \retval a NUL-terminated C string
+ *  \retval a NUL-terminated C string, or NULL in case the string is empty
  */
 char *u_string_detach_cstr (u_string_t *s)
 {
@@ -86,7 +86,7 @@ char *u_string_detach_cstr (u_string_t *s)
 
     dbg_return_if (s == NULL, NULL);
 
-    tmp = s->data;
+    tmp = (s->data == null) ? NULL : s->data;
 
     u_free(s);
 
@@ -167,7 +167,7 @@ inline size_t u_string_len (u_string_t *s)
  *
  *  \param  s   an ::u_string_t object
  *
- *  \return the string value or \c NULL if the string is empty
+ *  \return the string value
  */
 inline const char *u_string_c (u_string_t *s)
 {

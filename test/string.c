@@ -11,6 +11,7 @@
 int test_suite_string_register (u_test_t *t);
 
 static int test_u_str (u_test_case_t *tc);
+static int test_emptiness (u_test_case_t *tc);
 
 static int test_u_str (u_test_case_t *tc)
 {
@@ -42,6 +43,23 @@ err:
     return U_TEST_FAILURE;
 }
 
+static int test_emptiness (u_test_case_t *tc)
+{
+    char *tmp;
+    u_string_t *s = NULL;
+
+    u_test_err_if (u_string_create(NULL, 0, &s));
+
+    /* Detach free's the parent string object whie the detached
+     * buffer is left untouched. */
+    u_test_err_ifm ((tmp = u_string_detach_cstr(s)) != NULL,
+            "an empty string should detach to a NULL pointer");
+
+    return U_TEST_SUCCESS;
+err:
+    return U_TEST_FAILURE;
+}
+
 int test_suite_string_register (u_test_t *t)
 {
     u_test_suite_t *ts = NULL;
@@ -49,6 +67,7 @@ int test_suite_string_register (u_test_t *t)
     con_err_if (u_test_suite_new("Strings", &ts));
 
     con_err_if (u_test_case_register("Various functions", test_u_str, ts));
+    con_err_if (u_test_case_register("Emptiness" , test_emptiness, ts));
 
     return u_test_suite_add(ts, t);
 err:
