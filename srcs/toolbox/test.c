@@ -290,7 +290,7 @@ struct u_test_rep_s txt_reps = {
        An \link test_report.xsl xsl file \endlink file - together with its twin
        \link test_report.css css \endlink - is provided in \c contrib/ as an 
        example to automatically build an HTML report page from the xml report 
-       file.  Let \c runtest produce an xml ouput and supply it to \c xsltproc
+       file.  Let \c runtest produce an xml output and supply it to \c xsltproc
        together with the xsl template:
     \code
     $ ./runtest -f xml -o my_test_report.xml
